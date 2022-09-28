@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+/.Rhistory
+/consensus.csv
+/cpdb_test.csv
+/requirements.txt
+/resource.pickle
+/start.ipynb
+/test.h5ad
