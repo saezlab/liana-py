@@ -12,8 +12,8 @@ def select_resource(resource_name='consensus'):
     return resource
 
 
-# Function to Decomplexify Resource
-def _explode_complexes(resource):
+# Function to explode complexes (decomplexify Resource)
+def explode_complexes(resource):
     resource['interaction'] = resource['ligand'] + '|' + resource['receptor']
     resource = (resource.set_index('interaction')
                 .apply(lambda x: x.str.split('_'))
@@ -25,3 +25,4 @@ def _explode_complexes(resource):
         'interaction'].str.split('|', expand=True)
 
     return resource
+

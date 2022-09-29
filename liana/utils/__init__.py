@@ -1,2 +1,2 @@
-from .pre import _check_if_covered
-from .pre import _check_mat
+from .pre import check_if_covered, check_mat, filter_resource, format_vars
+from .reassemble_complexes import reassemble_complexes

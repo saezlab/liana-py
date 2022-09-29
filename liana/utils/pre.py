@@ -3,7 +3,7 @@ from scipy.sparse import csr_matrix
 
 
 # Function to assert if elements are covered at a decent proportion
-def _check_if_covered(
+def check_if_covered(
         subset,
         superset,
         subset_name="features",
@@ -15,7 +15,7 @@ def _check_if_covered(
     subset = np.asarray(subset)
     is_missing = ~np.isin(subset, superset)
     prop_missing = np.sum(is_missing) / len(subset)
-    x_missing = ",".join([x for x in subset[is_missing]])
+    x_missing = " ,".join([x for x in subset[is_missing]])
 
     if prop_missing > prop_missing_allowed:
         msg = (
@@ -24,11 +24,12 @@ def _check_if_covered(
         )
         raise ValueError(msg + f"{x_missing} missing from {superset_name}")
     if verbose:
-        print(f"{x_missing} missing from {superset_name}")
+        print(f"{x_missing} found in {superset_name} but missing from "
+              f"{subset_name}!")
 
 
 # Helper Function to check if the matrix is in the correct format
-def _check_mat(x, verbose=False):
+def check_mat(x, verbose=False):
     # convert to sparse csr matrix
     if not isinstance(x, csr_matrix):
         if verbose:
@@ -53,6 +54,12 @@ def _check_mat(x, verbose=False):
                 n_empty_samples))
         x = x[:, ~msk_features]
 
+    # Check if log-norm
+    _sum = np.sum(x.data[0:100])
+    if _sum == np.floor(_sum):
+        if verbose:
+            print("Make sure that normalized counts are passed!")
+
     # Check for non-finite values
     if np.any(~np.isfinite(x.data)):
         raise ValueError(
@@ -69,7 +76,7 @@ def _append_replace(x, l):
 
 
 # format variable names
-def _format_vars(var_names, verbose=False):
+def format_vars(var_names, verbose=False):
     changed = []
     var_names = [_append_replace(x, changed) if ('_' in x) else x for x in
                  var_names]
@@ -77,3 +84,32 @@ def _format_vars(var_names, verbose=False):
     if verbose & (len(changed) > 0):
         print(f"Replace underscores (_) with blank in {changed}", )
     return var_names
+
+
+def filter_resource(resource, var_names):
+    """
+    Filter interactions for which vars are not present.
+
+    Note that here I remove any interaction that /w genes that are not found
+    in the dataset. Note that this is not necessarily the case in liana-r.
+    There, I assign the expression of those with missing subunits to 0, while
+    those without any subunit present are implicitly filtered.
+
+    """
+    # Remove those without any subunit
+    resource = resource[(np.isin(resource.ligand, var_names)) &
+                        (np.isin(resource.receptor, var_names))]
+
+    # Only keep interactions /w complexes for which all subunits are present
+    missing_comps = resource[['_' in x for x in resource['interaction']]].copy()
+    missing_comps['all_units'] = \
+        missing_comps['ligand_complex'] + '_' + missing_comps[
+            'receptor_complex']
+
+    # Get those not with all subunits
+    missing_comps = missing_comps[np.logical_not(
+        [all([x in var_names for x in entity.split('_')])
+         for entity in missing_comps.all_units]
+    )]
+    # Filter them
+    return resource[~resource.interaction.isin(missing_comps.interaction)]
