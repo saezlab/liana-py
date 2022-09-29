@@ -1,6 +1,7 @@
 from ..utils import check_mat, check_if_covered, format_vars, filter_resource
 from ..resource import select_resource, explode_complexes
 from ..utils import reassemble_complexes
+from ..scores import get_means_perms
 
 import scanpy as sc
 import pandas as pd
@@ -8,7 +9,11 @@ import numpy as np
 
 
 def liana_pipe(adata, groupby, resource_name, resource, de_method,
-               complex_policy, verbose, _key_cols, _complex_cols, _add_cols):
+               n_perms, seed, verbose, _complex_cols, _add_cols,
+               _key_cols=None, _score=None):
+    if _key_cols is None:
+        _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
+
     # Check and Reformat Mat if needed
     adata.X = check_mat(adata.X, verbose=verbose)
 
@@ -30,8 +35,7 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
     resource = filter_resource(resource, adata.var_names)
 
     # Create Entities
-    entities = np.union1d(np.unique(resource["ligand"]),
-                          np.unique(resource["receptor"]))
+    entities = np.union1d(np.unique(resource["ligand"]), np.unique(resource["receptor"]))
 
     # Check overlap between resource and adata
     check_if_covered(entities, adata.var_keys, verbose=verbose)
@@ -40,14 +44,24 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
 
     # Get lr results
-    lr_res = _get_lr(adata, resource, _key_cols + _complex_cols + _add_cols,
-                     de_method)
+    lr_res = _get_lr(adata, resource, _key_cols + _complex_cols + _add_cols, de_method)
 
     # re-assemble complexes
-    lr_res = reassemble_complexes(lr_res, _key_cols, _complex_cols,
-                                  complex_policy)
+    lr_res = reassemble_complexes(lr_res, _key_cols, _complex_cols, 'min')
 
     # Calculate Score
+    if _score is not None:
+        if _score.permute:
+            perms, ligand_pos, receptor_pos, labels_pos = \
+                get_means_perms(adata=adata, lr_res=lr_res, n_perms=n_perms, seed=seed)
+            # SHOULD VECTORIZE THE APPLY / w NUMBA !!!
+            lr_res[[_score.magnitude, _score.specificity]] = \
+                lr_res.apply(_score.fun, axis=1, result_type="expand",
+                             perms=perms, ligand_pos=ligand_pos,
+                             receptor_pos=receptor_pos, labels_pos=labels_pos)
+        else:  # non-perm funs
+            lr_res[[_score.magnitude, _score.specificity]] = \
+                lr_res.apply(_score.fun, axis=1, result_type="expand")
 
     return lr_res
 
