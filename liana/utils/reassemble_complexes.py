@@ -1,12 +1,12 @@
 
-def reassemble_complexes(lr_res, key_cols, complex_cols, complex_policy='min'):
+def reassemble_complexes(lr_res, _key_cols, complex_cols, complex_policy='min'):
     """
     Reassemble complexes from exploded long-format pandas Dataframe.
 
     Parameters
     ----------
     :param lr_res: a long-format pandas dataframe with exploded complex subunits
-    :param key_cols: primary key for lr_res, typically a list with the following
+    :param _key_cols: primary key for lr_res, typically a list with the following
     elements - ['source', 'target', 'ligand_complex', 'receptor_complex']
     :param complex_cols: method/complex-relevant columns
     :param complex_policy: approach by which the complexes are reassembled
@@ -20,7 +20,7 @@ def reassemble_complexes(lr_res, key_cols, complex_cols, complex_policy='min'):
 
     cols_dict = {}
     for col in complex_cols:
-        lr_res = _reduce_complexes(col, cols_dict, lr_res, key_cols, aggs)
+        lr_res = _reduce_complexes(col, cols_dict, lr_res, _key_cols, aggs)
 
     return lr_res
 

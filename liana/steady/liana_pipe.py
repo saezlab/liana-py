@@ -7,8 +7,8 @@ import pandas as pd
 import numpy as np
 
 
-def liana_pipe(adata, groupby, resource_name, resource, de_method, key_cols,
-               complex_cols, add_cols, complex_policy, verbose):
+def liana_pipe(adata, groupby, resource_name, resource, de_method,
+               complex_policy, verbose, _key_cols, _complex_cols, _add_cols):
     # Check and Reformat Mat if needed
     adata.X = check_mat(adata.X, verbose=verbose)
 
@@ -17,6 +17,10 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method, key_cols,
 
     # Remove underscores from gene names
     adata.var_names = format_vars(adata.var_names)
+
+    # get mat mean for SCA
+    if 'mat_mean' in _add_cols:  # SHOULD BE METHOD NAME?!?
+        adata.uns['mat_mean'] = np.mean(adata.X)
 
     if resource is None:
         resource = select_resource(resource_name)
@@ -32,19 +36,18 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method, key_cols,
     # Check overlap between resource and adata
     check_if_covered(entities, adata.var_keys, verbose=verbose)
 
-    if 'mat_mean' in add_cols:  # SHOULD BE METHOD NAME?!?
-        adata.uns['mat_mean'] = np.mean(adata.X)
-
     # Filter to only include the relevant genes
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
 
     # Get lr results
-    lr_res = _get_lr(adata, resource, key_cols + complex_cols + add_cols,
+    lr_res = _get_lr(adata, resource, _key_cols + _complex_cols + _add_cols,
                      de_method)
 
     # re-assemble complexes
-    lr_res = reassemble_complexes(lr_res, key_cols, complex_cols,
+    lr_res = reassemble_complexes(lr_res, _key_cols, _complex_cols,
                                   complex_policy)
+
+    # Calculate Score
 
     return lr_res
 
@@ -129,7 +132,7 @@ def _get_lr(adata, resource, relevant_cols, de_method):
          zip(pairs['source'], pairs['target'])]
     )
 
-    if 'ligand_means' in relevant_cols:  # SHOULD BE METHOD NAME?
+    if 'mat_mean' in relevant_cols:  # SHOULD BE METHOD NAME?
         lr_res['mat_mean'] = adata.uns['mat_mean']
 
     # subset to only relevant columns and return
