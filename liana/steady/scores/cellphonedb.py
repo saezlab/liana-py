@@ -22,6 +22,7 @@ def _cpdb_score(x, perms, ligand_pos, receptor_pos, labels_pos):
     return lr_mean, (1 - ECDF(lr_perms)(lr_mean))
 
 
+# Initialize CPDB Meta
 _cellphonedb = MethodMeta(method_name="cellphonedb",
                           complex_cols=['ligand_means', 'receptor_means'],
                           add_cols=['ligand', 'receptor'],
@@ -31,4 +32,5 @@ _cellphonedb = MethodMeta(method_name="cellphonedb",
                           permute=True,
                           reference='Efremova et al., 2020')
 
+# Initialize callable Method instance
 cellphonedb = Method(_SCORE=_cellphonedb)

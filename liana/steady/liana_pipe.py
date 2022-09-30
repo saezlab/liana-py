@@ -16,8 +16,11 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
     if _score is not None:
         _complex_cols, _add_cols = _score.complex_cols, _score.add_cols
     else:
-        _complex_cols = ['ligand_means', 'receptor_means'] # change to full list
-        _add_cols = ['ligand', 'receptor'] # change to full list
+        _complex_cols = ['ligand_means', 'receptor_means']
+        # change to full list and move to _var
+        _add_cols = ['ligand', 'receptor',
+                     'ligand_means_sums', 'receptor_means_sums',
+                     'mat_mean',]
 
     # Check and Reformat Mat if needed
     adata = check_adata(adata, verbose=verbose)
@@ -54,6 +57,14 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
     # re-assemble complexes
     lr_res = reassemble_complexes(lr_res, _key_cols, _complex_cols)
 
+    # Mean Sums required for NATMI
+    if 'ligand_means_sums' in _add_cols:
+        lr_res = _sum_means(lr_res, what='ligand_means',
+                            on=['ligand_complex', 'receptor_complex', 'target'])
+    if 'receptor_means_sums' in _add_cols:
+        lr_res = _sum_means(lr_res, what='receptor_means',
+                            on=['ligand_complex', 'receptor_complex', 'source'])
+
     # Calculate Score
     if _score is not None:
         if _score.permute:
@@ -67,6 +78,10 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
         else:  # non-perm funs
             lr_res[[_score.magnitude, _score.specificity]] = \
                 lr_res.apply(_score.fun, axis=1, result_type="expand")
+
+        # remove redundant cols for some scores
+        if (_score.magnitude is None) | (_score.specificity is None):
+            lr_res = lr_res.drop([None], axis=1)
 
     return lr_res
 
@@ -155,4 +170,11 @@ def _get_lr(adata, resource, relevant_cols, de_method):
         lr_res['mat_mean'] = adata.uns['mat_mean']
 
     # subset to only relevant columns and return
+    relevant_cols = np.intersect1d(relevant_cols, lr_res.columns)
+
     return lr_res[relevant_cols]
+
+
+# Function to Sum Means
+def _sum_means(lr_res, what, on):
+    return lr_res.join(lr_res.groupby(on)[what].sum(), on=on, rsuffix='_sums')
