@@ -23,7 +23,7 @@ def _cpdb_score(x, perms, ligand_pos, receptor_pos, labels_pos):
 
 
 # Initialize CPDB Meta
-_cellphonedb = MethodMeta(method_name="cellphonedb",
+_cellphonedb = MethodMeta(method_name="CellPhoneDB",
                           complex_cols=['ligand_means', 'receptor_means'],
                           add_cols=['ligand', 'receptor'],
                           fun=_cpdb_score,

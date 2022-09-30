@@ -3,3 +3,5 @@ from ._permutations import get_means_perms
 from .scores.cellphonedb import cellphonedb
 from .scores.natmi import natmi
 from .scores.singlecellsignalr import singlecellsignalr
+from .scores.connectome import connectome
+from .scores.logfc import logfc

@@ -11,7 +11,7 @@ def _sca_score(x):
 
 
 # Initialize CPDB Meta
-_singlecellsignalr = MethodMeta(method_name="cellphonedb",
+_singlecellsignalr = MethodMeta(method_name="SingleCellSignalR",
                                 complex_cols=['ligand_means', 'receptor_means'],
                                 add_cols=['ligand', 'receptor', 'mat_mean'],
                                 fun=_sca_score,

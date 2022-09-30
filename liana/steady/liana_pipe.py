@@ -20,7 +20,10 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
         # change to full list and move to _var
         _add_cols = ['ligand', 'receptor',
                      'ligand_means_sums', 'receptor_means_sums',
-                     'mat_mean',]
+                     'ligand_zscores', 'receptor_zscores',
+                     'ligand_logfoldchanges', 'receptor_logfoldchanges',
+                     'mat_mean',
+                     ]
 
     # Check and Reformat Mat if needed
     adata = check_adata(adata, verbose=verbose)
@@ -137,7 +140,7 @@ def _get_lr(adata, resource, relevant_cols, de_method):
     labels = adata.obs.label.cat.categories
 
     # Method-specific stats
-    if 'ligand_zscores' in relevant_cols:  # SHOULD BE METHOD NAME?
+    if ('ligand_zscores' in relevant_cols) | ('receptor_zscores' in relevant_cols):
         adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 
     dedict = {label: sc.get.rank_genes_groups_df(adata, label).assign(
@@ -152,10 +155,10 @@ def _get_lr(adata, resource, relevant_cols, de_method):
         temp = adata[adata.obs.label.isin([label])].copy()
         # dedict[label]['sums'] = temp.X.sum(0)
         dedict[label]['means'] = temp.X.mean(0).A.flatten()
-        if 'ligand_zscores' in relevant_cols:  # SHOULD BE METHOD NAME?
+        if 'scaled' in adata.layers.keys():
             dedict[label]['zscores'] = temp.layers['scaled'].mean(0)
 
-    # Get cell identity pairs
+    # Create df /w cell identity pairs
     pairs = (pd.DataFrame(np.array(np.meshgrid(labels, labels))
                           .reshape(2, np.size(labels) * np.size(labels)).T)
              .rename(columns={0: "source", 1: "target"}))
