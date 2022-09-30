@@ -30,7 +30,7 @@ def _reduce_complexes(col, cols_dict, lr_res, key_cols, aggs):
     # Group by keys
     lr_res = lr_res.groupby(key_cols)
 
-    # Get min cols by which we will join
+    # Get min cols by which we will join - CHANGE WITH A FLAG INSTEAD !!!!
     # then rename from agg name to column name (e.g. 'min' to 'ligand_min')
     cols_dict[col] = lr_res[col].agg(aggs).reset_index().copy(). \
         rename(columns={agg: col.split('_')[0] + '_' + agg for agg in aggs})

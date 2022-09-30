@@ -29,44 +29,44 @@ def check_if_covered(
 
 
 # Helper Function to check if the matrix is in the correct format
-def check_mat(x, verbose=False):
+def check_adata(adata, verbose=False):
     # convert to sparse csr matrix
-    if not isinstance(x, csr_matrix):
+    if not isinstance(adata.X, csr_matrix):
         if verbose:
             print("Converting mat to CSR format")
-        x = csr_matrix(x).copy()
+        adata.X = csr_matrix(adata.X)
 
     # Check for empty features
-    msk_features = np.sum(x != 0, axis=0).A1 == 0
+    msk_features = np.sum(adata.X != 0, axis=0).A1 == 0
     n_empty_features = np.sum(msk_features)
     if n_empty_features > 0:
         if verbose:
             print("{0} features of mat are empty, they will be removed.".format(
                 n_empty_features))
-        x = x[:, ~msk_features]
+        adata = adata[:, ~msk_features]
 
     # Check for empty samples
-    msk_samples = np.sum(x != 0, axis=1).A1 == 0
+    msk_samples = np.sum(adata.X != 0, axis=1).A1 == 0
     n_empty_samples = np.sum(msk_samples)
     if n_empty_samples > 0:
         if verbose:
             print("{0} samples of mat are empty, they will be removed.".format(
                 n_empty_samples))
-        x = x[:, ~msk_features]
+        adata = adata[:, ~msk_features]
 
     # Check if log-norm
-    _sum = np.sum(x.data[0:100])
+    _sum = np.sum(adata.X.data[0:100])
     if _sum == np.floor(_sum):
         if verbose:
             print("Make sure that normalized counts are passed!")
 
     # Check for non-finite values
-    if np.any(~np.isfinite(x.data)):
+    if np.any(~np.isfinite(adata.X.data)):
         raise ValueError(
             """mat contains non finite values (nan or inf), please set them 
             to 0 or remove them.""")
 
-    return x
+    return adata
 
 
 # Helper function to replace a substring in string and append to list

@@ -12,7 +12,7 @@ def get_means_perms(adata, lr_res, n_perms, seed):
     # indexes to be shuffled
     idx = np.arange(adata.X.shape[0])
 
-    # Perm should be a cube /w dims (nperms x idents x ngenes)
+    # Perm should be a cube /w dims: nperms x idents x ngenes
     perms = np.zeros((n_perms, labels.shape[0], adata.shape[1]))
 
     # Assign permuted matrix

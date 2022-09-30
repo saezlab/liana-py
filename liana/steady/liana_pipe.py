@@ -1,7 +1,7 @@
-from ..utils import check_mat, check_if_covered, format_vars, filter_resource
+from ..utils import check_adata, check_if_covered, format_vars, filter_resource
 from ..resource import select_resource, explode_complexes
 from ..utils import reassemble_complexes
-from ..scores import get_means_perms
+from ._permutations import get_means_perms
 
 import scanpy as sc
 import pandas as pd
@@ -9,13 +9,18 @@ import numpy as np
 
 
 def liana_pipe(adata, groupby, resource_name, resource, de_method,
-               n_perms, seed, verbose, _complex_cols, _add_cols,
-               _key_cols=None, _score=None):
+               n_perms, seed, verbose, _key_cols=None, _score=None):
     if _key_cols is None:
         _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
 
+    if _score is not None:
+        _complex_cols, _add_cols = _score.complex_cols, _score.add_cols
+    else:
+        _complex_cols = ['ligand_means', 'receptor_means'] # change to full list
+        _add_cols = ['ligand', 'receptor'] # change to full list
+
     # Check and Reformat Mat if needed
-    adata.X = check_mat(adata.X, verbose=verbose)
+    adata = check_adata(adata, verbose=verbose)
 
     # Define idents col name
     adata.obs.label = adata.obs[groupby]
@@ -24,7 +29,7 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
     adata.var_names = format_vars(adata.var_names)
 
     # get mat mean for SCA
-    if 'mat_mean' in _add_cols:  # SHOULD BE METHOD NAME?!?
+    if 'mat_mean' in _add_cols:
         adata.uns['mat_mean'] = np.mean(adata.X)
 
     if resource is None:
@@ -44,10 +49,10 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
 
     # Get lr results
-    lr_res = _get_lr(adata, resource, _key_cols + _complex_cols + _add_cols, de_method)
+    lr_res = _get_lr(adata, resource, _key_cols + _add_cols + _complex_cols, de_method)
 
     # re-assemble complexes
-    lr_res = reassemble_complexes(lr_res, _key_cols, _complex_cols, 'min')
+    lr_res = reassemble_complexes(lr_res, _key_cols, _complex_cols)
 
     # Calculate Score
     if _score is not None:
