@@ -27,6 +27,18 @@ def reassemble_complexes(lr_res, _key_cols, complex_cols, complex_policy='min'):
 
 # Function to reduce the complexes
 def _reduce_complexes(col, cols_dict, lr_res, key_cols, aggs):
+    """
+    :param col: column by which we are reducing
+    :param cols_dict: dictionary that we populate with the reduced results
+    for each ligand and receptor column
+    :param lr_res: liana_pipe generated long DataFrame
+    :param key_cols: a list of columns that define each row as unique
+    :param aggs: dictionary with the way(s) by which we aggregate. Note 'min'
+    should be there - we need the miniumum to find the lowest expression subunits,
+    which are then used to reduce the exploded complexes
+    :return: lr_res dataframe in which exploded ligand and receptor complexes are
+    reduced to include only the minimum (default) subunit value
+    """
     # Group by keys
     lr_res = lr_res.groupby(key_cols)
 
@@ -35,14 +47,11 @@ def _reduce_complexes(col, cols_dict, lr_res, key_cols, aggs):
     cols_dict[col] = lr_res[col].agg(aggs).reset_index().copy(). \
         rename(columns={agg: col.split('_')[0] + '_' + agg for agg in aggs})
 
-    # left is lr_res /w the actual column name
-    left_on = key_cols + [col]
     # right is the min subunit for that column
     join_key = col.split('_')[0] + '_min'  # ligand_min or receptor_min
-    right_on = key_cols + [join_key]
 
     # Here, I join the min value and keep only those rows that match
-    lr_res = lr_res.obj.merge(cols_dict[col], left_on=left_on,
-                              right_on=right_on).drop(join_key, 1)
+    lr_res = lr_res.obj.merge(cols_dict[col], on=key_cols)
+    lr_res = lr_res[lr_res[col] == lr_res[join_key]]
 
     return lr_res
