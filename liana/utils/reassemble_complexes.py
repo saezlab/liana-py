@@ -52,6 +52,6 @@ def _reduce_complexes(col, cols_dict, lr_res, key_cols, aggs):
 
     # Here, I join the min value and keep only those rows that match
     lr_res = lr_res.obj.merge(cols_dict[col], on=key_cols)
-    lr_res = lr_res[lr_res[col] == lr_res[join_key]]
+    lr_res = lr_res[lr_res[col] == lr_res[join_key]].drop(join_key, axis=1)
 
     return lr_res

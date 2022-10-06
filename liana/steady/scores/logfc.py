@@ -4,7 +4,7 @@ from .cellphonedb import _simple_mean
 
 def _logfc_score(x):
     # specificity
-    scaled_weight = _simple_mean(x.ligand_logfoldchanges, x.receptor_logfoldchanges)
+    scaled_weight = _simple_mean(x.ligand_logfc, x.receptor_logfc)
     return None, scaled_weight
 
 
@@ -12,7 +12,7 @@ def _logfc_score(x):
 _logfc = MethodMeta(method_name="Connectome",
                     complex_cols=['ligand_means', 'receptor_means'],
                     add_cols=['ligand', 'receptor',
-                              'ligand_logfoldchanges', 'receptor_logfoldchanges'],
+                              'ligand_logfc', 'receptor_logfc'],
                     fun=_logfc_score,
                     magnitude=None,
                     specificity='lr_logfc',

@@ -9,7 +9,8 @@ import numpy as np
 
 
 def liana_pipe(adata, groupby, resource_name, resource, de_method,
-               n_perms, seed, verbose, _key_cols=None, _score=None):
+               n_perms, seed, verbose, base=2.718281828459045,
+               _key_cols=None, _score=None):
     if _key_cols is None:
         _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
 
@@ -21,7 +22,7 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
         _add_cols = ['ligand', 'receptor',
                      'ligand_means_sums', 'receptor_means_sums',
                      'ligand_zscores', 'receptor_zscores',
-                     'ligand_logfoldchanges', 'receptor_logfoldchanges',
+                     'ligand_logfc', 'receptor_logfc',
                      'mat_mean',
                      ]
 
@@ -46,7 +47,8 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
     resource = filter_resource(resource, adata.var_names)
 
     # Create Entities
-    entities = np.union1d(np.unique(resource["ligand"]), np.unique(resource["receptor"]))
+    entities = np.union1d(np.unique(resource["ligand"]),
+                          np.unique(resource["receptor"]))
 
     # Check overlap between resource and adata
     check_if_covered(entities, adata.var_keys, verbose=verbose)
@@ -55,7 +57,9 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
 
     # Get lr results
-    lr_res = _get_lr(adata, resource, _key_cols + _add_cols + _complex_cols, de_method)
+    lr_res = _get_lr(adata, resource,
+                     _key_cols + _add_cols + _complex_cols,
+                     de_method, base, verbose)
 
     # re-assemble complexes
     lr_res = reassemble_complexes(lr_res, _key_cols, _complex_cols)
@@ -72,7 +76,8 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
     if _score is not None:
         if _score.permute:
             perms, ligand_pos, receptor_pos, labels_pos = \
-                get_means_perms(adata=adata, lr_res=lr_res, n_perms=n_perms, seed=seed)
+                get_means_perms(adata=adata, lr_res=lr_res, n_perms=n_perms,
+                                seed=seed)
             # SHOULD VECTORIZE THE APPLY / w NUMBA !!!
             lr_res[[_score.magnitude, _score.specificity]] = \
                 lr_res.apply(_score.fun, axis=1, result_type="expand",
@@ -108,7 +113,7 @@ def _join_stats(source, target, dedict, resource):
     return bound
 
 
-def _get_lr(adata, resource, relevant_cols, de_method):
+def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
     """
     Run DE analysis and merge needed information with resource for LR inference
 
@@ -134,15 +139,29 @@ def _get_lr(adata, resource, relevant_cols, de_method):
     for all interactions /w matching variables in the dataset.
 
     """
-    # Calc DE stats
+    # Calc DE stats (change to a placeholder that is populated, if not required)
     sc.tl.rank_genes_groups(adata, groupby='label', method=de_method)
     # get label cats
     labels = adata.obs.label.cat.categories
 
     # Method-specific stats
-    if ('ligand_zscores' in relevant_cols) | ('receptor_zscores' in relevant_cols):
+    connectome_flag = ('ligand_zscores' in relevant_cols) | (
+            'receptor_zscores' in relevant_cols)
+    if connectome_flag:
         adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 
+    logfc_flag = ('ligand_logfc' in relevant_cols) | (
+            'receptor_logfc' in relevant_cols)
+    if logfc_flag:
+        if 'log1p' in adata.uns_keys():
+            if (adata.uns['log1p']['base'] is not None) & verbose:
+                print("Assuming that counts were natural log-normalized!")
+        elif ('log1p' not in adata.uns_keys()) & verbose:
+            print("Assuming that counts were natural log-normalized!")
+        adata.layers['normcounts'] = adata.X.copy()
+        adata.layers['normcounts'].data = expm1_base(adata.X.data, base)
+
+    # Get DEGs
     dedict = {label: sc.get.rank_genes_groups_df(adata, label).assign(
         label=label).sort_values('names') for label in labels}
 
@@ -150,13 +169,15 @@ def _get_lr(adata, resource, relevant_cols, de_method):
     if not list(adata.var_names) == list(dedict[labels[0]]['names']):
         raise AssertionError("Variable names did not match DE results!")
 
-    # Calculate Mean, Sum and z-scores by group
+    # Calculate Mean, Sum, logFC and z-scores by group
     for label in labels:
         temp = adata[adata.obs.label.isin([label])].copy()
         # dedict[label]['sums'] = temp.X.sum(0)
         dedict[label]['means'] = temp.X.mean(0).A.flatten()
-        if 'scaled' in adata.layers.keys():
+        if connectome_flag:
             dedict[label]['zscores'] = temp.layers['scaled'].mean(0)
+        if logfc_flag:
+            dedict[label]['logfc'] = _calc_log2(adata, label)
 
     # Create df /w cell identity pairs
     pairs = (pd.DataFrame(np.array(np.meshgrid(labels, labels))
@@ -181,3 +202,32 @@ def _get_lr(adata, resource, relevant_cols, de_method):
 # Function to Sum Means
 def _sum_means(lr_res, what, on):
     return lr_res.join(lr_res.groupby(on)[what].sum(), on=on, rsuffix='_sums')
+
+
+def _calc_log2(adata, label):
+    """
+    Calculate 1 vs rest log2fc for a particular cell identity
+
+    :param adata: adata
+    :param label:
+    :return:
+    """
+    # Get subject vs rest cells
+    subject = adata[adata.obs.label.isin([label])].copy()
+    rest = adata[~adata.obs.label.isin([label])].copy()
+
+    # subject and rest means
+    subj_means = subject.layers['normcounts'].mean(0).A.flatten()
+    rest_means = rest.layers['normcounts'].mean(0).A.flatten()
+
+    # log2 + 1 transform
+    subj_log2means = np.log2(subj_means + 1)
+    loso_log2means = np.log2(rest_means + 1)
+
+    logfc_vec = subj_log2means - loso_log2means
+
+    return logfc_vec
+
+# Exponent with a custom base
+def expm1_base(X, base):
+    return np.power(base, X) - 1
