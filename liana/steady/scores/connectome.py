@@ -12,8 +12,9 @@ def _connectome_score(x):
 
 # Initialize CPDB Meta
 _connectome = MethodMeta(method_name="Connectome",
-                         complex_cols=['ligand_means', 'receptor_means'],
-                         add_cols=['ligand_zscores', 'receptor_zscores'],
+                         complex_cols=['ligand_zscores', 'receptor_zscores',
+                                       'ligand_means', 'receptor_means'],
+                         add_cols=[],
                          fun=_connectome_score,
                          magnitude='expr_prod',
                          specificity='scaled_weight',

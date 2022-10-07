@@ -2,6 +2,7 @@ from ..utils import check_adata, check_if_covered, format_vars, filter_resource
 from ..resource import select_resource, explode_complexes
 from ..utils import reassemble_complexes
 from ._permutations import get_means_perms
+from functools import reduce
 
 import scanpy as sc
 import pandas as pd
@@ -10,7 +11,7 @@ import numpy as np
 
 def liana_pipe(adata, groupby, resource_name, resource, de_method,
                n_perms, seed, verbose, base=2.718281828459045,
-               _key_cols=None, _score=None):
+               _key_cols=None, _score=None, _methods=None):
     if _key_cols is None:
         _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
 
@@ -61,35 +62,39 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
                      _key_cols + _add_cols + _complex_cols,
                      de_method, base, verbose)
 
-    # re-assemble complexes
-    lr_res = reassemble_complexes(lr_res, _key_cols, _complex_cols)
-
     # Mean Sums required for NATMI
     if 'ligand_means_sums' in _add_cols:
         lr_res = _sum_means(lr_res, what='ligand_means',
-                            on=['ligand_complex', 'receptor_complex', 'target'])
+                            on=['ligand_complex', 'receptor_complex',
+                                'ligand', 'receptor', 'target'])
     if 'receptor_means_sums' in _add_cols:
         lr_res = _sum_means(lr_res, what='receptor_means',
-                            on=['ligand_complex', 'receptor_complex', 'source'])
+                            on=['ligand_complex', 'receptor_complex',
+                                'ligand', 'receptor', 'source'])
 
     # Calculate Score
     if _score is not None:
-        if _score.permute:
-            perms, ligand_pos, receptor_pos, labels_pos = \
-                get_means_perms(adata=adata, lr_res=lr_res, n_perms=n_perms,
-                                seed=seed)
-            # SHOULD VECTORIZE THE APPLY / w NUMBA !!!
-            lr_res[[_score.magnitude, _score.specificity]] = \
-                lr_res.apply(_score.fun, axis=1, result_type="expand",
-                             perms=perms, ligand_pos=ligand_pos,
-                             receptor_pos=receptor_pos, labels_pos=labels_pos)
-        else:  # non-perm funs
-            lr_res[[_score.magnitude, _score.specificity]] = \
-                lr_res.apply(_score.fun, axis=1, result_type="expand")
-
-        # remove redundant cols for some scores
-        if (_score.magnitude is None) | (_score.specificity is None):
-            lr_res = lr_res.drop([None], axis=1)
+        if _score.method_name == "Consensus":
+            # Run all methods in consensus
+            lrs = {}
+            for method in _methods:
+                print(method.method_name)
+                lrs[method.method_name] = \
+                    _run_method(lr_res.copy(),
+                                adata,
+                                _score=method,
+                                _key_cols=_key_cols,
+                                _complex_cols=method.complex_cols,
+                                _add_cols=method.add_cols + ['ligand', 'receptor'],
+                                n_perms=n_perms, seed=seed
+                                )
+            lr_res = lrs
+        else:  # Run the specific method in mind
+            lr_res = _run_method(lr_res, adata,
+                                 _score, _key_cols, _complex_cols, _add_cols,
+                                 n_perms, seed)
+    else: # Just return lr_res
+        lr_res = reassemble_complexes(lr_res, _key_cols, _complex_cols)
 
     return lr_res
 
@@ -193,7 +198,7 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
     if 'mat_mean' in relevant_cols:  # SHOULD BE METHOD NAME?
         lr_res['mat_mean'] = adata.uns['mat_mean']
 
-    # subset to only relevant columns and return
+    # subset to only relevant columns and return (SIMPLY?)
     relevant_cols = np.intersect1d(relevant_cols, lr_res.columns)
 
     return lr_res[relevant_cols]
@@ -201,6 +206,12 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
 
 # Function to Sum Means
 def _sum_means(lr_res, what, on):
+    """
+    :param lr_res: recomplexified lr_res
+    :param what: [entity]_means_sums for which the sum is calculated
+    :param on: columns by which to group and sum
+    :return: returns lr_res with [entity]_means_sums column
+    """
     return lr_res.join(lr_res.groupby(on)[what].sum(), on=on, rsuffix='_sums')
 
 
@@ -208,9 +219,10 @@ def _calc_log2(adata, label):
     """
     Calculate 1 vs rest log2fc for a particular cell identity
 
-    :param adata: adata
-    :param label:
-    :return:
+    :param  adata with feature-space reduced to the vars intersecting
+    with the IDs in the resource
+    :param label: cell identity
+    :return: returns a vector of logFC values for each var in adata
     """
     # Get subject vs rest cells
     subject = adata[adata.obs.label.isin([label])].copy()
@@ -228,6 +240,39 @@ def _calc_log2(adata, label):
 
     return logfc_vec
 
+
 # Exponent with a custom base
 def expm1_base(X, base):
     return np.power(base, X) - 1
+
+
+def _run_method(lr_res, adata, _score, _key_cols, _complex_cols, _add_cols,
+                n_perms, seed):
+
+    # re-assemble complexes - specific for each method
+    lr_res = reassemble_complexes(lr_res, _key_cols, _complex_cols)
+
+    # subset to only relevant columns and return (SIMPLY?)
+    _add_cols = _add_cols + ['ligand', 'receptor']
+    relevant_cols = reduce(np.union1d, [_key_cols, _complex_cols, _add_cols])
+    lr_res = lr_res[relevant_cols]
+    print(lr_res.columns)
+
+    if _score.permute:
+        perms, ligand_pos, receptor_pos, labels_pos = \
+            get_means_perms(adata=adata, lr_res=lr_res, n_perms=n_perms,
+                            seed=seed)
+        # SHOULD VECTORIZE THE APPLY / w NUMBA !!!
+        lr_res[[_score.magnitude, _score.specificity]] = \
+            lr_res.apply(_score.fun, axis=1, result_type="expand",
+                         perms=perms, ligand_pos=ligand_pos,
+                         receptor_pos=receptor_pos, labels_pos=labels_pos)
+    else:  # non-perm funs
+        lr_res[[_score.magnitude, _score.specificity]] = \
+            lr_res.apply(_score.fun, axis=1, result_type="expand")
+
+        # remove redundant cols for some scores
+        if (_score.magnitude is None) | (_score.specificity is None):
+            lr_res = lr_res.drop([None], axis=1)
+
+    return lr_res

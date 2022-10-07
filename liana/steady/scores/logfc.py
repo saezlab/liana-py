@@ -9,9 +9,10 @@ def _logfc_score(x):
 
 
 # Initialize CPDB Meta
-_logfc = MethodMeta(method_name="Connectome",
-                    complex_cols=['ligand_means', 'receptor_means'],
-                    add_cols=['ligand_logfc', 'receptor_logfc'],
+_logfc = MethodMeta(method_name="log2FC",
+                    complex_cols=['ligand_means', 'receptor_means',
+                                  'ligand_logfc', 'receptor_logfc'],
+                    add_cols=[],
                     fun=_logfc_score,
                     magnitude=None,
                     specificity='lr_logfc',
