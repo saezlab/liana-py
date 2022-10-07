@@ -19,12 +19,12 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
     else:
         _complex_cols = ['ligand_means', 'receptor_means']
         # change to full list and move to _var
-        _add_cols = ['ligand', 'receptor',
-                     'ligand_means_sums', 'receptor_means_sums',
+        _add_cols = ['ligand_means_sums', 'receptor_means_sums',
                      'ligand_zscores', 'receptor_zscores',
                      'ligand_logfc', 'receptor_logfc',
                      'mat_mean',
                      ]
+    _add_cols = _add_cols + ['ligand', 'receptor']
 
     # Check and Reformat Mat if needed
     adata = check_adata(adata, verbose=verbose)

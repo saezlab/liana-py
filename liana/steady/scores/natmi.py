@@ -16,8 +16,7 @@ def _natmi_score(x):
 # Initialize CPDB Meta
 _natmi = MethodMeta(method_name="NATMI",
                     complex_cols=['ligand_means', 'receptor_means'],
-                    add_cols=['ligand', 'receptor',
-                              'ligand_means_sums', 'receptor_means_sums'],
+                    add_cols=['ligand_means_sums', 'receptor_means_sums'],
                     fun=_natmi_score,
                     magnitude='expr_prod',
                     specificity='spec_weight',

@@ -11,8 +11,7 @@ def _logfc_score(x):
 # Initialize CPDB Meta
 _logfc = MethodMeta(method_name="Connectome",
                     complex_cols=['ligand_means', 'receptor_means'],
-                    add_cols=['ligand', 'receptor',
-                              'ligand_logfc', 'receptor_logfc'],
+                    add_cols=['ligand_logfc', 'receptor_logfc'],
                     fun=_logfc_score,
                     magnitude=None,
                     specificity='lr_logfc',

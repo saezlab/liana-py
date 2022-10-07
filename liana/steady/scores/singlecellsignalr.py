@@ -12,7 +12,7 @@ def _sca_score(x):
 # Initialize CPDB Meta
 _singlecellsignalr = MethodMeta(method_name="SingleCellSignalR",
                                 complex_cols=['ligand_means', 'receptor_means'],
-                                add_cols=['ligand', 'receptor', 'mat_mean'],
+                                add_cols=['mat_mean'],
                                 fun=_sca_score,
                                 magnitude='lr_means',
                                 specificity=None,
