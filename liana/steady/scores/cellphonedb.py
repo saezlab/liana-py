@@ -28,7 +28,9 @@ _cellphonedb = MethodMeta(method_name="CellPhoneDB",
                           add_cols=[],
                           fun=_cpdb_score,
                           magnitude='lr_means',
+                          magnitude_desc=True,
                           specificity='pvals',
+                          specificity_desc=False,
                           permute=True,
                           reference='Efremova et al., 2020')
 

@@ -1,17 +1,20 @@
 from liana.steady.Method import MethodMeta
 from liana.steady.liana_pipe import liana_pipe
+from liana import cellphonedb, natmi, connectome, logfc, singlecellsignalr as sca
+
 from anndata._core import anndata
-from liana.steady import cellphonedb, natmi, connectome, logfc, \
-    singlecellsignalr as sca
 
 _consensus_meta = MethodMeta(method_name="Consensus",
                              complex_cols=[],
                              add_cols=[],
                              fun=None,  # change to _robust_rank
                              magnitude='rra_magnitude',
+                             magnitude_desc=False,
                              specificity='rra_specificity',
+                             specificity_desc=False,
                              permute=False,
-                             reference='')
+                             reference=''
+                             )
 
 
 class ConsensusClass(MethodMeta):
@@ -21,7 +24,9 @@ class ConsensusClass(MethodMeta):
                          add_cols=[],
                          fun=_SCORE.fun,
                          magnitude=_SCORE.magnitude,
+                         magnitude_desc=None,
                          specificity=_SCORE.specificity,
+                         specificity_desc=None,
                          permute=_SCORE.permute,
                          reference=_SCORE.reference
                          )

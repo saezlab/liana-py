@@ -19,7 +19,9 @@ _natmi = MethodMeta(method_name="NATMI",
                     add_cols=['ligand_means_sums', 'receptor_means_sums'],
                     fun=_natmi_score,
                     magnitude='expr_prod',
+                    magnitude_desc=True,
                     specificity='spec_weight',
+                    specificity_desc=True,
                     permute=False,
                     reference='Hou et al., 2021'
                     )

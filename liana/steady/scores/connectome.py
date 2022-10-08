@@ -17,9 +17,12 @@ _connectome = MethodMeta(method_name="Connectome",
                          add_cols=[],
                          fun=_connectome_score,
                          magnitude='expr_prod',
+                         magnitude_desc=True,
                          specificity='scaled_weight',
+                         specificity_desc=True,
                          permute=False,
-                         reference='')
+                         reference=''
+                         )
 
 # Initialize callable Method instance
 connectome = Method(_SCORE=_connectome)

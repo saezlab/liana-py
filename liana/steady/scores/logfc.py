@@ -15,9 +15,12 @@ _logfc = MethodMeta(method_name="log2FC",
                     add_cols=[],
                     fun=_logfc_score,
                     magnitude=None,
+                    magnitude_desc=None,
                     specificity='lr_logfc',
+                    specificity_desc=True,
                     permute=False,
-                    reference='')
+                    reference=''
+                    )
 
 # Initialize callable Method instance
 logfc = Method(_SCORE=_logfc)

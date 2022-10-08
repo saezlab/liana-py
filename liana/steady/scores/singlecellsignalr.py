@@ -14,10 +14,13 @@ _singlecellsignalr = MethodMeta(method_name="SingleCellSignalR",
                                 complex_cols=['ligand_means', 'receptor_means'],
                                 add_cols=['mat_mean'],
                                 fun=_sca_score,
-                                magnitude='lr_means',
+                                magnitude='lrscore',
+                                magnitude_desc=True,
                                 specificity=None,
+                                specificity_desc=None,
                                 permute=False,
-                                reference='')
+                                reference=''
+                                )
 
 # Initialize callable Method instance
 singlecellsignalr = Method(_SCORE=_singlecellsignalr)
