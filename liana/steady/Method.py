@@ -4,16 +4,17 @@ from anndata._core import anndata
 
 # Object to store MetaData
 class MethodMeta:
-    def __init__(self, method_name, complex_cols, add_cols, fun, magnitude, magnitude_desc,
-                 specificity, specificity_desc, permute, reference):
+    def __init__(self, method_name, complex_cols, add_cols, fun, magnitude,
+                 magnitude_desc, specificity, specificity_desc, permute,
+                 reference):
         self.method_name = method_name  # method name
         self.complex_cols = complex_cols  # complex-relevant columns
         self.add_cols = add_cols  # additional columns
         self.fun = fun  # Function to run
         self.magnitude = magnitude  # Name of the col
-        self.magnitude_desc = magnitude_desc # desc or not
+        self.magnitude_desc = magnitude_desc  # desc or not
         self.specificity = specificity  # Name of the col
-        self.specificity_desc = specificity_desc # desc or not
+        self.specificity_desc = specificity_desc  # desc or not
         self.permute = permute  # True/False
         self.reference = reference  # Publication
 
@@ -38,7 +39,7 @@ class Method(MethodMeta):
                          add_cols=_SCORE.add_cols,
                          fun=_SCORE.fun,
                          magnitude=_SCORE.magnitude,
-                         magnitude_desc=_SCORE.specificity_desc,
+                         magnitude_desc=_SCORE.magnitude_desc,
                          specificity=_SCORE.specificity,
                          specificity_desc=_SCORE.specificity_desc,
                          permute=_SCORE.permute,
