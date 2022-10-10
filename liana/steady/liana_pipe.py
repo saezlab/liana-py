@@ -3,6 +3,8 @@ from ..resource import select_resource, explode_complexes
 from ..utils import reassemble_complexes
 from ._permutations import get_means_perms
 from functools import reduce
+from .aggregate import aggregate
+
 
 import scanpy as sc
 import pandas as pd
@@ -11,7 +13,8 @@ import numpy as np
 
 def liana_pipe(adata, groupby, resource_name, resource, de_method,
                n_perms, seed, verbose, base=2.718281828459045,
-               _key_cols=None, _score=None, _methods=None):
+               _key_cols=None, _score=None,
+               _methods=None, _consensus_opts=None, _aggregate_method=None):
     if _key_cols is None:
         _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
 
@@ -85,15 +88,22 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
                                 _score=method,
                                 _key_cols=_key_cols,
                                 _complex_cols=method.complex_cols,
-                                _add_cols=method.add_cols + ['ligand', 'receptor'],
-                                n_perms=n_perms, seed=seed
+                                _add_cols=method.add_cols + ['ligand',
+                                                             'receptor'],
+                                n_perms=n_perms, seed=seed, _consensus=True
                                 )
-            lr_res = lrs
+            if _consensus_opts is not False:
+                lr_res = aggregate(lrs,
+                                   consensus=_score,
+                                   aggregate_method=_aggregate_method,
+                                   _key_cols=_key_cols)
+            else:
+                return lrs
         else:  # Run the specific method in mind
             lr_res = _run_method(lr_res, adata,
                                  _score, _key_cols, _complex_cols, _add_cols,
                                  n_perms, seed)
-    else: # Just return lr_res
+    else:  # Just return lr_res
         lr_res = reassemble_complexes(lr_res, _key_cols, _complex_cols)
 
     return lr_res
@@ -247,8 +257,7 @@ def expm1_base(X, base):
 
 
 def _run_method(lr_res, adata, _score, _key_cols, _complex_cols, _add_cols,
-                n_perms, seed):
-
+                n_perms, seed, _consensus=False):
     # re-assemble complexes - specific for each method
     lr_res = reassemble_complexes(lr_res, _key_cols, _complex_cols)
 
@@ -256,7 +265,6 @@ def _run_method(lr_res, adata, _score, _key_cols, _complex_cols, _add_cols,
     _add_cols = _add_cols + ['ligand', 'receptor']
     relevant_cols = reduce(np.union1d, [_key_cols, _complex_cols, _add_cols])
     lr_res = lr_res[relevant_cols]
-    print(lr_res.columns)
 
     if _score.permute:
         perms, ligand_pos, receptor_pos, labels_pos = \
@@ -271,8 +279,11 @@ def _run_method(lr_res, adata, _score, _key_cols, _complex_cols, _add_cols,
         lr_res[[_score.magnitude, _score.specificity]] = \
             lr_res.apply(_score.fun, axis=1, result_type="expand")
 
-        # remove redundant cols for some scores
-        if (_score.magnitude is None) | (_score.specificity is None):
-            lr_res = lr_res.drop([None], axis=1)
+    if _consensus: # if consensus keep only the keys and the method scores
+        lr_res = lr_res[_key_cols + [_score.magnitude, _score.specificity]]
+
+    # remove redundant cols for some scores
+    if (_score.magnitude is None) | (_score.specificity is None):
+        lr_res = lr_res.drop([None], axis=1)
 
     return lr_res
