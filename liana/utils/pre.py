@@ -1,4 +1,5 @@
 import numpy as np
+import scanpy as sc
 from scipy.sparse import csr_matrix
 
 
@@ -29,7 +30,22 @@ def check_if_covered(
 
 
 # Helper Function to check if the matrix is in the correct format
-def check_adata(adata, verbose=False):
+def prep_check_adata(adata, use_raw, layer, verbose=False):
+    """
+    :param adata:
+    :param use_raw:
+    :param layer:
+    :param verbose:
+    :return:
+    """
+    # simplify adata
+    X = _choose_mtx_rep(adata, use_raw, layer)
+    adata = sc.AnnData(X=X,
+                       dtype=X.dtype,
+                       obs=adata.obs.copy(),
+                       var=adata.var.copy()
+                       )
+
     # convert to sparse csr matrix
     if not isinstance(adata.X, csr_matrix):
         if verbose:
@@ -65,6 +81,9 @@ def check_adata(adata, verbose=False):
         raise ValueError(
             """mat contains non finite values (nan or inf), please set them 
             to 0 or remove them.""")
+
+    # Re-order adata vars alphabetically
+    adata = adata[:, np.sort(adata.var_names)]
 
     return adata
 
@@ -113,3 +132,19 @@ def filter_resource(resource, var_names):
     )]
     # Filter them
     return resource[~resource.interaction.isin(missing_comps.interaction)]
+
+
+# Choose matrix (adapted from scanpy)
+def _choose_mtx_rep(adata, use_raw=False, layer=None):
+    is_layer = layer is not None
+    if use_raw and is_layer:
+        raise ValueError(
+            "Cannot use both layer and raw at the same time."
+            f"You provided: 'use_raw={use_raw}' and 'layer={layer}'"
+        )
+    if is_layer:
+        return adata.layers[layer]
+    elif use_raw:
+        return adata.raw.X
+    else:
+        return adata.X

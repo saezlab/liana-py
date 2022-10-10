@@ -12,11 +12,11 @@ def aggregate(lrs,
     """
 
     :param lrs: a list with results for all methods
+    :param consensus: ConsensusClass instance used to generate the lr results
     :param _key_cols: should represent unique LRs columns by which to join
     :param aggregate_method: method by which we aggregate the ranks. Options
     are ['rra', 'mean', 'rmat'], where 'rra' corresponds to the RRA method,
-    'mean' is just the simple mean, and 'rmat' returns the rank matrix instead
-    of calculating the ranks.
+    'mean' is just the mean of the ranks.
     :param consensus_opts: consensus ranks to be obtained
     :return: a long pd.DataFrame with ranked LRs
     """
@@ -35,6 +35,8 @@ def aggregate(lrs,
         pd.merge(left, right, how='outer', on=_key_cols,
                  suffixes=('', '_duplicated')), lrs
     )
+    # drop duplicated columns
+    lr_res = lr_res.loc[:, ~lr_res.columns.str.endswith('_duplicated')]
 
     order_col = ''
     if 'Magnitude' in consensus_opts:
@@ -69,7 +71,7 @@ def _rank_aggregate(lr_res, specs, _key_cols, aggregate_method):
     :param aggregate_method: method by which to aggregate the ranks
     :return: returns an array of values /w length of lr_res.shape[0]
     """
-    assert aggregate_method in ['rra', 'mean', 'rmat']
+    assert aggregate_method in ['rra', 'mean']
 
     # Convert specs columns to ranks
     for spec in specs:
@@ -90,8 +92,6 @@ def _rank_aggregate(lr_res, specs, _key_cols, aggregate_method):
         return _robust_rank_aggregate(rmat)
     elif aggregate_method == 'mean':
         return np.mean(rmat, axis=1)
-    elif aggregate_method == 'rmat':
-        return rmat
 
 
 def _corr_beta_pvals(p, k):

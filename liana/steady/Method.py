@@ -48,8 +48,8 @@ class Method(MethodMeta):
         self._SCORE = _SCORE
 
     def __call__(self, adata: anndata, groupby: str, resource_name='consensus',
-                 de_method='wilcoxon', verbose=False, n_perms=1000, seed=1337,
-                 resource=None):
+                 use_raw=False, layer=None, de_method='wilcoxon', verbose=False,
+                 n_perms=1000, seed=1337, resource=None):
         adata.uns['liana_res'] = liana_pipe(adata=adata,
                                             groupby=groupby,
                                             resource_name=resource_name,
@@ -59,5 +59,7 @@ class Method(MethodMeta):
                                             _score=self._SCORE,
                                             n_perms=n_perms,
                                             seed=seed,
+                                            use_raw=use_raw,
+                                            layer=layer,
                                             )
         return adata

@@ -1,10 +1,9 @@
-from ..utils import check_adata, check_if_covered, format_vars, filter_resource
+from ..utils import prep_check_adata, check_if_covered, format_vars, filter_resource,\
+    reassemble_complexes
 from ..resource import select_resource, explode_complexes
-from ..utils import reassemble_complexes
 from ._permutations import get_means_perms
 from functools import reduce
 from .aggregate import aggregate
-
 
 import scanpy as sc
 import pandas as pd
@@ -12,9 +11,32 @@ import numpy as np
 
 
 def liana_pipe(adata, groupby, resource_name, resource, de_method,
-               n_perms, seed, verbose, base=2.718281828459045,
-               _key_cols=None, _score=None,
+               n_perms, seed, verbose, use_raw, layer,
+               base=2.718281828459045, _key_cols=None, _score=None,
                _methods=None, _consensus_opts=None, _aggregate_method=None):
+    """
+    :param adata: adata
+    :param groupby: label to group_by
+    :param resource_name: resource name
+    :param resource: a resource dataframe in liana format
+    :param de_method: method to do between cluster DE
+    :param n_perms: n permutations (relevant only for permutation-based methods)
+    :param seed: random seed
+    :param verbose: True/False
+    :param base: base used for 1vsRest logFC calculation (natural exponent by default)
+    :param layer: typing.Union[str, NoneType], optional (default: None)
+    Key from `adata.layers` whose value will be used to perform tests on.
+    :param use_raw: typing.Union[bool, NoneType], optional (default: None)
+    Use `raw` attribute of `adata` if present.
+    :param _key_cols: columns which make every interaction unique (i.e. PK)
+    :param _score: Instance of Method classes (None by default - returns LR stats - no methods used)
+    :param _methods: Methods to be run (only relevant for consensus)
+    :param _consensus_opts: Ways to aggregate interactions across methods by
+    default does all aggregations (['Steady', 'Specificity', 'Magnitude']_
+    :param _aggregate_method: RobustRankAggregate('rra') or mean rank ('mean')
+    :return: Returns an anndata with 'liana_res' in .uns
+    """
+
     if _key_cols is None:
         _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
 
@@ -31,10 +53,12 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
     _add_cols = _add_cols + ['ligand', 'receptor']
 
     # Check and Reformat Mat if needed
-    adata = check_adata(adata, verbose=verbose)
-
+    adata = prep_check_adata(adata,
+                             use_raw=use_raw,
+                             layer=layer,
+                             verbose=verbose)
     # Define idents col name
-    adata.obs.label = adata.obs[groupby]
+    adata.obs['label'] = adata.obs[groupby]
 
     # Remove underscores from gene names
     adata.var_names = format_vars(adata.var_names)
@@ -155,7 +179,7 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
 
     """
     # Calc DE stats (change to a placeholder that is populated, if not required)
-    sc.tl.rank_genes_groups(adata, groupby='label', method=de_method)
+    sc.tl.rank_genes_groups(adata, groupby='label', method=de_method, use_raw=False)
     # get label cats
     labels = adata.obs.label.cat.categories
 
@@ -268,8 +292,7 @@ def _run_method(lr_res, adata, _score, _key_cols, _complex_cols, _add_cols,
 
     if _score.permute:
         perms, ligand_pos, receptor_pos, labels_pos = \
-            get_means_perms(adata=adata, lr_res=lr_res, n_perms=n_perms,
-                            seed=seed)
+            get_means_perms(adata=adata, lr_res=lr_res, n_perms=n_perms, seed=seed)
         # SHOULD VECTORIZE THE APPLY / w NUMBA !!!
         lr_res[[_score.magnitude, _score.specificity]] = \
             lr_res.apply(_score.fun, axis=1, result_type="expand",
