@@ -9,7 +9,7 @@ def _simple_mean(x, y): return (x + y) / 2
 # Internal Function to calculate CellPhoneDB LR_mean and p-values
 def _cpdb_score(x, perms, ligand_pos, receptor_pos, labels_pos):
     if (x.ligand_means == 0) | (x.receptor_means == 0):
-        return 1
+        return 0, 1
 
     # Permutations lr mean
     ligand_perms = perms[:, labels_pos[x.source], ligand_pos[x.ligand]]

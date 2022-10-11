@@ -208,10 +208,9 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
     if not list(adata.var_names) == list(dedict[labels[0]]['names']):
         raise AssertionError("Variable names did not match DE results!")
 
-    # Calculate Mean, Sum, logFC and z-scores by group
+    # Calculate Mean, logFC and z-scores by group
     for label in labels:
         temp = adata[adata.obs.label.isin([label])].copy()
-        # dedict[label]['sums'] = temp.X.sum(0)
         dedict[label]['means'] = temp.X.mean(0).A.flatten()
         if connectome_flag:
             dedict[label]['zscores'] = temp.layers['scaled'].mean(0)
