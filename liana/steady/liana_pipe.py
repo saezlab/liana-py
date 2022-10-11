@@ -11,7 +11,7 @@ import numpy as np
 
 
 def liana_pipe(adata, groupby, resource_name, resource, de_method,
-               n_perms, seed, verbose, use_raw, layer,
+               n_perms, seed, verbose, use_raw, layer, supp_cols=None,
                base=2.718281828459045, _key_cols=None, _score=None,
                _methods=None, _consensus_opts=None, _aggregate_method=None):
     """
@@ -28,6 +28,7 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
     Key from `adata.layers` whose value will be used to perform tests on.
     :param use_raw: typing.Union[bool, NoneType], optional (default: None)
     Use `raw` attribute of `adata` if present.
+    :param supp_cols: additional columns to be added to the output of each method
     :param _key_cols: columns which make every interaction unique (i.e. PK)
     :param _score: Instance of Method classes (None by default - returns LR stats - no methods used)
     :param _methods: Methods to be run (only relevant for consensus)
@@ -37,6 +38,8 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
     :return: Returns an anndata with 'liana_res' in .uns
     """
 
+    if supp_cols is None:
+        supp_cols = ['ligand_props', 'receptor_props', 'ligand_pvals', 'receptor_pvals']
     if _key_cols is None:
         _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
 
@@ -50,7 +53,7 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
                      'ligand_logfc', 'receptor_logfc',
                      'mat_mean',
                      ]
-    _add_cols = _add_cols + ['ligand', 'receptor']
+    _add_cols = _add_cols + ['ligand', 'receptor'] + supp_cols
 
     # Check and Reformat Mat if needed
     adata = prep_check_adata(adata,
@@ -178,8 +181,6 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
     for all interactions /w matching variables in the dataset.
 
     """
-    # Calc DE stats (change to a placeholder that is populated, if not required)
-    sc.tl.rank_genes_groups(adata, groupby='label', method=de_method, use_raw=False)
     # get label cats
     labels = adata.obs.label.cat.categories
 
@@ -200,9 +201,24 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
         adata.layers['normcounts'] = adata.X.copy()
         adata.layers['normcounts'].data = expm1_base(adata.X.data, base)
 
-    # Get DEGs
-    dedict = {label: sc.get.rank_genes_groups_df(adata, label).assign(
-        label=label).sort_values('names') for label in labels}
+    # Get Props
+    dedict = {}
+
+    # Calc pvals + other stats per gene or not
+    rank_genes_bool = ('ligand_pvals' in relevant_cols) | ('receptor_pvals' in relevant_cols)
+    if rank_genes_bool:
+        sc.tl.rank_genes_groups(adata, groupby='label',
+                                method=de_method, use_raw=False)
+
+    for label in labels:
+        temp = adata[adata.obs.label == label, :]
+        a = _get_props(temp.X)
+        stats = pd.DataFrame({'names': temp.var_names, 'props': a}).\
+            assign(label=label).sort_values('names')
+        if rank_genes_bool:
+            pvals = sc.get.rank_genes_groups_df(adata, label)
+            stats = stats.merge(pvals)
+        dedict[label] = stats
 
     # check if genes are ordered correctly
     if not list(adata.var_names) == list(dedict[labels[0]]['names']):
@@ -309,3 +325,8 @@ def _run_method(lr_res, adata, _score, _key_cols, _complex_cols, _add_cols,
         lr_res = lr_res.drop([None], axis=1)
 
     return lr_res
+
+
+# Function to get gene expr proportions
+def _get_props(X_mask):
+    return X_mask.getnnz(axis=0) / X_mask.shape[0]

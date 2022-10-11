@@ -61,7 +61,7 @@ class ConsensusClass(MethodMeta):
                  consensus_opts=None,
                  use_raw=False,
                  layer=None,
-                 de_method='wilcoxon',
+                 de_method='t-test',
                  verbose=False,
                  n_perms=1000,
                  seed=1337,
