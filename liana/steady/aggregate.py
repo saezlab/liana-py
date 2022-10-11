@@ -8,7 +8,8 @@ def aggregate(lrs,
               consensus,
               aggregate_method='rra',
               consensus_opts=None,
-              _key_cols=None):
+              _key_cols=None
+              ):
     """
 
     :param lrs: a list with results for all methods
@@ -23,8 +24,7 @@ def aggregate(lrs,
 
     # join the scores to the whole universe between the methods
     if _key_cols is None:
-        _key_cols = ['source', 'target', 'ligand_complex',
-                     'receptor_complex']
+        _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
     if consensus_opts is None:
         consensus_opts = ['Steady', 'Magnitude', 'Specificity']
 

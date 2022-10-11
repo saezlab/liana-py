@@ -11,8 +11,6 @@ def check_if_covered(
         superset_name="resource",
         prop_missing_allowed=99,
         verbose=False):
-    """Assert `np.all(np.isin(subset, superset))` with a more readable error
-    message """
     subset = np.asarray(subset)
     is_missing = ~np.isin(subset, superset)
     prop_missing = np.sum(is_missing) / len(subset)

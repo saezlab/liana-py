@@ -2,28 +2,31 @@ from ..utils import prep_check_adata, check_if_covered, format_vars, filter_reso
     reassemble_complexes
 from ..resource import select_resource, explode_complexes
 from ._permutations import get_means_perms
-from functools import reduce
 from .aggregate import aggregate
 
 import scanpy as sc
 import pandas as pd
 import numpy as np
+from functools import reduce
 
 
-def liana_pipe(adata, groupby, resource_name, resource, de_method,
-               n_perms, seed, verbose, use_raw, layer, supp_cols=None,
-               base=2.718281828459045, _key_cols=None, _score=None,
+def liana_pipe(adata, groupby, resource_name, resource, expr_prop, base, de_method,
+               n_perms, seed, verbose, use_raw, layer,
+               supp_cols, _key_cols=None, _score=None,
                _methods=None, _consensus_opts=None, _aggregate_method=None):
     """
     :param adata: adata
     :param groupby: label to group_by
     :param resource_name: resource name
     :param resource: a resource dataframe in liana format
-    :param de_method: method to do between cluster DE
+    :param expr_prop:
+    :param de_method: method to do between cluster DE (only relevant when pvals are included in
+    `supp_cols`).
     :param n_perms: n permutations (relevant only for permutation-based methods)
     :param seed: random seed
     :param verbose: True/False
-    :param base: base used for 1vsRest logFC calculation (natural exponent by default)
+    :param base: base by which to do expm1, relevant only for 1vsRest logFC calculation
+    (natural exponent by default)
     :param layer: typing.Union[str, NoneType], optional (default: None)
     Key from `adata.layers` whose value will be used to perform tests on.
     :param use_raw: typing.Union[bool, NoneType], optional (default: None)
@@ -37,9 +40,6 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
     :param _aggregate_method: RobustRankAggregate('rra') or mean rank ('mean')
     :return: Returns an anndata with 'liana_res' in .uns
     """
-
-    if supp_cols is None:
-        supp_cols = ['ligand_props', 'receptor_props', 'ligand_pvals', 'receptor_pvals']
     if _key_cols is None:
         _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
 
@@ -53,7 +53,10 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
                      'ligand_logfc', 'receptor_logfc',
                      'mat_mean',
                      ]
-    _add_cols = _add_cols + ['ligand', 'receptor'] + supp_cols
+
+    if supp_cols is None:
+        supp_cols = []
+    _add_cols = _add_cols + ['ligand', 'receptor', 'ligand_props', 'receptor_props'] + supp_cols
 
     # Check and Reformat Mat if needed
     adata = prep_check_adata(adata,
@@ -92,7 +95,7 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
                      _key_cols + _add_cols + _complex_cols,
                      de_method, base, verbose)
 
-    # Mean Sums required for NATMI
+    # Mean Sums required for NATMI (note done on subunits also)
     if 'ligand_means_sums' in _add_cols:
         lr_res = _sum_means(lr_res, what='ligand_means',
                             on=['ligand_complex', 'receptor_complex',
@@ -101,6 +104,9 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
         lr_res = _sum_means(lr_res, what='receptor_means',
                             on=['ligand_complex', 'receptor_complex',
                                 'ligand', 'receptor', 'source'])
+
+    # Filter by expr_prop
+    lr_res = lr_res.loc[(lr_res.ligand_props >= expr_prop) & (lr_res.receptor_props >= expr_prop)]
 
     # Calculate Score
     if _score is not None:
@@ -115,8 +121,7 @@ def liana_pipe(adata, groupby, resource_name, resource, de_method,
                                 _score=method,
                                 _key_cols=_key_cols,
                                 _complex_cols=method.complex_cols,
-                                _add_cols=method.add_cols + ['ligand',
-                                                             'receptor'],
+                                _add_cols=method.add_cols + ['ligand', 'receptor'],
                                 n_perms=n_perms, seed=seed, _consensus=True
                                 )
             if _consensus_opts is not False:
@@ -317,7 +322,7 @@ def _run_method(lr_res, adata, _score, _key_cols, _complex_cols, _add_cols,
         lr_res[[_score.magnitude, _score.specificity]] = \
             lr_res.apply(_score.fun, axis=1, result_type="expand")
 
-    if _consensus: # if consensus keep only the keys and the method scores
+    if _consensus:  # if consensus keep only the keys and the method scores
         lr_res = lr_res[_key_cols + [_score.magnitude, _score.specificity]]
 
     # remove redundant cols for some scores

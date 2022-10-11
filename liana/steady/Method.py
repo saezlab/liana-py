@@ -47,13 +47,16 @@ class Method(MethodMeta):
                          )
         self._SCORE = _SCORE
 
-    def __call__(self, adata: anndata, groupby: str, resource_name='consensus',
-                 use_raw=False, layer=None, de_method='t-test', verbose=False,
-                 n_perms=1000, seed=1337, resource=None):
+    def __call__(self, adata: anndata, groupby: str, resource_name='consensus', expr_prop=0.1,
+                 base=2.718281828459045, use_raw=False, layer=None, de_method='t-test',
+                 verbose=False, n_perms=1000, seed=1337, resource=None):
         adata.uns['liana_res'] = liana_pipe(adata=adata,
                                             groupby=groupby,
                                             resource_name=resource_name,
                                             resource=resource,
+                                            expr_prop=expr_prop,
+                                            supp_cols=['ligand_pvals', 'receptor_pvals'],
+                                            base=base,
                                             de_method=de_method,
                                             verbose=verbose,
                                             _score=self._SCORE,
