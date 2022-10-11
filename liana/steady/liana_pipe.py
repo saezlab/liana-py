@@ -1,5 +1,5 @@
 from ..utils import prep_check_adata, check_if_covered, format_vars, filter_resource,\
-    reassemble_complexes
+    filter_reassemble_complexes
 from ..resource import select_resource, explode_complexes
 from ._permutations import get_means_perms
 from .aggregate import aggregate
@@ -12,8 +12,8 @@ from functools import reduce
 
 def liana_pipe(adata, groupby, resource_name, resource, expr_prop, base, de_method,
                n_perms, seed, verbose, use_raw, layer,
-               supp_cols, _key_cols=None, _score=None,
-               _methods=None, _consensus_opts=None, _aggregate_method=None):
+               supp_cols, _key_cols=None, _score=None, _methods=None,
+               _consensus_opts=None, _aggregate_method=None, _return_subunits=False):
     """
     :param adata: adata
     :param groupby: label to group_by
@@ -105,9 +105,6 @@ def liana_pipe(adata, groupby, resource_name, resource, expr_prop, base, de_meth
                             on=['ligand_complex', 'receptor_complex',
                                 'ligand', 'receptor', 'source'])
 
-    # Filter by expr_prop
-    lr_res = lr_res.loc[(lr_res.ligand_props >= expr_prop) & (lr_res.receptor_props >= expr_prop)]
-
     # Calculate Score
     if _score is not None:
         if _score.method_name == "Consensus":
@@ -116,12 +113,13 @@ def liana_pipe(adata, groupby, resource_name, resource, expr_prop, base, de_meth
             for method in _methods:
                 print(method.method_name)
                 lrs[method.method_name] = \
-                    _run_method(lr_res.copy(),
-                                adata,
+                    _run_method(lr_res=lr_res.copy(),
+                                adata=adata,
+                                expr_prop=expr_prop,
                                 _score=method,
                                 _key_cols=_key_cols,
                                 _complex_cols=method.complex_cols,
-                                _add_cols=method.add_cols + ['ligand', 'receptor'],
+                                _add_cols=method.add_cols,
                                 n_perms=n_perms, seed=seed, _consensus=True
                                 )
             if _consensus_opts is not False:
@@ -129,14 +127,20 @@ def liana_pipe(adata, groupby, resource_name, resource, expr_prop, base, de_meth
                                    consensus=_score,
                                    aggregate_method=_aggregate_method,
                                    _key_cols=_key_cols)
-            else:
+            else:  # Return by method results as they are
                 return lrs
         else:  # Run the specific method in mind
-            lr_res = _run_method(lr_res, adata,
-                                 _score, _key_cols, _complex_cols, _add_cols,
-                                 n_perms, seed)
+            lr_res = _run_method(lr_res=lr_res, adata=adata, expr_prop=expr_prop,
+                                 _score=_score, _key_cols=_key_cols, _complex_cols=_complex_cols,
+                                 _add_cols=_add_cols, n_perms=n_perms, seed=seed)
     else:  # Just return lr_res
-        lr_res = reassemble_complexes(lr_res, _key_cols, _complex_cols)
+        if _return_subunits:
+            return lr_res
+        # else re-asemble subunits into complexes
+        lr_res = filter_reassemble_complexes(lr_res=lr_res,
+                                             _key_cols=_key_cols,
+                                             expr_prop=expr_prop,
+                                             complex_cols=_complex_cols)
 
     return lr_res
 
@@ -300,10 +304,14 @@ def expm1_base(X, base):
     return np.power(base, X) - 1
 
 
-def _run_method(lr_res, adata, _score, _key_cols, _complex_cols, _add_cols,
+def _run_method(lr_res, adata, expr_prop, _score, _key_cols, _complex_cols, _add_cols,
                 n_perms, seed, _consensus=False):
+
     # re-assemble complexes - specific for each method
-    lr_res = reassemble_complexes(lr_res, _key_cols, _complex_cols)
+    lr_res = filter_reassemble_complexes(lr_res=lr_res,
+                                         _key_cols=_key_cols,
+                                         expr_prop=expr_prop,
+                                         complex_cols=_complex_cols)
 
     # subset to only relevant columns and return (SIMPLY?)
     _add_cols = _add_cols + ['ligand', 'receptor']

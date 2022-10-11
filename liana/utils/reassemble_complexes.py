@@ -1,10 +1,11 @@
 
-def reassemble_complexes(lr_res, _key_cols, complex_cols, complex_policy='min'):
+def filter_reassemble_complexes(lr_res, _key_cols, complex_cols, expr_prop, complex_policy='min'):
     """
     Reassemble complexes from exploded long-format pandas Dataframe.
 
     Parameters
     ----------
+    :param expr_prop: minimum expression proportion for each subunit in a complex
     :param lr_res: a long-format pandas dataframe with exploded complex subunits
     :param _key_cols: primary key for lr_res, typically a list with the following
     elements - ['source', 'target', 'ligand_complex', 'receptor_complex']
@@ -15,6 +16,17 @@ def reassemble_complexes(lr_res, _key_cols, complex_cols, complex_policy='min'):
     -----------
     :return: lr_res: a reduced long-format pandas dataframe
     """
+    # Filter by expr_prop (inner join only complexes where all subunits are expressed)
+    expressed = (lr_res[_key_cols + ['ligand_props', 'receptor_props']]
+                 .set_index(_key_cols)
+                 .stack()
+                 .groupby(_key_cols)
+                 .agg(prop_min='min')
+                 .reset_index()
+                 )
+    expressed = expressed[expressed['prop_min'] > expr_prop]
+    lr_res = lr_res.merge(expressed, how='inner', on=_key_cols)
+
     # check if complex policy is only min
     aggs = {complex_policy, 'min'}
 

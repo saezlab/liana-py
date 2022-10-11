@@ -19,7 +19,7 @@ class ConsensusClass(MethodMeta):
                          )
         self._SCORE = _SCORE
         self.methods = methods
-        self.steady = 'ranked_steady'
+        self.steady = 'steady_rank'
 
         # Define scores to aggregate
         self.specificity_specs = {method.method_name: (
@@ -86,9 +86,9 @@ _consensus_meta = MethodMeta(method_name="Consensus",
                              complex_cols=[],
                              add_cols=[],
                              fun=None,  # change to _robust_rank
-                             magnitude='ranked_magnitude',
+                             magnitude='magnitude_rank',
                              magnitude_desc=False,
-                             specificity='ranked_specificity',
+                             specificity='specificity_rank',
                              specificity_desc=False,
                              permute=False,
                              reference=''
