@@ -12,9 +12,8 @@ setup(name='liana-py',
       install_requires=["numba",
                         "tqdm",
                         "anndata"],
-      python_requires = ">=3.6",
-      classifiers = [
-            "Programming Language :: Python :: 3",
-            "Operating System :: OS Independent"]
-     )
-
+      python_requires=">=3.6",
+      classifiers=[
+          "Programming Language :: Python :: 3",
+          "Operating System :: OS Independent"]
+      )
