@@ -11,7 +11,7 @@ class TestPre(unittest.TestCase):
     def test_prep_check_adata(self):
         desired = np.array([1.591, 1.591, 1.591, 2.177, 2.544, 1.591, 2.177, 1.591, 2.812, 1.591])
         actual = prep_check_adata(adata, True, None).X.data[0:10]
-        np.testing.assert_almost_equal(actual, desired, decimal=3)
+        self.assertIsNone(np.testing.assert_almost_equal(actual, desired, decimal=3))
 
     @unittest.expectedFailure
     def test_check_if_covered(self):

@@ -27,7 +27,7 @@ class TestMeanPerms(unittest.TestCase):
                             45698.86540851, 45543.95444739])
         expected = np.sum(np.sum(perms, axis=0), axis=1)
 
-        np.testing.assert_almost_equal(desired, expected, decimal=3)
+        self.assertIsNone(np.testing.assert_almost_equal(desired, expected, decimal=3))
 
     def test_positions(self):
         self.assertEqual(ligand_pos['MIF'], 740)
