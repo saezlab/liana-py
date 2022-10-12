@@ -1,7 +1,7 @@
 from ..utils import prep_check_adata, check_if_covered, format_vars, filter_resource,\
     filter_reassemble_complexes
 from ..resource import select_resource, explode_complexes
-from ._permutations import get_means_perms
+from .get_mean_perms import get_means_perms
 from .aggregate import aggregate
 
 import scanpy as sc
