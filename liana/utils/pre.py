@@ -7,24 +7,25 @@ from scipy.sparse import csr_matrix
 def check_if_covered(
         subset,
         superset,
-        subset_name="features",
-        superset_name="resource",
-        prop_missing_allowed=99,
+        subset_name="resource",
+        superset_name="var_names",
+        prop_missing_allowed=0.99,
         verbose=False):
     subset = np.asarray(subset)
     is_missing = ~np.isin(subset, superset)
     prop_missing = np.sum(is_missing) / len(subset)
-    x_missing = " ,".join([x for x in subset[is_missing]])
+    x_missing = ", ".join([x for x in subset[is_missing]])
 
     if prop_missing > prop_missing_allowed:
         msg = (
             f"Allowed proportion ({prop_missing_allowed}) of missing "
             f"{subset_name} elements exceeded ({prop_missing:.2f}). "
+            f"Too few features from the resource found in the data."
         )
-        raise ValueError(msg + f"{x_missing} missing from {superset_name}")
-    if verbose:
-        print(f"{x_missing} found in {superset_name} but missing from "
-              f"{subset_name}!")
+        raise ValueError(msg + f" [{x_missing}] missing from {superset_name}")
+    if verbose & (prop_missing > 0):
+        print(f"{x_missing} found in {subset_name} but missing from "
+              f"{superset_name}!")
 
 
 # Helper Function to check if the matrix is in the correct format

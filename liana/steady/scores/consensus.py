@@ -42,8 +42,7 @@ class ConsensusClass(MethodMeta):
             {x for li in [method.add_cols for method in methods] for x in li}
         )
         self.complex_cols = list(
-            {x for li in [method.complex_cols for method in methods] for x in
-             li}
+            {x for li in [method.complex_cols for method in methods] for x in li}
         )
 
     def __call__(self,

@@ -128,7 +128,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 /.Rhistory
-/consensus.csv
+/liana/resource/consensus.csv
 /cpdb_test.csv
 /requirements.txt
 /resource.pickle

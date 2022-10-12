@@ -38,6 +38,7 @@ def liana_pipe(adata, groupby, resource_name, resource, expr_prop, base, de_meth
     :param _consensus_opts: Ways to aggregate interactions across methods by
     default does all aggregations (['Steady', 'Specificity', 'Magnitude']_
     :param _aggregate_method: RobustRankAggregate('rra') or mean rank ('mean')
+    :param _return_subunits:
     :return: Returns an anndata with 'liana_res' in .uns
     """
     if _key_cols is None:
@@ -85,7 +86,7 @@ def liana_pipe(adata, groupby, resource_name, resource, expr_prop, base, de_meth
                           np.unique(resource["receptor"]))
 
     # Check overlap between resource and adata
-    check_if_covered(entities, adata.var_keys, verbose=verbose)
+    check_if_covered(entities, adata.var_names, verbose=verbose)
 
     # Filter to only include the relevant genes
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
@@ -208,7 +209,7 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
         elif ('log1p' not in adata.uns_keys()) & verbose:
             print("Assuming that counts were natural log-normalized!")
         adata.layers['normcounts'] = adata.X.copy()
-        adata.layers['normcounts'].data = expm1_base(adata.X.data, base)
+        adata.layers['normcounts'].data = _expm1_base(adata.X.data, base)
 
     # Get Props
     dedict = {}
@@ -300,7 +301,7 @@ def _calc_log2(adata, label):
 
 
 # Exponent with a custom base
-def expm1_base(X, base):
+def _expm1_base(X, base):
     return np.power(base, X) - 1
 
 

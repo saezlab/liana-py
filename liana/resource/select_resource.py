@@ -1,9 +1,12 @@
 from pandas import read_csv
+import pathlib
 
 
 # Placeholder function to read in resource
 def select_resource(resource_name='consensus'):
-    resource = read_csv(f"{resource_name}.csv", index_col=False)  ### TO BE CHANGED
+    resource_path = pathlib.Path(__file__).parent.joinpath(f"{resource_name}.csv")
+    print(resource_path)
+    resource = read_csv(resource_path, index_col=False)  ### TO BE CHANGED
 
     resource = resource[['source_genesymbol', 'target_genesymbol']]
     resource = resource.rename(columns={'source_genesymbol': 'ligand',
