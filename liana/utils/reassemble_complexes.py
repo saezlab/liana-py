@@ -24,7 +24,7 @@ def filter_reassemble_complexes(lr_res, _key_cols, complex_cols, expr_prop, comp
                  .agg(prop_min='min')
                  .reset_index()
                  )
-    expressed = expressed[expressed['prop_min'] > expr_prop]
+    expressed = expressed[expressed['prop_min'] >= expr_prop]
     lr_res = lr_res.merge(expressed, how='inner', on=_key_cols)
 
     # check if complex policy is only min

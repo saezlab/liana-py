@@ -47,7 +47,7 @@ class TestLianaPipeDefaults(unittest.TestCase):
                                   _return_subunits=_return_subunits
                                   )
 
-        self.assertTrue(1271 == all_defaults.shape[0])
+        self.assertTrue(1288 == all_defaults.shape[0])
         self.assertTrue(18 == all_defaults.shape[1])
         self.assertIn('prop_min', all_defaults.columns)
 

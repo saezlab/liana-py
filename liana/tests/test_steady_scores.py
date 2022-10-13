@@ -39,7 +39,7 @@ class TestConsensus(unittest.TestCase):
         adata = pbmc68k_reduced()
         adata = consensus(adata, groupby='bulk_labels', use_raw=True, n_perms=2)
         lr_res = adata.uns['liana_res']
-        lr_exp = read_csv(test_path.joinpath("data/consensus.csv"), index_col=0)
+        lr_exp = read_csv(test_path.joinpath("data/consensus_res.csv"), index_col=0)
 
         assert_frame_equal(lr_res, lr_exp, check_dtype=False)
 
