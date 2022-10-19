@@ -1,7 +1,21 @@
 from liana.steady.Method import Method, MethodMeta
 
 
-def _natmi_score(x):
+def _natmi_score(x) -> tuple:
+    """
+    Calculate NATMI-like expression product and specificity weights
+
+    Parameters
+    ----------
+    x
+        DataFrame row
+
+    Returns
+    -------
+    tuple(expr_prod, spec_weight)
+
+    """
+
     # magnitude
     expr_prod = x.ligand_means * x.receptor_means
 

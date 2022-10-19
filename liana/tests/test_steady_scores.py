@@ -1,8 +1,8 @@
 import unittest
 import pathlib
 
-from liana import consensus, cellphonedb, natmi, connectome, singlecellsignalr as sca
-from liana.steady.scores.consensus import ConsensusClass
+from liana import rank_aggregate, cellphonedb, natmi, connectome, singlecellsignalr as sca
+from liana.steady.scores.rank_aggregate import ConsensusClass
 from scanpy.datasets import pbmc68k_reduced
 from pandas import read_csv
 from pandas.testing import assert_frame_equal
@@ -12,11 +12,11 @@ test_path = pathlib.Path(__file__).parent
 
 class TestConsensus(unittest.TestCase):
     def test_consensus(self):
-        self.assertIsInstance(consensus, ConsensusClass)
-        self.assertEqual(consensus.magnitude, 'magnitude_rank')
-        self.assertEqual(consensus.specificity, 'specificity_rank')
-        self.assertEqual(consensus.steady, 'steady_rank')
-        self.assertEqual(consensus.method_name, 'Consensus')
+        self.assertIsInstance(rank_aggregate, ConsensusClass)
+        self.assertEqual(rank_aggregate.magnitude, 'magnitude_rank')
+        self.assertEqual(rank_aggregate.specificity, 'specificity_rank')
+        self.assertEqual(rank_aggregate.steady, 'steady_rank')
+        self.assertEqual(rank_aggregate.method_name, 'Consensus')
 
     def test_consensus_specs(self):
         steady_specs = {'CellPhoneDB': ('pvals', False),
@@ -25,7 +25,7 @@ class TestConsensus(unittest.TestCase):
                         'NATMI': ('spec_weight', True),
                         'SingleCellSignalR': ('lrscore', True)
                         }
-        self.assertDictEqual(consensus.steady_specs, steady_specs)
+        self.assertDictEqual(rank_aggregate.steady_specs, steady_specs)
 
         magnitude_specs = {'CellPhoneDB': ('lr_means', True),
                            'Connectome': ('expr_prod', True),
@@ -33,11 +33,11 @@ class TestConsensus(unittest.TestCase):
                            'SingleCellSignalR': ('lrscore', True)
                            }
 
-        self.assertDictEqual(consensus.magnitude_specs, magnitude_specs)
+        self.assertDictEqual(rank_aggregate.magnitude_specs, magnitude_specs)
 
     def test_consensus_res(self):
         adata = pbmc68k_reduced()
-        adata = consensus(adata, groupby='bulk_labels', use_raw=True, n_perms=2)
+        adata = rank_aggregate(adata, groupby='bulk_labels', use_raw=True, n_perms=2)
         lr_res = adata.uns['liana_res']
         lr_exp = read_csv(test_path.joinpath("data/consensus_res.csv"), index_col=0)
 

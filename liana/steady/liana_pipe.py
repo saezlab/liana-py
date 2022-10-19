@@ -1,4 +1,4 @@
-from ..utils import prep_check_adata, check_if_covered, format_vars, filter_resource,\
+from ..utils import prep_check_adata, assert_covered, format_vars, filter_resource,\
     filter_reassemble_complexes
 from ..resource import select_resource, explode_complexes
 from .get_mean_perms import get_means_perms
@@ -86,7 +86,7 @@ def liana_pipe(adata, groupby, resource_name, resource, expr_prop, base, de_meth
                           np.unique(resource["receptor"]))
 
     # Check overlap between resource and adata
-    check_if_covered(entities, adata.var_names, verbose=verbose)
+    assert_covered(entities, adata.var_names, verbose=verbose)
 
     # Filter to only include the relevant genes
     adata = adata[:, np.intersect1d(entities, adata.var.index)]

@@ -2,6 +2,27 @@ import numpy as np
 
 
 def get_means_perms(adata, lr_res, n_perms, seed):
+    """
+    Parameters
+    ----------
+    adata
+        Annotated data matrix.
+    lr_res
+        Ligand-receptor stats DataFrame
+    n_perms
+        Number of permutations to be calculated
+    seed
+        Random seed for reproducibility.
+    Returns
+    -------
+
+    Tuple with:
+        - perms: 3D tensor with permuted averages per cluster
+        - ligand_pos: Index of the ligand in the tensor
+        - receptor_pos: Index of the receptor in the perms tensor
+        - labels_pos: Index of cell identities in the perms tensor
+    """
+
     # initialize rng
     rng = np.random.default_rng(seed=seed)
 

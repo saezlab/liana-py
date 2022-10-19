@@ -6,8 +6,8 @@ from .scores.singlecellsignalr import singlecellsignalr
 from .scores.connectome import connectome
 from .scores.logfc import logfc
 from .Method import MethodMeta
-from .scores.consensus import ConsensusClass, _consensus_meta
+from .scores.rank_aggregate import ConsensusClass, _consensus_meta
 
 # callable consensus instance
 _methods = [cellphonedb, connectome, logfc, natmi, singlecellsignalr]
-consensus = ConsensusClass(_consensus_meta, methods=_methods)
+rank_aggregate = ConsensusClass(_consensus_meta, methods=_methods)

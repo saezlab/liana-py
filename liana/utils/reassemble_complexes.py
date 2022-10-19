@@ -1,3 +1,8 @@
+"""
+Functions to deal with protein complexes
+"""
+import pandas as pd
+
 
 def filter_reassemble_complexes(lr_res, _key_cols, complex_cols, expr_prop, complex_policy='min'):
     """
@@ -5,12 +10,17 @@ def filter_reassemble_complexes(lr_res, _key_cols, complex_cols, expr_prop, comp
 
     Parameters
     ----------
-    :param expr_prop: minimum expression proportion for each subunit in a complex
-    :param lr_res: a long-format pandas dataframe with exploded complex subunits
-    :param _key_cols: primary key for lr_res, typically a list with the following
-    elements - ['source', 'target', 'ligand_complex', 'receptor_complex']
-    :param complex_cols: method/complex-relevant columns
-    :param complex_policy: approach by which the complexes are reassembled
+    expr_prop
+        minimum expression proportion for each subunit in a complex
+    lr_res
+        long-format pandas dataframe with exploded complex subunits
+    _key_cols
+        primary key for lr_res, typically a list with the following elements -
+        ['source', 'target', 'ligand_complex', 'receptor_complex']
+    complex_cols
+        method/complex-relevant columns
+    complex_policy
+        approach by which the complexes are reassembled
 
     Return
     -----------
@@ -37,19 +47,36 @@ def filter_reassemble_complexes(lr_res, _key_cols, complex_cols, expr_prop, comp
     return lr_res
 
 
-# Function to reduce the complexes
-def _reduce_complexes(col, cols_dict, lr_res, key_cols, aggs):
+def _reduce_complexes(col: str,
+                      cols_dict: dict,
+                      lr_res: pd.DataFrame,
+                      key_cols: list,
+                      aggs: dict
+                      ):
     """
-    :param col: column by which we are reducing
-    :param cols_dict: dictionary that we populate with the reduced results
-    for each ligand and receptor column
-    :param lr_res: liana_pipe generated long DataFrame
-    :param key_cols: a list of columns that define each row as unique
-    :param aggs: dictionary with the way(s) by which we aggregate. Note 'min'
-    should be there - we need the miniumum to find the lowest expression subunits,
-    which are then used to reduce the exploded complexes
-    :return: lr_res dataframe in which exploded ligand and receptor complexes are
-    reduced to include only the minimum (default) subunit value
+    Reduce the complexes
+
+    Parameters
+    ------------
+
+    col
+        column by which we are reducing
+    cols_dict
+        dictionary that we populate with the reduced results for each ligand and receptor column
+    lr_res
+     liana_pipe generated long DataFrame
+    key_cols
+        a list of columns that define each row as unique
+    aggs
+        dictionary with the way(s) by which we aggregate. Note 'min' should be there -
+        we need the miniumum to find the lowest expression subunits, which are then used
+        to reduce the exploded complexes
+
+    Return
+    -----------
+    :returns:
+        lr_res with exploded complexes reduced to only the minimum (default) subunit
+
     """
     # Group by keys
     lr_res = lr_res.groupby(key_cols)

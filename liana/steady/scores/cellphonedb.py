@@ -7,7 +7,30 @@ def _simple_mean(x, y): return (x + y) / 2
 
 
 # Internal Function to calculate CellPhoneDB LR_mean and p-values
-def _cpdb_score(x, perms, ligand_pos, receptor_pos, labels_pos):
+def _cpdb_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
+    """
+    Calculate CellPhoneDB-like LR means and p-values
+    
+    Parameters
+    ----------
+    x
+        DataFrame row
+    perms
+        3D tensor with permuted averages per cluster
+    ligand_pos
+        Index of the ligand in the tensor
+    receptor_pos
+        Index of the receptor in the perms tensor
+    labels_pos
+        Index of cell identities in the perms tensor
+
+
+    Returns
+    -------
+    A tuple with lr_mean and pvalue for x
+
+    """
+
     if (x.ligand_means == 0) | (x.receptor_means == 0):
         return 0, 1
 
@@ -32,7 +55,8 @@ _cellphonedb = MethodMeta(method_name="CellPhoneDB",
                           specificity='pvals',
                           specificity_desc=False,
                           permute=True,
-                          reference='Efremova et al., 2020')
+                          reference='Efremova et al., 2020'
+                          )
 
 # Initialize callable Method instance
 cellphonedb = Method(_SCORE=_cellphonedb)

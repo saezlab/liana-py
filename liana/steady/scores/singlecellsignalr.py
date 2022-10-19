@@ -5,6 +5,20 @@ from liana.steady.Method import Method, MethodMeta
 
 # Internal Function to calculate SingleCellR LRscore
 def _sca_score(x):
+    """
+    Calculate SingleCellSignalR-like LRscore
+
+    Parameters
+    ----------
+    x
+        DataFrame row
+
+    Returns
+    -------
+    (LRscore, None)
+
+    """
+
     lr_sqrt = np.sqrt(x.ligand_means) * np.sqrt(x.receptor_means)
     return lr_sqrt / (lr_sqrt + x.mat_mean), None
 

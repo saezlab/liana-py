@@ -2,7 +2,7 @@ import unittest
 from scanpy.datasets import pbmc68k_reduced
 import numpy as np
 
-from liana.utils.pre import check_if_covered, prep_check_adata, format_vars
+from liana.utils.pre import assert_covered, prep_check_adata, format_vars
 
 adata = pbmc68k_reduced()
 
@@ -15,7 +15,7 @@ class TestPre(unittest.TestCase):
 
     @unittest.expectedFailure
     def test_check_if_covered(self):
-        self.assertRaises(check_if_covered(['NOT', 'HERE'], adata.var_names, verbose=True))
+        self.assertRaises(assert_covered(['NOT', 'HERE'], adata.var_names, verbose=True))
 
     def test_format_vars(self):
         a = ['CD4B_', 'CD8A', 'IL6']

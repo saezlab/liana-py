@@ -1,11 +1,40 @@
+"""
+Utility functions to query OmniPath.
+Functions to retrieve resources from the meta-database OmniPath.
+"""
+
 from json import loads
 import pandas as pd
+
+
+def check_if_omnipath():
+    try:
+        import omnipath as op
+    except Exception:
+        raise ImportError('omnipath is not installed. Please install it with: pip install omnipath')
+    return op
+
+
+# Function to explode complexes (decomplexify Resource)
+def explode_complexes(resource, SOURCE='ligand', TARGET='receptor'):
+    resource['interaction'] = resource[SOURCE] + '|' + resource[TARGET]
+    resource = (resource.set_index('interaction')
+                .apply(lambda x: x.str.split('_'))
+                .explode([TARGET])
+                .explode(SOURCE)
+                .reset_index()
+                )
+    resource[[f'{SOURCE}_complex', f'{TARGET}_complex']] = resource[
+        'interaction'].str.split('|', expand=True)
+
+    return resource
 
 
 def obtain_extra_resource(databases,
                           blocklist,
                           allowlist):
-    import omnipath
+    omnipath = check_if_omnipath()
+
     # Obtain resource
     add = omnipath.interactions.PostTranslational.get(databases=databases,
                                                       genesymbols=True,
@@ -45,18 +74,3 @@ def _json_intersect_serialize(att, union_keys):
     att = loads(att)
     att = {k: att[k] for k in union_keys if k in att.keys()}
     return pd.Series(att)
-
-
-# Function to explode complexes (decomplexify Resource)
-def explode_complexes(resource, SOURCE='ligand', TARGET='receptor'):
-    resource['interaction'] = resource[SOURCE] + '|' + resource[TARGET]
-    resource = (resource.set_index('interaction')
-                .apply(lambda x: x.str.split('_'))
-                .explode([TARGET])
-                .explode(SOURCE)
-                .reset_index()
-                )
-    resource[[f'{SOURCE}_complex', f'{TARGET}_complex']] = resource[
-        'interaction'].str.split('|', expand=True)
-
-    return resource

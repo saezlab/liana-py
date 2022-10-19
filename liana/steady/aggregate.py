@@ -4,22 +4,31 @@ from functools import reduce
 from scipy.stats import rankdata, beta
 
 
-def aggregate(lrs,
+def aggregate(lrs: list,
               consensus,
-              aggregate_method='rra',
-              consensus_opts=None,
-              _key_cols=None
-              ):
+              aggregate_method: str = 'rra',
+              consensus_opts: list = None,
+              _key_cols: list = None
+              ) -> pd.DataFrame:
     """
 
-    :param lrs: a list with results for all methods
-    :param consensus: ConsensusClass instance used to generate the lr results
-    :param _key_cols: should represent unique LRs columns by which to join
-    :param aggregate_method: method by which we aggregate the ranks. Options
-    are ['rra', 'mean', 'rmat'], where 'rra' corresponds to the RRA method,
-    'mean' is just the mean of the ranks.
-    :param consensus_opts: consensus ranks to be obtained
-    :return: a long pd.DataFrame with ranked LRs
+    Parameters
+    ---------
+    lrs
+        a list with results for all methods
+    consensus
+        ConsensusClass instance used to generate the lr results
+    _key_cols
+        should represent unique LRs columns by which to join
+    aggregate_method
+        method by which we aggregate the ranks. Options are ['rra', 'mean'],
+        where 'rra' corresponds to the RRA method, 'mean' is just the mean of the ranks.
+    consensus_opts
+        consensus ranks to be obtained
+
+    Returns
+    -------
+    A long pd.DataFrame with ranked LRs
     """
 
     # join the scores to the whole universe between the methods
@@ -63,13 +72,25 @@ def aggregate(lrs,
     return lr_res
 
 
-def _rank_aggregate(lr_res, specs, _key_cols, aggregate_method):
+def _rank_aggregate(lr_res, specs, _key_cols, aggregate_method) -> np.array:
     """
-    :param lr_res: joined results from all methods
-    :param specs: specs dictionary where method_name:(score_name, score_desc)
-    :param _key_cols: columns by which we join
-    :param aggregate_method: method by which to aggregate the ranks
-    :return: returns an array of values /w length of lr_res.shape[0]
+    Aggregate method ranks
+
+    Parameters
+    ----------
+    lr_res
+        joined results from all methods
+    specs
+        specs dictionary where method_name:(score_name, score_desc)
+    _key_cols
+        columns by which we join
+    aggregate_method
+        method by which to aggregate the ranks
+
+    Returns
+    -------
+    An array of values /w length of lr_res.shape[0]
+
     """
     assert aggregate_method in ['rra', 'mean']
 
@@ -94,11 +115,20 @@ def _rank_aggregate(lr_res, specs, _key_cols, aggregate_method):
         return np.mean(rmat, axis=1)
 
 
-def _corr_beta_pvals(p, k):
+def _corr_beta_pvals(p, k) -> np.array:
     """
-    :param p: p-value
-    :param k: total number of rows
-    :return: array with corrected p-values
+    Correct beta p-values
+
+    Parameters
+    ----------
+    p
+        (min) p-value
+    k
+        total number of rows
+
+    Returns
+    -------
+    An array with corrected p-values
     """
     p = np.clip(p * k, a_min=0, a_max=1)
     return p
@@ -106,11 +136,20 @@ def _corr_beta_pvals(p, k):
 
 def _rho_scores(rmat, dist_a, dist_b):
     """
-    :param rmat: a matrix where rows are the ranks/n for each interaction, while
-    columns correspond to each method
-    :param dist_a: non-negative shape param a
-    :param dist_b: non-negative shape param b
-    :return: a vector of pvals as implemented in the RRA method
+    Calculate Beta Distribution Rho Scores
+    
+    ----------
+    rmat
+        a matrix where rows are the ranks/n for each interaction, while
+        columns correspond to each method
+    dist_a
+        non-negative shape param a
+    dist_b
+        non-negative shape param b
+
+    Returns
+    -------
+    A vector of pvals as implemented in the RRA method
     """
 
     # Sort values by sources (rows)
@@ -125,7 +164,20 @@ def _rho_scores(rmat, dist_a, dist_b):
     return rho
 
 
-def _robust_rank_aggregate(rmat):
+def _robust_rank_aggregate(rmat) -> np.array:
+    """
+    Calculate Robust Rank Aggregate as in Kolde et al., 2012
+
+    Parameters
+    ----------
+    rmat
+        Matrix with interaction ranks (rows) for each method (columns)
+
+    Returns
+    -------
+    An array with p-values for each row
+    """
+
     # 0-1 values depending on relative rank of
     # each interaction divided by the max of each method
     # due to max diffs due to ties

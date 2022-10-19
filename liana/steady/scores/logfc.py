@@ -3,9 +3,22 @@ from .cellphonedb import _simple_mean
 
 
 def _logfc_score(x):
+    """
+    Calculate 1vs Rest expression logFC
+
+    Parameters
+    ----------
+    x
+        DataFrame row
+
+    Returns
+    -------
+    (None, 1vsRest expression logFC)
+
+    """
     # specificity
-    scaled_weight = _simple_mean(x.ligand_logfc, x.receptor_logfc)
-    return None, scaled_weight
+    mean_logfc = _simple_mean(x.ligand_logfc, x.receptor_logfc)
+    return None, mean_logfc
 
 
 # Initialize CPDB Meta

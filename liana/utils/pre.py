@@ -1,16 +1,46 @@
+"""
+Preprocessing functions.
+Functions to preprocess the anndata object prior to running any method.
+"""
+
 import numpy as np
+from anndata import AnnData
+from typing import Optional
+from pandas import DataFrame
 import scanpy as sc
 from scipy.sparse import csr_matrix
 
 
-# Function to assert if elements are covered at a decent proportion
-def check_if_covered(
-        subset,
-        superset,
-        subset_name="resource",
-        superset_name="var_names",
-        prop_missing_allowed=0.99,
-        verbose=False):
+def assert_covered(
+        subset: list,
+        superset: list,
+        subset_name: str = "resource",
+        superset_name: str = "var_names",
+        prop_missing_allowed: float = 0.99,
+        verbose: bool = False) -> None:
+    """
+    Assert if elements are covered at a decent proportion
+
+    Parameters
+    ----------
+    subset
+        Subset of elements
+    superset
+        The superset of elements
+    subset_name
+        Name of the subset
+    superset_name
+        Name of the superset
+    prop_missing_allowed
+        Allowed proportion of missing/mismatched elements in the subset
+    verbose
+        Verbosity flag
+
+    Returns
+    -------
+    None
+    """
+
     subset = np.asarray(subset)
     is_missing = ~np.isin(subset, superset)
     prop_missing = np.sum(is_missing) / len(subset)
@@ -28,14 +58,27 @@ def check_if_covered(
               f"{superset_name}!")
 
 
-# Helper Function to check if the matrix is in the correct format
-def prep_check_adata(adata, use_raw, layer, verbose=False):
+def prep_check_adata(adata: AnnData,
+                     use_raw:  Optional[bool] = False,
+                     layer: Optional[str] = None,
+                     verbose: Optional[bool] = False) -> AnnData:
     """
-    :param adata:
-    :param use_raw:
-    :param layer:
-    :param verbose:
-    :return:
+    Check if the anndata object is in the correct format and preprocess
+
+    Parameters
+    ----------
+    adata
+        Un-formatted Anndata.
+    use_raw
+        Use raw attribute of adata if present.
+    layer
+        Indicate whether to use any layer.
+    verbose
+        Verbosity flag.
+
+    Returns
+    -------
+    Anndata object to be used downstream
     """
     # simplify adata
     X = _choose_mtx_rep(adata, use_raw, layer)
@@ -88,23 +131,37 @@ def prep_check_adata(adata, use_raw, layer, verbose=False):
 
 
 # Helper function to replace a substring in string and append to list
-def _append_replace(x, l):
+def _append_replace(x: str, l: list):
     l.append(x)
     return x.replace('_', '')
 
 
 # format variable names
-def format_vars(var_names, verbose=False):
+def format_vars(var_names, verbose=False) -> list:
+    """
+    Format Variable names
+    
+    Parameters
+    ----------
+    var_names
+        list of variable names (e.g. adata.var_names)
+    verbose
+        Verbosity flag
+
+    Returns
+    -------
+        Formatted Variable names list
+
+    """
     changed = []
-    var_names = [_append_replace(x, changed) if ('_' in x) else x for x in
-                 var_names]
+    var_names = [_append_replace(x, changed) if ('_' in x) else x for x in var_names]
     changed = ' ,'.join(changed)
     if verbose & (len(changed) > 0):
         print(f"Replace underscores (_) with blank in {changed}", )
     return var_names
 
 
-def filter_resource(resource, var_names):
+def filter_resource(resource: DataFrame, var_names: list) -> DataFrame:
     """
     Filter interactions for which vars are not present.
 
@@ -113,6 +170,16 @@ def filter_resource(resource, var_names):
     There, I assign the expression of those with missing subunits to 0, while
     those without any subunit present are implicitly filtered.
 
+    Parameters
+    ---------
+    resource
+        Resource with 'ligand' and 'receptor' columns
+    var_names
+        Relevant variables - i.e. the variables to be used downstream
+
+    Returns
+    ------
+    A filtered resource dataframe
     """
     # Remove those without any subunit
     resource = resource[(np.isin(resource.ligand, var_names)) &
@@ -133,8 +200,24 @@ def filter_resource(resource, var_names):
     return resource[~resource.interaction.isin(missing_comps.interaction)]
 
 
-# Choose matrix (adapted from scanpy)
-def _choose_mtx_rep(adata, use_raw=False, layer=None):
+def _choose_mtx_rep(adata, use_raw=False, layer=None) -> csr_matrix:
+    """
+    Choose matrix (adapted from scanpy)
+    
+    Parameters
+    ----------
+    adata
+        Unformatted Anndata.
+    use_raw
+        Use raw attribute of adata if present.
+    layer
+        Indicate whether to use any layer.
+    
+    Returns
+    -------
+        The matrix to be used by liana-py.
+    """
+
     is_layer = layer is not None
     if use_raw and is_layer:
         raise ValueError(

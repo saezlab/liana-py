@@ -1,7 +1,9 @@
 from liana.steady.Method import MethodMeta
 from liana.steady.liana_pipe import liana_pipe
 
-from anndata._core import anndata
+from anndata import AnnData
+from pandas import DataFrame
+from typing import Optional
 
 
 class ConsensusClass(MethodMeta):
@@ -33,7 +35,7 @@ class ConsensusClass(MethodMeta):
         methods_by_name = {method.method_name: method for method in methods}
         if 'SingleCellSignalR' in methods_by_name.keys():
             self.steady_specs = self.specificity_specs.copy()
-            self.steady_specs['SingleCellSignalR'] =\
+            self.steady_specs['SingleCellSignalR'] = \
                 (methods_by_name['SingleCellSignalR'].magnitude,
                  methods_by_name['SingleCellSignalR'].magnitude_desc)
 
@@ -46,20 +48,61 @@ class ConsensusClass(MethodMeta):
         )
 
     def __call__(self,
-                 adata: anndata,
+                 adata: AnnData,
                  groupby: str,
-                 resource_name='consensus',
-                 expr_prop=0.1,
-                 base=2.718281828459045,
+                 resource_name: str = 'consensus',
+                 expr_prop: float = 0.1,
+                 base: float = 2.718281828459045,
                  aggregate_method='rra',
                  consensus_opts=None,
-                 use_raw=False,
-                 layer=None,
+                 use_raw: Optional[bool] = False,
+                 layer: Optional[str] = None,
                  de_method='t-test',
-                 verbose=False,
-                 n_perms=1000,
-                 seed=1337,
-                 resource=None):
+                 verbose: Optional[bool] = False,
+                 n_perms: int = 1000,
+                 seed: int = 1337,
+                 resource: Optional[DataFrame] = None) -> AnnData:
+        """
+        Parameters
+        ----------
+        adata
+            Annotated data object.
+        groupby
+            The key of the observations grouping to consider.
+        resource_name
+            Name of the resource to be loaded and use for ligand-receptor inference.
+        expr_prop
+            Minimum expression proportion for the ligands/receptors (and their subunits) in the
+             corresponding cell identities. Set to `0`, to return unfiltered results.
+        base
+            Exponent base used to reverse the log-transformation of matrix. Note that this is
+            relevant only for the `logfc` method.
+        use_raw
+            Use raw attribute of adata if present.
+        layer
+            Layer in anndata.AnnData.layers to use. If None, use anndata.AnnData.X.
+        de_method
+            Differential expression method. `scanpy.tl.rank_genes_groups` is used to rank genes
+            according to 1vsRest. The default method is 't-test'.
+        verbose
+            Verbosity flag
+        n_perms
+            Number of permutations for the permutation test. Note that this is relevant
+            only for permutation-based methods - e.g. `CellPhoneDB`
+        seed
+            Random seed for reproducibility.
+        resource
+            Parameter to enable external resources to be passed. Expects a pandas dataframe
+            with [`ligand`, `receptor`] columns. None by default. If provided will overrule
+            the resource requested via `resource_name`
+
+        Returns
+        -------
+        :returns:
+        If ``copy = True``, returns a `DataFrame` with ligand-receptor results
+        Otherwise, modifies the ``adata`` object with the following key:
+            - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
+        """
         adata.uns['liana_res'] = liana_pipe(adata=adata,
                                             groupby=groupby,
                                             resource_name=resource_name,

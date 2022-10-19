@@ -2,7 +2,20 @@ from liana.steady.Method import Method, MethodMeta
 from .cellphonedb import _simple_mean
 
 
-def _connectome_score(x):
+def _connectome_score(x) -> tuple:
+    """
+    Calculate Connectome-like Score
+
+    Parameters
+    ----------
+    x
+        DataFrame row
+
+    Returns
+    -------
+    tuple(expr_prod, scaled_weight)
+
+    """
     # magnitude
     expr_prod = x.ligand_means * x.receptor_means
     # specificity
