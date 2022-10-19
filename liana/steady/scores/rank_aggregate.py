@@ -107,7 +107,6 @@ class ConsensusClass(MethodMeta):
                                             resource_name=resource_name,
                                             resource=resource,
                                             expr_prop=expr_prop,
-                                            supp_cols=None,  # None for now - subunit ambiguity
                                             base=base,
                                             de_method=de_method,
                                             verbose=verbose,

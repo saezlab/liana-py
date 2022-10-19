@@ -4,10 +4,9 @@ import pathlib
 from pandas import DataFrame
 
 
-# Read resource from CSV
 def select_resource(resource_name: str = 'consensus') -> DataFrame:
     """
-    Function to read resource of choice from the pre-generated resources in LIANA.
+    Read resource of choice from the pre-generated resources in LIANA.
 
     Parameters
     ----------

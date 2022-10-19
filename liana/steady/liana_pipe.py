@@ -27,7 +27,7 @@ def liana_pipe(adata: anndata.AnnData,
                verbose: bool,
                use_raw: bool,
                layer: str | None,
-               supp_cols: list | None,
+               supp_cols: list | None = None,
                _key_cols: list = None,
                _score=None,
                _methods: list = None,
@@ -364,7 +364,7 @@ def _calc_log2(adata, label) -> np.ndarray:
 
     Returns
     -------
-    An arra with logFC changes
+    An array with logFC changes
 
     """
     # Get subject vs rest cells
