@@ -1,4 +1,9 @@
-from ..utils import prep_check_adata, assert_covered, format_vars, filter_resource,\
+from __future__ import annotations
+
+import anndata
+import pandas
+
+from ..utils import prep_check_adata, assert_covered, format_vars, filter_resource, \
     filter_reassemble_complexes
 from ..resource import select_resource, explode_complexes
 from .get_mean_perms import get_means_perms
@@ -10,36 +15,78 @@ import numpy as np
 from functools import reduce
 
 
-def liana_pipe(adata, groupby, resource_name, resource, expr_prop, base, de_method,
-               n_perms, seed, verbose, use_raw, layer,
-               supp_cols, _key_cols=None, _score=None, _methods=None,
-               _consensus_opts=None, _aggregate_method=None, _return_subunits=False):
+def liana_pipe(adata: anndata.AnnData,
+               groupby: str,
+               resource_name: str,
+               resource: pd.DataFrame | None,
+               expr_prop: float,
+               base: float,
+               de_method: str,
+               n_perms: int,
+               seed: int,
+               verbose: bool,
+               use_raw: bool,
+               layer: str | None,
+               supp_cols: list | None,
+               _key_cols: list = None,
+               _score=None,
+               _methods: list = None,
+               _consensus_opts: list = None,
+               _aggregate_method: str = None,
+               _return_subunits: bool = False
+               ):
     """
-    :param adata: adata
-    :param groupby: label to group_by
-    :param resource_name: resource name
-    :param resource: a resource dataframe in liana format
-    :param expr_prop:
-    :param de_method: method to do between cluster DE (only relevant when pvals are included in
-    `supp_cols`).
-    :param n_perms: n permutations (relevant only for permutation-based methods)
-    :param seed: random seed
-    :param verbose: True/False
-    :param base: base by which to do expm1, relevant only for 1vsRest logFC calculation
-    (natural exponent by default)
-    :param layer: typing.Union[str, NoneType], optional (default: None)
-    Key from `adata.layers` whose value will be used to perform tests on.
-    :param use_raw: typing.Union[bool, NoneType], optional (default: None)
-    Use `raw` attribute of `adata` if present.
-    :param supp_cols: additional columns to be added to the output of each method
-    :param _key_cols: columns which make every interaction unique (i.e. PK)
-    :param _score: Instance of Method classes (None by default - returns LR stats - no methods used)
-    :param _methods: Methods to be run (only relevant for consensus)
-    :param _consensus_opts: Ways to aggregate interactions across methods by
-    default does all aggregations (['Steady', 'Specificity', 'Magnitude']_
-    :param _aggregate_method: RobustRankAggregate('rra') or mean rank ('mean')
-    :param _return_subunits:
-    :return: Returns an anndata with 'liana_res' in .uns
+    Parameters
+    ----------
+    adata
+        Annotated data object.
+    groupby
+        The key of the observations grouping to consider.
+    resource_name
+        Name of the resource to be loaded and use for ligand-receptor inference.
+    resource
+        Parameter to enable external resources to be passed. Expects a pandas dataframe
+        with [`ligand`, `receptor`] columns. None by default. If provided will overrule
+        the resource requested via `resource_name`
+    expr_prop
+        Minimum expression proportion for the ligands/receptors (and their subunits) in the
+         corresponding cell identities. Set to `0`, to return unfiltered results.
+    base
+        The base by which to do expm1 (relevant only for 1vsRest logFC calculation)
+    de_method
+        Differential expression method. `scanpy.tl.rank_genes_groups` is used to rank genes
+        according to 1vsRest. The default method is 't-test'. Only relevant if p-values
+        are included in `supp_cols`
+    n_perms
+        n permutations (relevant only for permutation-based methods)
+    seed
+        Random seed for reproducibility 
+    verbose
+        Verbosity flag
+    use_raw
+        Use raw attribute of adata if present.
+    layer
+        Layer in anndata.AnnData.layers to use. If None, use anndata.AnnData.X.
+    supp_cols
+        additional columns to be added to the output of each method.
+    _key_cols
+        columns which make every interaction unique (i.e. PK).
+    _score
+        Instance of Method classes (None by default - returns LR stats - no methods used).
+    _methods
+        Methods to be run (only relevant for consensus).
+    _consensus_opts
+        Ways to aggregate interactions across methods by default does all aggregations (['Steady',
+        'Specificity', 'Magnitude']).
+    _aggregate_method
+        RobustRankAggregate('rra') or mean rank ('mean').
+    _return_subunits
+        Whether to return only the subunits (False by default).
+
+    Returns
+    -------
+    A adata frame with ligand-receptor results
+
     """
     if _key_cols is None:
         _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
@@ -148,8 +195,26 @@ def liana_pipe(adata, groupby, resource_name, resource, expr_prop, base, de_meth
     return lr_res
 
 
-# Function to join source and target stats
 def _join_stats(source, target, dedict, resource):
+    """
+    Joins and renames source-ligand and target-receptor stats to the ligand-receptor resource
+
+    Parameters
+    ----------
+    source
+        Source/Sender cell type
+    target
+        Target/Receiver cell type
+    dedict
+        dictionary
+    resource
+        Ligand-receptor Resource
+
+    Returns
+    -------
+    Ligand-Receptor stats
+
+    """
     source_stats = dedict[source].copy()
     source_stats.columns = source_stats.columns.map(
         lambda x: 'ligand_' + str(x))
@@ -177,7 +242,7 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
         adata filtered and formated to contain only the relevant features for lr inference
 
     relevant_cols : list
-        list of relevant column names
+        Relevant column names
 
     resource : pandas.core.frame.DataFrame formatted and filtered resource
     dataframe with the following columns: [interaction, ligand, receptor,
@@ -225,7 +290,7 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
     for label in labels:
         temp = adata[adata.obs.label == label, :]
         a = _get_props(temp.X)
-        stats = pd.DataFrame({'names': temp.var_names, 'props': a}).\
+        stats = pd.DataFrame({'names': temp.var_names, 'props': a}). \
             assign(label=label).sort_values('names')
         if rank_genes_bool:
             pvals = sc.get.rank_genes_groups_df(adata, label)
@@ -265,25 +330,42 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
     return lr_res[relevant_cols]
 
 
-# Function to Sum Means
 def _sum_means(lr_res, what, on):
     """
-    :param lr_res: recomplexified lr_res
-    :param what: [entity]_means_sums for which the sum is calculated
-    :param on: columns by which to group and sum
-    :return: returns lr_res with [entity]_means_sums column
+    Calculate Sum Means
+
+    Parameters
+    ---------
+    lr_res
+        lr_res with reassembled complexes
+    what
+        [entity]_means_sums for which the sum is calculated
+    on
+        columns by which to group and sum
+
+    Returns
+    -------
+    lr_res with [entity]_means_sums column
     """
     return lr_res.join(lr_res.groupby(on)[what].sum(), on=on, rsuffix='_sums')
 
 
-def _calc_log2(adata, label):
+def _calc_log2(adata, label) -> np.ndarray:
     """
-    Calculate 1 vs rest log2fc for a particular cell identity
+    Calculate 1 vs rest Log2FC for a particular cell identity
 
-    :param  adata with feature-space reduced to the vars intersecting
-    with the IDs in the resource
-    :param label: cell identity
-    :return: returns a vector of logFC values for each var in adata
+    Parameters
+    ---------
+
+    adata
+        anndata with feature-space reduced to the vars intersecting with the IDs in the resource
+    label
+        cell identity
+
+    Returns
+    -------
+    An arra with logFC changes
+
     """
     # Get subject vs rest cells
     subject = adata[adata.obs.label.isin([label])].copy()
@@ -307,9 +389,17 @@ def _expm1_base(X, base):
     return np.power(base, X) - 1
 
 
-def _run_method(lr_res, adata, expr_prop, _score, _key_cols, _complex_cols, _add_cols,
-                n_perms, seed, _consensus=False):
-
+def _run_method(lr_res: pandas.DataFrame,
+                adata: anndata.AnnData,
+                expr_prop: float,
+                _score,
+                _key_cols: list,
+                _complex_cols: list,
+                _add_cols: list,
+                n_perms: int,
+                seed: int,
+                _consensus: bool = False  # Indicates whether we're generating the consensus
+                ) -> pd.DataFrame:
     # re-assemble complexes - specific for each method
     lr_res = filter_reassemble_complexes(lr_res=lr_res,
                                          _key_cols=_key_cols,

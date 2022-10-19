@@ -3,7 +3,6 @@ import numpy as np
 from liana.steady.Method import Method, MethodMeta
 
 
-# Internal Function to calculate SingleCellR LRscore
 def _sca_score(x):
     """
     Calculate SingleCellSignalR-like LRscore

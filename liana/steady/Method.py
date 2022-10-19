@@ -7,11 +7,11 @@ from pandas import DataFrame
 from typing import Optional
 
 
-
 class MethodMeta:
     """
     A Class used to store Method Metadata
     """
+
     def __init__(self,
                  method_name: str,
                  complex_cols: list,
@@ -76,6 +76,7 @@ class Method(MethodMeta):
     """
     A class used to generate Method instances
     """
+
     def __init__(self, _SCORE):
         super().__init__(method_name=_SCORE.method_name,
                          complex_cols=_SCORE.complex_cols,
@@ -124,7 +125,8 @@ class Method(MethodMeta):
             Layer in anndata.AnnData.layers to use. If None, use anndata.AnnData.X.
         de_method
             Differential expression method. `scanpy.tl.rank_genes_groups` is used to rank genes
-            according to 1vsRest. The default method is 't-test'.
+            according to 1vsRest. The default method is 't-test'. Only relevant if p-values
+            are included in `supp_cols`
         verbose
             Verbosity flag
         n_perms
