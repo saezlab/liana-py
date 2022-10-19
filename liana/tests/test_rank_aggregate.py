@@ -1,7 +1,7 @@
 import unittest
 import pathlib
 
-from liana import rank_aggregate, cellphonedb, natmi, connectome, singlecellsignalr as sca
+from liana import rank_aggregate
 from liana.steady.scores.rank_aggregate import ConsensusClass
 from scanpy.datasets import pbmc68k_reduced
 from pandas import read_csv
@@ -39,7 +39,7 @@ class TestConsensus(unittest.TestCase):
         adata = pbmc68k_reduced()
         adata = rank_aggregate(adata, groupby='bulk_labels', use_raw=True, n_perms=2)
         lr_res = adata.uns['liana_res']
-        lr_exp = read_csv(test_path.joinpath("data/consensus_res.csv"), index_col=0)
+        lr_exp = read_csv(test_path.joinpath("data/aggregate_rank_rest.csv"), index_col=0)
 
         assert_frame_equal(lr_res, lr_exp, check_dtype=False)
 

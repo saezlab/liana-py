@@ -1,0 +1,11 @@
+.wy-side-nav-search a img.logo {
+  height: 200px;
+}
+
+.wy-side-nav-search {
+    background-color: transparent
+}
+
+.wy-nav-content {
+    max-width: 1200px;
+}
