@@ -1,9 +1,12 @@
-# LIANA: a LIgand-receptor ANalysis frAmework
+# LIANA: a LIgand-receptor ANalysis frAmework <img src="https://github.com/saezlab/liana-py/blob/main/docs/source/logo.png?raw=true" align="right" height="100">
 
 ## Install LIANA
 ```
 pip install git+https://github.com/saezlab/liana-py
 ```
+
+## Documentation
+url:
 
 ## Tutorials
 - [Basic Usage]()
@@ -33,7 +36,7 @@ TO DO:
 
 The following CCC resources are accessible via this pipeline:
 
-- Consensus$
+- Consensus ($)
 - CellCall
 - CellChatDB
 - CellPhoneDB
@@ -49,7 +52,7 @@ The following CCC resources are accessible via this pipeline:
 - ConnectomeDB2020
 - CellTalkDB
 
-$ LIANA's default resource was generated from the Consensus of several expert-curated resources
+($) LIANA's default resource was generated from the Consensus of several expert-curated resources
 , then filtered to additional quality control steps including literature support, complex re-union/consensus,
 and localisation.
 
