@@ -1,4 +1,5 @@
 from pandas import read_csv
+from numpy import unique
 import pathlib
 from pandas import DataFrame
 
@@ -31,3 +32,17 @@ def select_resource(resource_name: str = 'consensus') -> DataFrame:
                                         'target_genesymbol': 'receptor'})
 
     return resource
+
+
+def show_resources():
+    """
+    Show provided resources.
+
+    Returns
+    -------
+    A list of resource names available via ``liana.resource.select_resource``
+
+    """
+    resource_path = pathlib.Path(__file__).parent.joinpath("omni_resource.csv")
+    resource = read_csv(resource_path, index_col=False)
+    return list(unique(resource.resource))

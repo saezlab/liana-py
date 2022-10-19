@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .liana_pipe import liana_pipe
 
 from anndata import AnnData
@@ -5,37 +7,75 @@ from pandas import DataFrame
 from typing import Optional
 
 
-# Object to store MetaData
+
 class MethodMeta:
-    def __init__(self, method_name, complex_cols, add_cols, fun, magnitude,
-                 magnitude_desc, specificity, specificity_desc, permute,
-                 reference):
-        self.method_name = method_name  # method name
-        self.complex_cols = complex_cols  # complex-relevant columns
-        self.add_cols = add_cols  # additional columns
-        self.fun = fun  # Function to run
-        self.magnitude = magnitude  # Name of the col
-        self.magnitude_desc = magnitude_desc  # desc or not
-        self.specificity = specificity  # Name of the col
-        self.specificity_desc = specificity_desc  # desc or not
-        self.permute = permute  # True/False
-        self.reference = reference  # Publication
+    """
+    A Class used to store Method Metadata
+    """
+    def __init__(self,
+                 method_name: str,
+                 complex_cols: list,
+                 add_cols: list,
+                 fun,
+                 magnitude: str | None,
+                 magnitude_desc: bool | None,
+                 specificity: str | None,
+                 specificity_desc: bool | None,
+                 permute: bool,
+                 reference: str
+                 ):
+        """
+        Parameters
+        ----------
+        method_name
+            Name of the Method
+        complex_cols
+            Columns relevant for protein complexes
+        add_cols
+            Additional columns required by the method
+        fun
+            Interaction Scoring function
+        magnitude
+            Name of the `magnitude` Score (None if not present)
+        magnitude_desc
+            Whether to rank `magnitude` in descending manner (None if not relevant)
+        specificity
+            Name of the `specificity` Score if Present (None if not present)
+        specificity_desc
+            Whether to rank `magnitude` in descending manner  (None if not relevant)
+        permute
+            Whether it requires permutations
+        reference
+            Publication reference in Harvard style
+        """
+        self.method_name = method_name
+        self.complex_cols = complex_cols
+        self.add_cols = add_cols
+        self.fun = fun
+        self.magnitude = magnitude
+        self.magnitude_desc = magnitude_desc
+        self.specificity = specificity
+        self.specificity_desc = specificity_desc
+        self.permute = permute
+        self.reference = reference
 
     # describe self
     def describe(self):
+        """Briefly described the method"""
         print(
             f"{self.method_name} uses `{self.magnitude}` and `{self.specificity}`"
             f" as measures of expression strength and interaction specificity, respectively"
         )
 
     def reference(self):
+        """Prints out reference in Harvard format"""
         print(self.reference)
 
 
-# Class To initialize Method objects. Will likely need to create a specific
-# class for each method in order to allow redundant parameters to be removed
-# (e.g. `de_method` for cpdb)
 class Method(MethodMeta):
+    """
+    A class used to generate Method instances
+    """
     def __init__(self, _SCORE):
         super().__init__(method_name=_SCORE.method_name,
                          complex_cols=_SCORE.complex_cols,
@@ -99,7 +139,6 @@ class Method(MethodMeta):
 
         Returns
         -------
-        :returns:
         If ``copy = True``, returns a `DataFrame` with ligand-receptor results
         Otherwise, modifies the ``adata`` object with the following key:
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
@@ -120,16 +159,3 @@ class Method(MethodMeta):
                                             layer=layer,
                                             )
         return adata
-
-"""
-
-If ``copy = True``, returns a :class:`dict` with following keys:
-    - `'means'` - :class:`pandas.DataFrame` containing the mean expression.
-    - `'pvalues'` - :class:`pandas.DataFrame` containing the possibly corrected p-values.
-    - `'metadata'` - :class:`pandas.DataFrame` containing interaction metadata.
-Otherwise, modifies the ``adata`` object with the following key:
-    - :attr:`anndata.AnnData.uns` ``['{key_added}']`` - the above mentioned :class:`dict`.
-`NaN` p-values mark combinations for which the mean expression of one of the interacting components was 0
-or it didn't pass the ``threshold`` percentage of cells being expressed within a given cluster.
-
-"""

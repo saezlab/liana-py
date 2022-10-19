@@ -98,7 +98,6 @@ class ConsensusClass(MethodMeta):
 
         Returns
         -------
-        :returns:
         If ``copy = True``, returns a `DataFrame` with ligand-receptor results
         Otherwise, modifies the ``adata`` object with the following key:
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
@@ -133,5 +132,7 @@ _consensus_meta = MethodMeta(method_name="Consensus",
                              specificity='specificity_rank',
                              specificity_desc=False,
                              permute=False,
-                             reference=''
+                             reference='Kolde, R., Laur, S., Adler, P. and Vilo, J., 2012. Robust '
+                                       'rank aggregation for gene list integration and '
+                                       'meta-analysis. Bioinformatics, 28(4), pp.573-580. '
                              )

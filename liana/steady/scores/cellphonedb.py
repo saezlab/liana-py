@@ -55,7 +55,11 @@ _cellphonedb = MethodMeta(method_name="CellPhoneDB",
                           specificity='pvals',
                           specificity_desc=False,
                           permute=True,
-                          reference='Efremova et al., 2020'
+                          reference='Efremova, M., Vento-Tormo, M., Teichmann, S.A. and '
+                                    'Vento-Tormo, R., 2020. CellPhoneDB: inferring cell–cell '
+                                    'communication from combined expression of multi-subunit '
+                                    'ligand–receptor complexes. Nature protocols, 15(4), '
+                                    'pp.1484-1506. '
                           )
 
 # Initialize callable Method instance

@@ -6,14 +6,14 @@ Functions to preprocess the anndata object prior to running any method.
 import numpy as np
 from anndata import AnnData
 from typing import Optional
-from pandas import DataFrame
+from pandas import DataFrame, Index
 import scanpy as sc
 from scipy.sparse import csr_matrix
 
 
 def assert_covered(
-        subset: list,
-        superset: list,
+        subset,
+        superset,
         subset_name: str = "resource",
         superset_name: str = "var_names",
         prop_missing_allowed: float = 0.99,
@@ -161,7 +161,7 @@ def format_vars(var_names, verbose=False) -> list:
     return var_names
 
 
-def filter_resource(resource: DataFrame, var_names: list) -> DataFrame:
+def filter_resource(resource: DataFrame, var_names: Index) -> DataFrame:
     """
     Filter interactions for which vars are not present.
 

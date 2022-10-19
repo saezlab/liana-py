@@ -1,8 +1,15 @@
+import anndata
 import numpy as np
+import pandas
 
 
-def get_means_perms(adata, lr_res, n_perms, seed):
+def get_means_perms(adata: anndata.AnnData,
+                    lr_res: pandas.DataFrame,
+                    n_perms: int,
+                    seed: int):
     """
+    Generate permutations and indices required for permutation-based methods
+
     Parameters
     ----------
     adata
@@ -13,9 +20,9 @@ def get_means_perms(adata, lr_res, n_perms, seed):
         Number of permutations to be calculated
     seed
         Random seed for reproducibility.
+
     Returns
     -------
-
     Tuple with:
         - perms: 3D tensor with permuted averages per cluster
         - ligand_pos: Index of the ligand in the tensor

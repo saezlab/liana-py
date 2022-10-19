@@ -33,7 +33,11 @@ _singlecellsignalr = MethodMeta(method_name="SingleCellSignalR",
                                 specificity=None,
                                 specificity_desc=None,
                                 permute=False,
-                                reference=''
+                                reference='Cabello-Aguilar, S., Alame, M., Kon-Sun-Tack, F., Fau, '
+                                          'C., Lacroix, M. and Colinge, J., '
+                                          '2020. SingleCellSignalR: inference of intercellular '
+                                          'networks from single-cell transcriptomics. Nucleic '
+                                          'Acids Research, 48(10), pp.e55-e55. '
                                 )
 
 # Initialize callable Method instance

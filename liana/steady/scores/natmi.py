@@ -37,7 +37,9 @@ _natmi = MethodMeta(method_name="NATMI",
                     specificity='spec_weight',
                     specificity_desc=True,
                     permute=False,
-                    reference='Hou et al., 2021'
+                    reference='Hou, R., Denisenko, E., Ong, H.T., Ramilowski, J.A. and Forrest, '
+                              'A.R., 2020. Predicting cell-to-cell communication networks using '
+                              'NATMI. Nature communications, 11(1), pp.1-11. '
                     )
 
 # Initialize callable Method instance

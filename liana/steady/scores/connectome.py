@@ -34,7 +34,12 @@ _connectome = MethodMeta(method_name="Connectome",
                          specificity='scaled_weight',
                          specificity_desc=True,
                          permute=False,
-                         reference=''
+                         reference='Raredon, M.S.B., Yang, J., Garritano, J., Wang, M., Kushnir, '
+                                   'D., Schupp, J.C., Adams, T.S., Greaney, A.M., Leiby, K.L., '
+                                   'Kaminski, N. and Kluger, Y., 2022. Computation and '
+                                   'visualization of cell–cell signaling topologies in '
+                                   'single-cell systems data using Connectome. Scientific '
+                                   'reports, 12(1), pp.1-12. '
                          )
 
 # Initialize callable Method instance

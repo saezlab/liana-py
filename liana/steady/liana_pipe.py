@@ -75,7 +75,7 @@ def liana_pipe(adata, groupby, resource_name, resource, expr_prop, base, de_meth
         adata.uns['mat_mean'] = np.mean(adata.X)
 
     if resource is None:
-        resource = select_resource(resource_name)
+        resource = select_resource(resource_name.lower())
     # explode complexes/decomplexify
     resource = explode_complexes(resource)
     # Filter Resource
@@ -121,7 +121,9 @@ def liana_pipe(adata, groupby, resource_name, resource, expr_prop, base, de_meth
                                 _key_cols=_key_cols,
                                 _complex_cols=method.complex_cols,
                                 _add_cols=method.add_cols,
-                                n_perms=n_perms, seed=seed, _consensus=True
+                                n_perms=n_perms,
+                                seed=seed,
+                                _consensus=True
                                 )
             if _consensus_opts is not False:
                 lr_res = aggregate(lrs,

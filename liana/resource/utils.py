@@ -8,6 +8,14 @@ import pandas as pd
 
 
 def check_if_omnipath():
+    """
+    Function to check if available and return OmniPath
+    
+    Returns
+    -------
+    OmniPath package
+
+    """
     try:
         import omnipath as op
     except Exception:
@@ -16,7 +24,26 @@ def check_if_omnipath():
 
 
 # Function to explode complexes (decomplexify Resource)
-def explode_complexes(resource, SOURCE='ligand', TARGET='receptor'):
+def explode_complexes(resource: pd.DataFrame,
+                      SOURCE='ligand',
+                      TARGET='receptor') -> pd.DataFrame:
+    """
+    Function to explode ligand-receptor complexes
+
+    Parameters
+    ----------
+    resource
+        Ligand-receptor resource
+    SOURCE
+        Name of the source (typically ligand) column
+    TARGET
+        Name of the target (typically receptor) column
+
+    Returns
+    -------
+    A resource with exploded complexes
+
+    """
     resource['interaction'] = resource[SOURCE] + '|' + resource[TARGET]
     resource = (resource.set_index('interaction')
                 .apply(lambda x: x.str.split('_'))
@@ -32,7 +59,8 @@ def explode_complexes(resource, SOURCE='ligand', TARGET='receptor'):
 
 def obtain_extra_resource(databases,
                           blocklist,
-                          allowlist):
+                          allowlist
+                          ):
     omnipath = check_if_omnipath()
 
     # Obtain resource
