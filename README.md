@@ -1,4 +1,4 @@
-# LIANA: a LIgand-receptor ANalysis frAmework <img src="https://github.com/saezlab/liana-py/blob/main/docs/source/logo.png?raw=true" align="right" height="100">
+# LIANA: a LIgand-receptor ANalysis frAmework <img src="https://github.com/saezlab/liana-py/blob/main/docs/source/logo.png?raw=true" align="right" height="150">
 
 ## Install LIANA
 ```
