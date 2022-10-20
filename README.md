@@ -26,13 +26,12 @@ The methods implemented in this repository are:
 [RobustRankAggregate](https://academic.oup.com/bioinformatics/article/28/4/573/213339) method
 
 
-TO DO:
+TO be included:
 - [CellChat](https://github.com/sqjin/CellChat)
 - Geometric mean + perms
 - 
 
 ## Ligand-Receptor Resources
-
 
 The following CCC resources are accessible via this pipeline:
 
@@ -52,8 +51,8 @@ The following CCC resources are accessible via this pipeline:
 - ConnectomeDB2020
 - CellTalkDB
 
-($) LIANA's default resource was generated from the Consensus of several expert-curated resources
-, then filtered to additional quality control steps including literature support, complex re-union/consensus,
+($) LIANA's default `Consensus` resource was generated from several expert-curated resources, 
+filtered to additional quality control steps including literature support, complex re-union/consensus,
 and localisation.
 
 
