@@ -41,4 +41,4 @@ class TestConsensus:
         lr_res = adata.uns['liana_res']
         lr_exp = read_csv(test_path.joinpath("data/aggregate_rank_rest.csv"), index_col=0)
 
-        assert_frame_equal(lr_res, lr_exp, check_dtype=False)
+        assert_frame_equal(lr_res, lr_exp, check_dtype=False, check_exact=False)

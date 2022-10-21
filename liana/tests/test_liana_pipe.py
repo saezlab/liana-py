@@ -51,7 +51,8 @@ def test_liana_pipe_defaults_shape():
 
     exp_defaults = read_csv(test_path.joinpath("data/all_defaults.csv"), index_col=0)
     exp_defaults.index = all_defaults.index
-    assert_frame_equal(all_defaults, exp_defaults, check_dtype=False, check_index_type=False)
+    assert_frame_equal(all_defaults, exp_defaults, check_dtype=False,
+                       check_exact=False, check_index_type=False)
 
 
 # Test NOT Default parameters
@@ -79,5 +80,6 @@ def test_liana_pipe_not_defaults():
 
     exp_defaults = read_csv(test_path.joinpath("data/not_defaults.csv"), index_col=0)
     exp_defaults.index = not_defaults.index
-    assert_frame_equal(not_defaults, exp_defaults, check_dtype=False, check_index_type=False)
+    assert_frame_equal(not_defaults, exp_defaults, check_dtype=False,
+                       check_index_type=False, check_exact=False)
 
