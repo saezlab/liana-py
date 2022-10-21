@@ -83,3 +83,7 @@ def test_liana_pipe_not_defaults():
     assert_frame_equal(not_defaults, exp_defaults, check_dtype=False,
                        check_index_type=False, check_exact=False)
 
+
+def test_expm1_fun():
+    expected = np.sum(np.power(base, adata.raw.X.A))
+    np.testing.assert_almost_equal(expected, 1921799.8, decimal=1)
