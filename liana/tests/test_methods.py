@@ -25,12 +25,12 @@ class TestMethods(unittest.TestCase):
         self.assertIn('liana_res', adata.uns)
 
     def test_logfc(self):
-        test_logfc = sca(adata, groupby='bulk_labels', use_raw=True)
+        test_logfc = logfc(adata, groupby='bulk_labels', use_raw=True)
         self.assertIsInstance(test_logfc, anndata.AnnData)
         self.assertIn('liana_res', adata.uns)
 
     def test_connectome(self):
-        test_connectome = sca(adata, groupby='bulk_labels', use_raw=True)
+        test_connectome = connectome(adata, groupby='bulk_labels', use_raw=True)
         self.assertIsInstance(test_connectome, anndata.AnnData)
         self.assertIn('liana_res', adata.uns)
 
