@@ -1,4 +1,4 @@
-from liana.steady.liana_pipe import liana_pipe
+from liana.steady.liana_pipe import liana_pipe, _expm1_base, _calc_log2fc
 
 import pathlib
 from scanpy.datasets import pbmc68k_reduced
@@ -85,5 +85,12 @@ def test_liana_pipe_not_defaults():
 
 
 def test_expm1_fun():
-    expected = np.sum(np.power(base, adata.raw.X.A))
-    np.testing.assert_almost_equal(expected, 1921799.8, decimal=1)
+    expm1_mat = _expm1_base(base, adata.raw.X.data)
+    np.testing.assert_almost_equal(np.sum(expm1_mat), 1057526.4, decimal=1)
+
+
+def test_calc_log2fc():
+    adata.layers['normcounts'] = adata.raw.X.copy()
+    adata.layers['normcounts'].data = _expm1_base(base, adata.raw.X.data)
+    adata.obs['label'] = adata.obs.bulk_labels
+    np.testing.assert_almost_equal(np.mean(_calc_log2fc(adata, "Dendritic")), -0.123781264)

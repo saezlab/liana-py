@@ -308,7 +308,7 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
         if connectome_flag:
             dedict[label]['zscores'] = temp.layers['scaled'].mean(0)
         if logfc_flag:
-            dedict[label]['logfc'] = _calc_log2(adata, label)
+            dedict[label]['logfc'] = _calc_log2fc(adata, label)
 
     # Create df /w cell identity pairs
     pairs = (pd.DataFrame(np.array(np.meshgrid(labels, labels))
@@ -350,7 +350,7 @@ def _sum_means(lr_res, what, on):
     return lr_res.join(lr_res.groupby(on)[what].sum(), on=on, rsuffix='_sums')
 
 
-def _calc_log2(adata, label) -> np.ndarray:
+def _calc_log2fc(adata, label) -> np.ndarray:
     """
     Calculate 1 vs rest Log2FC for a particular cell identity
 
