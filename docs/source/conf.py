@@ -1,4 +1,3 @@
-
 # Configuration file for the Sphinx documentation builder.
 
 import os
@@ -60,7 +59,7 @@ html_context = dict(
     display_github=True,  # Integrate GitHub
     github_user='saezlab',  # Username
     github_repo='liana-py',  # Repo name
-    github_version='master',  # Version
+    github_version='main',  # Version
     conf_py_path='/docs/source/',  # Path in the checkout to the docs root
 )
 html_show_sphinx = False

@@ -9,7 +9,7 @@
 
 
 LIANA is a Ligand-Receptor inference framework that enables the use of any LR method with any resource.
-LIANA is also in R and available [here](https://github.com/saezlab/liana)
+This is its faster and memory efficient Python implementation, an R version is also available [here](https://github.com/saezlab/liana).
 
 
 ### *liana-py is still under heavy development - a stable alpha release will be created soon*
@@ -66,7 +66,7 @@ filtered to additional quality control steps including literature support, compl
 and localisation.
 
 
-## Citing LIANA:
+## Cite LIANA:
 
 Dimitrov, D., Türei, D., Garrido-Rodriguez M., Burmedi P.L., Nagai, J.S., Boys, C., Flores, R.O.R., Kim, H., Szalai, B., Costa, I.G., Valdeolivas, A., Dugourd, A. and Saez-Rodriguez, J. Comparison of methods and resources for cell-cell communication inference from single-cell RNA-Seq data. Nat Commun 13, 3224 (2022). https://doi.org/10.1038/s41467-022-30755-0
 Also, if you use the OmniPath CCC Resource for your analysis, please cite:

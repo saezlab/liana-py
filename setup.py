@@ -35,7 +35,7 @@ setup(name='liana-py',
                         "pandas",
                         "anndata",
                         "scanpy"],
-      python_requires=">=3.7",
+      python_requires=">=3.8",
       classifiers=[
           "Programming Language :: Python :: 3",
           "Operating System :: OS Independent"]
