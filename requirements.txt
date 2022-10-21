@@ -4,3 +4,4 @@ pandas
 statsmodels
 anndata
 scanpy
+numpydoc
