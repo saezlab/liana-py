@@ -1,5 +1,3 @@
-import unittest
-
 import anndata
 
 from liana import cellphonedb, singlecellsignalr as sca, natmi, connectome, logfc
@@ -8,32 +6,31 @@ from scanpy.datasets import pbmc68k_reduced
 adata = pbmc68k_reduced()
 
 
-class TestMethods(unittest.TestCase):
-    def test_cellphonedb(self):
-        test_cellphonedb = cellphonedb(adata, groupby='bulk_labels', use_raw=True, n_perms=2)
-        self.assertIsInstance(test_cellphonedb, anndata.AnnData)
-        self.assertIn('liana_res', adata.uns)
-
-    def test_natmi(self):
-        test_natmi = natmi(adata, groupby='bulk_labels', use_raw=True)
-        self.assertIsInstance(test_natmi, anndata.AnnData)
-        self.assertIn('liana_res', adata.uns)
-
-    def test_sca(self):
-        test_sca = sca(adata, groupby='bulk_labels', use_raw=True)
-        self.assertIsInstance(test_sca, anndata.AnnData)
-        self.assertIn('liana_res', adata.uns)
-
-    def test_logfc(self):
-        test_logfc = logfc(adata, groupby='bulk_labels', use_raw=True)
-        self.assertIsInstance(test_logfc, anndata.AnnData)
-        self.assertIn('liana_res', adata.uns)
-
-    def test_connectome(self):
-        test_connectome = connectome(adata, groupby='bulk_labels', use_raw=True)
-        self.assertIsInstance(test_connectome, anndata.AnnData)
-        self.assertIn('liana_res', adata.uns)
+def test_cellphonedb():
+    test_cellphonedb = cellphonedb(adata, groupby='bulk_labels', use_raw=True, n_perms=2)
+    assert isinstance(test_cellphonedb, anndata.AnnData)
+    assert 'liana_res' in test_cellphonedb.uns.keys()
 
 
-if __name__ == '__main__':
-    unittest.main()
+def test_natmi():
+    test_natmi = natmi(adata, groupby='bulk_labels', use_raw=True)
+    assert isinstance(test_natmi, anndata.AnnData)
+    assert 'liana_res' in test_natmi.uns.keys()
+
+
+def test_sca():
+    test_sca = sca(adata, groupby='bulk_labels', use_raw=True)
+    assert isinstance(test_sca, anndata.AnnData)
+    assert 'liana_res' in test_sca.uns.keys()
+
+
+def test_logfc():
+    test_logfc = logfc(adata, groupby='bulk_labels', use_raw=True)
+    assert isinstance(test_logfc, anndata.AnnData)
+    assert 'liana_res' in test_logfc.uns.keys()
+
+
+def test_connectome():
+    test_connectome = connectome(adata, groupby='bulk_labels', use_raw=True)
+    assert isinstance(test_connectome, anndata.AnnData)
+    assert 'liana_res' in test_connectome.uns.keys()
