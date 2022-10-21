@@ -56,18 +56,16 @@ html_theme_options = dict(
     display_version=True,
 )
 html_context = dict(
-    display_github=True,  # Integrate GitHub
-    github_user='saezlab',  # Username
-    github_repo='liana-py',  # Repo name
-    github_version='main',  # Version
-    conf_py_path='/docs/source/',  # Path in the checkout to the docs root
+    display_github=False,
+    github_user='saezlab',
+    github_repo='liana-py',
+    github_version='main',
+    conf_py_path='/docs/source/',
 )
-html_show_sphinx = False
+html_show_sphinx = True
 html_logo = 'logo.png'
 html_favicon = 'logo.png'
-html_css_files = [
-    'css/custom.css',
-]
+html_css_files = ['custom.css']
 
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
