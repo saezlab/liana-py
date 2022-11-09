@@ -3,7 +3,7 @@ from __future__ import annotations
 from .liana_pipe import liana_pipe
 
 from anndata import AnnData
-from pandas import DataFrame
+from pandas import DataFrame, concat
 from typing import Optional
 
 
@@ -70,6 +70,15 @@ class MethodMeta:
     def reference(self):
         """Prints out reference in Harvard format"""
         print(self.reference)
+
+    def get_meta(self):
+        """Returns method metadata as pandas row"""
+        meta = DataFrame([{"Method Name": self.method_name,
+                           "Magnitude Score": self.magnitude,
+                           "Specificity Score": self.specificity,
+                           "Reference": self.reference
+                           }])
+        return meta
 
 
 class Method(MethodMeta):
@@ -161,3 +170,7 @@ class Method(MethodMeta):
                                             layer=layer,
                                             )
         return adata
+
+
+def _show_methods(methods):
+    return concat([method.get_meta() for method in methods])

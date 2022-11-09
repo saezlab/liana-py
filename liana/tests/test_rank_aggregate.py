@@ -16,7 +16,7 @@ class TestConsensus:
         assert rank_aggregate.magnitude == 'magnitude_rank'
         assert rank_aggregate.specificity == 'specificity_rank'
         assert rank_aggregate.steady == 'steady_rank'
-        assert rank_aggregate.method_name == 'Consensus'
+        assert rank_aggregate.method_name == 'Rank_Aggregate'
 
     def test_consensus_specs(self):
         steady_specs = {'CellPhoneDB': ('pvals', False),

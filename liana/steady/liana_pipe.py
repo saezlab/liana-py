@@ -155,7 +155,7 @@ def liana_pipe(adata: anndata.AnnData,
 
     # Calculate Score
     if _score is not None:
-        if _score.method_name == "Consensus":
+        if _score.method_name == "Rank_Aggregate":
             # Run all methods in consensus
             lrs = {}
             for method in _methods:

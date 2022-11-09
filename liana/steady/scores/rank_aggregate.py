@@ -122,7 +122,7 @@ class ConsensusClass(MethodMeta):
         return adata
 
 
-_consensus_meta = MethodMeta(method_name="Consensus",
+_consensus_meta = MethodMeta(method_name="Rank_Aggregate",
                              complex_cols=[],
                              add_cols=[],
                              fun=None,  # change to _robust_rank
