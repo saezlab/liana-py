@@ -48,6 +48,18 @@ class ConsensusClass(MethodMeta):
             {x for li in [method.complex_cols for method in methods] for x in li}
         )
 
+    def describe(self):
+        """Briefly described the method"""
+        print(
+            f"{self.method_name} returns `{self.magnitude}`, `{self.specificity}`,"
+            f" and `{self.steady}`. "
+            f"{self.magnitude} and {self.specificity} represent an aggregate of the "
+            f"`magnitude`- and `specificity`-related scoring functions from the different methods."
+            f"{self.steady} represents one scoring function from each method intended"
+            f" to prioritize ligand-receptor interactions in steady-state data, "
+            f"regardless if they represent `specificity` or `magnitude`."
+        )
+
     def __call__(self,
                  adata: AnnData,
                  groupby: str,
