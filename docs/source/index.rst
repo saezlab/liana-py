@@ -18,7 +18,7 @@ LIANA: a LIgand-receptor ANalysis frAmework
 
 This is its faster and memory efficient Python implementation, an R version is also available `here <https://saezlab.github.io/liana/>`_.
 
-Check out the `Usage <https://liana-py.readthedocs.io/en/latest/notebooks/usage.html>`_ or any other tutorial for further information.
+Check out the `Usage <https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html>`_ or any other tutorial for further information.
 
 
 Cite LIANA
@@ -44,4 +44,4 @@ Türei, D., Valdeolivas, A., Gul, L., Palacio‐Escat, N., Klein, M., Ivanova, O
    :hidden:
    :caption: Vignettes
 
-   notebooks/usage
+   notebooks/basic_usage
