@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-from setuptools import setup
+from setuptools import setup, find_packages
 import os
 
 
@@ -27,7 +25,12 @@ setup(name='liana-py',
       author='Daniel Dimitrov',
       author_email='daniel.dimitrov@uni-heidelberg.de',
       url='https://github.com/saezlab/liana-py',
-      packages=['liana'],
+      project_urls={
+          "Bug Tracker": "https://github.com/saezlab/liana-py/issues",
+      },
+      include_package_data=True,
+      package_data={'resources': ['omni_resource.csv']},
+      packages=find_packages(),
       long_description=long_description,
       long_description_content_type="text/markdown",
       install_requires=["numba",
@@ -42,3 +45,4 @@ setup(name='liana-py',
           "Programming Language :: Python :: 3",
           "Operating System :: OS Independent"]
       )
+

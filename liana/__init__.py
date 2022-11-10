@@ -1,8 +1,7 @@
-__version__ = '0.0.1'  # noqa: F401
-__version_info__ = tuple([int(num) for num in __version__.split('.')])  # noqa: F401
+__version__ = '0.0.2'
+__version_info__ = tuple([int(num) for num in __version__.split('.')])
 
-
-import liana.plotting as pl
-from .steady import liana_pipe, cellphonedb, natmi, singlecellsignalr,\
+from .steady import liana_pipe, cellphonedb, natmi, singlecellsignalr, \
     connectome, logfc, rank_aggregate, show_methods
 from .resource.select_resource import select_resource, show_resources
+import liana.plotting as pl
