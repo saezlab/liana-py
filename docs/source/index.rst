@@ -10,7 +10,7 @@ LIANA: a LIgand-receptor ANalysis frAmework
    :target: https://github.com/saezlab/liana-py/issues/
    
 .. |Docs| image:: https://readthedocs.org/projects/liana-py/badge/?version=latest
-   :target: https://decoupler-py.readthedocs.io/en/latest/?badge=latest
+   :target: https://readthedocs.org/projects/liana-py/badge/?version=latest
 
 .. |Codecov| image:: https://codecov.io/gh/saezlab/liana-py/branch/main/graph/badge.svg?token=TM0P29KKN5
    :target: https://codecov.io/gh/saezlab/liana-py
