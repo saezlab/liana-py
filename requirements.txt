@@ -4,3 +4,5 @@ pandas
 statsmodels
 anndata
 scanpy
+pytest
+setuptools

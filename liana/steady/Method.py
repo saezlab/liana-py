@@ -112,7 +112,8 @@ class Method(MethodMeta):
                  verbose: Optional[bool] = False,
                  n_perms: int = 1000,
                  seed: int = 1337,
-                 resource: Optional[DataFrame] = None) -> AnnData:
+                 resource: Optional[DataFrame] = None,
+                 copy=False) -> AnnData:
         """
         Parameters
         ----------
@@ -147,6 +148,8 @@ class Method(MethodMeta):
             Parameter to enable external resources to be passed. Expects a pandas dataframe
             with [`ligand`, `receptor`] columns. None by default. If provided will overrule
             the resource requested via `resource_name`
+        copy
+            If true return `DataFrame` with results, else assign to `.uns`.
 
         Returns
         -------
@@ -154,22 +157,26 @@ class Method(MethodMeta):
         Otherwise, modifies the ``adata`` object with the following key:
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
         """
-        adata.uns['liana_res'] = liana_pipe(adata=adata,
-                                            groupby=groupby,
-                                            resource_name=resource_name,
-                                            resource=resource,
-                                            expr_prop=expr_prop,
-                                            supp_cols=['ligand_pvals', 'receptor_pvals'],
-                                            base=base,
-                                            de_method=de_method,
-                                            verbose=verbose,
-                                            _score=self._SCORE,
-                                            n_perms=n_perms,
-                                            seed=seed,
-                                            use_raw=use_raw,
-                                            layer=layer,
-                                            )
-        return adata
+        liana_res = liana_pipe(adata=adata,
+                               groupby=groupby,
+                               resource_name=resource_name,
+                               resource=resource,
+                               expr_prop=expr_prop,
+                               supp_cols=['ligand_pvals', 'receptor_pvals'],
+                               base=base,
+                               de_method=de_method,
+                               verbose=verbose,
+                               _score=self._SCORE,
+                               n_perms=n_perms,
+                               seed=seed,
+                               use_raw=use_raw,
+                               layer=layer,
+                               )
+        if not copy:
+            adata.uns['liana_res'] = liana_res
+            return adata
+        else:
+            return liana_res
 
 
 def _show_methods(methods):

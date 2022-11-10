@@ -2,7 +2,7 @@ import pathlib
 
 from unittest import TestCase
 from liana import rank_aggregate
-from liana.steady.scores.rank_aggregate import ConsensusClass
+from liana.steady.sc.rank_aggregate import ConsensusClass
 from scanpy.datasets import pbmc68k_reduced
 from pandas import read_csv
 from pandas.testing import assert_frame_equal

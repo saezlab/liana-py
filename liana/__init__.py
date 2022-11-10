@@ -5,3 +5,4 @@ from .steady import liana_pipe, cellphonedb, natmi, singlecellsignalr,\
     connectome, logfc, rank_aggregate, show_methods
 from .resource.select_resource import select_resource, show_resources
 
+import liana.plotting as pl

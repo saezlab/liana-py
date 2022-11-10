@@ -31,14 +31,14 @@ def aggregate(lrs: dict,
     A long pd.DataFrame with ranked LRs
     """
 
-    # join the scores to the whole universe between the methods
+    # join the sc to the whole universe between the methods
     if _key_cols is None:
         _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
     if consensus_opts is None:
         consensus_opts = ['Steady', 'Magnitude', 'Specificity']
 
     lrs = [lrs[method].drop_duplicates(keep='first') for method in lrs]
-    # reduce to a df with the shared keys + all relevant scores
+    # reduce to a df with the shared keys + all relevant sc
     lr_res = reduce(
         lambda left, right:
         pd.merge(left, right, how='outer', on=_key_cols,

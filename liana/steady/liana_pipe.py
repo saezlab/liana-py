@@ -159,7 +159,9 @@ def liana_pipe(adata: anndata.AnnData,
             # Run all methods in consensus
             lrs = {}
             for method in _methods:
-                print(method.method_name)
+                if verbose:
+                    f"Running {method.method_name}."
+
                 lrs[method.method_name] = \
                     _run_method(lr_res=lr_res.copy(),
                                 adata=adata,
@@ -259,6 +261,7 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
 
     """
     # get label cats
+    adata = adata.copy()
     labels = adata.obs.label.cat.categories
 
     # Method-specific stats
@@ -321,7 +324,7 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
          zip(pairs['source'], pairs['target'])]
     )
 
-    if 'mat_mean' in relevant_cols:  # SHOULD BE METHOD NAME?
+    if 'mat_mean' in relevant_cols:
         lr_res['mat_mean'] = adata.uns['mat_mean']
 
     # subset to only relevant columns and return (SIMPLY?)

@@ -125,7 +125,7 @@ def prep_check_adata(adata: AnnData,
             to 0 or remove them.""")
 
     # Re-order adata vars alphabetically
-    adata = adata[:, np.sort(adata.var_names)]
+    adata = adata[:, np.sort(adata.var_names)].copy()
 
     return adata
 

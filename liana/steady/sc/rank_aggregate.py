@@ -23,7 +23,7 @@ class ConsensusClass(MethodMeta):
         self.methods = methods
         self.steady = 'steady_rank'
 
-        # Define scores to aggregate
+        # Define sc to aggregate
         self.specificity_specs = {method.method_name: (
             method.specificity, method.specificity_desc) for method in methods
             if method.specificity is not None}
@@ -61,7 +61,8 @@ class ConsensusClass(MethodMeta):
                  verbose: Optional[bool] = False,
                  n_perms: int = 1000,
                  seed: int = 1337,
-                 resource: Optional[DataFrame] = None) -> AnnData:
+                 resource: Optional[DataFrame] = None,
+                 copy=False) -> AnnData:
         """
         Parameters
         ----------
@@ -95,6 +96,9 @@ class ConsensusClass(MethodMeta):
             Parameter to enable external resources to be passed. Expects a pandas dataframe
             with [`ligand`, `receptor`] columns. None by default. If provided will overrule
             the resource requested via `resource_name`
+        copy
+            If true return `DataFrame` with results, else assign to `.uns`.
+
 
         Returns
         -------
@@ -102,24 +106,28 @@ class ConsensusClass(MethodMeta):
         Otherwise, modifies the ``adata`` object with the following key:
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
         """
-        adata.uns['liana_res'] = liana_pipe(adata=adata,
-                                            groupby=groupby,
-                                            resource_name=resource_name,
-                                            resource=resource,
-                                            expr_prop=expr_prop,
-                                            base=base,
-                                            de_method=de_method,
-                                            verbose=verbose,
-                                            _score=self,
-                                            use_raw=use_raw,
-                                            layer=layer,
-                                            n_perms=n_perms,
-                                            seed=seed,
-                                            _methods=self.methods,
-                                            _aggregate_method=aggregate_method,
-                                            _consensus_opts=consensus_opts
-                                            )
-        return adata
+        liana_res = liana_pipe(adata=adata,
+                               groupby=groupby,
+                               resource_name=resource_name,
+                               resource=resource,
+                               expr_prop=expr_prop,
+                               base=base,
+                               de_method=de_method,
+                               verbose=verbose,
+                               _score=self,
+                               use_raw=use_raw,
+                               layer=layer,
+                               n_perms=n_perms,
+                               seed=seed,
+                               _methods=self.methods,
+                               _aggregate_method=aggregate_method,
+                               _consensus_opts=consensus_opts
+                               )
+        if not copy:
+            adata.uns['liana_res'] = liana_res
+            return adata
+        else:
+            return liana_res
 
 
 _consensus_meta = MethodMeta(method_name="Rank_Aggregate",
