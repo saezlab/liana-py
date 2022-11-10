@@ -6,7 +6,7 @@ from plotnine import ggplot, geom_point, aes, \
 
 def dotplot(adata, colour, size, source_labels=None,
             target_labels=None, top_n=None,
-            orderby=None, inverse_colour=False,
+            orderby=None, orderby_ascending=False, inverse_colour=False,
             inverse_size=False, figure_size=(8, 6),
             return_fig=True) -> ggplot:
     """
@@ -23,6 +23,7 @@ def dotplot(adata, colour, size, source_labels=None,
     target_labels
     top_n
     orderby
+    orderby_ascending
     inverse_colour
     inverse_size
     figure_size
@@ -59,7 +60,7 @@ def dotplot(adata, colour, size, source_labels=None,
                                               'ligand_complex',
                                               'receptor_complex']
                                     )
-        top_lrs = top_lrs.sort_values('score', ascending=False).head(top_n).interaction
+        top_lrs = top_lrs.sort_values('score', ascending=orderby_ascending).head(top_n).interaction
         # Filter liana_res to the interactions in top_lrs
         liana_mod = liana_mod[liana_mod.interaction.isin(top_lrs)]
 

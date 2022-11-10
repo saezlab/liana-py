@@ -33,9 +33,9 @@ _natmi = MethodMeta(method_name="NATMI",
                     add_cols=['ligand_means_sums', 'receptor_means_sums'],
                     fun=_natmi_score,
                     magnitude='expr_prod',
-                    magnitude_desc=True,
+                    magnitude_ascending=False,
                     specificity='spec_weight',
-                    specificity_desc=True,
+                    specificity_ascending=False,
                     permute=False,
                     reference='Hou, R., Denisenko, E., Ong, H.T., Ramilowski, J.A. and Forrest, '
                               'A.R., 2020. Predicting cell-to-cell communication networks using '

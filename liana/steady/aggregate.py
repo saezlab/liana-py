@@ -97,13 +97,13 @@ def _rank_aggregate(lr_res, specs, _key_cols, aggregate_method) -> np.array:
     # Convert specs columns to ranks
     for spec in specs:
         score_name = specs[spec][0]
-        desc = specs[spec][1]
+        ascending = specs[spec][1]
 
-        if desc:
+        if ascending:
+            lr_res[score_name] = rankdata(lr_res[score_name], method='average')
+        else:
             lr_res[score_name] = rankdata(lr_res[score_name] * -1,
                                           method='average')
-        else:
-            lr_res[score_name] = rankdata(lr_res[score_name], method='average')
 
     # get only the relevant ranks as a mat (joins order the keys)
     scores = list({specs[s][0] for s in specs})

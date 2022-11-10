@@ -19,26 +19,25 @@ class TestConsensus:
         assert rank_aggregate.method_name == 'Rank_Aggregate'
 
     def test_consensus_specs(self):
-        steady_specs = {'CellPhoneDB': ('pvals', False),
-                        'Connectome': ('scaled_weight', True),
-                        'log2FC': ('lr_logfc', True),
-                        'NATMI': ('spec_weight', True),
-                        'SingleCellSignalR': ('lrscore', True)
+        steady_specs = {'CellPhoneDB': ('pvals', True),
+                        'Connectome': ('scaled_weight', False),
+                        'log2FC': ('lr_logfc', False),
+                        'NATMI': ('spec_weight', False),
+                        'SingleCellSignalR': ('lrscore', False)
                         }
         TestCase().assertDictEqual(rank_aggregate.steady_specs, steady_specs)
 
-        magnitude_specs = {'CellPhoneDB': ('lr_means', True),
-                           'Connectome': ('expr_prod', True),
-                           'NATMI': ('expr_prod', True),
-                           'SingleCellSignalR': ('lrscore', True)
+        magnitude_specs = {'CellPhoneDB': ('lr_means', False),
+                           'Connectome': ('expr_prod', False),
+                           'NATMI': ('expr_prod', False),
+                           'SingleCellSignalR': ('lrscore', False)
                            }
 
         TestCase().assertDictEqual(rank_aggregate.magnitude_specs, magnitude_specs)
 
     def test_consensus_res(self):
         adata = pbmc68k_reduced()
-        adata = rank_aggregate(adata, groupby='bulk_labels', use_raw=True, n_perms=2)
-        lr_res = adata.uns['liana_res']
+        lr_res = rank_aggregate(adata, groupby='bulk_labels', use_raw=True, n_perms=2, copy=True)
         lr_exp = read_csv(test_path.joinpath("data/aggregate_rank_rest.csv"), index_col=0)
 
         assert_frame_equal(lr_res, lr_exp, check_dtype=False,

@@ -13,22 +13,23 @@ class ConsensusClass(MethodMeta):
                          add_cols=[],
                          fun=_SCORE.fun,
                          magnitude=_SCORE.magnitude,
-                         magnitude_desc=None,
+                         magnitude_ascending=None,
                          specificity=_SCORE.specificity,
-                         specificity_desc=None,
+                         specificity_ascending=None,
                          permute=_SCORE.permute,
                          reference=_SCORE.reference
                          )
         self._SCORE = _SCORE
         self.methods = methods
         self.steady = 'steady_rank'
+        self.steady_ascending = True
 
         # Define sc to aggregate
         self.specificity_specs = {method.method_name: (
-            method.specificity, method.specificity_desc) for method in methods
+            method.specificity, method.specificity_ascending) for method in methods
             if method.specificity is not None}
         self.magnitude_specs = {method.method_name: (
-            method.magnitude, method.magnitude_desc) for method in methods
+            method.magnitude, method.magnitude_ascending) for method in methods
             if method.magnitude is not None}
 
         # If SingleCellSignalR is in there also add it to calculate steady
@@ -37,7 +38,7 @@ class ConsensusClass(MethodMeta):
             self.steady_specs = self.specificity_specs.copy()
             self.steady_specs['SingleCellSignalR'] = \
                 (methods_by_name['SingleCellSignalR'].magnitude,
-                 methods_by_name['SingleCellSignalR'].magnitude_desc)
+                 methods_by_name['SingleCellSignalR'].magnitude_ascending)
 
         # Define additional columns needed depending on the methods to be run
         self.add_cols = list(
@@ -135,9 +136,9 @@ _consensus_meta = MethodMeta(method_name="Rank_Aggregate",
                              add_cols=[],
                              fun=None,  # change to _robust_rank
                              magnitude='magnitude_rank',
-                             magnitude_desc=False,
+                             magnitude_ascending=True,
                              specificity='specificity_rank',
-                             specificity_desc=False,
+                             specificity_ascending=True,
                              permute=False,
                              reference='Kolde, R., Laur, S., Adler, P. and Vilo, J., 2012. Robust '
                                        'rank aggregation for gene list integration and '

@@ -28,9 +28,9 @@ _singlecellsignalr = MethodMeta(method_name="SingleCellSignalR",
                                 add_cols=['mat_mean'],
                                 fun=_sca_score,
                                 magnitude='lrscore',
-                                magnitude_desc=True,
+                                magnitude_ascending=False,
                                 specificity=None,
-                                specificity_desc=None,
+                                specificity_ascending=None,
                                 permute=False,
                                 reference='Cabello-Aguilar, S., Alame, M., Kon-Sun-Tack, F., Fau, '
                                           'C., Lacroix, M. and Colinge, J., '

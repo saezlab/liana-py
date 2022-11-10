@@ -51,9 +51,9 @@ _cellphonedb = MethodMeta(method_name="CellPhoneDB",
                           add_cols=[],
                           fun=_cpdb_score,
                           magnitude='lr_means',
-                          magnitude_desc=True,
+                          magnitude_ascending=False,
                           specificity='pvals',
-                          specificity_desc=False,
+                          specificity_ascending=True,
                           permute=True,
                           reference='Efremova, M., Vento-Tormo, M., Teichmann, S.A. and '
                                     'Vento-Tormo, R., 2020. CellPhoneDB: inferring cell–cell '

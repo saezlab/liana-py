@@ -30,9 +30,9 @@ _connectome = MethodMeta(method_name="Connectome",
                          add_cols=[],
                          fun=_connectome_score,
                          magnitude='expr_prod',
-                         magnitude_desc=True,
+                         magnitude_ascending=False,
                          specificity='scaled_weight',
-                         specificity_desc=True,
+                         specificity_ascending=False,
                          permute=False,
                          reference='Raredon, M.S.B., Yang, J., Garritano, J., Wang, M., Kushnir, '
                                    'D., Schupp, J.C., Adams, T.S., Greaney, A.M., Leiby, K.L., '

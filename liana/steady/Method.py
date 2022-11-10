@@ -18,9 +18,9 @@ class MethodMeta:
                  add_cols: list,
                  fun,
                  magnitude: str | None,
-                 magnitude_desc: bool | None,
+                 magnitude_ascending: bool | None,
                  specificity: str | None,
-                 specificity_desc: bool | None,
+                 specificity_ascending: bool | None,
                  permute: bool,
                  reference: str
                  ):
@@ -37,12 +37,12 @@ class MethodMeta:
             Interaction Scoring function
         magnitude
             Name of the `magnitude` Score (None if not present)
-        magnitude_desc
-            Whether to rank `magnitude` in descending manner (None if not relevant)
+        magnitude_ascending
+            Whether to rank `magnitude` in ascending manner (None if not relevant)
         specificity
             Name of the `specificity` Score if Present (None if not present)
-        specificity_desc
-            Whether to rank `magnitude` in descending manner  (None if not relevant)
+        specificity_ascending
+            Whether to rank `magnitude` in ascending manner  (None if not relevant)
         permute
             Whether it requires permutations
         reference
@@ -53,9 +53,9 @@ class MethodMeta:
         self.add_cols = add_cols
         self.fun = fun
         self.magnitude = magnitude
-        self.magnitude_desc = magnitude_desc
+        self.magnitude_ascending = magnitude_ascending
         self.specificity = specificity
-        self.specificity_desc = specificity_desc
+        self.specificity_ascending = specificity_ascending
         self.permute = permute
         self.reference = reference
 
@@ -92,9 +92,9 @@ class Method(MethodMeta):
                          add_cols=_SCORE.add_cols,
                          fun=_SCORE.fun,
                          magnitude=_SCORE.magnitude,
-                         magnitude_desc=_SCORE.magnitude_desc,
+                         magnitude_ascending=_SCORE.magnitude_ascending,
                          specificity=_SCORE.specificity,
-                         specificity_desc=_SCORE.specificity_desc,
+                         specificity_ascending=_SCORE.specificity_ascending,
                          permute=_SCORE.permute,
                          reference=_SCORE.reference
                          )

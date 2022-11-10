@@ -28,9 +28,9 @@ _logfc = MethodMeta(method_name="log2FC",
                     add_cols=[],
                     fun=_logfc_score,
                     magnitude=None,
-                    magnitude_desc=None,
+                    magnitude_ascending=None,
                     specificity='lr_logfc',
-                    specificity_desc=True,
+                    specificity_ascending=False,
                     permute=False,
                     reference='Dimitrov, D., Türei, D., Garrido-Rodriguez, M., Burmedi, P.L., '
                               'Nagai, J.S., Boys, C., Ramirez Flores, R.O., Kim, H., Szalai, B., '
