@@ -1,3 +1,4 @@
 numpydoc
 nbsphinx
 IPython
+ipykernel
