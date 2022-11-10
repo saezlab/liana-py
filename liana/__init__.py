@@ -3,7 +3,6 @@ __version_info__ = tuple([int(num) for num in __version__.split('.')])  # noqa: 
 
 
 import liana.plotting as pl
-import steady as sc
 from .steady import liana_pipe, cellphonedb, natmi, singlecellsignalr,\
     connectome, logfc, rank_aggregate, show_methods
 from .resource.select_resource import select_resource, show_resources
