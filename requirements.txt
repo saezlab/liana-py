@@ -6,3 +6,4 @@ anndata
 scanpy
 pytest
 setuptools
+plotnine

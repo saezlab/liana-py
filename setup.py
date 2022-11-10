@@ -34,7 +34,9 @@ setup(name='liana-py',
                         "tqdm",
                         "pandas",
                         "anndata",
-                        "scanpy"],
+                        "scanpy",
+                        "plotnine"
+                        ],
       python_requires=">=3.8",
       classifiers=[
           "Programming Language :: Python :: 3",
