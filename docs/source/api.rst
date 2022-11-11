@@ -29,6 +29,13 @@ Running Method Consensus:
 
    rank_aggregate.__call__
 
+Visualization options:
+------------------------------------------------------------
+.. autosummary::
+   :toctree: generated
+
+   liana.plotting.dotplot
+
 
 General utils:
 ---------------------------------------------------------------
@@ -37,6 +44,7 @@ General utils:
 
    select_resource
    show_resources
+   show_methods
 
 
 Method Class instances:
