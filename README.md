@@ -15,7 +15,7 @@ This is its faster and memory efficient Python implementation, an R version is a
 ### *liana-py is still under heavy development - a stable alpha release will be created soon*
 
 
-For further information please check LIANA's [documentation](), and also [tutorial]().
+For further information please check LIANA's [documentation](https://liana-py.readthedocs.io/en/latest/api.html), and also [tutorial](https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html).
 
 ## Install LIANA
 ```
@@ -33,12 +33,6 @@ The methods implemented in this repository are:
 - *1-vs-rest* expression LogFC score
 - `rank_aggregate` of the predictions calculated with the
 [RobustRankAggregate](https://academic.oup.com/bioinformatics/article/28/4/573/213339) method
-
-
-TO be included:
-- [CellChat](https://github.com/sqjin/CellChat)
-- Geometric mean + perms
-
 
 
 ## Ligand-Receptor Resources
