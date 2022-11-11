@@ -1,6 +1,12 @@
 Release notes
 =============
 
+0.0.2
+-----
+
+- Added `dotplot` as a visualization option
+- Added `basic_usage` tutorial
+
 0.0.1
 -----
 
