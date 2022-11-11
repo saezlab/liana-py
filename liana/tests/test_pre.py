@@ -14,7 +14,6 @@ def test_prep_check_adata():
 
 
 def test_check_if_covered():
-
     with pytest.raises(ValueError):
         assert_covered(['NOT', 'HERE'], adata.var_names, verbose=True)
 

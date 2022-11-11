@@ -1,45 +1,78 @@
+import anndata
 import numpy as np
+import pandas
 
 from plotnine import ggplot, geom_point, aes, \
     facet_grid, labs, theme_bw, theme, element_text, element_rect
 
 
-def dotplot(adata, colour, size, source_labels=None,
-            target_labels=None, top_n=None,
-            orderby=None, orderby_ascending=False,
-            filterby=None, filter_lambda=None,
-            inverse_colour=False, inverse_size=False, figure_size=(8, 6),
-            return_fig=True) -> ggplot:
+def dotplot(adata: anndata.AnnData = None,
+            liana_res: pandas.DataFrame = None,
+            colour: str = None, size: str = None,
+            source_labels: list = None, target_labels: list = None,
+            top_n: int = None, orderby: (str, None) = None,
+            orderby_ascending: (bool, None) = None,
+            filterby: (bool, None) = None, filter_lambda=None,
+            inverse_colour: bool = False, inverse_size: bool = False,
+            figure_size: tuple = (8, 6), return_fig=True) -> ggplot:
     """
     Dotplot interactions by source and target cells
 
     Parameters
     ----------
     adata
-        `AnnData` object with `liana_res` in `adata.uns`
+        `AnnData` object with `liana_res` in `adata.uns`. Default is `None`.
+    liana_res
+        `liana_res` a `DataFrame` in liana's format
     colour
-
+        `column` in `liana_res` to define the colours of the dots
     size
+        `column` in `liana_res` to define the size of the dots
     source_labels
+        list to specify `source` identities to plot
     target_labels
+        list to specify `target` identities to plot
     top_n
+        Obtain only the top_n interactions to plot. Default is `None`
     orderby
+        If `top_n` is not `None`, order the interactions by these columns
     orderby_ascending
+        If `top_n` is not `None`, specify how to order the interactions
     filterby
+        Column by which to filter the interactions
     filter_lambda
+        If `filterby` is not `None`, provide a simple lambda function by which
+        to filter the interactions to be plotted
     inverse_colour
+        Whether to -log10 the `colour` column for plotting. `False` by default.
     inverse_size
+        Whether to -log10 the `size` column for plotting. `False` by default.
     figure_size
+        Figure x,y size
     return_fig
+        `bool` whether to return the fig object, `False` only plots
 
     Returns
     -------
+    A `plotnine.ggplot` instance
 
     """
-    assert 'liana_res' in adata.uns_keys()
+    if (liana_res is not None) & (adata is not None):
+        raise AttributeError('Ambiguous! One of `liana_res` or `adata` should be provided.')
+    if adata is not None:
+        assert 'liana_res' in adata.uns_keys()
+        liana_res = adata.uns['liana_res'].copy()
+    if liana_res is not None:
+        liana_res = liana_res.copy()
+    if (liana_res is None) & (adata is None):
+        raise ValueError('`liana_res` or `adata` must be provided!')
+    if (colour is None) | (size is None):
+        raise ValueError('`colour` and `size` must be provided!')
+    if colour not in liana_res.columns:
+        raise ValueError('`colour` column was not found in `liana_res`!')
+    if size not in liana_res.columns:
+        raise ValueError('`size` column was not found in `liana_res`!')
 
-    # extract results & create interaction col
-    liana_res = adata.uns['liana_res'].copy()
     liana_res['interaction'] = liana_res.ligand_complex + ' -> ' + liana_res.receptor_complex
 
     # subset to only cell labels of interest
@@ -63,6 +96,10 @@ def dotplot(adata, colour, size, source_labels=None,
 
     if top_n is not None:
         # get the top_n for each interaction
+        if orderby is None:
+            ValueError("Please specify the column to order the interactions.")
+        if orderby_ascending is None:
+            ValueError("Please specify if `orderby` is ascending or not.")
         if orderby_ascending:
             how = 'min'
         else:
@@ -89,12 +126,12 @@ def dotplot(adata, colour, size, source_labels=None,
          + theme(legend_text=element_text(size=14),
                  strip_background=element_rect(fill="white"),
                  strip_text=element_text(size=15, colour="black"),
+                 axis_text_y=element_text(size=10, colour="black"),
+                 axis_title_y=element_text(colour="#808080", face="bold", size=15),
                  axis_text_x=element_text(size=11, face="bold"),
                  figure_size=figure_size,
                  plot_title=element_text(vjust=0, hjust=0.5, face="bold",
-                                         colour="#808080", size=15),
-                 axis_title=element_text(colour="#808080", face="bold", size=15),
-                 axis_text_y=element_text(size=10, colour="black")
+                                         colour="#808080", size=15)
                  )
          )
 
