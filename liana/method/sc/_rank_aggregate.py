@@ -1,12 +1,13 @@
 from liana.method.Method import MethodMeta
-from liana.method.liana_pipe import liana_pipe
+from liana.method._liana_pipe import liana_pipe
 
 from anndata import AnnData
 from pandas import DataFrame
 from typing import Optional
 
 
-class ConsensusClass(MethodMeta):
+class AggregateClass(MethodMeta):
+    """LIANA's Method Consensus Class"""
     def __init__(self, _SCORE, methods):
         super().__init__(method_name=_SCORE.method_name,
                          complex_cols=[],
@@ -147,16 +148,17 @@ class ConsensusClass(MethodMeta):
             return liana_res
 
 
-_consensus_meta = MethodMeta(method_name="Rank_Aggregate",
-                             complex_cols=[],
-                             add_cols=[],
-                             fun=None,  # change to _robust_rank
-                             magnitude='magnitude_rank',
-                             magnitude_ascending=True,
-                             specificity='specificity_rank',
-                             specificity_ascending=True,
-                             permute=False,
-                             reference='Kolde, R., Laur, S., Adler, P. and Vilo, J., 2012. Robust '
-                                       'rank aggregation for gene list integration and '
-                                       'meta-analysis. Bioinformatics, 28(4), pp.573-580. '
-                             )
+_rank_aggregate_meta = \
+    MethodMeta(method_name="Rank_Aggregate",
+               complex_cols=[],
+               add_cols=[],
+               fun=None,  # change to _robust_rank
+               magnitude='magnitude_rank',
+               magnitude_ascending=True,
+               specificity='specificity_rank',
+               specificity_ascending=True,
+               permute=False,
+               reference='Kolde, R., Laur, S., Adler, P. and Vilo, J., 2012. Robust '
+                         'rank aggregation for gene list integration and '
+                         'meta-analysis. Bioinformatics, 28(4), pp.573-580. '
+               )

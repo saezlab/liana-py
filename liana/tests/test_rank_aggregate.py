@@ -2,7 +2,7 @@ import pathlib
 
 from unittest import TestCase
 from liana.method import rank_aggregate
-from liana.method.sc.rank_aggregate import ConsensusClass
+from liana.method.sc._rank_aggregate import AggregateClass
 from scanpy.datasets import pbmc68k_reduced
 from pandas import read_csv
 from pandas.testing import assert_frame_equal
@@ -11,7 +11,7 @@ test_path = pathlib.Path(__file__).parent
 
 
 def test_consensus():
-    assert isinstance(rank_aggregate, ConsensusClass)
+    assert isinstance(rank_aggregate, AggregateClass)
     assert rank_aggregate.magnitude == 'magnitude_rank'
     assert rank_aggregate.specificity == 'specificity_rank'
     assert rank_aggregate.steady == 'steady_rank'

@@ -6,8 +6,8 @@ import pandas
 from ..utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
 from ..resource import select_resource, explode_complexes
-from .get_mean_perms import get_means_perms
-from .aggregate import aggregate
+from ._get_mean_perms import get_means_perms
+from ._aggregate import aggregate
 
 import scanpy as sc
 import pandas as pd

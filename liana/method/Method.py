@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .liana_pipe import liana_pipe
+from ._liana_pipe import liana_pipe
 
 from anndata import AnnData
 from pandas import DataFrame, concat
@@ -83,7 +83,7 @@ class MethodMeta:
 
 class Method(MethodMeta):
     """
-    A class used to generate Method instances
+    liana's Method Class
     """
 
     def __init__(self, _SCORE):

@@ -1,5 +1,5 @@
 from liana.method.Method import Method, MethodMeta
-from .cellphonedb import _simple_mean
+from ._cellphonedb import _simple_mean
 
 
 def _logfc_score(x):

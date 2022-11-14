@@ -1,6 +1,13 @@
 Release notes
 =============
 
+0.0.3
+-----
+- Added a filter according to `min_cells` per cell identity
+- prep_check_adata will now assert that `groupby` exists
+- extended test_pre.py tests
+- restructured the API to be more scverse-like
+
 0.0.2
 -----
 
