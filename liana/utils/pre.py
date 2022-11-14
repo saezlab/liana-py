@@ -59,6 +59,8 @@ def assert_covered(
 
 
 def prep_check_adata(adata: AnnData,
+                     groupby: str,
+                     min_cells: int,
                      use_raw:  Optional[bool] = False,
                      layer: Optional[str] = None,
                      verbose: Optional[bool] = False) -> AnnData:
@@ -69,6 +71,10 @@ def prep_check_adata(adata: AnnData,
     ----------
     adata
         Un-formatted Anndata.
+    groupby
+        column to groupby
+    min_cells
+        minimum cells per cell identity
     use_raw
         Use raw attribute of adata if present.
     layer
@@ -124,8 +130,28 @@ def prep_check_adata(adata: AnnData,
             """mat contains non finite values (nan or inf), please set them 
             to 0 or remove them.""")
 
+    # Define idents col name
+    assert groupby in adata.obs.columns
+    adata.obs['label'] = adata.obs[groupby]
+
     # Re-order adata vars alphabetically
     adata = adata[:, np.sort(adata.var_names)].copy()
+
+    # Remove any cell types below X number of cells per cell type
+    count_cells = adata.obs.groupby(groupby)[groupby].size().reset_index(name='count')
+    count_cells['keep'] = count_cells['count'] >= min_cells
+
+    if not all(count_cells.keep):
+        lowly_abundant_idents = list(count_cells[~count_cells.keep][groupby])
+        # remove lowly abundant identities
+        msk = ~np.isin(adata.obs[[groupby]], lowly_abundant_idents)
+        adata = adata[msk]
+        if verbose:
+            print("The following cell identities were excluded: {0}".format(
+                ", ".join(lowly_abundant_idents)))
+
+    # Remove underscores from gene names
+    adata.var_names = format_vars(adata.var_names)
 
     return adata
 

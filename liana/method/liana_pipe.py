@@ -3,7 +3,7 @@ from __future__ import annotations
 import anndata
 import pandas
 
-from ..utils import prep_check_adata, assert_covered, format_vars, filter_resource, \
+from ..utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
 from ..resource import select_resource, explode_complexes
 from .get_mean_perms import get_means_perms
@@ -20,6 +20,7 @@ def liana_pipe(adata: anndata.AnnData,
                resource_name: str,
                resource: pd.DataFrame | None,
                expr_prop: float,
+               min_cells: int,
                base: float,
                de_method: str,
                n_perms: int,
@@ -51,6 +52,8 @@ def liana_pipe(adata: anndata.AnnData,
     expr_prop
         Minimum expression proportion for the ligands/receptors (and their subunits) in the
          corresponding cell identities. Set to `0`, to return unfiltered results.
+    min_cells
+        Minimum cells per cell identity
     base
         The base by which to do expm1 (relevant only for 1vsRest logFC calculation)
     de_method
@@ -107,15 +110,12 @@ def liana_pipe(adata: anndata.AnnData,
     _add_cols = _add_cols + ['ligand', 'receptor', 'ligand_props', 'receptor_props'] + supp_cols
 
     # Check and Reformat Mat if needed
-    adata = prep_check_adata(adata,
+    adata = prep_check_adata(adata=adata,
+                             groupby=groupby,
+                             min_cells=min_cells,
                              use_raw=use_raw,
                              layer=layer,
                              verbose=verbose)
-    # Define idents col name
-    adata.obs['label'] = adata.obs[groupby]
-
-    # Remove underscores from gene names
-    adata.var_names = format_vars(adata.var_names)
 
     # get mat mean for SCA
     if 'mat_mean' in _add_cols:

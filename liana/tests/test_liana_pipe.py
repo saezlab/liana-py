@@ -13,6 +13,7 @@ groupby = 'bulk_labels'
 de_method = 't-test'
 resource_name = 'consensus'
 expr_prop = 0.1
+min_cells = 5
 complex_policy = 'min'
 key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
 verbose = False
@@ -32,6 +33,7 @@ def test_liana_pipe_defaults_shape():
                               groupby=groupby,
                               resource_name=resource_name,
                               expr_prop=expr_prop,
+                              min_cells=min_cells,
                               de_method=de_method,
                               base=base,
                               n_perms=n_perms,
@@ -61,6 +63,7 @@ def test_liana_pipe_not_defaults():
                               groupby=groupby,
                               resource_name=resource_name,
                               expr_prop=0,
+                              min_cells=min_cells,
                               de_method='wilcoxon',
                               base=base,
                               n_perms=n_perms,

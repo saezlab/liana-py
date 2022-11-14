@@ -3,7 +3,7 @@ import pandas as pd
 import string
 
 
-# Function to generate a liana_res sample
+# Function to generate a liana_res sample/example
 def sample_lrs():
     """Create sample method output for testing metrics in this task."""
     row_num = 200

@@ -65,6 +65,7 @@ class ConsensusClass(MethodMeta):
                  groupby: str,
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.1,
+                 min_cells: int = 5,
                  base: float = 2.718281828459045,
                  aggregate_method='rra',
                  consensus_opts=None,
@@ -88,6 +89,8 @@ class ConsensusClass(MethodMeta):
         expr_prop
             Minimum expression proportion for the ligands/receptors (and their subunits) in the
              corresponding cell identities. Set to `0`, to return unfiltered results.
+        min_cells
+            Minimum cells per cell identity (`groupby`) to be considered for downstream analysis
         base
             Exponent base used to reverse the log-transformation of matrix. Note that this is
             relevant only for the `logfc` method.
@@ -124,6 +127,7 @@ class ConsensusClass(MethodMeta):
                                resource_name=resource_name,
                                resource=resource,
                                expr_prop=expr_prop,
+                               min_cells=min_cells,
                                base=base,
                                de_method=de_method,
                                verbose=verbose,
