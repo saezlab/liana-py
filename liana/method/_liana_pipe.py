@@ -3,11 +3,11 @@ from __future__ import annotations
 import anndata
 import pandas
 
-from ..utils import prep_check_adata, assert_covered, filter_resource, \
+from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
 from ..resource import select_resource, explode_complexes
-from ._get_mean_perms import get_means_perms
-from ._aggregate import aggregate
+from liana.method._pipe_utils._get_mean_perms import _get_means_perms
+from liana.method._pipe_utils._aggregate import _aggregate
 
 import scanpy as sc
 import pandas as pd
@@ -175,10 +175,10 @@ def liana_pipe(adata: anndata.AnnData,
                                 _consensus=True
                                 )
             if _consensus_opts is not False:
-                lr_res = aggregate(lrs,
-                                   consensus=_score,
-                                   aggregate_method=_aggregate_method,
-                                   _key_cols=_key_cols)
+                lr_res = _aggregate(lrs,
+                                    consensus=_score,
+                                    aggregate_method=_aggregate_method,
+                                    _key_cols=_key_cols)
             else:  # Return by method results as they are
                 return lrs
         else:  # Run the specific method in mind
@@ -416,7 +416,7 @@ def _run_method(lr_res: pandas.DataFrame,
 
     if _score.permute:
         perms, ligand_pos, receptor_pos, labels_pos = \
-            get_means_perms(adata=adata, lr_res=lr_res, n_perms=n_perms, seed=seed)
+            _get_means_perms(adata=adata, lr_res=lr_res, n_perms=n_perms, seed=seed)
         # SHOULD VECTORIZE THE APPLY / w NUMBA !!!
         lr_res[[_score.magnitude, _score.specificity]] = \
             lr_res.apply(_score.fun, axis=1, result_type="expand",

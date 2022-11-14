@@ -1,4 +1,4 @@
-from liana.method.Method import MethodMeta
+from liana.method._Method import MethodMeta
 from liana.method._liana_pipe import liana_pipe
 
 from anndata import AnnData

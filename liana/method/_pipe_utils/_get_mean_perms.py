@@ -3,10 +3,10 @@ import numpy as np
 import pandas
 
 
-def get_means_perms(adata: anndata.AnnData,
-                    lr_res: pandas.DataFrame,
-                    n_perms: int,
-                    seed: int):
+def _get_means_perms(adata: anndata.AnnData,
+                     lr_res: pandas.DataFrame,
+                     n_perms: int,
+                     seed: int):
     """
     Generate permutations and indices required for permutation-based methods
 

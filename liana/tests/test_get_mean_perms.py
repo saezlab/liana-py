@@ -3,7 +3,7 @@ import pathlib
 from scanpy.datasets import pbmc68k_reduced
 from pandas import read_csv
 
-from liana.method._get_mean_perms import get_means_perms
+from liana.method._pipe_utils._get_mean_perms import _get_means_perms
 
 test_path = pathlib.Path(__file__).parent
 
@@ -14,7 +14,7 @@ adata.obs['label'] = adata.obs.bulk_labels
 all_defaults = read_csv(test_path.joinpath("data/all_defaults.csv"), index_col=0)
 
 perms, ligand_pos, receptor_pos, labels_pos = \
-    get_means_perms(adata=adata, lr_res=all_defaults, n_perms=100, seed=1337)
+    _get_means_perms(adata=adata, lr_res=all_defaults, n_perms=100, seed=1337)
 
 
 def test_perms():

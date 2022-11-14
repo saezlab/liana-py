@@ -4,12 +4,12 @@ from functools import reduce
 from scipy.stats import rankdata, beta
 
 
-def aggregate(lrs: dict,
-              consensus,
-              aggregate_method: str = 'rra',
-              consensus_opts: list = None,
-              _key_cols: list = None
-              ) -> pd.DataFrame:
+def _aggregate(lrs: dict,
+               consensus,
+               aggregate_method: str = 'rra',
+               consensus_opts: list = None,
+               _key_cols: list = None
+               ) -> pd.DataFrame:
     """
 
     Parameters

@@ -1,6 +1,6 @@
 from ._liana_pipe import liana_pipe
-from ._get_mean_perms import get_means_perms
-from .Method import MethodMeta, _show_methods
+from liana.method._pipe_utils._get_mean_perms import _get_means_perms
+from ._Method import MethodMeta, _show_methods
 from .sc._rank_aggregate import AggregateClass, _rank_aggregate_meta
 from .sc import cellphonedb, connectome, logfc, natmi, singlecellsignalr
 

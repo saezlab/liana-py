@@ -1,6 +1,6 @@
 import numpy as np
 from liana.plotting import dotplot
-from liana.utils import sample_lrs
+from liana.testing import sample_lrs
 
 liana_res = sample_lrs()
 
