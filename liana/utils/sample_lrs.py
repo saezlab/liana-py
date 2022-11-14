@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import string
 
+
 # Function to generate a liana_res sample
 def sample_lrs():
-
     """Create sample method output for testing metrics in this task."""
     row_num = 200
     rng = np.random.default_rng(seed=1)
