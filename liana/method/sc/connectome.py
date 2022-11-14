@@ -1,4 +1,4 @@
-from liana.steady.Method import Method, MethodMeta
+from liana.method.Method import Method, MethodMeta
 from .cellphonedb import _simple_mean
 
 

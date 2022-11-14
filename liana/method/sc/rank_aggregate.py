@@ -1,5 +1,5 @@
-from liana.steady.Method import MethodMeta
-from liana.steady.liana_pipe import liana_pipe
+from liana.method.Method import MethodMeta
+from liana.method.liana_pipe import liana_pipe
 
 from anndata import AnnData
 from pandas import DataFrame
@@ -32,7 +32,7 @@ class ConsensusClass(MethodMeta):
             method.magnitude, method.magnitude_ascending) for method in methods
             if method.magnitude is not None}
 
-        # If SingleCellSignalR is in there also add it to calculate steady
+        # If SingleCellSignalR is in there also add it to calculate method
         methods_by_name = {method.method_name: method for method in methods}
         if 'SingleCellSignalR' in methods_by_name.keys():
             self.steady_specs = self.specificity_specs.copy()

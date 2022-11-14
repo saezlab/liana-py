@@ -1,4 +1,4 @@
-from liana.steady.liana_pipe import liana_pipe, _expm1_base, _calc_log2fc
+from liana.method.liana_pipe import liana_pipe, _expm1_base, _calc_log2fc
 
 import pathlib
 from scanpy.datasets import pbmc68k_reduced

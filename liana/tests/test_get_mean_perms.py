@@ -3,7 +3,7 @@ import pathlib
 from scanpy.datasets import pbmc68k_reduced
 from pandas import read_csv
 
-from liana.steady.get_mean_perms import get_means_perms
+from liana.method.get_mean_perms import get_means_perms
 
 test_path = pathlib.Path(__file__).parent
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-from liana.steady.Method import Method, MethodMeta
+from liana.method.Method import Method, MethodMeta
 
 
 def _sca_score(x):

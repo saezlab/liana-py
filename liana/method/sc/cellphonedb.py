@@ -1,6 +1,6 @@
 from statsmodels.distributions.empirical_distribution import ECDF
 
-from liana.steady.Method import Method, MethodMeta
+from liana.method.Method import Method, MethodMeta
 
 
 def _simple_mean(x, y): return (x + y) / 2
