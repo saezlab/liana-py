@@ -1,7 +1,7 @@
 import pathlib
 
 from unittest import TestCase
-from liana import rank_aggregate
+from liana.method import rank_aggregate
 from liana.method.sc.rank_aggregate import ConsensusClass
 from scanpy.datasets import pbmc68k_reduced
 from pandas import read_csv

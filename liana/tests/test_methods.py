@@ -1,6 +1,6 @@
 import anndata
 
-from liana import cellphonedb, singlecellsignalr as sca, natmi, connectome, logfc
+from liana.method import cellphonedb, singlecellsignalr as sca, natmi, connectome, logfc
 from scanpy.datasets import pbmc68k_reduced
 
 adata = pbmc68k_reduced()
