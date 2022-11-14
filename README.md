@@ -54,10 +54,12 @@ The following CCC resources are accessible via this pipeline:
 - Guide2Pharma
 - ConnectomeDB2020
 - CellTalkDB
+- MouseConsensus (#)
 
-($) LIANA's default `Consensus` resource was generated from several expert-curated resources, 
+($1) LIANA's default `Consensus` resource was generated from several expert-curated resources, 
 filtered to additional quality control steps including literature support, complex re-union/consensus,
 and localisation.
+(#) Consensus Resource converted to murine homologs.
 
 
 ## Cite LIANA:
