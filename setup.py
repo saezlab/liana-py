@@ -19,7 +19,7 @@ def get_version(rel_path: str) -> str:
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-setup(name='liana-py',
+setup(name='liana',
       version=get_version("liana/__init__.py"),
       description='LIANA - a LIgand-receptor ANalysis frAmework',
       author='Daniel Dimitrov',

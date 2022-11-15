@@ -24,7 +24,7 @@ pip install git+https://github.com/saezlab/liana-py
 Install liana's stable version:
 
 ```
-pip install liana-py
+pip install liana
 ```
 
 

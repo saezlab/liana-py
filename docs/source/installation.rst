@@ -17,4 +17,4 @@ To update stable version from pip, run:
 
 .. code-block:: console
 
-   pip install liana-py
+   pip install liana
