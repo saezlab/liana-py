@@ -12,9 +12,6 @@ LIANA is a Ligand-Receptor inference framework that enables the use of any LR me
 This is its faster and memory efficient Python implementation, an R version is also available [here](https://github.com/saezlab/liana).
 
 
-### *liana-py is still under heavy development - a stable alpha release will be created soon*
-
-
 For further information please check LIANA's [documentation](https://liana-py.readthedocs.io/en/latest/api.html), and also [tutorial](https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html).
 
 ## Install LIANA
