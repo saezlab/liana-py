@@ -3,7 +3,7 @@ import numpy as np
 import pandas
 
 from plotnine import ggplot, geom_point, aes, \
-    facet_grid, labs, theme_bw, theme, element_text, element_rect
+    facet_grid, labs, theme_bw, theme, element_text, element_rect, scale_size_continuous
 
 
 def dotplot(adata: anndata.AnnData = None,
@@ -14,7 +14,9 @@ def dotplot(adata: anndata.AnnData = None,
             orderby_ascending: (bool, None) = None,
             filterby: (bool, None) = None, filter_lambda=None,
             inverse_colour: bool = False, inverse_size: bool = False,
-            figure_size: tuple = (8, 6), return_fig=True) -> ggplot:
+            size_range: tuple = (2, 9),
+            figure_size: tuple = (8, 6),
+            return_fig=True) -> ggplot:
     """
     Dotplot interactions by source and target cells
 
@@ -47,6 +49,8 @@ def dotplot(adata: anndata.AnnData = None,
         Whether to -log10 the `colour` column for plotting. `False` by default.
     inverse_size
         Whether to -log10 the `size` column for plotting. `False` by default.
+    size_range
+        Define size range - (min, max). Default is (2, 9)
     figure_size
         Figure x,y size
     return_fig
@@ -117,6 +121,7 @@ def dotplot(adata: anndata.AnnData = None,
     p = (ggplot(liana_res, aes(x='target', y='interaction', colour=colour, size=size))
          + geom_point()
          + facet_grid('~source')
+         + scale_size_continuous(range=size_range)
          + labs(color=str.capitalize(colour),
                 size=str.capitalize(size),
                 y="Interactions (Ligand -> Receptor)",
