@@ -261,7 +261,6 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
 
     """
     # get label cats
-    adata = adata.copy()
     labels = adata.obs.label.cat.categories
 
     # Method-specific stats
@@ -306,7 +305,7 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
 
     # Calculate Mean, logFC and z-scores by group
     for label in labels:
-        temp = adata[adata.obs.label.isin([label])].copy()
+        temp = adata[adata.obs.label.isin([label])]
         dedict[label]['means'] = temp.X.mean(0).A.flatten()
         if connectome_flag:
             dedict[label]['zscores'] = temp.layers['scaled'].mean(0)
@@ -371,8 +370,8 @@ def _calc_log2fc(adata, label) -> np.ndarray:
 
     """
     # Get subject vs rest cells
-    subject = adata[adata.obs.label.isin([label])].copy()
-    rest = adata[~adata.obs.label.isin([label])].copy()
+    subject = adata[adata.obs.label.isin([label])]
+    rest = adata[~adata.obs.label.isin([label])]
 
     # subject and rest means
     subj_means = subject.layers['normcounts'].mean(0).A.flatten()

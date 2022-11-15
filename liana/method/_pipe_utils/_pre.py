@@ -87,11 +87,15 @@ def prep_check_adata(adata: AnnData,
     Anndata object to be used downstream
     """
     # simplify adata
-    X = _choose_mtx_rep(adata, use_raw, layer)
-    adata = sc.AnnData(X=X,
-                       dtype=X.dtype,
+    if use_raw:
+        var = adata.raw.var.copy()
+    else:
+        var = adata.var.copy()
+
+    adata = sc.AnnData(X=_choose_mtx_rep(adata=adata, use_raw=use_raw, layer=layer),
                        obs=adata.obs.copy(),
-                       var=adata.var.copy()
+                       dtype="float32",
+                       var=var
                        )
 
     # convert to sparse csr matrix
@@ -135,10 +139,10 @@ def prep_check_adata(adata: AnnData,
     adata.obs['label'] = adata.obs[groupby]
 
     # Re-order adata vars alphabetically
-    adata = adata[:, np.sort(adata.var_names)].copy()
+    adata = adata[:, np.sort(adata.var_names)]
 
     # Remove any cell types below X number of cells per cell type
-    count_cells = adata.obs.groupby(groupby)[groupby].size().reset_index(name='count')
+    count_cells = adata.obs.copy().groupby(groupby)[groupby].size().reset_index(name='count')
     count_cells['keep'] = count_cells['count'] >= min_cells
 
     if not all(count_cells.keep):

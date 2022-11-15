@@ -23,7 +23,6 @@ pip install git+https://github.com/saezlab/liana-py
 ```
 
 Install liana's stable version:
-
 ```
 pip install liana
 ```
@@ -63,9 +62,10 @@ The following CCC resources are accessible via this pipeline:
 - CellTalkDB
 - MouseConsensus (#)
 
-($1) LIANA's default `Consensus` resource was generated from several expert-curated resources, 
+($) LIANA's default `Consensus` resource was generated from several expert-curated resources, 
 filtered to additional quality control steps including literature support, complex re-union/consensus,
 and localisation.
+
 (#) Consensus Resource converted to murine homologs.
 
 
