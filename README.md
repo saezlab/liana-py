@@ -18,9 +18,18 @@ This is its faster and memory efficient Python implementation, an R version is a
 For further information please check LIANA's [documentation](https://liana-py.readthedocs.io/en/latest/api.html), and also [tutorial](https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html).
 
 ## Install LIANA
+
+Install liana's most up-to-date version:
 ```
 pip install git+https://github.com/saezlab/liana-py
 ```
+
+Install liana's stable version:
+
+```
+pip install liana-py
+```
+
 
 ## Methods
 
