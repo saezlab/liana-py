@@ -33,7 +33,7 @@ Method implementations are callable via their following instances:
 .. currentmodule:: liana
 
 .. autosummary::
-   :toctree: generated
+   :toctree: api
 
    method.cellphonedb.__call__
    method.connectome.__call__
@@ -42,10 +42,10 @@ Method implementations are callable via their following instances:
    method.singlecellsignalr.__call__
 
 
-Running Rank Aggregate Instance
+Callable Rank Aggregate Instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. autosummary::
-   :toctree: generated
+   :toctree: api
 
    method.rank_aggregate.__call__
 
@@ -54,10 +54,10 @@ LIANA's Pipeline
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 `liana` relies on a common pipeline to generate
 the statistics for all of the methods above. This enables
-the straightforward addition to any novel method.
+the straightforward addition to any additional method to `liana`.
 
 .. autosummary::
-   :toctree: generated
+   :toctree: api
 
    method.liana_pipe
 
@@ -68,7 +68,7 @@ Visualization options:
 .. currentmodule:: liana
 
 .. autosummary::
-   :toctree: generated
+   :toctree: api
 
    plotting.dotplot
 
@@ -77,7 +77,7 @@ General utils:
 ---------------------------------------------------------------
 
 .. autosummary::
-   :toctree: generated
+   :toctree: api
 
    liana.resource.select_resource
    liana.resource.show_resources
