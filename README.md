@@ -7,8 +7,6 @@
 [![codecov](https://codecov.io/gh/saezlab/liana-py/branch/main/graph/badge.svg?token=TM0P29KKN5)](https://codecov.io/gh/saezlab/liana-py)
 <!-- badges: end -->
 
-*liana-py is still under heavy development - a stable alpha release will be created soon*
-
 LIANA is a Ligand-Receptor inference framework that enables the use of any LR method with any resource.
 This is its faster and memory efficient Python implementation, an R version is also available [here](https://github.com/saezlab/liana).
 

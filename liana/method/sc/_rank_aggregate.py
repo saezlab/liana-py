@@ -70,14 +70,14 @@ class AggregateClass(MethodMeta):
                  base: float = 2.718281828459045,
                  aggregate_method='rra',
                  consensus_opts=None,
-                 use_raw: Optional[bool] = False,
+                 use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
                  de_method='t-test',
                  verbose: Optional[bool] = False,
                  n_perms: int = 1000,
                  seed: int = 1337,
                  resource: Optional[DataFrame] = None,
-                 copy=False) -> AnnData:
+                 inplace=True):
         """
         Parameters
         ----------
@@ -96,7 +96,7 @@ class AggregateClass(MethodMeta):
             Exponent base used to reverse the log-transformation of matrix. Note that this is
             relevant only for the `logfc` method.
         use_raw
-            Use raw attribute of adata if present.
+            Use raw attribute of adata if present. True, by default.
         layer
             Layer in anndata.AnnData.layers to use. If None, use anndata.AnnData.X.
         de_method
@@ -113,13 +113,13 @@ class AggregateClass(MethodMeta):
             Parameter to enable external resources to be passed. Expects a pandas dataframe
             with [`ligand`, `receptor`] columns. None by default. If provided will overrule
             the resource requested via `resource_name`
-        copy
-            If true return `DataFrame` with results, else assign to `.uns`.
+        inplace
+            If true return `DataFrame` with results, else assign inplace to `.uns`.
 
 
         Returns
         -------
-        If ``copy = True``, returns a `DataFrame` with ligand-receptor results
+        If ``inplace = False``, returns a `DataFrame` with ligand-receptor results
         Otherwise, modifies the ``adata`` object with the following key:
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
         """
@@ -141,11 +141,9 @@ class AggregateClass(MethodMeta):
                                _aggregate_method=aggregate_method,
                                _consensus_opts=consensus_opts
                                )
-        if not copy:
-            adata.uns['liana_res'] = liana_res
-            return adata
-        else:
-            return liana_res
+        adata.uns['liana_res'] = liana_res
+
+        return None if inplace else liana_res
 
 
 _rank_aggregate_meta = \

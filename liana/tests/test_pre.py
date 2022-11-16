@@ -5,12 +5,16 @@ import numpy as np
 from liana.method._pipe_utils._pre import assert_covered, prep_check_adata, format_vars
 
 adata = pbmc68k_reduced()
+adata.layers['scaled_counts'] = adata.X
 
 
 def test_prep_check_adata():
-    desired = np.array([1.591, 1.591, 1.591, 2.177, 2.544, 1.591, 2.177, 1.591, 2.812, 1.591])
-    actual = prep_check_adata(adata, 'bulk_labels', 0, True, None).X.data[0:10]
-    np.testing.assert_almost_equal(actual, desired, decimal=3)
+    temp = prep_check_adata(adata=adata, groupby='bulk_labels', min_cells=0,
+                            use_raw=True, layer=None)
+    np.testing.assert_almost_equal(np.sum(temp.X.data), 319044.22, decimal=2)
+
+    desired = np.array([2.177, 2.177, 2.544, 2.544, 1.591, 1.591, 1.591, 1.591, 1.591, 1.591])
+    np.testing.assert_almost_equal(temp.X.data[0:10], desired, decimal=3)
 
     # test filtering
     filt = prep_check_adata(adata=adata, groupby='bulk_labels',
@@ -42,3 +46,15 @@ def test_choose_mtx():
 
     np.testing.assert_almost_equal(by_layer.layers['scaled'].data,
                                    extracted.X.data)
+
+
+def test_choose_mtx_failure():
+    # check exception if both layer and use_raw are provided
+    with pytest.raises(ValueError):
+        prep_check_adata(adata=adata, groupby='bulk_labels', min_cells=5,
+                         layer='scaled_counts', use_raw=True)
+
+    # check exception if .raw is not initialized
+    adata.raw = None
+    with pytest.raises(ValueError):
+        prep_check_adata(adata=adata, groupby='bulk_labels', min_cells=5, use_raw=True)

@@ -7,8 +7,12 @@ Import liana as::
 Methods:
 ------------------------------------------------------------
 
-Objects of class Method
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Instances of Method Class
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Methods are implemented as instances of the same Method class.
+Each instance provides helper functions and consistent attributes,
+to describe each method instance.
 
 .. module:: liana
 .. currentmodule:: liana
@@ -27,7 +31,7 @@ Objects of class Method
 Callable Method instances
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Method implementations are callable via their following instances:
+With each Method (instance of class Method) being callable:
 
 .. module:: liana
 .. currentmodule:: liana
@@ -44,6 +48,13 @@ Method implementations are callable via their following instances:
 
 Callable Rank Aggregate Instance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+LIANA's RankAggregate Class is a child of the Method class,
+and hence shares the same attributes and functions.
+
+The RankAggregate Class can be used to generate a consensus
+for any of the methods in LIANA. Similarly to any other
+Method instance, it is also callable:
+
 .. autosummary::
    :toctree: api
 
@@ -54,7 +65,7 @@ LIANA's Pipeline
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 `liana` relies on a common pipeline to generate
 the statistics for all of the methods above. This enables
-the straightforward addition to any additional method to `liana`.
+the straightforward inclusion to any additional method to `liana`.
 
 .. autosummary::
    :toctree: api

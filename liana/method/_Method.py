@@ -11,7 +11,6 @@ class MethodMeta:
     """
     A Class used to store Method Metadata
     """
-
     def __init__(self,
                  method_name: str,
                  complex_cols: list,
@@ -107,14 +106,14 @@ class Method(MethodMeta):
                  expr_prop: float = 0.1,
                  min_cells: int = 5,
                  base: float = 2.718281828459045,
-                 use_raw: Optional[bool] = False,
+                 use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
                  de_method='t-test',
                  verbose: Optional[bool] = False,
                  n_perms: int = 1000,
                  seed: int = 1337,
                  resource: Optional[DataFrame] = None,
-                 copy=False) -> AnnData:
+                 inplace=True):
         """
         Parameters
         ----------
@@ -151,12 +150,12 @@ class Method(MethodMeta):
             Parameter to enable external resources to be passed. Expects a pandas dataframe
             with [`ligand`, `receptor`] columns. None by default. If provided will overrule
             the resource requested via `resource_name`
-        copy
+        inplace
             If true return `DataFrame` with results, else assign to `.uns`.
 
         Returns
         -------
-        If ``copy = True``, returns a `DataFrame` with ligand-receptor results
+        If ``inplace = False``, returns a `DataFrame` with ligand-receptor results
         Otherwise, modifies the ``adata`` object with the following key:
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
         """
@@ -176,11 +175,8 @@ class Method(MethodMeta):
                                use_raw=use_raw,
                                layer=layer,
                                )
-        if not copy:
-            adata.uns['liana_res'] = liana_res
-            return adata
-        else:
-            return liana_res
+        adata.uns['liana_res'] = liana_res
+        return None if inplace else liana_res
 
 
 def _show_methods(methods):

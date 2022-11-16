@@ -7,3 +7,4 @@ scanpy
 pytest
 setuptools
 plotnine
+tqdm

@@ -8,7 +8,7 @@ from anndata import AnnData
 from typing import Optional
 from pandas import DataFrame, Index
 import scanpy as sc
-from scipy.sparse import csr_matrix
+from scipy.sparse import csr_matrix, isspmatrix_csr
 
 
 def assert_covered(
@@ -61,7 +61,7 @@ def assert_covered(
 def prep_check_adata(adata: AnnData,
                      groupby: str,
                      min_cells: int,
-                     use_raw:  Optional[bool] = False,
+                     use_raw: Optional[bool] = False,
                      layer: Optional[str] = None,
                      verbose: Optional[bool] = False) -> AnnData:
     """
@@ -87,25 +87,29 @@ def prep_check_adata(adata: AnnData,
     Anndata object to be used downstream
     """
     # simplify adata
-    if use_raw:
+
+    X = _choose_mtx_rep(adata=adata, use_raw=use_raw,
+                        layer=layer, verbose=verbose)
+
+    if use_raw & (layer is None):
         var = adata.raw.var.copy()
     else:
         var = adata.var.copy()
 
-    adata = sc.AnnData(X=_choose_mtx_rep(adata=adata, use_raw=use_raw, layer=layer),
+    adata = sc.AnnData(X=X,
                        obs=adata.obs.copy(),
                        dtype="float32",
                        var=var
                        )
 
     # convert to sparse csr matrix
-    if not isinstance(adata.X, csr_matrix):
+    if not isspmatrix_csr(adata.X):
         if verbose:
             print("Converting mat to CSR format")
         adata.X = csr_matrix(adata.X)
 
     # Check for empty features
-    msk_features = np.sum(adata.X != 0, axis=0).A1 == 0
+    msk_features = np.sum(adata.X, axis=0).A1 == 0
     n_empty_features = np.sum(msk_features)
     if n_empty_features > 0:
         if verbose:
@@ -114,13 +118,13 @@ def prep_check_adata(adata: AnnData,
         adata = adata[:, ~msk_features]
 
     # Check for empty samples
-    msk_samples = np.sum(adata.X != 0, axis=1).A1 == 0
+    msk_samples = np.sum(adata.X, axis=1).A1 == 0
     n_empty_samples = np.sum(msk_samples)
     if n_empty_samples > 0:
         if verbose:
             print("{0} samples of mat are empty, they will be removed.".format(
                 n_empty_samples))
-        adata = adata[:, ~msk_features]
+        adata = adata[~msk_samples, :]
 
     # Check if log-norm
     _sum = np.sum(adata.X.data[0:100])
@@ -136,13 +140,13 @@ def prep_check_adata(adata: AnnData,
 
     # Define idents col name
     assert groupby in adata.obs.columns
-    adata.obs['label'] = adata.obs[groupby]
+    adata.obs['label'] = adata.obs.copy()[groupby]
 
     # Re-order adata vars alphabetically
     adata = adata[:, np.sort(adata.var_names)]
 
     # Remove any cell types below X number of cells per cell type
-    count_cells = adata.obs.copy().groupby(groupby)[groupby].size().reset_index(name='count')
+    count_cells = adata.obs.groupby(groupby)[groupby].size().reset_index(name='count').copy()
     count_cells['keep'] = count_cells['count'] >= min_cells
 
     if not all(count_cells.keep):
@@ -230,7 +234,7 @@ def filter_resource(resource: DataFrame, var_names: Index) -> DataFrame:
     return resource[~resource.interaction.isin(missing_comps.interaction)]
 
 
-def _choose_mtx_rep(adata, use_raw=False, layer=None) -> csr_matrix:
+def _choose_mtx_rep(adata, use_raw=False, layer=None, verbose=False) -> csr_matrix:
     """
     Choose matrix (adapted from scanpy)
     
@@ -249,14 +253,19 @@ def _choose_mtx_rep(adata, use_raw=False, layer=None) -> csr_matrix:
     """
 
     is_layer = layer is not None
-    if use_raw and is_layer:
-        raise ValueError(
-            "Cannot use both layer and raw at the same time."
-            f"You provided: 'use_raw={use_raw}' and 'layer={layer}'"
-        )
+    if is_layer & use_raw:
+        raise ValueError("Cannot specify `layer` and have `use_raw=True`.")
     if is_layer:
+        if verbose:
+            print(f"Using the `{layer}` layer!")
         return adata.layers[layer]
     elif use_raw:
+        if adata.raw is None:
+            raise ValueError("`.raw` is not initialized!")
+        if verbose:
+            print("Using `.raw`!")
         return adata.raw.X
     else:
+        if verbose:
+            print("Print Using `.X`!")
         return adata.X

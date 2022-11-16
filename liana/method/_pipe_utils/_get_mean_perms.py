@@ -1,12 +1,14 @@
 import anndata
 import numpy as np
 import pandas
+from tqdm import tqdm
 
 
 def _get_means_perms(adata: anndata.AnnData,
                      lr_res: pandas.DataFrame,
                      n_perms: int,
-                     seed: int):
+                     seed: int,
+                     verbose: bool):
     """
     Generate permutations and indices required for permutation-based methods
 
@@ -44,7 +46,7 @@ def _get_means_perms(adata: anndata.AnnData,
     perms = np.zeros((n_perms, labels.shape[0], adata.shape[1]))
 
     # Assign permuted matrix
-    for perm in range(n_perms):
+    for perm in tqdm(range(n_perms), disable=not verbose):
         perm_idx = rng.permutation(idx)
         perm_mat = adata.X[perm_idx].copy()
         # populate matrix /w permuted means

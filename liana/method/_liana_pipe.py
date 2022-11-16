@@ -109,6 +109,9 @@ def liana_pipe(adata: anndata.AnnData,
         supp_cols = []
     _add_cols = _add_cols + ['ligand', 'receptor', 'ligand_props', 'receptor_props'] + supp_cols
 
+    # initialize mat_mean for sca
+    mat_mean = None
+
     # Check and Reformat Mat if needed
     adata = prep_check_adata(adata=adata,
                              groupby=groupby,
@@ -119,7 +122,7 @@ def liana_pipe(adata: anndata.AnnData,
 
     # get mat mean for SCA
     if 'mat_mean' in _add_cols:
-        adata.uns['mat_mean'] = np.mean(adata.X)
+        mat_mean = np.mean(adata.X, dtype='float32')
 
     if resource is None:
         resource = select_resource(resource_name.lower())
@@ -139,9 +142,9 @@ def liana_pipe(adata: anndata.AnnData,
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
 
     # Get lr results
-    lr_res = _get_lr(adata, resource,
-                     _key_cols + _add_cols + _complex_cols,
-                     de_method, base, verbose)
+    lr_res = _get_lr(adata=adata, resource=resource, mat_mean=mat_mean,
+                     relevant_cols=_key_cols + _add_cols + _complex_cols,
+                     de_method=de_method, base=base, verbose=verbose)
 
     # Mean Sums required for NATMI (note done on subunits also)
     if 'ligand_means_sums' in _add_cols:
@@ -160,7 +163,7 @@ def liana_pipe(adata: anndata.AnnData,
             lrs = {}
             for method in _methods:
                 if verbose:
-                    f"Running {method.method_name}."
+                    print(f"Running {method.method_name}")
 
                 lrs[method.method_name] = \
                     _run_method(lr_res=lr_res.copy(),
@@ -172,6 +175,7 @@ def liana_pipe(adata: anndata.AnnData,
                                 _add_cols=method.add_cols,
                                 n_perms=n_perms,
                                 seed=seed,
+                                verbose=verbose,
                                 _consensus=True
                                 )
             if _consensus_opts is not False:
@@ -184,7 +188,8 @@ def liana_pipe(adata: anndata.AnnData,
         else:  # Run the specific method in mind
             lr_res = _run_method(lr_res=lr_res, adata=adata, expr_prop=expr_prop,
                                  _score=_score, _key_cols=_key_cols, _complex_cols=_complex_cols,
-                                 _add_cols=_add_cols, n_perms=n_perms, seed=seed)
+                                 _add_cols=_add_cols, n_perms=n_perms,
+                                 verbose=verbose, seed=seed)
     else:  # Just return lr_res
         if _return_subunits:
             return lr_res
@@ -234,7 +239,7 @@ def _join_stats(source, target, dedict, resource):
     return bound
 
 
-def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
+def _get_lr(adata, resource, relevant_cols, mat_mean, de_method, base, verbose):
     """
     Run DE analysis and merge needed information with resource for LR inference
 
@@ -274,9 +279,9 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
     if logfc_flag:
         if 'log1p' in adata.uns_keys():
             if (adata.uns['log1p']['base'] is not None) & verbose:
-                print("Assuming that counts were natural log-normalized!")
+                print("Assuming that counts were `natural` log-normalized!")
         elif ('log1p' not in adata.uns_keys()) & verbose:
-            print("Assuming that counts were natural log-normalized!")
+            print("Assuming that counts were `natural` log-normalized!")
         adata.layers['normcounts'] = adata.X.copy()
         adata.layers['normcounts'].data = _expm1_base(adata.X.data, base)
 
@@ -286,8 +291,9 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
     # Calc pvals + other stats per gene or not
     rank_genes_bool = ('ligand_pvals' in relevant_cols) | ('receptor_pvals' in relevant_cols)
     if rank_genes_bool:
-        sc.tl.rank_genes_groups(adata, groupby='label',
-                                method=de_method, use_raw=False)
+        adata = sc.tl.rank_genes_groups(adata, groupby='label',
+                                        method=de_method, use_raw=False,
+                                        copy=True)
 
     for label in labels:
         temp = adata[adata.obs.label == label, :]
@@ -324,7 +330,8 @@ def _get_lr(adata, resource, relevant_cols, de_method, base, verbose):
     )
 
     if 'mat_mean' in relevant_cols:
-        lr_res['mat_mean'] = adata.uns['mat_mean']
+        assert isinstance(mat_mean, np.float32)
+        lr_res['mat_mean'] = mat_mean
 
     # subset to only relevant columns and return (SIMPLY?)
     relevant_cols = np.intersect1d(relevant_cols, lr_res.columns)
@@ -400,6 +407,7 @@ def _run_method(lr_res: pandas.DataFrame,
                 _add_cols: list,
                 n_perms: int,
                 seed: int,
+                verbose: bool,
                 _consensus: bool = False  # Indicates whether we're generating the consensus
                 ) -> pd.DataFrame:
     # re-assemble complexes - specific for each method
@@ -415,7 +423,9 @@ def _run_method(lr_res: pandas.DataFrame,
 
     if _score.permute:
         perms, ligand_pos, receptor_pos, labels_pos = \
-            _get_means_perms(adata=adata, lr_res=lr_res, n_perms=n_perms, seed=seed)
+            _get_means_perms(adata=adata, lr_res=lr_res,
+                             n_perms=n_perms, seed=seed,
+                             verbose=verbose)
         # SHOULD VECTORIZE THE APPLY / w NUMBA !!!
         lr_res[[_score.magnitude, _score.specificity]] = \
             lr_res.apply(_score.fun, axis=1, result_type="expand",

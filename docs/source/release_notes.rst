@@ -1,3 +1,17 @@
+0.1.1
+-----
+- Add progress bar to permutations
+- Deal with adata copies to optimize RAM
+- change copy to inplace, and assign to uns, rather than return adata
+- remove unnecessary filtering in _pre + extend units tests
+
+
+0.1.0
+-----
+- Restructure API further
+- Submit to PIP
+
+
 Release notes
 =============
 

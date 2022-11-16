@@ -14,7 +14,7 @@ adata.obs['label'] = adata.obs.bulk_labels
 all_defaults = read_csv(test_path.joinpath("data/all_defaults.csv"), index_col=0)
 
 perms, ligand_pos, receptor_pos, labels_pos = \
-    _get_means_perms(adata=adata, lr_res=all_defaults, n_perms=100, seed=1337)
+    _get_means_perms(adata=adata, lr_res=all_defaults, n_perms=100, seed=1337, verbose=False)
 
 
 def test_perms():
