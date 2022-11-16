@@ -1,3 +1,6 @@
+Release notes
+=============
+
 0.1.1
 -----
 - Add progress bar to permutations
@@ -11,9 +14,6 @@
 - Restructure API further
 - Submit to PIP
 
-
-Release notes
-=============
 
 0.0.3
 -----
