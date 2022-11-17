@@ -34,7 +34,9 @@ The methods implemented in this repository are:
 - [NATMI](https://github.com/forrest-lab/NATMI)
 - [Connectome](https://github.com/msraredon/Connectome)
 - [SingleCellSignalR](https://github.com/SCA-IRCM/SingleCellSignalR)
-- *1-vs-rest* expression LogFC score
+- *1-vs-rest* expression `LogFC` score
+- `Geometric Mean` - ligand-receptor geometric mean with pvalues obtained 
+via the permutation approach implemented by CellPhoneDBv2
 - `rank_aggregate` of the predictions calculated with the
 [RobustRankAggregate](https://academic.oup.com/bioinformatics/article/28/4/573/213339) method
 

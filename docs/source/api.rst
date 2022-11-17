@@ -25,6 +25,7 @@ to describe each method instance.
    method.logfc
    method.natmi
    method.singlecellsignalr
+   method.geometric_mean
    method.rank_aggregate
 
 
@@ -44,6 +45,7 @@ With each Method (instance of class Method) being callable:
    method.logfc.__call__
    method.natmi.__call__
    method.singlecellsignalr.__call__
+   method.geometric_mean.__call__
 
 
 Callable Rank Aggregate Instance

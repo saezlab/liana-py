@@ -1,6 +1,5 @@
-from statsmodels.distributions.empirical_distribution import ECDF
-
 from liana.method._Method import Method, MethodMeta
+from .._pipe_utils._get_mean_perms import _get_lr_pvals
 
 
 def _simple_mean(x, y): return (x + y) / 2
@@ -24,42 +23,32 @@ def _cpdb_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
     labels_pos
         Index of cell identities in the perms tensor
 
-
     Returns
     -------
     A tuple with lr_mean and pvalue for x
 
     """
-
     if (x.ligand_means == 0) | (x.receptor_means == 0):
         return 0, 1
 
-    # Permutations lr mean
-    ligand_perms = perms[:, labels_pos[x.source], ligand_pos[x.ligand]]
-    receptor_perms = perms[:, labels_pos[x.target], receptor_pos[x.receptor]]
-    lr_perms = _simple_mean(ligand_perms, receptor_perms)
-
-    # actual lr_mean
-    lr_mean = _simple_mean(x.ligand_means, x.receptor_means)
-
-    return lr_mean, (1 - ECDF(lr_perms)(lr_mean))
+    return _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, _simple_mean)
 
 
 # Initialize CPDB Meta
 _cellphonedb = MethodMeta(method_name="CellPhoneDB",
-                          complex_cols=['ligand_means', 'receptor_means'],
+                          complex_cols=["ligand_means", "receptor_means"],
                           add_cols=[],
                           fun=_cpdb_score,
-                          magnitude='lr_means',
+                          magnitude="lr_means",
                           magnitude_ascending=False,
-                          specificity='pvals',
+                          specificity="pvals",
                           specificity_ascending=True,
                           permute=True,
-                          reference='Efremova, M., Vento-Tormo, M., Teichmann, S.A. and '
-                                    'Vento-Tormo, R., 2020. CellPhoneDB: inferring cell–cell '
-                                    'communication from combined expression of multi-subunit '
-                                    'ligand–receptor complexes. Nature protocols, 15(4), '
-                                    'pp.1484-1506. '
+                          reference="Efremova, M., Vento-Tormo, M., Teichmann, S.A. and "
+                                    "Vento-Tormo, R., 2020. CellPhoneDB: inferring cell–cell "
+                                    "communication from combined expression of multi-subunit "
+                                    "ligand–receptor complexes. Nature protocols, 15(4), "
+                                    "pp.1484-1506. "
                           )
 
 # Initialize callable Method instance

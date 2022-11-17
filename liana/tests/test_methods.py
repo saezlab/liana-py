@@ -1,6 +1,7 @@
 import pandas
 
-from liana.method import cellphonedb, singlecellsignalr as sca, natmi, connectome, logfc
+from liana.method import cellphonedb, singlecellsignalr as sca, \
+    natmi, connectome, logfc, geometric_mean
 from scanpy.datasets import pbmc68k_reduced
 
 adata = pbmc68k_reduced()
@@ -12,6 +13,15 @@ def test_cellphonedb():
     assert 'liana_res' in adata.uns.keys()
     assert isinstance(adata.uns['liana_res'], pandas.DataFrame)
     assert 'lr_means' in adata.uns['liana_res'].columns
+    assert 'pvals' in adata.uns['liana_res'].columns
+    assert adata.shape == expected_shape
+
+
+def test_geometric_mean():
+    geometric_mean(adata, groupby='bulk_labels', use_raw=True, n_perms=2)
+    assert 'liana_res' in adata.uns.keys()
+    assert isinstance(adata.uns['liana_res'], pandas.DataFrame)
+    assert 'lr_gmeans' in adata.uns['liana_res'].columns
     assert 'pvals' in adata.uns['liana_res'].columns
     assert adata.shape == expected_shape
 

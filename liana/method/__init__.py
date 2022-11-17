@@ -1,7 +1,7 @@
 from ._liana_pipe import liana_pipe
 from ._Method import MethodMeta, _show_methods
 from .sc._rank_aggregate import AggregateClass, _rank_aggregate_meta
-from .sc import cellphonedb, connectome, logfc, natmi, singlecellsignalr
+from .sc import cellphonedb, connectome, logfc, natmi, singlecellsignalr, geometric_mean
 
 # callable consensus instance
 _methods = [cellphonedb, connectome, logfc, natmi, singlecellsignalr]

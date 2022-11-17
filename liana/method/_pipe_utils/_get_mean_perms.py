@@ -2,7 +2,7 @@ import anndata
 import numpy as np
 import pandas
 from tqdm import tqdm
-
+from statsmodels.distributions.empirical_distribution import ECDF
 
 def _get_means_perms(adata: anndata.AnnData,
                      lr_res: pandas.DataFrame,
@@ -61,3 +61,39 @@ def _get_means_perms(adata: anndata.AnnData,
     labels_pos = {labels[pos]: pos for pos in range(labels.shape[0])}
 
     return perms, ligand_pos, receptor_pos, labels_pos
+
+
+def _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, agg_fun):
+    """
+    Calculate Permutation means and p-values
+
+    Parameters
+    ----------
+    x
+        DataFrame row
+    perms
+        3D tensor with permuted averages per cluster
+    ligand_pos
+        Index of the ligand in the tensor
+    receptor_pos
+        Index of the receptor in the perms tensor
+    labels_pos
+        Index of cell identities in the perms tensor
+    agg_fun
+        function to aggregate the ligand and receptor
+
+    Returns
+    -------
+    A tuple with lr_mean (aggregated according to `agg_fun`) and ECDF pvalue for x
+
+    """
+    # Permutations lr mean
+    ligand_perm_means = perms[:, labels_pos[x.source], ligand_pos[x.ligand]]
+    receptor_perm_means = perms[:, labels_pos[x.target], receptor_pos[x.receptor]]
+    lr_perm_means = agg_fun(ligand_perm_means, receptor_perm_means)
+
+    # actual lr_mean
+    lr_mean = agg_fun(x.ligand_means, x.receptor_means)
+    p_value = (1 - ECDF(lr_perm_means)(lr_mean))
+
+    return lr_mean, p_value
