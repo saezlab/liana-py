@@ -1,6 +1,10 @@
 Release notes
 =============
 
+0.1.2
+-----
+- Added CellChat and GeometricMean methods
+
 0.1.1
 -----
 - Add progress bar to permutations
