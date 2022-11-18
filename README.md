@@ -5,6 +5,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/saezlab/liana-py.svg)](https://github.com/saezlab/liana-py/issues/)
 [![Documentation Status](https://readthedocs.org/projects/liana-py/badge/?version=latest)](https://liana-py.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/saezlab/liana-py/branch/main/graph/badge.svg?token=TM0P29KKN5)](https://codecov.io/gh/saezlab/liana-py)
+[![Downloads](https://pepy.tech/badge/liana)](https://pepy.tech/project/liana)
 <!-- badges: end -->
 
 LIANA is a Ligand-Receptor inference framework that enables the use of any LR method with any resource.
