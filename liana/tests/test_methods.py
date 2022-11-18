@@ -19,8 +19,8 @@ def test_cellchat():
     assert isinstance(liana_res, pandas.DataFrame)
 
     assert 'lr_probs' in liana_res.columns
-    assert 'pvals' in liana_res.columns
-    assert max(liana_res[(liana_res.ligand == "TIMP1")].lr_probs) == 0.26226172578841855
+    assert 'cellchat_pvals' in liana_res.columns
+    assert max(liana_res[(liana_res.ligand == "TIMP1")].lr_probs) == 0.20561589810421071
 
 
 def test_cellphonedb():
