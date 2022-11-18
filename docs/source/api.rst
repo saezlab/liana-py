@@ -20,6 +20,7 @@ to describe each method instance.
 .. autosummary::
    :toctree: api
 
+   method.cellchat
    method.cellphonedb
    method.connectome
    method.logfc
@@ -40,6 +41,7 @@ With each Method (instance of class Method) being callable:
 .. autosummary::
    :toctree: api
 
+   method.cellchat.__call__
    method.cellphonedb.__call__
    method.connectome.__call__
    method.logfc.__call__

@@ -18,25 +18,27 @@ def test_consensus():
     assert rank_aggregate.method_name == 'Rank_Aggregate'
 
 
-def test_consensus_specs():
+def test_aggregate_specs():
     steady_specs = {'CellPhoneDB': ('pvals', True),
                     'Connectome': ('scaled_weight', False),
                     'log2FC': ('lr_logfc', False),
                     'NATMI': ('spec_weight', False),
-                    'SingleCellSignalR': ('lrscore', False)
+                    'SingleCellSignalR': ('lrscore', False),
+                    'CellChat': ('cellchat_pvals', True),
                     }
     TestCase().assertDictEqual(rank_aggregate.steady_specs, steady_specs)
 
     magnitude_specs = {'CellPhoneDB': ('lr_means', False),
                        'Connectome': ('expr_prod', False),
                        'NATMI': ('expr_prod', False),
-                       'SingleCellSignalR': ('lrscore', False)
+                       'SingleCellSignalR': ('lrscore', False),
+                       'CellChat': ('lr_probs', False)
                        }
 
     TestCase().assertDictEqual(rank_aggregate.magnitude_specs, magnitude_specs)
 
 
-def test_consensus_res():
+def test_aggregate_res():
     adata = pbmc68k_reduced()
     lr_res = rank_aggregate(adata, groupby='bulk_labels', use_raw=True, n_perms=2, inplace=False)
     lr_exp = read_csv(test_path.joinpath("data/aggregate_rank_rest.csv"), index_col=0)

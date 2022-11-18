@@ -126,6 +126,11 @@ def liana_pipe(adata: anndata.AnnData,
     if 'mat_mean' in _add_cols:
         mat_mean = np.mean(adata.X, dtype='float32')
 
+    # get mat max for CellChat
+    if 'mat_max' in _add_cols:
+        mat_max = np.max(adata.X.data)
+        assert isinstance(mat_max, np.float32)
+
     if resource is None:
         resource = select_resource(resource_name.lower())
     # explode complexes/decomplexify
@@ -142,11 +147,6 @@ def liana_pipe(adata: anndata.AnnData,
 
     # Filter to only include the relevant genes
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
-
-    # get mat max for CellChat
-    if 'mat_max' in _add_cols:
-        mat_max = np.max(adata.X.data)
-        assert isinstance(mat_max, np.float32)
 
     # Get lr results
     lr_res = _get_lr(adata=adata, resource=resource,

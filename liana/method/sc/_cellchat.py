@@ -31,9 +31,6 @@ def _cellchat_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
     A tuple with lr_mean and pvalue for x
 
     """
-    if (x.ligand_pvals >= 0.05) | (x.receptor_pvals >= 0.05):
-        return 0, 1  # this should be moved to liana-pipe
-
     return _get_lr_pvals(x=x, perms=perms,
                          ligand_pos=ligand_pos,
                          receptor_pos=receptor_pos,
@@ -46,11 +43,11 @@ def _cellchat_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
 # Initialize CellChat Meta
 _cellchat = MethodMeta(method_name="CellChat",
                        complex_cols=["ligand_trimean", "receptor_trimean"],
-                       add_cols=['ligand_pvals', 'receptor_pvals', 'mat_max'],
+                       add_cols=['mat_max'],
                        fun=_cellchat_score,
                        magnitude="lr_probs",
                        magnitude_ascending=False,
-                       specificity="pvals",
+                       specificity="cellchat_pvals",
                        specificity_ascending=True,
                        permute=True,
                        reference="Jin, S., Guerrero-Juarez, C.F., Zhang, L., Chang, I., Ramos, "

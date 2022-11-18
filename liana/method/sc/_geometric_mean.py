@@ -35,7 +35,7 @@ def _gmean_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
 
 
 # Initialize Meta
-_geometric_mean = MethodMeta(method_name="Geometric Mean with Permutations",
+_geometric_mean = MethodMeta(method_name="Geometric Mean",
                              complex_cols=["ligand_means", "receptor_means"],
                              add_cols=[],
                              fun=_gmean_score,
