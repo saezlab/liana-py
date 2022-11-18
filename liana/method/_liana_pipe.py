@@ -102,7 +102,8 @@ def liana_pipe(adata: anndata.AnnData,
         _add_cols = ['ligand_means_sums', 'receptor_means_sums',
                      'ligand_zscores', 'receptor_zscores',
                      'ligand_logfc', 'receptor_logfc',
-                     'mat_mean',
+                     'ligand_trimean', 'receptor_trimean',
+                     'mat_mean', 'mat_max',
                      ]
 
     if supp_cols is None:
@@ -143,7 +144,7 @@ def liana_pipe(adata: anndata.AnnData,
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
 
     # get mat max for CellChat
-    if ('ligand_trimean' in _complex_cols) | ('ligand_trimean' in _complex_cols):
+    if 'mat_max' in _add_cols:
         mat_max = np.max(adata.X.data)
         assert isinstance(mat_max, np.float32)
 
@@ -325,7 +326,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
         if logfc_flag:
             dedict[label]['logfc'] = _calc_log2fc(adata, label)
         if isinstance(mat_max, np.float32):  # cellchat flag
-            dedict[label]['trimean'] = _trimean(temp.X.A / mat_max)
+            dedict[label]['trimean'] = _trimean(temp.X / mat_max)
 
     # Create df /w cell identity pairs
     pairs = (pd.DataFrame(np.array(np.meshgrid(labels, labels))
@@ -432,16 +433,19 @@ def _run_method(lr_res: pandas.DataFrame,
     relevant_cols = reduce(np.union1d, [_key_cols, _complex_cols, _add_cols])
     lr_res = lr_res[relevant_cols]
 
-    if 'mat_max' in _add_cols:
+    if ('mat_max' in _add_cols) & (_score.method_name == "CellChat"):
         # CellChat matrix_max
         norm_factor = np.unique(lr_res['mat_max'].values).item()
+        agg_fun = _trimean
     else:
         norm_factor = None
+        agg_fun = np.mean
 
     if _score.permute:
         perms, ligand_pos, receptor_pos, labels_pos = \
             _get_means_perms(adata=adata, lr_res=lr_res,
                              n_perms=n_perms, seed=seed,
+                             agg_fun=agg_fun,
                              norm_factor=norm_factor,
                              verbose=verbose)
         lr_res[[_score.magnitude, _score.specificity]] = \
@@ -467,7 +471,7 @@ def _get_props(X_mask):
     return X_mask.getnnz(axis=0) / X_mask.shape[0]
 
 
-def _trimean(a):
+def _trimean(a, axis=0):
     """
     Tukey's mean / Trimean
     Parameters
@@ -481,7 +485,7 @@ def _trimean(a):
 
     """
     return np.mean(
-        np.quantile(a,
+        np.quantile(a.A,
                     q=[0.25, 0.5, 0.5, 0.75],
-                    axis=0),
-        axis=0)
+                    axis=axis),
+        axis=axis)

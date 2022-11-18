@@ -9,6 +9,7 @@ def _get_means_perms(adata: anndata.AnnData,
                      lr_res: pandas.DataFrame,
                      n_perms: int,
                      seed: int,
+                     agg_fun,
                      norm_factor: (float, None),
                      verbose: bool):
     """
@@ -25,7 +26,7 @@ def _get_means_perms(adata: anndata.AnnData,
     seed
         Random seed for reproducibility.
     agg_fun
-        function by which to aggregate the matrix
+        function by which to aggregate the matrix, should take `axis` argument
     norm_factor
         additionally normalize the data by some factor (e.g. matrix max for CellChat)
     verbose
@@ -62,7 +63,7 @@ def _get_means_perms(adata: anndata.AnnData,
         perm_mat = adata.X[perm_idx].copy()
         # populate matrix /w permuted means
         for cind in range(labels.shape[0]):
-            perms[perm, cind] = perm_mat[labels_dict[labels[cind]]].mean(0)
+            perms[perm, cind] = agg_fun(perm_mat[labels_dict[labels[cind]]], axis=0)
 
     # Get indexes for each gene and label in the permutations
     ligand_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity
@@ -96,7 +97,7 @@ def _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, agg_fun,
 
     Returns
     -------
-    A tuple with lr_score (aggregated according to `agg_fun`) and ECDF pvalue for x
+    A tuple with lr_score (aggregated according to `agg_fun`) and ECDF p-value for x
 
     """
     # actual lr_score

@@ -48,7 +48,7 @@ def test_liana_pipe_defaults_shape():
                               )
 
     assert 1288 == all_defaults.shape[0]
-    assert 18 == all_defaults.shape[1]
+    assert 21 == all_defaults.shape[1]
     assert 'prop_min' in all_defaults.columns
 
     exp_defaults = read_csv(test_path.joinpath("data/all_defaults.csv"), index_col=0)
@@ -78,7 +78,7 @@ def test_liana_pipe_not_defaults():
                               )
 
     assert 4400 == not_defaults.shape[0]
-    assert 19 == not_defaults.shape[1]
+    assert 22 == not_defaults.shape[1]
     assert all(np.isin(['ligand_pvals', 'receptor_pvals'], not_defaults.columns))
 
     exp_defaults = read_csv(test_path.joinpath("data/not_defaults.csv"), index_col=0)

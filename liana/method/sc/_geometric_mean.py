@@ -1,4 +1,3 @@
-import numpy as np
 from scipy.stats import gmean
 
 from liana.method._Method import Method, MethodMeta
