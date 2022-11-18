@@ -111,6 +111,7 @@ def liana_pipe(adata: anndata.AnnData,
 
     # initialize mat_mean for sca
     mat_mean = None
+    mat_max = None
 
     # Check and Reformat Mat if needed
     adata = prep_check_adata(adata=adata,
@@ -120,7 +121,7 @@ def liana_pipe(adata: anndata.AnnData,
                              layer=layer,
                              verbose=verbose)
 
-    # get mat mean for SCA
+    # get mat mean for SCA (before reducing the features)
     if 'mat_mean' in _add_cols:
         mat_mean = np.mean(adata.X, dtype='float32')
 
@@ -141,8 +142,14 @@ def liana_pipe(adata: anndata.AnnData,
     # Filter to only include the relevant genes
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
 
+    # get mat max for CellChat
+    if ('ligand_trimean' in _complex_cols) | ('ligand_trimean' in _complex_cols):
+        mat_max = np.max(adata.X.data)
+        assert isinstance(mat_max, np.float32)
+
     # Get lr results
-    lr_res = _get_lr(adata=adata, resource=resource, mat_mean=mat_mean,
+    lr_res = _get_lr(adata=adata, resource=resource,
+                     mat_mean=mat_mean, mat_max=mat_max,
                      relevant_cols=_key_cols + _add_cols + _complex_cols,
                      de_method=de_method, base=base, verbose=verbose)
 
@@ -239,7 +246,7 @@ def _join_stats(source, target, dedict, resource):
     return bound
 
 
-def _get_lr(adata, resource, relevant_cols, mat_mean, de_method, base, verbose):
+def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, verbose):
     """
     Run DE analysis and merge needed information with resource for LR inference
 
@@ -285,7 +292,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, de_method, base, verbose):
         adata.layers['normcounts'] = adata.X.copy()
         adata.layers['normcounts'].data = _expm1_base(adata.X.data, base)
 
-    # Get Props
+    # initialize dict
     dedict = {}
 
     # Calc pvals + other stats per gene or not
@@ -312,11 +319,13 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, de_method, base, verbose):
     # Calculate Mean, logFC and z-scores by group
     for label in labels:
         temp = adata[adata.obs.label.isin([label])]
-        dedict[label]['means'] = temp.X.mean(0).A.flatten()
+        dedict[label]['means'] = temp.X.mean(axis=0).A.flatten()
         if connectome_flag:
-            dedict[label]['zscores'] = temp.layers['scaled'].mean(0)
+            dedict[label]['zscores'] = temp.layers['scaled'].mean(axis=0)
         if logfc_flag:
             dedict[label]['logfc'] = _calc_log2fc(adata, label)
+        if isinstance(mat_max, np.float32):  # cellchat flag
+            dedict[label]['trimean'] = _trimean(temp.X.A / mat_max)
 
     # Create df /w cell identity pairs
     pairs = (pd.DataFrame(np.array(np.meshgrid(labels, labels))
@@ -333,7 +342,10 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, de_method, base, verbose):
         assert isinstance(mat_mean, np.float32)
         lr_res['mat_mean'] = mat_mean
 
-    # subset to only relevant columns and return (SIMPLY?)
+    if isinstance(mat_max, np.float32):
+        lr_res['mat_max'] = mat_max
+
+    # subset to only relevant columns
     relevant_cols = np.intersect1d(relevant_cols, lr_res.columns)
 
     return lr_res[relevant_cols]
@@ -416,17 +428,22 @@ def _run_method(lr_res: pandas.DataFrame,
                                          expr_prop=expr_prop,
                                          complex_cols=_complex_cols)
 
-    # subset to only relevant columns and return (SIMPLY?)
     _add_cols = _add_cols + ['ligand', 'receptor']
     relevant_cols = reduce(np.union1d, [_key_cols, _complex_cols, _add_cols])
     lr_res = lr_res[relevant_cols]
+
+    if 'mat_max' in _add_cols:
+        # CellChat matrix_max
+        norm_factor = np.unique(lr_res['mat_max'].values).item()
+    else:
+        norm_factor = None
 
     if _score.permute:
         perms, ligand_pos, receptor_pos, labels_pos = \
             _get_means_perms(adata=adata, lr_res=lr_res,
                              n_perms=n_perms, seed=seed,
+                             norm_factor=norm_factor,
                              verbose=verbose)
-        # SHOULD VECTORIZE THE APPLY / w NUMBA !!!
         lr_res[[_score.magnitude, _score.specificity]] = \
             lr_res.apply(_score.fun, axis=1, result_type="expand",
                          perms=perms, ligand_pos=ligand_pos,
@@ -448,3 +465,23 @@ def _run_method(lr_res: pandas.DataFrame,
 # Function to get gene expr proportions
 def _get_props(X_mask):
     return X_mask.getnnz(axis=0) / X_mask.shape[0]
+
+
+def _trimean(a):
+    """
+    Tukey's mean / Trimean
+    Parameters
+    ----------
+    a
+        non-sparse array (cell ident counts)
+
+    Returns
+    -------
+    Trimean value
+
+    """
+    return np.mean(
+        np.quantile(a,
+                    q=[0.25, 0.5, 0.5, 0.75],
+                    axis=0),
+        axis=0)

@@ -9,7 +9,7 @@ def _gmean(x, y):
     return gmean([x, y], axis=0)
 
 
-# Internal Function to calculate CellPhoneDB LR_mean and p-values
+# Internal Function to calculate Geometric LR_mean and p-values
 def _gmean_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
     """
     Calculate CellPhoneDB-like LR means and p-values
@@ -35,7 +35,7 @@ def _gmean_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
     return _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, _gmean)
 
 
-# Initialize CPDB Meta
+# Initialize Meta
 _geometric_mean = MethodMeta(method_name="Geometric Mean with Permutations",
                              complex_cols=["ligand_means", "receptor_means"],
                              add_cols=[],

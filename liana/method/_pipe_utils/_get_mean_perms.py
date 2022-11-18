@@ -4,10 +4,12 @@ import pandas
 from tqdm import tqdm
 from statsmodels.distributions.empirical_distribution import ECDF
 
+
 def _get_means_perms(adata: anndata.AnnData,
                      lr_res: pandas.DataFrame,
                      n_perms: int,
                      seed: int,
+                     norm_factor: (float, None),
                      verbose: bool):
     """
     Generate permutations and indices required for permutation-based methods
@@ -22,6 +24,12 @@ def _get_means_perms(adata: anndata.AnnData,
         Number of permutations to be calculated
     seed
         Random seed for reproducibility.
+    agg_fun
+        function by which to aggregate the matrix
+    norm_factor
+        additionally normalize the data by some factor (e.g. matrix max for CellChat)
+    verbose
+        Verbosity bool
 
     Returns
     -------
@@ -34,6 +42,9 @@ def _get_means_perms(adata: anndata.AnnData,
 
     # initialize rng
     rng = np.random.default_rng(seed=seed)
+
+    if isinstance(norm_factor, np.float):
+        adata.X /= norm_factor
 
     # define labels and dict
     labels = adata.obs.label.cat.categories
@@ -53,7 +64,7 @@ def _get_means_perms(adata: anndata.AnnData,
         for cind in range(labels.shape[0]):
             perms[perm, cind] = perm_mat[labels_dict[labels[cind]]].mean(0)
 
-    # Get indeces for each gene and label in the permutations
+    # Get indexes for each gene and label in the permutations
     ligand_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity
                   in lr_res['ligand']}
     receptor_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity
@@ -63,7 +74,8 @@ def _get_means_perms(adata: anndata.AnnData,
     return perms, ligand_pos, receptor_pos, labels_pos
 
 
-def _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, agg_fun):
+def _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, agg_fun,
+                  ligand_col='ligand_means', receptor_col='receptor_means'):
     """
     Calculate Permutation means and p-values
 
@@ -84,16 +96,20 @@ def _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, agg_fun):
 
     Returns
     -------
-    A tuple with lr_mean (aggregated according to `agg_fun`) and ECDF pvalue for x
+    A tuple with lr_score (aggregated according to `agg_fun`) and ECDF pvalue for x
 
     """
+    # actual lr_score
+    lr_score = agg_fun(x[ligand_col], x[receptor_col])
+
+    if lr_score == 0:
+        return 0, 1
+
     # Permutations lr mean
     ligand_perm_means = perms[:, labels_pos[x.source], ligand_pos[x.ligand]]
     receptor_perm_means = perms[:, labels_pos[x.target], receptor_pos[x.receptor]]
-    lr_perm_means = agg_fun(ligand_perm_means, receptor_perm_means)
+    lr_perm_score = agg_fun(ligand_perm_means, receptor_perm_means)
 
-    # actual lr_mean
-    lr_mean = agg_fun(x.ligand_means, x.receptor_means)
-    p_value = (1 - ECDF(lr_perm_means)(lr_mean))
+    p_value = (1 - ECDF(lr_perm_score)(lr_score))
 
-    return lr_mean, p_value
+    return lr_score, p_value
