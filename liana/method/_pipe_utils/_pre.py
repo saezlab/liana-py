@@ -220,7 +220,7 @@ def filter_resource(resource: DataFrame, var_names: Index) -> DataFrame:
                         (np.isin(resource.receptor, var_names))]
 
     # Only keep interactions /w complexes for which all subunits are present
-    missing_comps = resource[['_' in x for x in resource['interaction']]].copy()
+    missing_comps = resource[resource.interaction.str.contains('_')].copy()
     missing_comps['all_units'] = \
         missing_comps['ligand_complex'] + '_' + missing_comps[
             'receptor_complex']
