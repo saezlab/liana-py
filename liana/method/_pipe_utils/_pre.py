@@ -251,7 +251,6 @@ def _choose_mtx_rep(adata, use_raw=False, layer=None, verbose=False) -> csr_matr
     -------
         The matrix to be used by liana-py.
     """
-
     is_layer = layer is not None
     if is_layer & use_raw:
         raise ValueError("Cannot specify `layer` and have `use_raw=True`.")
