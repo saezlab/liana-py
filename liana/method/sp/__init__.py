@@ -1,0 +1,1 @@
+from ._spatial_utils import get_spatial_proximity

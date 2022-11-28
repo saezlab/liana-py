@@ -97,3 +97,12 @@ General utils:
    liana.resource.select_resource
    liana.resource.show_resources
    liana.method.show_methods
+
+
+Spatial utils:
+---------------------------------------------------------------
+
+.. autosummary::
+   :toctree: api
+
+   liana.method.get_spatial_proximity

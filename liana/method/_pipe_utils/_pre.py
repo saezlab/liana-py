@@ -63,7 +63,7 @@ def prep_check_adata(adata: AnnData,
                      min_cells: int,
                      use_raw: Optional[bool] = False,
                      layer: Optional[str] = None,
-                     keep_obsm=False,
+                     obsm_keys = None,
                      verbose: Optional[bool] = False) -> AnnData:
     """
     Check if the anndata object is in the correct format and preprocess
@@ -80,8 +80,9 @@ def prep_check_adata(adata: AnnData,
         Use raw attribute of adata if present.
     layer
         Indicate whether to use any layer.
-    keep_obsm
-        Indicate whether to keep obsm or to discard. By default, False and discarded
+    obsm_keys
+        Indicate whether to keep obsm with spatial info or to discard.
+        By default, False and discarded.
     verbose
         Verbosity flag.
 
@@ -99,11 +100,16 @@ def prep_check_adata(adata: AnnData,
     else:
         var = adata.var.copy()
 
+    if obsm_keys:
+        obsm = { key: adata.obsm[key] for key in obsm_keys }
+    else:
+        obsm = None
+
     adata = sc.AnnData(X=X,
                        obs=adata.obs.copy(),
                        dtype="float32",
                        var=var,
-                       obsm=adata.obsm.copy() if keep_obsm else None  # TODO keep only spatial
+                       obsm=obsm
                        )
 
     # convert to sparse csr matrix
