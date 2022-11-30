@@ -37,7 +37,8 @@ def _global_permutation_pvals(x_mat, y_mat, dist, global_r, n_perm, positive_onl
     if positive_only:
         global_pvals = 1 - (global_r > perm_mat).sum(axis=0) / n_perm
     else:
-        global_pvals = 2 * (1 - (abs(global_r) > abs(perm_mat)).sum(axis=0) / n_perm)
+        # TODO Proof this makes sense
+        global_pvals = 2 * (1 - (np.abs(global_r) > np.abs(perm_mat)).sum(axis=0) / n_perm)
 
     return global_pvals
 
@@ -58,7 +59,7 @@ def _global_zscore_pvals(dist, global_r, positive_only):
     if positive_only:
         global_zpvals = norm.sf(global_zscores)
     else:
-        global_zpvals = norm.sf(abs(global_zscores)) * 2
+        global_zpvals = norm.sf(np.abs(global_zscores)) * 2
 
     return global_zpvals
 
@@ -71,22 +72,25 @@ def _local_permutation_pvals(x_mat, y_mat, local_r, dist, n_perm, seed, positive
     xy_n = local_r.shape[0]
 
     # permutation cubes to be populated
-    perm_x = np.zeros((xy_n, n_perm, spot_n))
-    perm_y = np.zeros((xy_n, n_perm, spot_n))
+    local_pvals = np.zeros((xy_n, spot_n))
 
-    for i in tqdm(range(n_perm)):  # TODO fix spike in RAM
+    for i in tqdm(range(n_perm)):
         _idx = rng.permutation(x_mat.shape[0])
-        perm_x[:, i, :] = ((dist @ y_mat[_idx, :]) * x_mat).T
-        perm_y[:, i, :] = ((dist @ x_mat[_idx, :]) * y_mat).T
+        perm_x = ((dist @ y_mat[_idx, :]) * x_mat).T
+        perm_y = ((dist @ x_mat[_idx, :]) * y_mat).T
+        perm_r = perm_x + perm_y
+        if positive_only:
+            local_pvals += (perm_r >= local_r).astype(int)
+        else:
+            # TODO Proof this makes sense
+            local_pvals += (np.abs(perm_r) >= np.abs(local_r)).astype(int)
 
-    if positive_only:
-        local_pvals = ((np.expand_dims(local_r, 1) <= (perm_x + perm_y)).sum(
-            1)) / n_perm
+    local_pvals = local_pvals / n_perm
 
+    if positive_only:  # mask?
+        # only keep positive pvals where either x or y is positive
         pos_msk = ((x_mat > 0) + (y_mat > 0)).T
         local_pvals[~pos_msk] = 1
-    else:
-        local_pvals = 1
 
     return local_pvals
 
@@ -94,13 +98,13 @@ def _local_permutation_pvals(x_mat, y_mat, local_r, dist, n_perm, seed, positive
 def _local_zscore_pvals(x_mat, y_mat, local_r, dist, positive_only):
     spot_n = dist.shape[0]
 
-    x_norm = np.array([norm.fit(x_mat[:, x]) for x in range(x_mat.shape[1])])
+    x_norm = np.array([norm.fit(x_mat[:, x]) for x in range(x_mat.shape[1])])  # TODO to np.repeat
     y_norm = np.array([norm.fit(y_mat[:, y]) for y in range(y_mat.shape[1])])
 
     # get x,y std
     x_std, y_std = x_norm[:, 1], y_norm[:, 1]
 
-    x_sigma = np.array([(std * spot_n / (spot_n - 1)) for std in x_std])
+    x_sigma = np.array([(std * spot_n / (spot_n - 1)) for std in x_std])  # TODO to np.repeat
     y_sigma = np.array([(std * spot_n / (spot_n - 1)) for std in y_std])
 
     std = _get_local_var(x_sigma, y_sigma, dist, spot_n)
@@ -108,10 +112,10 @@ def _local_zscore_pvals(x_mat, y_mat, local_r, dist, positive_only):
 
     if positive_only:
         local_zpvals = norm.sf(local_zscores)
-        pos_msk = ((x_mat > 0) + (y_mat > 0)).T
+        pos_msk = ((x_mat > 0) + (y_mat > 0)).T  # mask?
         local_zpvals[~pos_msk] = 1
     else:
-        local_zpvals = norm.sf(abs(local_zscores))
+        local_zpvals = norm.sf(np.abs(local_zscores))
 
     return local_zpvals
 
