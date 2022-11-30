@@ -115,6 +115,7 @@ def liana_pipe(adata: anndata.AnnData,
     mat_max = None
 
     # Check and Reformat Mat if needed
+    assert groupby is not None
     adata = prep_check_adata(adata=adata,
                              groupby=groupby,
                              min_cells=min_cells,

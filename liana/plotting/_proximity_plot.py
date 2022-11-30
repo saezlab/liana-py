@@ -22,13 +22,13 @@ def proximity_plot(adata: anndata.AnnData, idx: int, return_fig: bool = True):
 
     """
 
-    assert 'proximity' in adata.uns_keys()
+    assert 'proximity' in adata.obsm_keys()
     assert 'spatial' in adata.obsm_keys()
 
     coordinates = pd.DataFrame(adata.obsm['spatial'],
                                index=adata.obs_names,
                                columns=['x', 'y']).copy()
-    coordinates['proximity'] = adata.uns['proximity'][idx]
+    coordinates['proximity'] = adata.obsm['proximity'][:, idx].A
 
     p = (ggplot(coordinates.sort_values('proximity', ascending=True),
                 aes(x='x', y='y', colour='proximity'))

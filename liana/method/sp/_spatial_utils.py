@@ -1,8 +1,10 @@
-from sklearn.neighbors import NearestNeighbors
-from scipy.spatial.distance import pdist, squareform
 import numpy as np
 import pandas as pd
 import anndata
+
+from sklearn.neighbors import NearestNeighbors
+from scipy.spatial.distance import pdist, squareform
+from scipy.sparse import csr_matrix
 
 
 def get_spatial_proximity(adata: anndata.AnnData,
@@ -89,11 +91,7 @@ def get_spatial_proximity(adata: anndata.AnnData,
     if spot_n > 1000:
         proximity = proximity.astype(np.float16)
 
-    if family == 'spatialdm':  # TODO this goes to spatialDM/Moran's I formula
-        # normalize by total weight
-        norm_factor = spot_n / proximity.sum()
-        proximity = proximity * norm_factor
+    proximity = csr_matrix(proximity)
 
-    adata.uns['proximity'] = proximity
-
+    adata.obsm['proximity'] = proximity
     return None if inplace else proximity

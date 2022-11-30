@@ -2,6 +2,7 @@
 Preprocessing functions.
 Functions to preprocess the anndata object prior to running any method.
 """
+from __future__ import annotations
 
 import numpy as np
 from anndata import AnnData
@@ -59,11 +60,11 @@ def assert_covered(
 
 
 def prep_check_adata(adata: AnnData,
-                     groupby: str,
-                     min_cells: int,
+                     groupby: (str | None),
+                     min_cells: (int | None),
                      use_raw: Optional[bool] = False,
                      layer: Optional[str] = None,
-                     obsm_keys = None,
+                     obsm_keys=None,
                      verbose: Optional[bool] = False) -> AnnData:
     """
     Check if the anndata object is in the correct format and preprocess
@@ -73,9 +74,12 @@ def prep_check_adata(adata: AnnData,
     adata
         Un-formatted Anndata.
     groupby
-        column to groupby
+        column to groupby. None if the ligand-receptor pipe
+        calling this function does not rely on cell labels.
+        For example, if ligand-receptor stats are needed
+        for the whole sample (global).
     min_cells
-        minimum cells per cell identity
+        minimum cells per cell identity. None if groupby is not passed.
     use_raw
         Use raw attribute of adata if present.
     layer
@@ -101,7 +105,7 @@ def prep_check_adata(adata: AnnData,
         var = adata.var.copy()
 
     if obsm_keys:
-        obsm = { key: adata.obsm[key] for key in obsm_keys }
+        obsm = {key: adata.obsm[key] for key in obsm_keys}
     else:
         obsm = None
 
@@ -131,10 +135,7 @@ def prep_check_adata(adata: AnnData,
     msk_samples = np.sum(adata.X, axis=1).A1 == 0
     n_empty_samples = np.sum(msk_samples)
     if n_empty_samples > 0:
-        if verbose:
-            print("{0} samples of mat are empty, they will be removed.".format(
-                n_empty_samples))
-        adata = adata[~msk_samples, :]
+        raise ValueError("{0} cells are empty, please remove those!")
 
     # Check if log-norm
     _sum = np.sum(adata.X.data[0:100])
@@ -148,25 +149,26 @@ def prep_check_adata(adata: AnnData,
             """mat contains non finite values (nan or inf), please set them 
             to 0 or remove them.""")
 
-    # Define idents col name
-    assert groupby in adata.obs.columns
-    adata.obs['label'] = adata.obs.copy()[groupby]
+    # Label related tests
+    if groupby is not None:
+        assert groupby in adata.obs.columns
+        adata.obs['label'] = adata.obs.copy()[groupby]
+
+        # Remove any cell types below X number of cells per cell type
+        count_cells = adata.obs.groupby(groupby)[groupby].size().reset_index(name='count').copy()
+        count_cells['keep'] = count_cells['count'] >= min_cells
+
+        if not all(count_cells.keep):
+            lowly_abundant_idents = list(count_cells[~count_cells.keep][groupby])
+            # remove lowly abundant identities
+            msk = ~np.isin(adata.obs[[groupby]], lowly_abundant_idents)
+            adata = adata[msk]
+            if verbose:
+                print("The following cell identities were excluded: {0}".format(
+                    ", ".join(lowly_abundant_idents)))
 
     # Re-order adata vars alphabetically
     adata = adata[:, np.sort(adata.var_names)]
-
-    # Remove any cell types below X number of cells per cell type
-    count_cells = adata.obs.groupby(groupby)[groupby].size().reset_index(name='count').copy()
-    count_cells['keep'] = count_cells['count'] >= min_cells
-
-    if not all(count_cells.keep):
-        lowly_abundant_idents = list(count_cells[~count_cells.keep][groupby])
-        # remove lowly abundant identities
-        msk = ~np.isin(adata.obs[[groupby]], lowly_abundant_idents)
-        adata = adata[msk]
-        if verbose:
-            print("The following cell identities were excluded: {0}".format(
-                ", ".join(lowly_abundant_idents)))
 
     # Remove underscores from gene names
     adata.var_names = format_vars(adata.var_names)
