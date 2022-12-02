@@ -57,4 +57,4 @@ _cellchat = MethodMeta(method_name="CellChat",
                        )
 
 # Initialize callable Method instance
-cellchat = Method(_SCORE=_cellchat)
+cellchat = Method(_method=_cellchat)

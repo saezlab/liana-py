@@ -5,6 +5,7 @@ import pandas
 
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
+from liana.utils._utils import _get_props
 from ..resource import select_resource, explode_complexes
 from liana.method._pipe_utils._get_mean_perms import _get_means_perms
 from liana.method._pipe_utils._aggregate import _aggregate
@@ -465,11 +466,6 @@ def _run_method(lr_res: pandas.DataFrame,
         lr_res = lr_res.drop([None], axis=1)
 
     return lr_res
-
-
-# Get gene expr proportions
-def _get_props(X_mask):
-    return X_mask.getnnz(axis=0) / X_mask.shape[0]
 
 
 def _trimean(a, axis=0):

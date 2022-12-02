@@ -40,4 +40,4 @@ _singlecellsignalr = MethodMeta(method_name="SingleCellSignalR",
                                 )
 
 # Initialize callable Method instance
-singlecellsignalr = Method(_SCORE=_singlecellsignalr)
+singlecellsignalr = Method(_method=_singlecellsignalr)

@@ -24,7 +24,7 @@ def get_spatial_proximity(adata: anndata.AnnData,
     parameter
          Denotes signaling length (`l`)
     family
-        Functions used to generate proxmity weights. The following options are available:
+        Functions used to generate proximity weights. The following options are available:
         ['gaussian', 'spatialdm', 'exponential', 'linear']
     cutoff
         Vales below this cutoff will be set to 0

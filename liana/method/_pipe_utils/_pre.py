@@ -17,7 +17,7 @@ def assert_covered(
         superset,
         subset_name: str = "resource",
         superset_name: str = "var_names",
-        prop_missing_allowed: float = 0.99,
+        prop_missing_allowed: float = 0.95,
         verbose: bool = False) -> None:
     """
     Assert if elements are covered at a decent proportion
@@ -54,6 +54,7 @@ def assert_covered(
             f"Too few features from the resource found in the data."
         )
         raise ValueError(msg + f" [{x_missing}] missing from {superset_name}")
+
     if verbose & (prop_missing > 0):
         print(f"{x_missing} found in {subset_name} but missing from "
               f"{superset_name}!")
@@ -278,5 +279,5 @@ def _choose_mtx_rep(adata, use_raw=False, layer=None, verbose=False) -> csr_matr
         return adata.raw.X
     else:
         if verbose:
-            print("Print Using `.X`!")
+            print("Using `.X`!")
         return adata.X

@@ -3,6 +3,205 @@ from tqdm import tqdm
 from scipy.sparse import csr_matrix
 from scipy.stats import norm
 
+from anndata import AnnData
+from pandas import DataFrame
+from typing import Optional
+
+from liana.method.sp._SpatialMethod import SpatialMethod
+from ._global_lr_pipe import _global_lr_pipe
+
+
+class SpatialDM(SpatialMethod):
+    def __init__(self, _method, _complex_cols, _obsm_keys):
+        super().__init__(method_name=_method.method_name,
+                         key_cols=_method.key_cols,
+                         reference=_method.reference,
+                         )
+
+        self.complex_cols = _complex_cols
+        self.obsm_keys = _obsm_keys
+        self._method = _method
+
+    def __call__(self,
+                 adata: AnnData,
+                 resource_name: str = 'consensus',
+                 expr_prop: float = 0.05,
+                 pvalue_method: str = 'permutation',
+                 n_perm=1000,
+                 positive_only: bool = True,
+                 use_raw: Optional[bool] = True,
+                 layer: Optional[str] = None,
+                 verbose: Optional[bool] = False,
+                 seed: int = 1337,
+                 resource: Optional[DataFrame] = None,
+                 inplace=True):
+        """
+        Parameters
+        ----------
+        adata
+            Annotated data object.
+        resource_name
+            Name of the resource to be loaded and use for ligand-receptor inference.
+        expr_prop
+            Minimum expression proportion for the ligands/receptors (and their subunits).
+             Set to `0` to return unfiltered results.
+        pvalue_method
+            Method to obtain P-values: ['permutation', 'analytical'].
+        n_perm
+            Number of permutations to be performed if `pvalue_method`=='permutation'
+        positive_only
+            Whether to calculate p-values only for positive correlations. `True` by default.
+        use_raw
+            Use raw attribute of adata if present.
+        layer
+            Layer in anndata.AnnData.layers to use. If None, use anndata.AnnData.X.
+        verbose
+            Verbosity flag
+        seed
+            Random seed for reproducibility.
+        resource
+            Parameter to enable external resources to be passed. Expects a pandas dataframe
+            with [`ligand`, `receptor`] columns. None by default. If provided will overrule
+            the resource requested via `resource_name`
+        inplace
+            If true return `DataFrame` with results, else assign to `.uns`.
+
+        Returns
+        -------
+
+        """
+        assert pvalue_method in ['analytical', 'permutation']
+
+        temp, lr_res, ligand_pos, receptor_pos = _global_lr_pipe(adata=adata,
+                                                                 resource_name=resource_name,
+                                                                 resource=resource,
+                                                                 expr_prop=expr_prop,
+                                                                 use_raw=use_raw,
+                                                                 layer=layer,
+                                                                 verbose=verbose,
+                                                                 _key_cols=self.key_cols,
+                                                                 _complex_cols=self.complex_cols,
+                                                                 _obms_keys=self.obsm_keys
+                                                                 )
+
+        # n / sum(W) for Moran's I
+        norm_factor = temp.obsm['proximity'].shape[0] / temp.obsm['proximity'].sum()
+        dist = csr_matrix(norm_factor * temp.obsm['proximity'])
+
+        lr_res['global_r'], lr_res['global_pvals'] = \
+            _global_spatialdm(mat=temp.X,
+                              ligand_pos=ligand_pos,
+                              receptor_pos=receptor_pos,
+                              lr_res=lr_res,
+                              dist=dist,
+                              seed=seed,
+                              n_perm=n_perm,
+                              pvalue_method=pvalue_method,
+                              positive_only=positive_only
+                              )
+        adata.uns['global_res'] = lr_res
+
+        adata.obsm['local_r'], adata.obsm['local_pvals'] = \
+            _local_spatialdm(mat=temp.X,
+                             ligand_pos=ligand_pos,
+                             receptor_pos=receptor_pos,
+                             lr_res=lr_res,
+                             dist=dist,
+                             seed=seed,
+                             n_perm=n_perm,
+                             pvalue_method=pvalue_method,
+                             positive_only=positive_only
+                             )
+
+        # convert to dataframes
+        adata.obsm['local_r'] = _local_to_dataframe(array=adata.obsm['local_r'],
+                                                    idx=temp.obs.index,
+                                                    columns=lr_res.interaction)
+        adata.obsm['local_pvals'] = _local_to_dataframe(array=adata.obsm['local_pvals'],
+                                                        idx=temp.obs.index,
+                                                        columns=lr_res.interaction)
+
+        return None if inplace else lr_res
+
+
+def _global_spatialdm(mat,
+                      ligand_pos,
+                      receptor_pos,
+                      lr_res,
+                      dist,
+                      seed,
+                      n_perm,
+                      pvalue_method,
+                      positive_only):
+    # normalize matrix
+    mat = _standardize_matrix(mat, local=False)
+
+    # spot_n x lr_n matrices
+    ligand_mat, receptor_mat = _get_xy_matrices(x_mat=mat,
+                                                y_mat=mat,
+                                                x_pos=ligand_pos,
+                                                y_pos=receptor_pos,
+                                                x_order=lr_res.ligand,
+                                                y_order=lr_res.receptor)
+
+    # Get global r
+    global_r = ((ligand_mat @ dist) * receptor_mat).sum(axis=1)
+
+    # calc p-values
+    if pvalue_method == 'permutation':
+        global_pvals = _global_permutation_pvals(x_mat=ligand_mat,
+                                                 y_mat=receptor_mat,
+                                                 dist=dist,
+                                                 global_r=global_r,
+                                                 n_perm=n_perm,
+                                                 positive_only=positive_only,
+                                                 seed=seed
+                                                 )
+    elif pvalue_method == 'analytical':
+        global_pvals = _global_zscore_pvals(dist=dist,
+                                            global_r=global_r,
+                                            positive_only=positive_only)
+
+    return global_r, global_pvals
+
+
+def _local_spatialdm(mat,
+                     ligand_pos,
+                     receptor_pos,
+                     lr_res,
+                     dist,
+                     n_perm,
+                     seed,
+                     pvalue_method,
+                     positive_only
+                     ):
+    mat = _standardize_matrix(mat, local=True)
+    ligand_mat, receptor_mat = _get_xy_matrices(x_mat=mat, y_mat=mat,
+                                                x_pos=ligand_pos, y_pos=receptor_pos,
+                                                x_order=lr_res.ligand, y_order=lr_res.receptor)
+    ligand_mat, receptor_mat = ligand_mat.T, receptor_mat.T
+    # calculate local_Rs
+    local_x = ligand_mat * (dist @ receptor_mat)
+    local_y = receptor_mat * (dist @ ligand_mat)
+    local_r = (local_x + local_y).T
+
+    if pvalue_method == 'permutation':
+        local_pvals = _local_permutation_pvals(x_mat=ligand_mat, y_mat=receptor_mat,
+                                               dist=dist, local_r=local_r,
+                                               n_perm=n_perm, seed=seed,
+                                               positive_only=positive_only
+                                               )
+    elif pvalue_method == 'analytical':
+        local_pvals = _local_zscore_pvals(x_mat=ligand_mat, y_mat=receptor_mat,
+                                          local_r=local_r, dist=dist,
+                                          positive_only=positive_only)
+
+    return local_r.T, local_pvals.T
+
+
+def _local_to_dataframe(idx, columns, array):
+    return DataFrame(array, index=idx, columns=columns)
+
 
 def _standardize_matrix(mat, local=True):
     mat = np.array(mat - np.array(mat.mean(axis=0)))
@@ -80,10 +279,10 @@ def _local_permutation_pvals(x_mat, y_mat, local_r, dist, n_perm, seed, positive
         perm_y = ((dist @ x_mat[_idx, :]) * y_mat).T
         perm_r = perm_x + perm_y
         if positive_only:
-            local_pvals += (perm_r >= local_r).astype(int)
+            local_pvals += np.array(perm_r >= local_r, dtype=int)
         else:
             # TODO Proof this makes sense
-            local_pvals += (np.abs(perm_r) >= np.abs(local_r)).astype(int)
+            local_pvals += np.array(np.abs(perm_r) >= np.abs(local_r), dtype=int)
 
     local_pvals = local_pvals / n_perm
 
@@ -131,3 +330,18 @@ def _get_local_var(x_sigma, y_sigma, dist, spot_n):
     std = var ** (1 / 2)
 
     return std.T
+
+
+# initialize instance
+_spatialdm = SpatialMethod(
+    method_name="SpatialDM",
+    key_cols=['ligand_complex', 'receptor_complex'],
+    reference="Zhuoxuan, L.I., Wang, T., Liu, P. and Huang, Y., 2022. SpatialDM: Rapid "
+              "identification of spatially co-expressed ligand-receptor reveals cell-cell "
+              "communication patterns. bioRxiv. "
+)
+
+spatialdm = SpatialDM(_method=_spatialdm,
+                      _complex_cols=['ligand_means', 'receptor_means'],
+                      _obsm_keys=['proximity']
+                      )

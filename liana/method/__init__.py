@@ -4,7 +4,6 @@ from .sc._rank_aggregate import AggregateClass, _rank_aggregate_meta
 from .sc import cellphonedb, connectome, logfc, natmi, singlecellsignalr, geometric_mean, cellchat
 from .sp import get_spatial_proximity
 
-
 # callable consensus instance
 _methods = [cellphonedb, connectome, logfc, natmi, singlecellsignalr, cellchat]
 rank_aggregate = AggregateClass(_rank_aggregate_meta, methods=_methods)

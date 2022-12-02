@@ -40,4 +40,4 @@ _logfc = MethodMeta(method_name="log2FC",
                     )
 
 # Initialize callable Method instance
-logfc = Method(_SCORE=_logfc)
+logfc = Method(_method=_logfc)

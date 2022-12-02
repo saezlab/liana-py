@@ -52,4 +52,4 @@ _cellphonedb = MethodMeta(method_name="CellPhoneDB",
                           )
 
 # Initialize callable Method instance
-cellphonedb = Method(_SCORE=_cellphonedb)
+cellphonedb = Method(_method=_cellphonedb)

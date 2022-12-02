@@ -43,4 +43,4 @@ _connectome = MethodMeta(method_name="Connectome",
                          )
 
 # Initialize callable Method instance
-connectome = Method(_SCORE=_connectome)
+connectome = Method(_method=_connectome)

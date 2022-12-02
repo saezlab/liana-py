@@ -58,7 +58,6 @@ class MethodMeta:
         self.permute = permute
         self.reference = reference
 
-    # describe self
     def describe(self):
         """Briefly described the method"""
         print(
@@ -85,19 +84,19 @@ class Method(MethodMeta):
     liana's Method Class
     """
 
-    def __init__(self, _SCORE):
-        super().__init__(method_name=_SCORE.method_name,
-                         complex_cols=_SCORE.complex_cols,
-                         add_cols=_SCORE.add_cols,
-                         fun=_SCORE.fun,
-                         magnitude=_SCORE.magnitude,
-                         magnitude_ascending=_SCORE.magnitude_ascending,
-                         specificity=_SCORE.specificity,
-                         specificity_ascending=_SCORE.specificity_ascending,
-                         permute=_SCORE.permute,
-                         reference=_SCORE.reference
+    def __init__(self, _method):
+        super().__init__(method_name=_method.method_name,
+                         complex_cols=_method.complex_cols,
+                         add_cols=_method.add_cols,
+                         fun=_method.fun,
+                         magnitude=_method.magnitude,
+                         magnitude_ascending=_method.magnitude_ascending,
+                         specificity=_method.specificity,
+                         specificity_ascending=_method.specificity_ascending,
+                         permute=_method.permute,
+                         reference=_method.reference
                          )
-        self._SCORE = _SCORE
+        self._method = _method
 
     def __call__(self,
                  adata: AnnData,
@@ -169,7 +168,7 @@ class Method(MethodMeta):
                                base=base,
                                de_method=de_method,
                                verbose=verbose,
-                               _score=self._SCORE,
+                               _score=self._method,
                                n_perms=n_perms,
                                seed=seed,
                                use_raw=use_raw,

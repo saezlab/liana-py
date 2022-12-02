@@ -43,5 +43,5 @@ _natmi = MethodMeta(method_name="NATMI",
                     )
 
 # Initialize callable Method instance
-natmi = Method(_SCORE=_natmi)
+natmi = Method(_method=_natmi)
 

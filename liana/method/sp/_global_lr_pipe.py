@@ -2,12 +2,22 @@ import numpy as np
 import pandas as pd
 
 from liana.resource import select_resource, explode_complexes
-from liana.method._pipe_utils import prep_check_adata, filter_resource
+from liana.method._pipe_utils import prep_check_adata, filter_resource, assert_covered
 from liana.method._liana_pipe import filter_reassemble_complexes
+from liana.utils._utils import _get_props
 
 
-def _global_lr_pipe(adata, resource, resource_name, expr_prop, _obms_keys, _key_cols,
-                    _complex_cols):
+def _global_lr_pipe(adata,
+                    resource,
+                    resource_name,
+                    expr_prop,
+                    use_raw,
+                    layer,
+                    verbose,
+                    _key_cols,
+                    _complex_cols,
+                    _obms_keys,
+                    ):
     """
 
     Parameters
@@ -16,6 +26,8 @@ def _global_lr_pipe(adata, resource, resource_name, expr_prop, _obms_keys, _key_
     resource
     resource_name
     expr_prop
+    layer
+    verbose
     _obms_keys
     _key_cols
     _complex_cols
@@ -25,7 +37,14 @@ def _global_lr_pipe(adata, resource, resource_name, expr_prop, _obms_keys, _key_
 
     """
     # prep adata
-    adata = prep_check_adata(adata, groupby=None, min_cells=None, obsm_keys=_obms_keys)
+    adata = prep_check_adata(adata=adata,
+                             use_raw=use_raw,
+                             layer=layer,
+                             verbose=verbose,
+                             groupby=None,
+                             min_cells=None,
+                             obsm_keys=_obms_keys
+                             )
 
     # select & process resource
     if resource is None:
@@ -35,14 +54,17 @@ def _global_lr_pipe(adata, resource, resource_name, expr_prop, _obms_keys, _key_
 
     # get entities
     entities = np.union1d(np.unique(resource["ligand"]),
-                          np.unique(resource["receptor"])
-                          )
+                          np.unique(resource["receptor"]))
+
+    # Check overlap between resource and adata  TODO check if this works
+    assert_covered(entities, adata.var_names, verbose=verbose)
+
     # Filter to only include the relevant features
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
 
     # global_stats
     global_stats = pd.DataFrame({'means': adata.X.mean(axis=0).A.flatten(),
-                                 'props': adata.X.getnnz(axis=0) / adata.X.shape[0]},
+                                 'props': _get_props(adata.X)},
                                 index=adata.var_names).reset_index().rename(
         columns={'index': 'gene'})
 
@@ -52,11 +74,18 @@ def _global_lr_pipe(adata, resource, resource_name, expr_prop, _obms_keys, _key_
 
     # get lr_res /w relevant x,y (lig, rec) and filter acc to expr_prop
     lr_res = filter_reassemble_complexes(lr_res=lr_res,
-                                         _key_cols=_key_cols,
                                          expr_prop=expr_prop,
-                                         complex_cols=_complex_cols)
+                                         _key_cols=_key_cols,
+                                         complex_cols=_complex_cols
+                                         )
 
-    return lr_res
+    # assign the positions of x, y to the adata
+    ligand_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity in
+                  lr_res['ligand']}
+    receptor_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity in
+                    lr_res['receptor']}
+
+    return adata, lr_res, ligand_pos, receptor_pos
 
 
 def _rename_means(lr_stats, entity):
