@@ -6,7 +6,8 @@ import pandas
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
 from liana.utils._utils import _get_props
-from ..resource import select_resource, explode_complexes
+from ..resource import select_resource
+from ._pipe_utils._reassemble_complexes import explode_complexes
 from liana.method._pipe_utils._get_mean_perms import _get_means_perms
 from liana.method._pipe_utils._aggregate import _aggregate
 

@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
 
-from liana.resource import select_resource, explode_complexes
-from liana.method._pipe_utils import prep_check_adata, filter_resource, assert_covered
-from liana.method._liana_pipe import filter_reassemble_complexes
+from liana.resource import select_resource
+from liana.method._pipe_utils._reassemble_complexes import explode_complexes
+from liana.method._pipe_utils import prep_check_adata, filter_resource, assert_covered, filter_reassemble_complexes
 from liana.utils._utils import _get_props
 
 
@@ -23,14 +23,23 @@ def _global_lr_pipe(adata,
     Parameters
     ----------
     adata
+
     resource
+
     resource_name
+
     expr_prop
+
     layer
+
     verbose
+
     _obms_keys
+
     _key_cols
+
     _complex_cols
+
 
     Returns
     -------

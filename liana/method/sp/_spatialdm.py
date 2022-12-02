@@ -8,7 +8,7 @@ from pandas import DataFrame
 from typing import Optional
 
 from liana.method.sp._SpatialMethod import SpatialMethod
-from ._global_lr_pipe import _global_lr_pipe
+from liana.method._global_lr_pipe import _global_lr_pipe
 
 
 class SpatialDM(SpatialMethod):
@@ -26,7 +26,7 @@ class SpatialDM(SpatialMethod):
                  adata: AnnData,
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.05,
-                 pvalue_method: str = 'permutation',
+                 pvalue_method: str = 'analytical',
                  n_perm: int = 1000,
                  positive_only: bool = True,
                  use_raw: Optional[bool] = True,
@@ -46,7 +46,8 @@ class SpatialDM(SpatialMethod):
             Minimum expression proportion for the ligands/receptors (and their subunits).
              Set to `0` to return unfiltered results.
         pvalue_method
-            Method to obtain P-values: ['permutation', 'analytical'].
+            Method to obtain P-values: One out of ['permutation', 'analytical'];
+            'analytical' by default.
         n_perm
             Number of permutations to be performed if `pvalue_method`=='permutation'
         positive_only
@@ -110,16 +111,16 @@ class SpatialDM(SpatialMethod):
                               positive_only=positive_only
                               )
         local_r, local_pvals = _local_spatialdm(x_mat=temp.X,
-                             y_mat=temp.X,
-                             x_pos=ligand_pos,
-                             y_pos=receptor_pos,
-                             xy_dataframe=lr_res,
-                             dist=dist,  # TODO msq?
-                             seed=seed,
-                             n_perm=n_perm,
-                             pvalue_method=pvalue_method,
-                             positive_only=positive_only
-                             )
+                                                y_mat=temp.X,
+                                                x_pos=ligand_pos,
+                                                y_pos=receptor_pos,
+                                                xy_dataframe=lr_res,
+                                                dist=dist,  # TODO msq?
+                                                seed=seed,
+                                                n_perm=n_perm,
+                                                pvalue_method=pvalue_method,
+                                                positive_only=positive_only
+                                                )
 
         # convert to dataframes
         local_r = _local_to_dataframe(array=local_r,
