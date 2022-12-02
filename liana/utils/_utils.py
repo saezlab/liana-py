@@ -31,5 +31,6 @@ def obsm_to_adata(adata, obsm_key):
     var = pd.DataFrame(index=adata.obsm[obsm_key].columns)
     uns = adata.uns
     obsm = adata.obsm
+    X = np.array(adata.obsm[obsm_key], dtype=np.float32)
 
-    return AnnData(np.array(adata.obsm[obsm_key]), obs=obs, var=var, uns=uns, obsm=obsm)
+    return AnnData(X=X, obs=obs, var=var, uns=uns, obsm=obsm)

@@ -27,7 +27,7 @@ class SpatialDM(SpatialMethod):
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.05,
                  pvalue_method: str = 'permutation',
-                 n_perm=1000,
+                 n_perm: int = 1000,
                  positive_only: bool = True,
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
@@ -68,6 +68,14 @@ class SpatialDM(SpatialMethod):
 
         Returns
         -------
+        If ``inplace = False``, returns:
+        - 1) a `DataFrame` with ligand-receptor correlations for the whole slide (global)
+        - 2) a `DataFrame` with ligand-receptor Moran's I for each spot
+        - 3) a `DataFrame` with ligand-receptor correlations p-values for each spot
+        Otherwise, modifies the ``adata`` object with the following keys:
+        - :attr:`anndata.AnnData.uns` ``['global_res']`` with `1)`
+        - :attr:`anndata.AnnData.obsm` ``['local_r']`` with  `2)`
+        - :attr:`anndata.AnnData.obsm` ``['local_pvals']`` with  `3)`
 
         """
         assert pvalue_method in ['analytical', 'permutation']
@@ -88,25 +96,25 @@ class SpatialDM(SpatialMethod):
         norm_factor = temp.obsm['proximity'].shape[0] / temp.obsm['proximity'].sum()
         dist = csr_matrix(norm_factor * temp.obsm['proximity'])
 
+        # we use the same gene expression matrix for both x and y
         lr_res['global_r'], lr_res['global_pvals'] = \
-            _global_spatialdm(mat=temp.X,
-                              ligand_pos=ligand_pos,
-                              receptor_pos=receptor_pos,
-                              lr_res=lr_res,
+            _global_spatialdm(x_mat=temp.X,
+                              y_mat=temp.X,
+                              x_pos=ligand_pos,
+                              y_pos=receptor_pos,
+                              xy_dataframe=lr_res,
                               dist=dist,
                               seed=seed,
                               n_perm=n_perm,
                               pvalue_method=pvalue_method,
                               positive_only=positive_only
                               )
-        adata.uns['global_res'] = lr_res
-
-        adata.obsm['local_r'], adata.obsm['local_pvals'] = \
-            _local_spatialdm(mat=temp.X,
-                             ligand_pos=ligand_pos,
-                             receptor_pos=receptor_pos,
-                             lr_res=lr_res,
-                             dist=dist,
+        local_r, local_pvals = _local_spatialdm(x_mat=temp.X,
+                             y_mat=temp.X,
+                             x_pos=ligand_pos,
+                             y_pos=receptor_pos,
+                             xy_dataframe=lr_res,
+                             dist=dist,  # TODO msq?
                              seed=seed,
                              n_perm=n_perm,
                              pvalue_method=pvalue_method,
@@ -114,43 +122,87 @@ class SpatialDM(SpatialMethod):
                              )
 
         # convert to dataframes
-        adata.obsm['local_r'] = _local_to_dataframe(array=adata.obsm['local_r'],
-                                                    idx=temp.obs.index,
-                                                    columns=lr_res.interaction)
-        adata.obsm['local_pvals'] = _local_to_dataframe(array=adata.obsm['local_pvals'],
-                                                        idx=temp.obs.index,
-                                                        columns=lr_res.interaction)
+        local_r = _local_to_dataframe(array=local_r,
+                                      idx=temp.obs.index,
+                                      columns=lr_res.interaction)
+        local_pvals = _local_to_dataframe(array=local_pvals,
+                                          idx=temp.obs.index,
+                                          columns=lr_res.interaction)
 
-        return None if inplace else lr_res
+        if inplace:
+            adata.uns['global_res'] = lr_res
+            adata.obsm['local_r'] = local_r
+            adata.obsm['local_pvals'] = local_pvals
+
+        return None if inplace else (lr_res, local_r, local_pvals)
 
 
-def _global_spatialdm(mat,
-                      ligand_pos,
-                      receptor_pos,
-                      lr_res,
+def _global_spatialdm(x_mat,
+                      y_mat,
+                      x_pos,
+                      y_pos,
+                      xy_dataframe,
                       dist,
                       seed,
                       n_perm,
                       pvalue_method,
                       positive_only):
-    # normalize matrix
-    mat = _standardize_matrix(mat, local=False)
+    """
+    Global Moran's Bivariate I as implemented in SpatialDM
 
-    # spot_n x lr_n matrices
-    ligand_mat, receptor_mat = _get_xy_matrices(x_mat=mat,
-                                                y_mat=mat,
-                                                x_pos=ligand_pos,
-                                                y_pos=receptor_pos,
-                                                x_order=lr_res.ligand,
-                                                y_order=lr_res.receptor)
+    Parameters
+    ----------
+    x_mat
+
+    y_mat
+
+    x_pos
+        Index positions of entity x (e.g. ligand) in `mat`
+    y_pos
+        Index positions of entity y (e.g. receptor) in `mat`
+    xy_dataframe
+        a dataframe with x,y relationships to be estimated, for example `lr_res`.
+    dist
+        proximity weight matrix, obtained e.g. via `liana.method.get_spatial_proximity`.
+        Note that for spatialDM/Morans'I `dist` has to be weighed by n / sum(W).
+    seed
+        Reproducibility seed
+    n_perm
+        Number of permutatins to perform (if `pvalue_method`=='permutation')
+    pvalue_method
+        Method to estimate pseudo p-value, must be in ['permutation', 'analytical']
+    positive_only
+        Whether to return only p-values for positive spatial correlations.
+        By default, `True`.
+
+    Returns
+    -------
+    Tupple of 2 1D Numpy arrays of size xy_dataframe.shape[1],
+    or in other words calculates global_I and global_pval for
+    each interaction in `xy_dataframe`
+
+    """
+
+    # normalize matrices
+    x_mat = _standardize_matrix(x_mat, local=False)
+    y_mat = _standardize_matrix(y_mat, local=False)
+
+    # convert to spot_n x lr_n matrices
+    x_mat, y_mat = _get_xy_matrices(x_mat=x_mat,
+                                    y_mat=y_mat,
+                                    x_pos=x_pos,
+                                    y_pos=y_pos,
+                                    x_order=xy_dataframe.ligand,
+                                    y_order=xy_dataframe.receptor
+                                    )
 
     # Get global r
-    global_r = ((ligand_mat @ dist) * receptor_mat).sum(axis=1)
+    global_r = ((x_mat @ dist) * y_mat).sum(axis=1)
 
     # calc p-values
     if pvalue_method == 'permutation':
-        global_pvals = _global_permutation_pvals(x_mat=ligand_mat,
-                                                 y_mat=receptor_mat,
+        global_pvals = _global_permutation_pvals(x_mat=x_mat,
+                                                 y_mat=y_mat,
                                                  dist=dist,
                                                  global_r=global_r,
                                                  n_perm=n_perm,
@@ -165,20 +217,59 @@ def _global_spatialdm(mat,
     return global_r, global_pvals
 
 
-def _local_spatialdm(mat,
-                     ligand_pos,
-                     receptor_pos,
-                     lr_res,
+def _local_spatialdm(x_mat,
+                     y_mat,
+                     x_pos,
+                     y_pos,
+                     xy_dataframe,
                      dist,
                      n_perm,
                      seed,
                      pvalue_method,
                      positive_only
                      ):
-    mat = _standardize_matrix(mat, local=True)
-    ligand_mat, receptor_mat = _get_xy_matrices(x_mat=mat, y_mat=mat,
-                                                x_pos=ligand_pos, y_pos=receptor_pos,
-                                                x_order=lr_res.ligand, y_order=lr_res.receptor)
+    """
+    Local Moran's Bivariate I as implemented in SpatialDM
+
+    Parameters
+    ----------
+    x_mat
+        Matrix with x variables
+    y_mat
+        Matrix with y variables
+    x_pos
+        Index positions of entity x (e.g. ligand) in `mat`
+    y_pos
+        Index positions of entity y (e.g. receptor) in `mat`
+    xy_dataframe
+        a dataframe with x,y relationships to be estimated, for example `lr_res`.
+    dist
+        proximity weight matrix, obtained e.g. via `liana.method.get_spatial_proximity`.
+        Note that for spatialDM/Morans'I `dist` has to be weighed by n / sum(W).
+    seed
+        Reproducibility seed
+    n_perm
+        Number of permutatins to perform (if `pvalue_method`=='permutation')
+    pvalue_method
+        Method to estimate pseudo p-value, must be in ['permutation', 'analytical']
+    positive_only
+        Whether to return only p-values for positive spatial correlations.
+        By default, `True`.
+
+    Returns
+    -------
+        Tupple of two 2D Numpy arrays of size (n_spots, n_xy),
+         or in other words calculates local_I and local_pval for
+         each interaction in `xy_dataframe` and each sample in mat
+    """
+    x_mat = _standardize_matrix(x_mat, local=True)
+    y_mat = _standardize_matrix(y_mat, local=True)
+
+    # convert to shape of n(x->y), n_spot
+    ligand_mat, receptor_mat = _get_xy_matrices(x_mat=x_mat, y_mat=y_mat,
+                                                x_pos=x_pos, y_pos=y_pos,
+                                                x_order=xy_dataframe.ligand,
+                                                y_order=xy_dataframe.receptor)
     ligand_mat, receptor_mat = ligand_mat.T, receptor_mat.T
     # calculate local_Rs
     local_x = ligand_mat * (dist @ receptor_mat)
@@ -210,6 +301,14 @@ def _standardize_matrix(mat, local=True):
     return mat
 
 
+# TODO Check why they omit m_squared?
+def _divide_by_msq(mat):
+    # how msq looks for uni-variate moran
+    spot_n = mat.shape[0]
+    msq = (np.sum(mat ** 2, axis=0) / (spot_n - 1))
+    return mat / msq
+
+
 def _get_xy_matrices(x_mat, y_mat, x_pos, y_pos, x_order, y_order):
     x_mat = np.array([x_mat[:, x_pos[x]] for x in x_order])
     y_mat = np.array([y_mat[:, y_pos[y]] for y in y_order])
@@ -220,6 +319,31 @@ def _get_xy_matrices(x_mat, y_mat, x_pos, y_pos, x_order, y_order):
 
 
 def _global_permutation_pvals(x_mat, y_mat, dist, global_r, n_perm, positive_only, seed):
+    """
+    Calculate permutation pvals
+
+    Parameters
+    ----------
+    x_mat
+        Matrix with x variables
+    y_mat
+        Matrix with y variables
+    dist
+        Proximity weights 2D array
+    global_r
+        Global Moran's I, 1D array
+    n_perm
+        Number of permutations
+    positive_only
+        Whether to mask negative p-values
+    seed
+        Reproducibility seed
+
+    Returns
+    -------
+    1D array with same size as global_r
+
+    """
     assert isinstance(dist, csr_matrix)
     rng = np.random.default_rng(seed)
 
@@ -243,6 +367,22 @@ def _global_permutation_pvals(x_mat, y_mat, dist, global_r, n_perm, positive_onl
 
 
 def _global_zscore_pvals(dist, global_r, positive_only):
+    """
+
+    Parameters
+    ----------
+    dist
+        proximity weight matrix (spot_n x spot_n)
+    global_r
+        Array with
+    positive_only: bool
+        whether to mask negative correlation p-values
+
+    Returns
+    -------
+        1D array with the size of global_r
+
+    """
     dist = np.array(dist.todense())
     spot_n = dist.shape[0]
 
@@ -264,6 +404,30 @@ def _global_zscore_pvals(dist, global_r, positive_only):
 
 
 def _local_permutation_pvals(x_mat, y_mat, local_r, dist, n_perm, seed, positive_only):
+    """
+
+    Parameters
+    ----------
+    x_mat
+        2D array with x variables
+    y_mat
+        2D array with y variables
+    local_r
+        2D array with Local Moran's I
+    dist
+        proximity weights
+    n_perm
+        number of permutations
+    seed
+        Reproducibility seed
+    positive_only
+        Whether to mask negative correlations pvalue
+
+    Returns
+    -------
+    2D array with shape(n_spot, xy_n)
+
+    """
     rng = np.random.default_rng(seed)
     assert isinstance(dist, csr_matrix)
 
@@ -295,16 +459,36 @@ def _local_permutation_pvals(x_mat, y_mat, local_r, dist, n_perm, seed, positive
 
 
 def _local_zscore_pvals(x_mat, y_mat, local_r, dist, positive_only):
+    """
+
+    Parameters
+    ----------
+    x_mat
+        2D array with x variables
+    y_mat
+        2D array with y variables
+    local_r
+        2D array with Local Moran's I
+    dist
+        proximity weights
+    positive_only
+        Whether to mask negative correlations pvalue
+
+    Returns
+    -------
+    2D array of p-values with shape(n_spot, xy_n)
+
+    """
     spot_n = dist.shape[0]
 
     x_norm = np.array([norm.fit(x_mat[:, x]) for x in range(x_mat.shape[1])])  # TODO to np.repeat
     y_norm = np.array([norm.fit(y_mat[:, y]) for y in range(y_mat.shape[1])])
 
     # get x,y std
-    x_std, y_std = x_norm[:, 1], y_norm[:, 1]
+    x_sigma, y_sigma = x_norm[:, 1], y_norm[:, 1]
 
-    x_sigma = np.array([(std * spot_n / (spot_n - 1)) for std in x_std])  # TODO to np.repeat
-    y_sigma = np.array([(std * spot_n / (spot_n - 1)) for std in y_std])
+    x_sigma = np.array([(std * spot_n / (spot_n - 1)) for std in x_sigma])  # TODO to np.repeat
+    y_sigma = np.array([(std * spot_n / (spot_n - 1)) for std in y_sigma])
 
     std = _get_local_var(x_sigma, y_sigma, dist, spot_n)
     local_zscores = local_r / std
@@ -320,6 +504,24 @@ def _local_zscore_pvals(x_mat, y_mat, local_r, dist, positive_only):
 
 
 def _get_local_var(x_sigma, y_sigma, dist, spot_n):
+    """
+
+    Parameters
+    ----------
+    x_sigma
+        Standard deviations for each x (e.g. std of all ligands in the matrix)
+    y_sigma
+        Standard deviations for each y (e.g. std of all receptors in the matrix)
+    dist
+        proximity weight matrix
+    spot_n
+        number of spots/cells in the matrix
+
+    Returns
+    -------
+    2D array of standard deviations with shape(n_spot, xy_n)
+
+    """
     dist_sq = (np.array(dist.todense()) ** 2).sum(axis=1)
 
     n_weight = 2 * (spot_n - 1) ** 2 / spot_n ** 2
