@@ -447,7 +447,7 @@ def _local_permutation_pvals(x_mat, y_mat, local_r, dist, n_perm, seed, positive
             local_pvals += np.array(perm_r >= local_r, dtype=int)
         else:
             # TODO Proof this makes sense
-            local_pvals += np.array(np.abs(perm_r) >= np.abs(local_r), dtype=int)
+            local_pvals += 2 * np.array(np.abs(perm_r) >= np.abs(local_r), dtype=int)
 
     local_pvals = local_pvals / n_perm
 
