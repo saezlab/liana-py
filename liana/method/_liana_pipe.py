@@ -29,12 +29,12 @@ def liana_pipe(adata: anndata.AnnData,
                use_raw: bool,
                layer: str | None,
                supp_columns: list | None = None,
+               return_all_lrs: bool = False,
                _key_cols: list = None,
                _score=None,
                _methods: list = None,
                _consensus_opts: list = None,
-               _aggregate_method: str = None,
-               _return_subunits: bool = False
+               _aggregate_method: str = None
                ):
     """
     Parameters
@@ -72,6 +72,9 @@ def liana_pipe(adata: anndata.AnnData,
         Layer in anndata.AnnData.layers to use. If None, use anndata.AnnData.X.
     supp_columns
         additional columns to be added to the output of each method.
+    return_all_lrs
+        Bool whether to return all LRs, or only those that surpass the expr_prop threshold.
+        `False` by default.
     _key_cols
         columns which make every interaction unique (i.e. PK).
     _score
@@ -83,8 +86,6 @@ def liana_pipe(adata: anndata.AnnData,
         'Specificity', 'Magnitude']).
     _aggregate_method
         RobustRankAggregate('rra') or mean rank ('mean').
-    _return_subunits
-        Whether to return only the subunits (False by default).
 
     Returns
     -------
@@ -183,6 +184,7 @@ def liana_pipe(adata: anndata.AnnData,
                                 _add_cols=method.add_cols,
                                 n_perms=n_perms,
                                 seed=seed,
+                                return_all_lrs=return_all_lrs,
                                 verbose=verbose,
                                 _consensus=True
                                 )
@@ -197,15 +199,14 @@ def liana_pipe(adata: anndata.AnnData,
             lr_res = _run_method(lr_res=lr_res, adata=adata, expr_prop=expr_prop,
                                  _score=_score, _key_cols=_key_cols, _complex_cols=_complex_cols,
                                  _add_cols=_add_cols, n_perms=n_perms,
+                                 return_all_lrs=return_all_lrs,
                                  verbose=verbose, seed=seed)
     else:  # Just return lr_res
-        if _return_subunits:
-            return lr_res
-        # else re-asemble subunits into complexes
         lr_res = filter_reassemble_complexes(lr_res=lr_res,
                                              _key_cols=_key_cols,
                                              expr_prop=expr_prop,
-                                             complex_cols=_complex_cols)
+                                             complex_cols=_complex_cols,
+                                             return_all_lrs=return_all_lrs)
 
     return lr_res
 
@@ -420,6 +421,7 @@ def _run_method(lr_res: pandas.DataFrame,
                 _add_cols: list,
                 n_perms: int,
                 seed: int,
+                return_all_lrs: bool,
                 verbose: bool,
                 _consensus: bool = False  # Indicates whether we're generating the consensus
                 ) -> pd.DataFrame:
@@ -427,10 +429,13 @@ def _run_method(lr_res: pandas.DataFrame,
     lr_res = filter_reassemble_complexes(lr_res=lr_res,
                                          _key_cols=_key_cols,
                                          expr_prop=expr_prop,
+                                         return_all_lrs=return_all_lrs,
                                          complex_cols=_complex_cols)
 
     _add_cols = _add_cols + ['ligand', 'receptor']
     relevant_cols = reduce(np.union1d, [_key_cols, _complex_cols, _add_cols])
+    if return_all_lrs:
+        relevant_cols = list(relevant_cols) + ['lrs_to_keep']
     lr_res = lr_res[relevant_cols]
 
     if ('mat_max' in _add_cols) & (_score.method_name == "CellChat"):
@@ -443,8 +448,10 @@ def _run_method(lr_res: pandas.DataFrame,
 
     if _score.permute:
         perms, ligand_pos, receptor_pos, labels_pos = \
-            _get_means_perms(adata=adata, lr_res=lr_res,
-                             n_perms=n_perms, seed=seed,
+            _get_means_perms(adata=adata,
+                             lr_res=lr_res,
+                             n_perms=n_perms,
+                             seed=seed,
                              agg_fun=agg_fun,
                              norm_factor=norm_factor,
                              verbose=verbose)

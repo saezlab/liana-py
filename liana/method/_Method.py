@@ -107,6 +107,7 @@ class Method(MethodMeta):
                  min_cells: int = 5,
                  base: float = 2.718281828459045,
                  supp_columns: list = None,
+                 return_all_lrs: bool = False,
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
                  de_method='t-test',
@@ -133,9 +134,13 @@ class Method(MethodMeta):
             Exponent base used to reverse the log-transformation of matrix. Note that this is
             relevant only for the `logfc` method.
         supp_columns
-            Any additional columns to be added from any of the other methods implemented in
+            Any additional columns to be added from any of the methods implemented in
             liana, or any of the columns returned by `scanpy.tl.rank_genes_groups`, each
-            starting with ligand_* or receptor_*. By default, `['ligand_pvals', 'receptor_pvals']`.
+            starting with ligand_* or receptor_*. For example, `['ligand_pvals', 'receptor_pvals']`.
+            `None` by default.
+        return_all_lrs
+            Bool whether to return all LRs, or only those that surpass the expr_prop
+            threshold. `False` by default.
         use_raw
             Use raw attribute of adata if present.
         layer
@@ -165,7 +170,7 @@ class Method(MethodMeta):
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
         """
         if supp_columns is None:
-            supp_columns = ['ligand_pvals', 'receptor_pvals']
+            supp_columns = []
 
         liana_res = liana_pipe(adata=adata,
                                groupby=groupby,
@@ -174,6 +179,7 @@ class Method(MethodMeta):
                                expr_prop=expr_prop,
                                min_cells=min_cells,
                                supp_columns=supp_columns,
+                               return_all_lrs=return_all_lrs,
                                base=base,
                                de_method=de_method,
                                verbose=verbose,

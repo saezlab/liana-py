@@ -4,14 +4,17 @@ Functions to deal with protein complexes
 import pandas as pd
 
 
-def filter_reassemble_complexes(lr_res, _key_cols, complex_cols, expr_prop, complex_policy='min'):
+def filter_reassemble_complexes(lr_res,
+                                _key_cols,
+                                complex_cols,
+                                expr_prop,
+                                return_all_lrs=False,
+                                complex_policy='min'):
     """
     Reassemble complexes from exploded long-format pandas Dataframe.
 
     Parameters
     ----------
-    expr_prop
-        minimum expression proportion for each subunit in a complex
     lr_res
         long-format pandas dataframe with exploded complex subunits
     _key_cols
@@ -19,6 +22,11 @@ def filter_reassemble_complexes(lr_res, _key_cols, complex_cols, expr_prop, comp
         ['source', 'target', 'ligand_complex', 'receptor_complex']
     complex_cols
         method/complex-relevant columns
+    expr_prop
+        minimum expression proportion for each subunit in a complex
+    return_all_lrs
+        Bool whether to return all LRs, or only those that surpass the expr_prop
+        threshold. `False` by default.
     complex_policy
         approach by which the complexes are reassembled
 
@@ -35,7 +43,13 @@ def filter_reassemble_complexes(lr_res, _key_cols, complex_cols, expr_prop, comp
                  .reset_index()
                  )
     expressed = expressed[expressed['prop_min'] >= expr_prop]
-    lr_res = lr_res.merge(expressed, how='inner', on=_key_cols)
+
+    if not return_all_lrs:
+        lr_res = lr_res.merge(expressed, how='inner', on=_key_cols)
+    else:
+        expressed['lrs_to_keep'] = True
+        lr_res = lr_res.merge(expressed, how='left', on=_key_cols)
+        lr_res['lrs_to_keep'].fillna(value=False, inplace=True)
 
     # check if complex policy is only min
     aggs = {complex_policy, 'min'}
