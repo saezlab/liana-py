@@ -84,7 +84,6 @@ class Method(MethodMeta):
     """
     liana's Method Class
     """
-
     def __init__(self, _SCORE):
         super().__init__(method_name=_SCORE.method_name,
                          complex_cols=_SCORE.complex_cols,
@@ -127,7 +126,7 @@ class Method(MethodMeta):
             Name of the resource to be loaded and use for ligand-receptor inference.
         expr_prop
             Minimum expression proportion for the ligands/receptors (and their subunits) in the
-             corresponding cell identities. Set to `0`, to return unfiltered results.
+            corresponding cell identities. Set to `0`, to return unfiltered results.
         min_cells
             Minimum cells per cell identity (`groupby`) to be considered for downstream analysis
         base
@@ -165,8 +164,8 @@ class Method(MethodMeta):
 
         Returns
         -------
-        If ``inplace = False``, returns a `DataFrame` with ligand-receptor results
-        Otherwise, modifies the ``adata`` object with the following key:
+            If ``inplace = False``, returns a `DataFrame` with ligand-receptor results
+            Otherwise, modifies the ``adata`` object with the following key:
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
         """
         if supp_columns is None:
