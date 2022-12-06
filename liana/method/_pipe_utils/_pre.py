@@ -16,7 +16,7 @@ def assert_covered(
         superset,
         subset_name: str = "resource",
         superset_name: str = "var_names",
-        prop_missing_allowed: float = 0.99,
+        prop_missing_allowed: float = 0.98,
         verbose: bool = False) -> None:
     """
     Assert if elements are covered at a decent proportion
@@ -48,14 +48,14 @@ def assert_covered(
 
     if prop_missing > prop_missing_allowed:
         msg = (
+            f"Please check if appropriate organism/ID type was provided! "
             f"Allowed proportion ({prop_missing_allowed}) of missing "
             f"{subset_name} elements exceeded ({prop_missing:.2f}). "
-            f"Too few features from the resource found in the data."
+            f"Too few features from the resource were found in the data."
         )
         raise ValueError(msg + f" [{x_missing}] missing from {superset_name}")
     if verbose & (prop_missing > 0):
-        print(f"{x_missing} found in {subset_name} but missing from "
-              f"{superset_name}!")
+        print(f"{prop_missing:.2f} of entities in the resource are missing from the data")
 
 
 def prep_check_adata(adata: AnnData,

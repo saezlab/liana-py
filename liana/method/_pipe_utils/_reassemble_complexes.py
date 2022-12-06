@@ -39,7 +39,7 @@ def filter_reassemble_complexes(lr_res,
                  .set_index(_key_cols)
                  .stack()
                  .groupby(_key_cols)
-                 .agg(prop_min='min')
+                 .agg(prop_min=complex_policy)
                  .reset_index()
                  )
     expressed = expressed[expressed['prop_min'] >= expr_prop]

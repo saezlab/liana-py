@@ -1,6 +1,13 @@
 Release notes
 =============
 
+0.1.3 (06.12.2022)
+-----
+- Added `supp_columns` parameter to allow any column of liana to be returned.
+- Added `return_all_lrs` parameter to allow all interactions to be return, with
+a `lrs_to_filter` flag for those that do not pass the `expr_prop`.
+- Fixed a bug where an exception was not thrown by `assert_covered`
+
 0.1.2
 -----
 - Added CellChat and GeometricMean methods

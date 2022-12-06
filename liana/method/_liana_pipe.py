@@ -136,15 +136,18 @@ def liana_pipe(adata: anndata.AnnData,
         resource = select_resource(resource_name.lower())
     # explode complexes/decomplexify
     resource = explode_complexes(resource)
+
+    # Check overlap between resource and adata
+    assert_covered(np.union1d(np.unique(resource["ligand"]),
+                              np.unique(resource["receptor"])),
+                   adata.var_names, verbose=verbose)
+
     # Filter Resource
     resource = filter_resource(resource, adata.var_names)
 
     # Create Entities
     entities = np.union1d(np.unique(resource["ligand"]),
                           np.unique(resource["receptor"]))
-
-    # Check overlap between resource and adata
-    assert_covered(entities, adata.var_names, verbose=verbose)
 
     # Filter to only include the relevant genes
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
