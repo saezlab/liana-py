@@ -28,7 +28,7 @@ def liana_pipe(adata: anndata.AnnData,
                verbose: bool,
                use_raw: bool,
                layer: str | None,
-               supp_cols: list | None = None,
+               supp_columns: list | None = None,
                _key_cols: list = None,
                _score=None,
                _methods: list = None,
@@ -70,7 +70,7 @@ def liana_pipe(adata: anndata.AnnData,
         Use raw attribute of adata if present.
     layer
         Layer in anndata.AnnData.layers to use. If None, use anndata.AnnData.X.
-    supp_cols
+    supp_columns
         additional columns to be added to the output of each method.
     _key_cols
         columns which make every interaction unique (i.e. PK).
@@ -106,9 +106,9 @@ def liana_pipe(adata: anndata.AnnData,
                      'mat_mean', 'mat_max',
                      ]
 
-    if supp_cols is None:
-        supp_cols = []
-    _add_cols = _add_cols + ['ligand', 'receptor', 'ligand_props', 'receptor_props'] + supp_cols
+    if supp_columns is None:
+        supp_columns = []
+    _add_cols = _add_cols + ['ligand', 'receptor', 'ligand_props', 'receptor_props'] + supp_columns
 
     # initialize mat_mean for sca
     mat_mean = None

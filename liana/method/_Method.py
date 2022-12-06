@@ -106,6 +106,7 @@ class Method(MethodMeta):
                  expr_prop: float = 0.1,
                  min_cells: int = 5,
                  base: float = 2.718281828459045,
+                 supp_columns: list = None,
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
                  de_method='t-test',
@@ -131,6 +132,10 @@ class Method(MethodMeta):
         base
             Exponent base used to reverse the log-transformation of matrix. Note that this is
             relevant only for the `logfc` method.
+        supp_columns
+            Any additional columns to be added from any of the other methods implemented in
+            liana, or any of the columns returned by `scanpy.tl.rank_genes_groups`, each
+            starting with ligand_* or receptor_*. By default, `['ligand_pvals', 'receptor_pvals']`.
         use_raw
             Use raw attribute of adata if present.
         layer
@@ -159,13 +164,16 @@ class Method(MethodMeta):
         Otherwise, modifies the ``adata`` object with the following key:
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
         """
+        if supp_columns is None:
+            supp_columns = ['ligand_pvals', 'receptor_pvals']
+
         liana_res = liana_pipe(adata=adata,
                                groupby=groupby,
                                resource_name=resource_name,
                                resource=resource,
                                expr_prop=expr_prop,
                                min_cells=min_cells,
-                               supp_cols=['ligand_pvals', 'receptor_pvals'],
+                               supp_columns=supp_columns,
                                base=base,
                                de_method=de_method,
                                verbose=verbose,

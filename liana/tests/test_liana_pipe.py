@@ -18,7 +18,7 @@ complex_policy = 'min'
 key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
 verbose = False
 base = 2.718281828459045
-supp_cols = None
+supp_columns = None
 resource = None
 use_raw = True
 layer = None
@@ -40,7 +40,7 @@ def test_liana_pipe_defaults_shape():
                               seed=seed,
                               verbose=verbose,
                               _key_cols=key_cols,
-                              supp_cols=supp_cols,
+                              supp_columns=supp_columns,
                               resource=resource,
                               use_raw=use_raw,
                               layer=layer,
@@ -70,7 +70,7 @@ def test_liana_pipe_not_defaults():
                               seed=seed,
                               verbose=verbose,
                               _key_cols=key_cols,
-                              supp_cols=['ligand_pvals', 'receptor_pvals'],
+                              supp_columns=['ligand_pvals', 'receptor_pvals'],
                               resource=resource,
                               use_raw=use_raw,
                               layer=layer,
