@@ -8,7 +8,7 @@ Release notes
 a `lrs_to_filter` flag for those that do not pass the `expr_prop`.
 - Fixed a bug where an exception was not thrown by `assert_covered`
 - Raise explicit exceptions as text in multiple places.
-- Changed cellphonedb pvalues column name from pvals to cellphone_pvals
+- Changed cellphonedb p-values column name from pvals to cellphone_pvals
 
 0.1.2
 -----
