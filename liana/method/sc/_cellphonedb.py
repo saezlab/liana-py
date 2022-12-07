@@ -41,7 +41,7 @@ _cellphonedb = MethodMeta(method_name="CellPhoneDB",
                           fun=_cpdb_score,
                           magnitude="lr_means",
                           magnitude_ascending=False,
-                          specificity="pvals",
+                          specificity="cellphone_pvals",
                           specificity_ascending=True,
                           permute=True,
                           reference="Efremova, M., Vento-Tormo, M., Teichmann, S.A. and "

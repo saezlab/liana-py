@@ -19,7 +19,7 @@ def test_consensus():
 
 
 def test_aggregate_specs():
-    steady_specs = {'CellPhoneDB': ('pvals', True),
+    steady_specs = {'CellPhoneDB': ('cellphone_pvals', True),
                     'Connectome': ('scaled_weight', False),
                     'log2FC': ('lr_logfc', False),
                     'NATMI': ('spec_weight', False),

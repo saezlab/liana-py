@@ -442,6 +442,7 @@ def _run_method(lr_res: pandas.DataFrame,
     relevant_cols = reduce(np.union1d, [_key_cols, _complex_cols, _add_cols])
     if return_all_lrs:
         relevant_cols = list(relevant_cols) + ['lrs_to_keep']
+        # TODO separate only those that don't pass the threshold
     lr_res = lr_res[relevant_cols]
 
     if ('mat_max' in _add_cols) & (_score.method_name == "CellChat"):
@@ -471,6 +472,8 @@ def _run_method(lr_res: pandas.DataFrame,
 
     if _consensus:  # if consensus keep only the keys and the method scores
         lr_res = lr_res[_key_cols + [_score.magnitude, _score.specificity]]
+
+    # TODO reassemble and fill FALSE /w min/max
 
     # remove redundant cols for some scores
     if (_score.magnitude is None) | (_score.specificity is None):

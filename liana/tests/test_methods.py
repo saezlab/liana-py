@@ -33,7 +33,7 @@ def test_cellphonedb():
     assert isinstance(liana_res, pandas.DataFrame)
 
     assert 'lr_means' in liana_res.columns
-    assert 'pvals' in liana_res.columns
+    assert 'cellphone_pvals' in liana_res.columns
     assert max(liana_res[(liana_res.ligand == "TIMP1")].lr_means) == 2.134743630886078
 
 
