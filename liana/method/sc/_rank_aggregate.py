@@ -69,6 +69,7 @@ class AggregateClass(MethodMeta):
                  min_cells: int = 5,
                  base: float = 2.718281828459045,
                  aggregate_method='rra',
+                 return_all_lrs: bool = False,
                  consensus_opts=None,
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
@@ -95,6 +96,10 @@ class AggregateClass(MethodMeta):
         base
             Exponent base used to reverse the log-transformation of matrix. Note that this is
             relevant only for the `logfc` method.
+        return_all_lrs
+            Bool whether to return all LRs, or only those that surpass the `expr_prop`
+            threshold. Those interactions that do not pass the `expr_prop` threshold will
+            be assigned to the *worst* score of the ones that do. `False` by default.
         use_raw
             Use raw attribute of adata if present. True, by default.
         layer
@@ -130,6 +135,7 @@ class AggregateClass(MethodMeta):
                                expr_prop=expr_prop,
                                min_cells=min_cells,
                                base=base,
+                               return_all_lrs=return_all_lrs,
                                de_method=de_method,
                                verbose=verbose,
                                _score=self,

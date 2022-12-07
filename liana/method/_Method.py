@@ -138,8 +138,9 @@ class Method(MethodMeta):
             starting with ligand_* or receptor_*. For example, `['ligand_pvals', 'receptor_pvals']`.
             `None` by default.
         return_all_lrs
-            Bool whether to return all LRs, or only those that surpass the expr_prop
-            threshold. `False` by default.
+            Bool whether to return all LRs, or only those that surpass the `expr_prop`
+            threshold. Those interactions that do not pass the `expr_prop` threshold will
+            be assigned to the *worst* score of the ones that do. `False` by default.
         use_raw
             Use raw attribute of adata if present.
         layer

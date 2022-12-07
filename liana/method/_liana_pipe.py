@@ -192,7 +192,7 @@ def liana_pipe(adata: anndata.AnnData,
                                 seed=seed,
                                 return_all_lrs=return_all_lrs,
                                 verbose=verbose,
-                                _consensus=True
+                                _aggregate_flag=True
                                 )
             if _consensus_opts is not False:
                 lr_res = _aggregate(lrs,
@@ -429,7 +429,7 @@ def _run_method(lr_res: pandas.DataFrame,
                 seed: int,
                 return_all_lrs: bool,
                 verbose: bool,
-                _consensus: bool = False  # Indicates whether we're generating the consensus
+                _aggregate_flag: bool = False  # Indicates whether we're generating the consensus
                 ) -> pd.DataFrame:
     # re-assemble complexes - specific for each method
     lr_res = filter_reassemble_complexes(lr_res=lr_res,
@@ -442,7 +442,10 @@ def _run_method(lr_res: pandas.DataFrame,
     relevant_cols = reduce(np.union1d, [_key_cols, _complex_cols, _add_cols])
     if return_all_lrs:
         relevant_cols = list(relevant_cols) + ['lrs_to_keep']
-        # TODO separate only those that don't pass the threshold
+        # separate those that pass from rest
+        rest_res = lr_res[~lr_res['lrs_to_keep']]
+        rest_res = rest_res[relevant_cols]
+        lr_res = lr_res[lr_res['lrs_to_keep']]
     lr_res = lr_res[relevant_cols]
 
     if ('mat_max' in _add_cols) & (_score.method_name == "CellChat"):
@@ -470,16 +473,34 @@ def _run_method(lr_res: pandas.DataFrame,
         lr_res[[_score.magnitude, _score.specificity]] = \
             lr_res.apply(_score.fun, axis=1, result_type="expand")
 
-    if _consensus:  # if consensus keep only the keys and the method scores
-        lr_res = lr_res[_key_cols + [_score.magnitude, _score.specificity]]
+    if return_all_lrs:
+        # re-append rest of results
+        lr_res = pd.concat([lr_res, rest_res])
+        if _score.magnitude is not None:
 
-    # TODO reassemble and fill FALSE /w min/max
+            fill_value = _assign_min_or_max(lr_res[_score.magnitude],
+                                            _score.magnitude_ascending)
+            lr_res[_score.magnitude][~lr_res['lrs_to_keep']] = fill_value
+        if _score.specificity is not None:
+            fill_value = _assign_min_or_max(lr_res[_score.specificity],
+                                            _score.specificity_ascending)
+            lr_res[_score.specificity][~lr_res['lrs_to_keep']] = fill_value
+
+    if _aggregate_flag:  # if consensus keep only the keys and the method scores
+        lr_res = lr_res[_key_cols + [_score.magnitude, _score.specificity]]
 
     # remove redundant cols for some scores
     if (_score.magnitude is None) | (_score.specificity is None):
         lr_res = lr_res.drop([None], axis=1)
 
     return lr_res
+
+
+def _assign_min_or_max(x, x_ascending):
+    if x_ascending:
+        return np.max(x)
+    else:
+        return np.min(x)
 
 
 # Function to get gene expr proportions
