@@ -96,6 +96,10 @@ class AggregateClass(MethodMeta):
         base
             Exponent base used to reverse the log-transformation of matrix. Note that this is
             relevant only for the `logfc` method.
+        aggregate_method
+            Method aggregation approach, one of ['mean', 'rra'], where `mean` represents the
+            mean rank, while 'rra' is the RobustRankAggregate (Kolde et al., 2014)
+            of the interactions
         return_all_lrs
             Bool whether to return all LRs, or only those that surpass the `expr_prop`
             threshold. Those interactions that do not pass the `expr_prop` threshold will
@@ -162,7 +166,9 @@ _rank_aggregate_meta = \
                specificity='specificity_rank',
                specificity_ascending=True,
                permute=False,
-               reference='Kolde, R., Laur, S., Adler, P. and Vilo, J., 2012. Robust '
-                         'rank aggregation for gene list integration and '
-                         'meta-analysis. Bioinformatics, 28(4), pp.573-580. '
+               reference='Dimitrov, D., Türei, D., Garrido-Rodriguez, M., Burmedi, P.L., '
+                         'Nagai, J.S., Boys, C., Ramirez Flores, R.O., Kim, H., Szalai, B., '
+                         'Costa, I.G. and Valdeolivas, A., 2022. Comparison of methods and '
+                         'resources for cell-cell communication inference from single-cell '
+                         'RNA-Seq data. Nature Communications, 13(1), pp.1-13. '
                )
