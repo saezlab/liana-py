@@ -11,7 +11,7 @@ def _lr_probability(ligand_trimean, receptor_trimean):
 # Internal Function to calculate CellPhoneDB LR_mean and p-values
 def _cellchat_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
     """
-    Calculate CellPhoneDB-like LR means and p-values
+    Calculate CellChat-like LR means and p-values
 
     Parameters
     ----------
@@ -31,7 +31,8 @@ def _cellchat_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
     A tuple with lr_mean and pvalue for x
 
     """
-    return _get_lr_pvals(x=x, perms=perms,
+    return _get_lr_pvals(x=x,
+                         perms=perms,
                          ligand_pos=ligand_pos,
                          receptor_pos=receptor_pos,
                          labels_pos=labels_pos,

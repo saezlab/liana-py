@@ -55,7 +55,7 @@ def assert_covered(
         )
         raise ValueError(msg + f" [{x_missing}] missing from {superset_name}")
     if verbose & (prop_missing > 0):
-        print(f"{prop_missing:.2f} of entities in the resource are missing from the data")
+        print(f"{prop_missing:.2f} of entities in the resource are missing from the data.")
 
 
 def prep_check_adata(adata: AnnData,
@@ -139,7 +139,8 @@ def prep_check_adata(adata: AnnData,
             to 0 or remove them.""")
 
     # Define idents col name
-    assert groupby in adata.obs.columns
+    if groupby not in adata.obs.columns:
+        raise AssertionError(f"`{groupby}` not found in `adata.obs.columns`.")
     adata.obs['label'] = adata.obs.copy()[groupby]
 
     # Re-order adata vars alphabetically

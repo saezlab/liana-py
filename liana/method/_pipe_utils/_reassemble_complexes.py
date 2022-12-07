@@ -1,6 +1,8 @@
 """
 Functions to deal with protein complexes
 """
+from __future__ import annotations
+
 import pandas as pd
 
 
@@ -56,7 +58,9 @@ def filter_reassemble_complexes(lr_res,
 
     cols_dict = {}
     for col in complex_cols:
-        lr_res = _reduce_complexes(col, cols_dict, lr_res, _key_cols, aggs)
+        lr_res = _reduce_complexes(col=col, cols_dict=cols_dict,
+                                   lr_res=lr_res, key_cols=_key_cols,
+                                   aggs=aggs)
 
     return lr_res
 
@@ -65,7 +69,7 @@ def _reduce_complexes(col: str,
                       cols_dict: dict,
                       lr_res: pd.DataFrame,
                       key_cols: list,
-                      aggs: dict
+                      aggs: (dict | str)
                       ):
     """
     Reduce the complexes

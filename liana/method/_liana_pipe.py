@@ -145,6 +145,9 @@ def liana_pipe(adata: anndata.AnnData,
     # Filter Resource
     resource = filter_resource(resource, adata.var_names)
 
+    print(f"Generating ligand-receptor stats for {adata.shape[0]} samples "
+          f"and {adata.shape[1]} features")
+
     # Create Entities
     entities = np.union1d(np.unique(resource["ligand"]),
                           np.unique(resource["receptor"]))
@@ -487,7 +490,7 @@ def _trimean(a, axis=0):
     Parameters
     ----------
     a
-        non-sparse array (cell ident counts)
+        array (cell ident counts)
 
     Returns
     -------

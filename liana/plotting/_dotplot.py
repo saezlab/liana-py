@@ -83,9 +83,19 @@ def dotplot(adata: anndata.AnnData = None,
     if source_labels is not None:
         source_msk = np.isin(liana_res.source, source_labels)
         liana_res = liana_res[source_msk]
+        possible_sources = np.unique(liana_res['source'])
+        covered = np.isin(source_labels, possible_sources)
+        if not all(covered):
+            not_covered = np.array(source_labels)[~covered]
+            raise ValueError(f"{not_covered} not found in `liana_res['source']`!")
     if target_labels is not None:
         target_msk = np.isin(liana_res.target, target_labels)
         liana_res = liana_res[target_msk]
+        possible_targets = np.unique(liana_res['target'])
+        covered = np.isin(target_labels, possible_targets)
+        if not all(covered):
+            not_covered = np.array(target_labels)[~covered]
+            raise ValueError(f"{not_covered} not found in `liana_res['target']`!")
 
     if filterby is not None:
         msk = liana_res[filterby].apply(filter_lambda)
@@ -133,7 +143,7 @@ def dotplot(adata: anndata.AnnData = None,
                  strip_text=element_text(size=15, colour="black"),
                  axis_text_y=element_text(size=10, colour="black"),
                  axis_title_y=element_text(colour="#808080", face="bold", size=15),
-                 axis_text_x=element_text(size=11, face="bold"),
+                 axis_text_x=element_text(size=11, face="bold", angle=90),
                  figure_size=figure_size,
                  plot_title=element_text(vjust=0, hjust=0.5, face="bold",
                                          colour="#808080", size=15)
