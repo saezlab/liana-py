@@ -36,7 +36,8 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.autosectionlabel',
     'numpydoc',
-    'nbsphinx'
+    'nbsphinx',
+    'IPython.sphinxext.ipython_console_highlighting'
 ]
 
 intersphinx_mapping = {
