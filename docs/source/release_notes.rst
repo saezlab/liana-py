@@ -1,6 +1,14 @@
 Release notes
 =============
 
+0.1.3 (07.12.2022)
+-----
+- Added `supp_columns` parameter to allow any column from liana to be returned.
+- Added `return_all_lrs` parameter to allow all interactions to be returned with a `lrs_to_filter` flag for the interaction that do not pass the `expr_prop`, and each of those interactions is assigned to the worst **present** score from the ones that do pass the threshold.
+- Fixed a bug where an exception was not thrown by `assert_covered`
+- Raise explicit exceptions as text in multiple places.
+- Changed cellphonedb p-values column name from "pvals" to "cellphone_pvals".
+
 0.1.2
 -----
 - Added CellChat and GeometricMean methods

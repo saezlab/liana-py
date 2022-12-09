@@ -9,6 +9,8 @@ from pandas.testing import assert_frame_equal
 
 test_path = pathlib.Path(__file__).parent
 
+adata = pbmc68k_reduced()
+
 
 def test_consensus():
     assert isinstance(rank_aggregate, AggregateClass)
@@ -19,7 +21,7 @@ def test_consensus():
 
 
 def test_aggregate_specs():
-    steady_specs = {'CellPhoneDB': ('pvals', True),
+    steady_specs = {'CellPhoneDB': ('cellphone_pvals', True),
                     'Connectome': ('scaled_weight', False),
                     'log2FC': ('lr_logfc', False),
                     'NATMI': ('spec_weight', False),
@@ -39,9 +41,13 @@ def test_aggregate_specs():
 
 
 def test_aggregate_res():
-    adata = pbmc68k_reduced()
     lr_res = rank_aggregate(adata, groupby='bulk_labels', use_raw=True, n_perms=2, inplace=False)
     lr_exp = read_csv(test_path.joinpath("data/aggregate_rank_rest.csv"), index_col=0)
 
     assert_frame_equal(lr_res, lr_exp, check_dtype=False,
                        check_exact=False, check_less_precise=True)
+
+
+def test_aggregate_all():
+    rank_aggregate(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True)
+    assert adata.uns['liana_res'].shape == (4200, 16)

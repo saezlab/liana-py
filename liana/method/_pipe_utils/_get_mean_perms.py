@@ -54,13 +54,13 @@ def _get_means_perms(adata: anndata.AnnData,
     # indexes to be shuffled
     idx = np.arange(adata.X.shape[0])
 
-    # Perm should be a cube /w dims: nperms x idents x ngenes
+    # Perm should be a cube /w dims: n_perms x idents x n_genes
     perms = np.zeros((n_perms, labels.shape[0], adata.shape[1]))
 
     # Assign permuted matrix
     for perm in tqdm(range(n_perms), disable=not verbose):
         perm_idx = rng.permutation(idx)
-        perm_mat = adata.X[perm_idx].copy()
+        perm_mat = adata.X[perm_idx]
         # populate matrix /w permuted means
         for cind in range(labels.shape[0]):
             perms[perm, cind] = agg_fun(perm_mat[labels_dict[labels[cind]]], axis=0)

@@ -83,7 +83,6 @@ class Method(MethodMeta):
     """
     liana's Method Class
     """
-
     def __init__(self, _method):
         super().__init__(method_name=_method.method_name,
                          complex_cols=_method.complex_cols,
@@ -105,6 +104,8 @@ class Method(MethodMeta):
                  expr_prop: float = 0.1,
                  min_cells: int = 5,
                  base: float = 2.718281828459045,
+                 supp_columns: list = None,
+                 return_all_lrs: bool = False,
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
                  de_method='t-test',
@@ -124,12 +125,21 @@ class Method(MethodMeta):
             Name of the resource to be loaded and use for ligand-receptor inference.
         expr_prop
             Minimum expression proportion for the ligands/receptors (and their subunits) in the
-             corresponding cell identities. Set to `0`, to return unfiltered results.
+            corresponding cell identities. Set to `0`, to return unfiltered results.
         min_cells
             Minimum cells per cell identity (`groupby`) to be considered for downstream analysis
         base
             Exponent base used to reverse the log-transformation of matrix. Note that this is
             relevant only for the `logfc` method.
+        supp_columns
+            Any additional columns to be added from any of the methods implemented in
+            liana, or any of the columns returned by `scanpy.tl.rank_genes_groups`, each
+            starting with ligand_* or receptor_*. For example, `['ligand_pvals', 'receptor_pvals']`.
+            `None` by default.
+        return_all_lrs
+            Bool whether to return all LRs, or only those that surpass the `expr_prop`
+            threshold. Those interactions that do not pass the `expr_prop` threshold will
+            be assigned to the *worst* score of the ones that do. `False` by default.
         use_raw
             Use raw attribute of adata if present.
         layer
@@ -154,17 +164,21 @@ class Method(MethodMeta):
 
         Returns
         -------
-        If ``inplace = False``, returns a `DataFrame` with ligand-receptor results
-        Otherwise, modifies the ``adata`` object with the following key:
+            If ``inplace = False``, returns a `DataFrame` with ligand-receptor results
+            Otherwise, modifies the ``adata`` object with the following key:
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
         """
+        if supp_columns is None:
+            supp_columns = []
+
         liana_res = liana_pipe(adata=adata,
                                groupby=groupby,
                                resource_name=resource_name,
                                resource=resource,
                                expr_prop=expr_prop,
                                min_cells=min_cells,
-                               supp_cols=['ligand_pvals', 'receptor_pvals'],
+                               supp_columns=supp_columns,
+                               return_all_lrs=return_all_lrs,
                                base=base,
                                de_method=de_method,
                                verbose=verbose,

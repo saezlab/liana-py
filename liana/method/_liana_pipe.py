@@ -30,13 +30,13 @@ def liana_pipe(adata: anndata.AnnData,
                verbose: bool,
                use_raw: bool,
                layer: str | None,
-               supp_cols: list | None = None,
+               supp_columns: list | None = None,
+               return_all_lrs: bool = False,
                _key_cols: list = None,
                _score=None,
                _methods: list = None,
                _consensus_opts: list = None,
-               _aggregate_method: str = None,
-               _return_subunits: bool = False
+               _aggregate_method: str = None
                ):
     """
     Parameters
@@ -72,8 +72,11 @@ def liana_pipe(adata: anndata.AnnData,
         Use raw attribute of adata if present.
     layer
         Layer in anndata.AnnData.layers to use. If None, use anndata.AnnData.X.
-    supp_cols
+    supp_columns
         additional columns to be added to the output of each method.
+    return_all_lrs
+        Bool whether to return all LRs, or only those that surpass the expr_prop threshold.
+        `False` by default.
     _key_cols
         columns which make every interaction unique (i.e. PK).
     _score
@@ -85,8 +88,6 @@ def liana_pipe(adata: anndata.AnnData,
         'Specificity', 'Magnitude']).
     _aggregate_method
         RobustRankAggregate('rra') or mean rank ('mean').
-    _return_subunits
-        Whether to return only the subunits (False by default).
 
     Returns
     -------
@@ -108,9 +109,9 @@ def liana_pipe(adata: anndata.AnnData,
                      'mat_mean', 'mat_max',
                      ]
 
-    if supp_cols is None:
-        supp_cols = []
-    _add_cols = _add_cols + ['ligand', 'receptor', 'ligand_props', 'receptor_props'] + supp_cols
+    if supp_columns is None:
+        supp_columns = []
+    _add_cols = _add_cols + ['ligand', 'receptor', 'ligand_props', 'receptor_props'] + supp_columns
 
     # initialize mat_mean for sca
     mat_mean = None
@@ -138,15 +139,21 @@ def liana_pipe(adata: anndata.AnnData,
         resource = select_resource(resource_name.lower())
     # explode complexes/decomplexify
     resource = explode_complexes(resource)
+
+    # Check overlap between resource and adata
+    assert_covered(np.union1d(np.unique(resource["ligand"]),
+                              np.unique(resource["receptor"])),
+                   adata.var_names, verbose=verbose)
+
     # Filter Resource
     resource = filter_resource(resource, adata.var_names)
+
+    print(f"Generating ligand-receptor stats for {adata.shape[0]} samples "
+          f"and {adata.shape[1]} features")
 
     # Create Entities
     entities = np.union1d(np.unique(resource["ligand"]),
                           np.unique(resource["receptor"]))
-
-    # Check overlap between resource and adata
-    assert_covered(entities, adata.var_names, verbose=verbose)
 
     # Filter to only include the relevant genes
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
@@ -186,8 +193,9 @@ def liana_pipe(adata: anndata.AnnData,
                                 _add_cols=method.add_cols,
                                 n_perms=n_perms,
                                 seed=seed,
+                                return_all_lrs=return_all_lrs,
                                 verbose=verbose,
-                                _consensus=True
+                                _aggregate_flag=True
                                 )
             if _consensus_opts is not False:
                 lr_res = _aggregate(lrs,
@@ -200,15 +208,14 @@ def liana_pipe(adata: anndata.AnnData,
             lr_res = _run_method(lr_res=lr_res, adata=adata, expr_prop=expr_prop,
                                  _score=_score, _key_cols=_key_cols, _complex_cols=_complex_cols,
                                  _add_cols=_add_cols, n_perms=n_perms,
+                                 return_all_lrs=return_all_lrs,
                                  verbose=verbose, seed=seed)
     else:  # Just return lr_res
-        if _return_subunits:
-            return lr_res
-        # else re-asemble subunits into complexes
         lr_res = filter_reassemble_complexes(lr_res=lr_res,
                                              _key_cols=_key_cols,
                                              expr_prop=expr_prop,
-                                             complex_cols=_complex_cols)
+                                             complex_cols=_complex_cols,
+                                             return_all_lrs=return_all_lrs)
 
     return lr_res
 
@@ -423,17 +430,25 @@ def _run_method(lr_res: pandas.DataFrame,
                 _add_cols: list,
                 n_perms: int,
                 seed: int,
+                return_all_lrs: bool,
                 verbose: bool,
-                _consensus: bool = False  # Indicates whether we're generating the consensus
+                _aggregate_flag: bool = False  # Indicates whether we're generating the consensus
                 ) -> pd.DataFrame:
     # re-assemble complexes - specific for each method
     lr_res = filter_reassemble_complexes(lr_res=lr_res,
                                          _key_cols=_key_cols,
                                          expr_prop=expr_prop,
+                                         return_all_lrs=return_all_lrs,
                                          complex_cols=_complex_cols)
 
     _add_cols = _add_cols + ['ligand', 'receptor']
     relevant_cols = reduce(np.union1d, [_key_cols, _complex_cols, _add_cols])
+    if return_all_lrs:
+        relevant_cols = list(relevant_cols) + ['lrs_to_keep']
+        # separate those that pass from rest
+        rest_res = lr_res[~lr_res['lrs_to_keep']]
+        rest_res = rest_res[relevant_cols]
+        lr_res = lr_res[lr_res['lrs_to_keep']]
     lr_res = lr_res[relevant_cols]
 
     if ('mat_max' in _add_cols) & (_score.method_name == "CellChat"):
@@ -446,8 +461,10 @@ def _run_method(lr_res: pandas.DataFrame,
 
     if _score.permute:
         perms, ligand_pos, receptor_pos, labels_pos = \
-            _get_means_perms(adata=adata, lr_res=lr_res,
-                             n_perms=n_perms, seed=seed,
+            _get_means_perms(adata=adata,
+                             lr_res=lr_res,
+                             n_perms=n_perms,
+                             seed=seed,
                              agg_fun=agg_fun,
                              norm_factor=norm_factor,
                              verbose=verbose)
@@ -459,7 +476,20 @@ def _run_method(lr_res: pandas.DataFrame,
         lr_res[[_score.magnitude, _score.specificity]] = \
             lr_res.apply(_score.fun, axis=1, result_type="expand")
 
-    if _consensus:  # if consensus keep only the keys and the method scores
+    if return_all_lrs:
+        # re-append rest of results
+        lr_res = pd.concat([lr_res, rest_res])
+        if _score.magnitude is not None:
+
+            fill_value = _assign_min_or_max(lr_res[_score.magnitude],
+                                            _score.magnitude_ascending)
+            lr_res[_score.magnitude][~lr_res['lrs_to_keep']] = fill_value
+        if _score.specificity is not None:
+            fill_value = _assign_min_or_max(lr_res[_score.specificity],
+                                            _score.specificity_ascending)
+            lr_res[_score.specificity][~lr_res['lrs_to_keep']] = fill_value
+
+    if _aggregate_flag:  # if consensus keep only the keys and the method scores
         lr_res = lr_res[_key_cols + [_score.magnitude, _score.specificity]]
 
     # remove redundant cols for some scores
@@ -469,13 +499,25 @@ def _run_method(lr_res: pandas.DataFrame,
     return lr_res
 
 
+def _assign_min_or_max(x, x_ascending):
+    if x_ascending:
+        return np.max(x)
+    else:
+        return np.min(x)
+
+
+# Function to get gene expr proportions
+def _get_props(X_mask):
+    return X_mask.getnnz(axis=0) / X_mask.shape[0]
+
+
 def _trimean(a, axis=0):
     """
     Tukey's mean / Trimean
     Parameters
     ----------
     a
-        non-sparse array (cell ident counts)
+        array (cell ident counts)
 
     Returns
     -------

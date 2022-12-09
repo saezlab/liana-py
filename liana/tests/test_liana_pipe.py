@@ -18,11 +18,9 @@ complex_policy = 'min'
 key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
 verbose = False
 base = 2.718281828459045
-supp_cols = None
 resource = None
 use_raw = True
 layer = None
-_return_subunits = False
 n_perms = 5
 seed = 1337
 
@@ -40,11 +38,10 @@ def test_liana_pipe_defaults_shape():
                               seed=seed,
                               verbose=verbose,
                               _key_cols=key_cols,
-                              supp_cols=supp_cols,
+                              supp_columns=[],
                               resource=resource,
                               use_raw=use_raw,
-                              layer=layer,
-                              _return_subunits=_return_subunits
+                              layer=layer
                               )
 
     assert 1288 == all_defaults.shape[0]
@@ -62,7 +59,7 @@ def test_liana_pipe_not_defaults():
     not_defaults = liana_pipe(adata=adata,
                               groupby=groupby,
                               resource_name=resource_name,
-                              expr_prop=0,
+                              expr_prop=0.2,
                               min_cells=min_cells,
                               de_method='wilcoxon',
                               base=base,
@@ -70,15 +67,16 @@ def test_liana_pipe_not_defaults():
                               seed=seed,
                               verbose=verbose,
                               _key_cols=key_cols,
-                              supp_cols=['ligand_pvals', 'receptor_pvals'],
+                              supp_columns=['ligand_pvals', 'receptor_pvals'],
                               resource=resource,
                               use_raw=use_raw,
                               layer=layer,
-                              _return_subunits=True
+                              return_all_lrs=True
                               )
 
-    assert 4400 == not_defaults.shape[0]
-    assert 22 == not_defaults.shape[1]
+    assert 4200 == not_defaults.shape[0]
+    assert 24 == not_defaults.shape[1]
+    assert all(np.isin(['lrs_to_keep'], not_defaults.columns))
     assert all(np.isin(['ligand_pvals', 'receptor_pvals'], not_defaults.columns))
 
     exp_defaults = read_csv(test_path.joinpath("data/not_defaults.csv"), index_col=0)

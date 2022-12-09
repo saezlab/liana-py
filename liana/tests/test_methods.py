@@ -1,9 +1,9 @@
 import pandas
 from scanpy.datasets import pbmc68k_reduced
-from numpy import max
+from numpy import max, min
 
 from liana.method import cellphonedb, singlecellsignalr as sca, \
-    natmi, connectome, logfc, geometric_mean, cellchat
+    natmi, connectome, logfc, geometric_mean, cellchat, rank_aggregate
 
 adata = pbmc68k_reduced()
 expected_shape = adata.shape
@@ -33,7 +33,7 @@ def test_cellphonedb():
     assert isinstance(liana_res, pandas.DataFrame)
 
     assert 'lr_means' in liana_res.columns
-    assert 'pvals' in liana_res.columns
+    assert 'cellphone_pvals' in liana_res.columns
     assert max(liana_res[(liana_res.ligand == "TIMP1")].lr_means) == 2.134743630886078
 
 
@@ -104,3 +104,10 @@ def test_connectome():
     assert 'scaled_weight' in liana_res.columns
     assert max(liana_res[(liana_res.ligand == "TIMP1")].scaled_weight) == 0.9669451713562012
     assert max(liana_res[(liana_res.ligand == "TIMP1")].expr_prod) == 4.521420922884062
+
+
+def test_with_all_lrs():
+    natmi(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True)
+    lr_all = adata.uns['liana_res']
+    assert lr_all.shape == (4200, 15)
+    assert all(lr_all[~lr_all.lrs_to_keep][natmi.magnitude] == min(lr_all[natmi.magnitude])) is True

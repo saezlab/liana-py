@@ -98,7 +98,6 @@ General utils:
    liana.resource.show_resources
    liana.method.show_methods
 
-
 Spatial utils:
 ---------------------------------------------------------------
 
@@ -106,3 +105,26 @@ Spatial utils:
    :toctree: api
 
    liana.method.get_spatial_proximity
+
+
+
+All instances of Method Class
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Methods are implemented as instances of the same Method class.
+Each instance provides helper functions and consistent attributes,
+to describe each method instance.
+
+.. module:: liana
+.. currentmodule:: liana
+
+.. autosummary::
+   :toctree: api
+
+   method.cellchat
+   method.cellphonedb
+   method.connectome
+   method.logfc
+   method.natmi
+   method.singlecellsignalr
+   method.geometric_mean
+   method.rank_aggregate

@@ -17,7 +17,7 @@ def assert_covered(
         superset,
         subset_name: str = "resource",
         superset_name: str = "var_names",
-        prop_missing_allowed: float = 0.95,
+        prop_missing_allowed: float = 0.98,
         verbose: bool = False) -> None:
     """
     Assert if elements are covered at a decent proportion
@@ -49,15 +49,15 @@ def assert_covered(
 
     if prop_missing > prop_missing_allowed:
         msg = (
+            f"Please check if appropriate organism/ID type was provided! "
             f"Allowed proportion ({prop_missing_allowed}) of missing "
             f"{subset_name} elements exceeded ({prop_missing:.2f}). "
-            f"Too few features from the resource found in the data."
+            f"Too few features from the resource were found in the data."
         )
         raise ValueError(msg + f" [{x_missing}] missing from {superset_name}")
 
     if verbose & (prop_missing > 0):
-        print(f"{x_missing} found in {subset_name} but missing from "
-              f"{superset_name}!")
+        print(f"{prop_missing:.2f} of entities in the resource are missing from the data.")
 
 
 def prep_check_adata(adata: AnnData,
@@ -150,9 +150,10 @@ def prep_check_adata(adata: AnnData,
             """mat contains non finite values (nan or inf), please set them 
             to 0 or remove them.""")
 
-    # Label related tests
+    # Define idents col name
     if groupby is not None:
-        assert groupby in adata.obs.columns
+        if groupby not in adata.obs.columns:
+            raise AssertionError(f"`{groupby}` not found in `adata.obs.columns`.")
         adata.obs['label'] = adata.obs.copy()[groupby]
 
         # Remove any cell types below X number of cells per cell type
@@ -264,6 +265,7 @@ def _choose_mtx_rep(adata, use_raw=False, layer=None, verbose=False) -> csr_matr
     -------
         The matrix to be used by liana-py.
     """
+
     is_layer = layer is not None
     if is_layer & use_raw:
         raise ValueError("Cannot specify `layer` and have `use_raw=True`.")

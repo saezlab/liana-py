@@ -1,17 +1,22 @@
 """
 Functions to deal with protein complexes
 """
+from __future__ import annotations
+
 import pandas as pd
 
 
-def filter_reassemble_complexes(lr_res, _key_cols, complex_cols, expr_prop, complex_policy='min'):
+def filter_reassemble_complexes(lr_res,
+                                _key_cols,
+                                complex_cols,
+                                expr_prop,
+                                return_all_lrs=False,
+                                complex_policy='min'):
     """
     Reassemble complexes from exploded long-format pandas Dataframe.
 
     Parameters
     ----------
-    expr_prop
-        minimum expression proportion for each subunit in a complex
     lr_res
         long-format pandas dataframe with exploded complex subunits
     _key_cols
@@ -19,6 +24,11 @@ def filter_reassemble_complexes(lr_res, _key_cols, complex_cols, expr_prop, comp
         ['source', 'target', 'ligand_complex', 'receptor_complex']
     complex_cols
         method/complex-relevant columns
+    expr_prop
+        minimum expression proportion for each subunit in a complex
+    return_all_lrs
+        Bool whether to return all LRs, or only those that surpass the expr_prop
+        threshold. `False` by default.
     complex_policy
         approach by which the complexes are reassembled
 
@@ -31,18 +41,26 @@ def filter_reassemble_complexes(lr_res, _key_cols, complex_cols, expr_prop, comp
                  .set_index(_key_cols)
                  .stack()
                  .groupby(_key_cols)
-                 .agg(prop_min='min')
+                 .agg(prop_min=complex_policy)
                  .reset_index()
                  )
     expressed = expressed[expressed['prop_min'] >= expr_prop]
-    lr_res = lr_res.merge(expressed, how='inner', on=_key_cols)
+
+    if not return_all_lrs:
+        lr_res = lr_res.merge(expressed, how='inner', on=_key_cols)
+    else:
+        expressed['lrs_to_keep'] = True
+        lr_res = lr_res.merge(expressed, how='left', on=_key_cols)
+        lr_res['lrs_to_keep'].fillna(value=False, inplace=True)
 
     # check if complex policy is only min
     aggs = {complex_policy, 'min'}
 
     cols_dict = {}
     for col in complex_cols:
-        lr_res = _reduce_complexes(col, cols_dict, lr_res, _key_cols, aggs)
+        lr_res = _reduce_complexes(col=col, cols_dict=cols_dict,
+                                   lr_res=lr_res, key_cols=_key_cols,
+                                   aggs=aggs)
 
     return lr_res
 
@@ -51,7 +69,7 @@ def _reduce_complexes(col: str,
                       cols_dict: dict,
                       lr_res: pd.DataFrame,
                       key_cols: list,
-                      aggs: dict
+                      aggs: (dict | str)
                       ):
     """
     Reduce the complexes
