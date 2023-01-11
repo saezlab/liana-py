@@ -268,5 +268,5 @@ def _choose_mtx_rep(adata, use_raw=False, layer=None, verbose=False) -> csr_matr
         return adata.raw.X
     else:
         if verbose:
-            print("Print Using `.X`!")
+            print("Using `.X`!")
         return adata.X

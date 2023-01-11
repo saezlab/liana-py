@@ -1,6 +1,14 @@
 Release notes
 =============
 
+0.1.4 (11.01.2023)
+
+- `rank_aggregate` will now sort interactions according to `magnitude_rank`.
+- Fixed `SettingWithCopyWarning` warning when `return_all_lrs` is True
+- Minor text improvements to the basic tutorial notebook
+- Removed 'Print' from a verbose print message in `_choose_mtx_rep`
+
+
 0.1.3 (07.12.2022)
 -----
 - Added `supp_columns` parameter to allow any column from liana to be returned.
