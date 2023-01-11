@@ -2,6 +2,7 @@ Release notes
 =============
 
 0.1.4 (11.01.2023)
+-----
 
 - `rank_aggregate` will now sort interactions according to `magnitude_rank`.
 - Fixed `SettingWithCopyWarning` warning when `return_all_lrs` is True
