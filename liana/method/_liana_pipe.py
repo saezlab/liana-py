@@ -483,7 +483,7 @@ def _run_method(lr_res: pandas.DataFrame,
         if _score.specificity is not None:
             fill_value = _assign_min_or_max(lr_res[_score.specificity],
                                             _score.specificity_ascending)
-            lr_res.loc[~lr_res['lrs_to_keep'], _score.magnitude] = fill_value
+            lr_res.loc[~lr_res['lrs_to_keep'], _score.specificity] = fill_value
 
     if _aggregate_flag:  # if consensus keep only the keys and the method scores
         lr_res = lr_res[_key_cols + [_score.magnitude, _score.specificity]]

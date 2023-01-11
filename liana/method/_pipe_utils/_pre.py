@@ -141,7 +141,7 @@ def prep_check_adata(adata: AnnData,
     # Define idents col name
     if groupby not in adata.obs.columns:
         raise AssertionError(f"`{groupby}` not found in `adata.obs.columns`.")
-    adata.obs['label'] = adata.obs.copy()[groupby]
+    adata.obs.loc[:, 'label'] = adata.obs[groupby]
 
     # Re-order adata vars alphabetically
     adata = adata[:, np.sort(adata.var_names)]

@@ -1,6 +1,11 @@
 Release notes
 =============
 
+0.1.5 (11.01.2023)
+-----
+- Hotfix `return_all_lrs` specificity_rank being assigned to NaN
+- Add test to check that `specificity_rank` of `lrs_to_keep` is equal to min(specificity_rank)
+
 0.1.4 (11.01.2023)
 -----
 
