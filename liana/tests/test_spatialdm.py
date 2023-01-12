@@ -39,4 +39,11 @@ def test_spatialdm():
     np.testing.assert_almost_equal(interaction['global_pvals'].values, 1.232729e-16)
 
     assert np.mean(adata.obsm['local_r']['MIF&CD74_CXCR4']) == 0.024113696644942034
-    assert np.mean(adata.obsm['local_pvals']['TNFSF13B&TNFRSF13B']) == 0.9214972220246149
+    assert np.mean(adata.obsm['local_pvals']['TNFSF13B&TNFRSF13B']) == 0.9214972206911888
+
+
+def test_spatialdm_permutation():
+    spatialdm(adata, use_raw=True, pvalue_method="permutation")
+    assert 'global_res' in adata.uns_keys()
+    assert 'local_r' in adata.obsm_keys()
+    assert 'local_pvals' in adata.obsm_keys()

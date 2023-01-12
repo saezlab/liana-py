@@ -189,13 +189,12 @@ def _global_spatialdm(x_mat,
     y_mat = _standardize_matrix(y_mat, local=False)
 
     # convert to spot_n x lr_n matrices
-    x_mat, y_mat = _get_xy_matrices(x_mat=x_mat,
-                                    y_mat=y_mat,
-                                    x_pos=x_pos,
-                                    y_pos=y_pos,
-                                    x_order=xy_dataframe.ligand,
-                                    y_order=xy_dataframe.receptor
-                                    )
+    x_mat = _get_ordered_matrix(mat=x_mat,
+                                pos=x_pos,
+                                order=xy_dataframe.ligand)
+    y_mat = _get_ordered_matrix(mat=y_mat,
+                                pos=y_pos,
+                                order=xy_dataframe.receptor)
 
     # Get global r
     global_r = ((x_mat @ dist) * y_mat).sum(axis=1)
@@ -266,11 +265,12 @@ def _local_spatialdm(x_mat,
     x_mat = _standardize_matrix(x_mat, local=True)
     y_mat = _standardize_matrix(y_mat, local=True)
 
-    # convert to shape of n(x->y), n_spot
-    ligand_mat, receptor_mat = _get_xy_matrices(x_mat=x_mat, y_mat=y_mat,
-                                                x_pos=x_pos, y_pos=y_pos,
-                                                x_order=xy_dataframe.ligand,
-                                                y_order=xy_dataframe.receptor)
+    ligand_mat = _get_ordered_matrix(mat=x_mat,
+                                pos=x_pos,
+                                order=xy_dataframe.ligand)
+    receptor_mat = _get_ordered_matrix(mat=y_mat,
+                                pos=y_pos,
+                                order=xy_dataframe.receptor)
     ligand_mat, receptor_mat = ligand_mat.T, receptor_mat.T
     # calculate local_Rs
     local_x = ligand_mat * (dist @ receptor_mat)
@@ -278,14 +278,18 @@ def _local_spatialdm(x_mat,
     local_r = (local_x + local_y).T
 
     if pvalue_method == 'permutation':
-        local_pvals = _local_permutation_pvals(x_mat=ligand_mat, y_mat=receptor_mat,
-                                               dist=dist, local_r=local_r,
+        local_pvals = _local_permutation_pvals(x_mat=ligand_mat,
+                                               y_mat=receptor_mat,
+                                               dist=dist,
+                                               local_r=local_r,
                                                n_perm=n_perm, seed=seed,
                                                positive_only=positive_only
                                                )
     elif pvalue_method == 'analytical':
-        local_pvals = _local_zscore_pvals(x_mat=ligand_mat, y_mat=receptor_mat,
-                                          local_r=local_r, dist=dist,
+        local_pvals = _local_zscore_pvals(x_mat=ligand_mat,
+                                          y_mat=receptor_mat,
+                                          local_r=local_r,
+                                          dist=dist,
                                           positive_only=positive_only)
 
     return local_r.T, local_pvals.T
@@ -310,13 +314,9 @@ def _divide_by_msq(mat):
     return mat / msq
 
 
-def _get_xy_matrices(x_mat, y_mat, x_pos, y_pos, x_order, y_order):
-    x_mat = np.array([x_mat[:, x_pos[x]] for x in x_order])
-    y_mat = np.array([y_mat[:, y_pos[y]] for y in y_order])
-
-    assert x_mat.shape == y_mat.shape
-
-    return x_mat, y_mat
+def _get_ordered_matrix(mat, pos, order):
+    _indx = np.array([pos[x] for x in order])
+    return mat[:, _indx].T
 
 
 def _global_permutation_pvals(x_mat, y_mat, dist, global_r, n_perm, positive_only, seed):
@@ -482,14 +482,14 @@ def _local_zscore_pvals(x_mat, y_mat, local_r, dist, positive_only):
     """
     spot_n = dist.shape[0]
 
-    x_norm = np.array([norm.fit(x_mat[:, x]) for x in range(x_mat.shape[1])])  # TODO to np.repeat
-    y_norm = np.array([norm.fit(y_mat[:, y]) for y in range(y_mat.shape[1])])
+    x_norm = np.apply_along_axis(norm.fit, axis=0, arr=x_mat)
+    y_norm = np.apply_along_axis(norm.fit, axis=0, arr=y_mat)
 
     # get x,y std
-    x_sigma, y_sigma = x_norm[:, 1], y_norm[:, 1]
+    x_sigma, y_sigma = x_norm[1, :], y_norm[1, :]
 
-    x_sigma = np.array([(std * spot_n / (spot_n - 1)) for std in x_sigma])  # TODO to np.repeat
-    y_sigma = np.array([(std * spot_n / (spot_n - 1)) for std in y_sigma])
+    x_sigma = x_sigma * spot_n / (spot_n - 1)  # TODO to np.repeat
+    y_sigma = y_sigma * spot_n / (spot_n - 1)
 
     std = _get_local_var(x_sigma, y_sigma, dist, spot_n)
     local_zscores = local_r / std
