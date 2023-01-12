@@ -16,16 +16,15 @@ For further information please check LIANA's [documentation](https://liana-py.re
 
 ## Install LIANA
 
-Install liana's most up-to-date version:
-```
-pip install git+https://github.com/saezlab/liana-py
-```
-
 Install liana's stable version:
 ```
 pip install liana
 ```
 
+Install liana's most up-to-date version:
+```
+pip install git+https://github.com/saezlab/liana-py
+```
 
 ## Methods
 

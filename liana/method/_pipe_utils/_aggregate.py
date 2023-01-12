@@ -48,24 +48,24 @@ def _aggregate(lrs: dict,
     lr_res = lr_res.loc[:, ~lr_res.columns.str.endswith('_duplicated')]
 
     order_col = ''
-    if 'Magnitude' in consensus_opts:
-        lr_res[consensus.magnitude] = _rank_aggregate(lr_res.copy(),
-                                                      consensus.magnitude_specs,
-                                                      _key_cols,
-                                                      aggregate_method=aggregate_method)
-        order_col = consensus.magnitude
-    if 'Specificity' in consensus_opts:
-        lr_res[consensus.specificity] = _rank_aggregate(lr_res.copy(),
-                                                        consensus.specificity_specs,
-                                                        _key_cols,
-                                                        aggregate_method=aggregate_method)
-        order_col = consensus.specificity
     if 'Steady' in consensus_opts:
         lr_res[consensus.steady] = _rank_aggregate(lr_res.copy(),
                                                    consensus.steady_specs,
                                                    _key_cols,
                                                    aggregate_method=aggregate_method)
         order_col = consensus.steady
+    if 'Specificity' in consensus_opts:
+        lr_res[consensus.specificity] = _rank_aggregate(lr_res.copy(),
+                                                        consensus.specificity_specs,
+                                                        _key_cols,
+                                                        aggregate_method=aggregate_method)
+        order_col = consensus.specificity
+    if 'Magnitude' in consensus_opts:
+        lr_res[consensus.magnitude] = _rank_aggregate(lr_res.copy(),
+                                                      consensus.magnitude_specs,
+                                                      _key_cols,
+                                                      aggregate_method=aggregate_method)
+        order_col = consensus.magnitude
 
     lr_res = lr_res.sort_values(order_col)
 
