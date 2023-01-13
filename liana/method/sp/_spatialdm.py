@@ -488,7 +488,7 @@ def _local_zscore_pvals(x_mat, y_mat, local_r, dist, positive_only):
     # get x,y std
     x_sigma, y_sigma = x_norm[1, :], y_norm[1, :]
 
-    x_sigma = x_sigma * spot_n / (spot_n - 1)  # TODO to np.repeat
+    x_sigma = x_sigma * spot_n / (spot_n - 1)
     y_sigma = y_sigma * spot_n / (spot_n - 1)
 
     std = _get_local_var(x_sigma, y_sigma, dist, spot_n)
