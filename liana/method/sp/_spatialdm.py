@@ -266,11 +266,11 @@ def _local_spatialdm(x_mat,
     y_mat = _standardize_matrix(y_mat, local=True)
 
     ligand_mat = _get_ordered_matrix(mat=x_mat,
-                                pos=x_pos,
-                                order=xy_dataframe.ligand)
+                                     pos=x_pos,
+                                     order=xy_dataframe.ligand)
     receptor_mat = _get_ordered_matrix(mat=y_mat,
-                                pos=y_pos,
-                                order=xy_dataframe.receptor)
+                                       pos=y_pos,
+                                       order=xy_dataframe.receptor)
     ligand_mat, receptor_mat = ligand_mat.T, receptor_mat.T
     # calculate local_Rs
     local_x = ligand_mat * (dist @ receptor_mat)
