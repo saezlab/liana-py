@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import anndata
 import numpy as np
 import pandas
@@ -8,12 +10,17 @@ from plotnine import ggplot, geom_point, aes, \
 
 def dotplot(adata: anndata.AnnData = None,
             liana_res: pandas.DataFrame = None,
-            colour: str = None, size: str = None,
-            source_labels: list = None, target_labels: list = None,
-            top_n: int = None, orderby: (str, None) = None,
-            orderby_ascending: (bool, None) = None,
-            filterby: (bool, None) = None, filter_lambda=None,
-            inverse_colour: bool = False, inverse_size: bool = False,
+            colour: str = None,
+            size: str = None,
+            source_labels: list = None,
+            target_labels: list = None,
+            top_n: int = None,
+            orderby: str | None = None,
+            orderby_ascending: bool | None = None,
+            filterby: bool | None = None,
+            filter_lambda=None,
+            inverse_colour: bool = False,
+            inverse_size: bool = False,
             size_range: tuple = (2, 9),
             figure_size: tuple = (8, 6),
             return_fig=True) -> ggplot:
