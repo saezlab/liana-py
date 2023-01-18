@@ -115,17 +115,15 @@ def test_with_all_lrs():
 
 
 def test_methods_by_sample():
-    sample_key = 'patient'
-    
-    rng = random.default_rng(0)
     
     # make fake sample labels
+    sample_key = 'patient'
+    rng = random.default_rng(0)
     adata.obs[sample_key] = rng.choice(['A', 'B', 'C', 'D'], size=len(adata.obs))
-    # adata.obs[sample_key] = adata.obs[sample_key].astype('category')
     
-    natmi.by_sample(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, sample_key=sample_key)
+    logfc.by_sample(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, sample_key=sample_key)
     lr_by_sample = adata.uns['liana_res']
     
     assert sample_key in lr_by_sample.columns
-    assert lr_by_sample.shape == (10836, 16)
+    assert lr_by_sample.shape == (10836, 15)
     
