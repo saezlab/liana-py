@@ -189,9 +189,71 @@ class Method(MethodMeta):
                                use_raw=use_raw,
                                layer=layer,
                                )
-        adata.uns['liana_res'] = liana_res
+        if inplace:
+            adata.uns['liana_res'] = liana_res
         return None if inplace else liana_res
+    
+    
+    def by_sample(self, adata, sample_key, inplace=True, verbose=False, **kwargs):
+        """
+        Run a method by sample.
+        
+        Parameters
+        ----------
+            adata 
+                AnnData object to run the method on
+            
+            sample_key
+                key in `adata.obs` to use for grouping by sample/context
+                
+            inplace
+                whether to store the results in `adata.uns['liana_res']` or return a dataframe
+            
+            verbose
+                whether to print verbose output
+            
+            **kwargs
+                keyword arguments to pass to the method
+        
+        Returns
+        -------
+        A pandas DataFrame with the results and a column sample if inplace is False, else None
+        
+        """
+        
+        if sample_key not in adata.obs:
+            raise ValueError(f"{sample_key} was not found in `adata.obs`.")
+        
+        if adata.obs[sample_key].dtype.name != "category":
+            (f"`{sample_key}` was assigned as a categorical.")
+            adata.obs[sample_key] = adata.obs[sample_key].astype("category")
+            
+        samples = adata.obs[sample_key].cat.categories 
+            
+        adata.uns['liana_res'] = {}
+
+        for sample in samples:
+            if verbose:
+                print("Now running {}".format(sample))
+
+            temp = adata[adata.obs[sample_key]==sample].copy()
+
+            sample_res = self.__call__(temp, inplace=False, verbose=verbose, **kwargs)
+
+            adata.uns['liana_res'][sample] = sample_res
+
+        liana_res = concat(adata.uns['liana_res']).reset_index(level=1, drop=True).reset_index()
+        liana_res = liana_res.rename({"index":sample_key}, axis=1)
+        
+        if inplace:
+            adata.uns['liana_res'] = liana_res
+        return None if inplace else liana_res
+        
+    
 
 
 def _show_methods(methods):
     return concat([method.get_meta() for method in methods])
+
+
+

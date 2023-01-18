@@ -1,6 +1,6 @@
 import pandas
 from scanpy.datasets import pbmc68k_reduced
-from numpy import max, min
+from numpy import max, min, random
 
 from liana.method import cellphonedb, singlecellsignalr as sca, \
     natmi, connectome, logfc, geometric_mean, cellchat, rank_aggregate
@@ -112,3 +112,20 @@ def test_with_all_lrs():
     assert lr_all.shape == (4200, 15)
     assert all(lr_all[~lr_all.lrs_to_keep][natmi.magnitude] == min(lr_all[natmi.magnitude])) is True
     assert all(lr_all[~lr_all.lrs_to_keep][natmi.specificity] == min(lr_all[natmi.specificity])) is True
+
+
+def test_methods_by_sample():
+    sample_key = 'patient'
+    
+    rng = random.default_rng(0)
+    
+    # make fake sample labels
+    adata.obs[sample_key] = rng.choice(['A', 'B', 'C', 'D'], size=len(adata.obs))
+    # adata.obs[sample_key] = adata.obs[sample_key].astype('category')
+    
+    natmi.by_sample(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, sample_key=sample_key)
+    lr_by_sample = adata.uns['liana_res']
+    
+    assert sample_key in lr_by_sample.columns
+    assert lr_by_sample.shape == (10836, 16)
+    

@@ -7,7 +7,8 @@ Release notes
 - Fix issue with duplicate subunits for non-expressed LRs when `return_all_lrs`` is True
 - 'min_prop' when working with `return_all_lrs` is now filled with 0s
 - Add `sample_dotplot function` to visualize ligand-receptor interactions across samples
-- Add `liana_by_sample` function to return a long-format dataframe of ligand-receptors, one per sample
+- Add `by_sample` function to class Method that returns a long-format dataframe of ligand-receptors, and their sample
+- Refraction of `dotplot` preprocessing to allow for `by_sample` to be used
 
 
 0.1.5 (11.01.2023)
