@@ -47,7 +47,7 @@ def test_geometric_mean():
     assert isinstance(liana_res, pandas.DataFrame)
 
     assert 'lr_gmeans' in liana_res.columns
-    assert 'pvals' in liana_res.columns
+    assert 'gmean_pvals' in liana_res.columns
     assert max(liana_res[(liana_res.ligand == "TIMP1")].lr_gmeans) == 2.126363309240465
 
 

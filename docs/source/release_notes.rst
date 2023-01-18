@@ -2,13 +2,14 @@ Release notes
 =============
 
 
-0.1.5 (18.01.2023)
+0.1.6 (18.01.2023)
 -----
-- Fix issue with duplicate subunits for non-expressed LRs when `return_all_lrs`` is True
-- 'min_prop' when working with `return_all_lrs` is now filled with 0s
-- Add `sample_dotplot function` to visualize ligand-receptor interactions across samples
-- Add `by_sample` function to class Method that returns a long-format dataframe of ligand-receptors, for each sample
-- Refraction of `dotplot` preprocessing to allow for `by_sample` to be used
+- Fixed issue with duplicate subunits for non-expressed LRs when `return_all_lrs`` is True
+- `min_prop` when working with `return_all_lrs` is now filled with 0s
+- Added `by_sample` function to class Method that returns a long-format dataframe of ligand-receptors, for each sample
+- Added `dotplot_by_sample` function to visualize ligand-receptor interactions across samples
+- Refractored of `dotplot` preprocessing
+- Changed "pvals" of geometric_mean method to "gmean_pvals" for consistency
 
 
 0.1.5 (11.01.2023)
