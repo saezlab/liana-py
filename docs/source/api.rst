@@ -43,17 +43,6 @@ Method instance, it is also callable:
    method.rank_aggregate.__call__
 
 
-LIANA's Pipeline
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-`liana` relies on a common pipeline to generate
-the statistics for all of the methods above. This enables
-the straightforward inclusion to any additional method to `liana`.
-
-.. autosummary::
-   :toctree: api
-
-   method.liana_pipe
-
 
 Visualization options:
 ------------------------------------------------------------
@@ -64,6 +53,7 @@ Visualization options:
    :toctree: api
 
    plotting.dotplot
+   plotting.dotplot_by_sample
 
 
 General utils:
@@ -72,9 +62,33 @@ General utils:
 .. autosummary::
    :toctree: api
 
-   liana.resource.select_resource
-   liana.resource.show_resources
-   liana.method.show_methods
+   resource.select_resource
+   resource.show_resources
+   method.show_methods
+
+
+Multi-sample utils:
+---------------------------------------------------------------
+liana also provides utilities to work with multiple samples,
+such as running any method by sample using the `by_sample` function:
+
+.. module:: liana
+.. currentmodule:: liana
+
+
+.. autosummary::
+   :toctree: api
+
+   method.Method.by_sample
+
+
+and converting the output of this function to Tensor-cell2cell format.
+
+.. autosummary::
+   :toctree: api
+
+   multi.to_tensor_c2c
+
 
 
 All instances of Method Class
