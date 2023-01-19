@@ -17,7 +17,7 @@ def sample_lrs(by_sample=False):
     df["target"] = rng.choice(label_vector, row_num)
     df["ligand_complex"] = rng.choice(entity_vector, row_num)
     df["receptor_complex"] = rng.choice(entity_vector, row_num)
-    df["specificity"] = rng.random((200, 1))        
+    df["specificity_rank"] = rng.random((200, 1))        
 
     # deduplicate
     df = df.loc[~df.duplicated()]

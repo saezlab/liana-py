@@ -68,18 +68,19 @@ def dotplot(adata: anndata.AnnData = None,
     A `plotnine.ggplot` instance
 
     """
-    liana_res = _prep_liana_res(adata=adata, liana_res=liana_res, source_labels=source_labels, target_labels=target_labels)
+    liana_res = _prep_liana_res(adata=adata,
+                                liana_res=liana_res, 
+                                source_labels=source_labels,
+                                target_labels=target_labels,
+                                size=size,
+                                colour=colour,
+                                inverse_colour=inverse_colour,
+                                inverse_size=inverse_size)
 
     if filterby is not None:
         msk = liana_res[filterby].apply(filter_lambda)
         relevant_interactions = np.unique(liana_res[msk].interaction)
         liana_res = liana_res[np.isin(liana_res.interaction, relevant_interactions)]
-
-    # inverse sc if needed
-    if inverse_colour:
-        liana_res[colour] = _inverse_scores(liana_res[colour])
-    if inverse_size:
-        liana_res[size] = _inverse_scores(liana_res[size])
 
     if top_n is not None:
         # get the top_n for each interaction
@@ -129,20 +130,70 @@ def dotplot(adata: anndata.AnnData = None,
     p.draw()
 
     
-def dotplot_by_sample(adata=None,
-                      liana_res=None,
-                      colour=None,
-                      size=None,
-                      source_labels=None,
-                      target_labels=None,
-                      ligand_complex=None, 
-                      receptor_complex=None,
-                      sample_key='sample',
+def dotplot_by_sample(adata: anndata.AnnData  = None,
+                      liana_res: pandas.DataFrame =None,
+                      sample_key: str ='sample',
+                      colour: str  = None,
+                      size: str = None,
+                      inverse_colour: bool = False,
+                      inverse_size: bool = False,
+                      source_labels: str | None =None,
+                      target_labels: str | None =None,
+                      ligand_complex: str | None =None, 
+                      receptor_complex: str | None =None,
                       size_range: tuple = (2, 9),
                       figure_size: tuple = (8, 6),
-                      return_fig=True):
+                      return_fig: bool = True
+                      ):
+    """
+    A dotplot of interactions by sample
     
-    liana_res = _prep_liana_res(adata=adata, liana_res=liana_res, source_labels=source_labels, target_labels=target_labels)
+    Parameters
+    ----------
+        adata
+            adata object with liana_res and  in adata.uns. Defaults to None.
+        liana_res
+            liana_res a DataFrame in liana's format. Defaults to None.
+        sample_key
+            sample_key used to group different samples/contexts from `liana_res`. Defaults to 'sample'.
+        colour
+            `column` in `liana_res` to define the colours of the dots. Defaults to None.
+        size
+            `column` in `liana_res` to define the size of the dots. Defaults to None.
+        inverse_colour
+            Whether to -log10 the `colour` column for plotting. `False` by default. Defaults to False.
+        inverse_size
+            Whether to -log10 the `size` column for plotting. `False` by default. Defaults to False.
+        source_labels
+            `list` with keys as `source` and values as `label` to be used in the plot. Defaults to None.
+        target_labels
+            `list` with keys as `target` and values as `label` to be used in the plot. Defaults to None.
+        ligand_complex
+            `list` of ligand complexes to filter the interactions to be plotted. Defaults to None.
+        receptor_complex
+            `list` of receptor complexes to filter the interactions to be plotted. Defaults to None.
+        size_range
+            Define size range - (min, max). Default is (2, 9). Defaults to (2, 9).
+        figure_size
+            Figure x,y size. Defaults to (8, 6).
+        return_fig
+            `bool` whether to return the fig object, `False` only plots. Defaults to True.
+        
+    Returns
+    -------
+    Returns a dotplot of Class ggplot for the specified interactions by sample.
+    
+    """
+    
+    
+    liana_res = _prep_liana_res(adata=adata,
+                                liana_res=liana_res, 
+                                source_labels=source_labels,
+                                target_labels=target_labels,
+                                size=size,
+                                colour=colour,
+                                inverse_colour=inverse_colour,
+                                inverse_size=inverse_size)
     
     if ligand_complex is not None:
         liana_res = liana_res[np.isin(liana_res['ligand_complex'], ligand_complex)]
@@ -151,7 +202,7 @@ def dotplot_by_sample(adata=None,
 
     p = (ggplot(liana_res, aes(x='target', y='source', colour=colour, size=size))
             + geom_point()
-            + facet_grid(f'interaction~{sample_key}')
+            + facet_grid(f'interaction~{sample_key}', space='free', scales='free')
             + scale_size_continuous(range=size_range)
             + labs(color=str.capitalize(colour),
                    size=str.capitalize(size),
@@ -161,13 +212,13 @@ def dotplot_by_sample(adata=None,
             + theme_bw()
             + theme(legend_text=element_text(size=14),
                     strip_background=element_rect(fill="white"),
-                    strip_text=element_text(size=13, colour="black"),
+                    strip_text=element_text(size=13, colour="black", angle=90),
                     axis_text_y=element_text(size=10, colour="black"),
-                    axis_title_y=element_text(colour="#808080", face="bold", size=14),
+                    axis_title_y=element_text(colour="#808080", face="bold", size=12),
                     axis_text_x=element_text(size=11, face="bold", angle=90),
-                    axis_title_x=element_text(colour="#808080", face="bold", size=14),
+                    axis_title_x=element_text(colour="#808080", face="bold", size=12),
                     figure_size=figure_size,
-                    plot_title=element_text(vjust=0, hjust=0.5, face="bold", size=15),
+                    plot_title=element_text(vjust=0, hjust=0.5, face="bold", size=12),
                     )
             )
     if return_fig:
@@ -176,7 +227,19 @@ def dotplot_by_sample(adata=None,
     p.draw()
 
 
-def _prep_liana_res(adata=None, liana_res=None, source_labels=None, target_labels=None):
+def _prep_liana_res(adata=None,
+                    liana_res=None,
+                    source_labels=None,
+                    target_labels=None,
+                    colour=None,
+                    size=None,
+                    inverse_colour=False, 
+                    inverse_size=False):
+    if colour is None:
+        raise ValueError('`colour` must be provided!')
+    if size is None:
+        raise ValueError('`size` must be provided!')
+    
     if (liana_res is None) & (adata is None):
         raise AttributeError('Ambiguous! One of `liana_res` or `adata` should be provided.')
     if adata is not None:
@@ -192,6 +255,12 @@ def _prep_liana_res(adata=None, liana_res=None, source_labels=None, target_label
     liana_res = _filter_labels(liana_res, labels=target_labels, label_type='target')
     
     liana_res['interaction'] = liana_res['ligand_complex'] + ' -> ' + liana_res['receptor_complex']
+    
+    # inverse sc if needed
+    if inverse_colour:
+        liana_res[colour] = _inverse_scores(liana_res[colour])
+    if inverse_size:
+        liana_res[size] = _inverse_scores(liana_res[size])
 
     return liana_res
 

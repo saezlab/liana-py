@@ -5,12 +5,17 @@ from ._liana_pipe import liana_pipe
 from anndata import AnnData
 from pandas import DataFrame, concat
 from typing import Optional
+import weakref
 
 
 class MethodMeta:
     """
     A Class used to store Method Metadata
     """
+    
+    # initiate a list to store weak references to all instances
+    instances = [] ## TODO separate instances for each subclass
+    
     def __init__(self,
                  method_name: str,
                  complex_cols: list,
@@ -47,6 +52,7 @@ class MethodMeta:
         reference
             Publication reference in Harvard style
         """
+        self.__class__.instances.append(weakref.proxy(self))
         self.method_name = method_name
         self.complex_cols = complex_cols
         self.add_cols = add_cols

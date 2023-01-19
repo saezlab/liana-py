@@ -14,9 +14,9 @@ class AggregateClass(MethodMeta):
                          add_cols=[],
                          fun=_SCORE.fun,
                          magnitude=_SCORE.magnitude,
-                         magnitude_ascending=None,
+                         magnitude_ascending=True,
                          specificity=_SCORE.specificity,
-                         specificity_ascending=None,
+                         specificity_ascending=True,
                          permute=_SCORE.permute,
                          reference=_SCORE.reference
                          )
@@ -33,7 +33,7 @@ class AggregateClass(MethodMeta):
             method.magnitude, method.magnitude_ascending) for method in methods
             if method.magnitude is not None}
 
-        # If SingleCellSignalR is in there also add it to calculate method
+        # If SingleCellSignalR is in there also add it to calculate method; TODO just remove this
         methods_by_name = {method.method_name: method for method in methods}
         if 'SingleCellSignalR' in methods_by_name.keys():
             self.steady_specs = self.specificity_specs.copy()
@@ -56,7 +56,7 @@ class AggregateClass(MethodMeta):
             f" and `{self.steady}`. "
             f"{self.magnitude} and {self.specificity} represent an aggregate of the "
             f"`magnitude`- and `specificity`-related scoring functions from the different methods."
-            f"{self.steady} represents one scoring function from each method intended"
+            f"{self.steady} (DEPRECATED) represents one scoring function from each method intended"
             f" to prioritize ligand-receptor interactions in steady-state data, "
             f"regardless if they represent `specificity` or `magnitude`."
         )
