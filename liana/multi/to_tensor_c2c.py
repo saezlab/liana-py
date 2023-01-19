@@ -22,11 +22,11 @@ def _check_if_tensorc2c() -> ModuleType:
 def to_tensor_c2c(adata=None,
                   liana_res=None,
                   sample_key=None,
-                  sender_col='source',
-                  receiver_col='target',
-                  ligand_col='ligand_complex',
-                  receptor_col='receptor_complex',
-                  score_col=None,
+                  source_key='source',
+                  target_key='target',
+                  ligand_key='ligand_complex',
+                  receptor_key='receptor_complex',
+                  score_key=None,
                   non_expressed_fill=None,
                   inverse_fun = lambda x: 1 - x,
                   non_negative = True,
@@ -44,16 +44,19 @@ def to_tensor_c2c(adata=None,
         LIANA result.
     sample_key : `str`, optional (default: None)
         Column name of the sample key in `liana_res`.
-    sender_col : `str`, optional (default: 'source')
+    source_key : `str`, optional (default: 'source')
         Column name of the sender/source cell types in `liana_res`.
-    receiver_col : `str`, optional (default: 'target')
+    target_key : `str`, optional (default: 'target')
         Column name of the receiver/target cell types in `liana_res`.
-    ligand_col : `str`, optional (default: 'ligand_complex')
+    ligand_key : `str`, optional (default: 'ligand_complex')
         Column name of the ligand in `liana_res`.
-    receptor_col : `str`, optional (default: 'receptor_complex')
+    receptor_key : `str`, optional (default: 'receptor_complex')
         Column name of the receptor in `liana_res`.
-    score_col : `str`, optional (default: None)
+    score_key : `str`, optional (default: None)
         Column name of the score in `liana_res`. If None, the score is inferred from the method.
+    inverse_fun : `function`, optional (default: lambda x: 1 - x)
+        Function to inverse the score. For example, if the score is in ascending order or probability,
+        the inverse function should be 1 - probability.
     non_expressed_fill : `float`, optional (default: None)
         Value to fill for non-expressed ligand-receptor pairs.
     non_negative : `bool`, optional (default: True)
@@ -84,36 +87,36 @@ def to_tensor_c2c(adata=None,
     if (sample_key is None) or (sample_key not in liana_res.columns):
         raise ValueError(f"Sample key `{sample_key}` not found in `liana_res`")
     
-    if (score_col is None) or (score_col not in liana_res.columns):
-        raise ValueError(f"Score column `{score_col}` not found in `liana_res`")
+    if (score_key is None) or (score_key not in liana_res.columns):
+        raise ValueError(f"Score column `{score_key}` not found in `liana_res`")
     
     # remove unneeded columns
-    keys = [sample_key, sender_col, receiver_col, ligand_col, receptor_col, score_col]
+    keys = [sample_key, source_key, target_key, ligand_key, receptor_key, score_key]
     keys = keys + ['lrs_to_keep'] if 'lrs_to_keep' in liana_res.columns else keys
     liana_res = liana_res[keys]
     
     
     # check for duplicates
-    if liana_res[[sample_key, sender_col, receiver_col, ligand_col, receptor_col]].duplicated().any():
+    if liana_res[[sample_key, source_key, target_key, ligand_key, receptor_key]].duplicated().any():
         raise ValueError("Duplicate rows found in the input data")
 
     scores = get_method_scores()
 
-    if not np.isin(score_col, list(scores.keys())).any():
-        raise ValueError(f"Score column {score_col} not found method scores. ")
+    if not np.isin(score_key, list(scores.keys())).any():
+        raise ValueError(f"Score column {score_key} not found method scores. ")
 
     # reverse if ascending order
-    ascending_order = scores[score_col]
+    ascending_order = scores[score_key]
     if(ascending_order):
-        liana_res[score_col] = inverse_fun(liana_res[score_col]) #
+        liana_res[score_key] = inverse_fun(liana_res[score_key]) #
 
     # set negative to 0
     if non_negative:
-        liana_res[score_col] = liana_res[score_col].clip(lower=0)
+        liana_res[score_key] = liana_res[score_key].clip(lower=0)
 
     # set non-expressed to 0 (if lrs_to_keep column is present)
     if ('lrs_to_keep' in liana_res.columns) & (non_expressed_fill is not None):
-        liana_res.loc[~liana_res['lrs_to_keep'], score_col] = non_expressed_fill
+        liana_res.loc[~liana_res['lrs_to_keep'], score_key] = non_expressed_fill
 
     # split into dictionary by sample
     liana_res = {sample:df for sample, df in liana_res.groupby(sample_key)}
@@ -122,11 +125,11 @@ def to_tensor_c2c(adata=None,
         return liana_res
     
     tensor = c2c.tensor.dataframes_to_tensor(liana_res,
-                                             sender_col=sender_col,
-                                             receiver_col=receiver_col,
-                                             ligand_col=ligand_col,
-                                             receptor_col=receptor_col,
-                                             score_col=score_col)
+                                             sender_col=source_key,
+                                             receiver_col=target_key,
+                                             ligand_col=ligand_key,
+                                             receptor_col=receptor_key,
+                                             score_col=score_key)
 
     return tensor
 

@@ -10,21 +10,13 @@ def test_to_tensor_c2c():
     
     liana_dict = to_tensor_c2c(liana_res=liana_res,
                                sample_key='sample',
-                               ligand_col='ligand_complex',
-                               receptor_col='receptor_complex',
-                               receiver_col='target',
-                               sender_col='source',
-                               score_col='specificity_rank',
+                               score_key='specificity_rank',
                                return_dict=True
                                )
     assert isinstance(liana_dict, dict)
     
     tensor = to_tensor_c2c(liana_res=liana_res,
                            sample_key='sample',
-                           ligand_col='ligand_complex',
-                           receptor_col='receptor_complex',
-                           receiver_col='target',
-                           sender_col='source',
-                           score_col='specificity_rank')
+                           score_key='specificity_rank')
     assert isinstance(tensor, c2c.tensor.tensor.PreBuiltTensor)
     assert tensor.sparsity_fraction()==0.0
