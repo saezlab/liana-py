@@ -51,10 +51,14 @@ def generate_lr_geneset(resource,
                         receptor='receptor',
                         lr_separator='&',
                         source='source', 
-                        target='target',
                         weight='weight'):
     """
     Generate a ligand-receptor gene set from a resource and a network.
+    
+    Specifically, it works with weighted bipartite networks, where the weight represents the importance of the genes 
+    to a given geneset. The function will assign a weight to each ligand-receptor interaction, based on the mean.
+    It does so by first assigning a weight to each ligand-receptor subunit, checking for sign coherence and completeness
+    of the ligand-receptor complex.
     
     Parameters
     ----------
@@ -70,8 +74,6 @@ def generate_lr_geneset(resource,
         Separator to use when joining ligand and receptor, by default '&'
     source : str, optional
         Name of the source column in the network, by default 'source'
-    target : str, optional 
-        Name of the target column in the network, by default 'target'
     weight : str, optional
     
     Returns

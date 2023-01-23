@@ -91,6 +91,23 @@ and converting the output of this function to Tensor-cell2cell format.
 
 
 
+Functional utils:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+LIANA also utility function to convert e.g. geneset resources
+to a format that can be used to do enrichment analysis at 
+the ligand-receptor space.
+
+.. module:: liana
+.. currentmodule:: liana
+
+
+.. autosummary::
+   :toctree: api
+
+   funcomics.generate_lr_geneset
+
+
+
 All instances of Method Class
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Methods are implemented as instances of the same Method class.
