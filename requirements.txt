@@ -10,3 +10,4 @@ tqdm
 pytest
 setuptools
 cell2cell
+decoupler
