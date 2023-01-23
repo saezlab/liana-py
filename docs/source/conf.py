@@ -27,7 +27,6 @@ release = get_version("../../liana/__init__.py")
 version = get_version("../../liana/__init__.py")
 
 # -- General configuration
-
 extensions = [
     'sphinx.ext.duration',
     'sphinx.ext.doctest',

@@ -1,7 +1,7 @@
 Release notes
 =============
 
-0.1.6 (19.01.2023)
+0.1.6 (23.01.2023)
 -----
 - Fixed issue with duplicate subunits for non-expressed LRs when `return_all_lrs` is True
 - `min_prop` when working with `return_all_lrs` is now filled with 0s
@@ -11,6 +11,7 @@ Release notes
 - Changed "pvals" of geometric_mean method to "gmean_pvals" for consistency
 - `to_tensor_c2c` utility function to convert a long-format dataframe of ligand-receptor interactions by sample to Tensor-cell2cell tensor.
 - Added a list to track the instances of `MethodMeta` class
+- Added `generate_lr_geneset` function to generate a geneset of ligand-receptors for different prior knowledge databases
 
 
 0.1.5 (11.01.2023)

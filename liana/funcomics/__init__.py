@@ -1,1 +1,1 @@
-# Basic module to do funcomics as e.g. lr enrich like tensor
+from .generate_lr_geneset import generate_lr_geneset

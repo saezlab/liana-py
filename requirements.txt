@@ -4,7 +4,9 @@ pandas
 statsmodels
 anndata
 scanpy
-pytest
 setuptools
 plotnine
 tqdm
+pytest
+setuptools
+cell2cell
