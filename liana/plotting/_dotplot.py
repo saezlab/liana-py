@@ -73,9 +73,7 @@ def dotplot(adata: anndata.AnnData = None,
                                 source_labels=source_labels,
                                 target_labels=target_labels,
                                 size=size,
-                                colour=colour,
-                                inverse_colour=inverse_colour,
-                                inverse_size=inverse_size)
+                                colour=colour)
 
     if filterby is not None:
         msk = liana_res[filterby].apply(filter_lambda)
@@ -100,6 +98,12 @@ def dotplot(adata: anndata.AnnData = None,
         top_lrs = top_lrs.sort_values('score', ascending=orderby_ascending).head(top_n).interaction
         # Filter liana_res to the interactions in top_lrs
         liana_res = liana_res[liana_res.interaction.isin(top_lrs)]
+        
+    # inverse sc if needed
+    if inverse_colour:
+        liana_res[colour] = _inverse_scores(liana_res[colour])
+    if inverse_size:
+        liana_res[size] = _inverse_scores(liana_res[size])
 
     # generate plot
     p = (ggplot(liana_res, aes(x='target', y='interaction', colour=colour, size=size))
@@ -191,14 +195,19 @@ def dotplot_by_sample(adata: anndata.AnnData  = None,
                                 source_labels=source_labels,
                                 target_labels=target_labels,
                                 size=size,
-                                colour=colour,
-                                inverse_colour=inverse_colour,
-                                inverse_size=inverse_size)
+                                colour=colour)
     
     if ligand_complex is not None:
         liana_res = liana_res[np.isin(liana_res['ligand_complex'], ligand_complex)]
     if receptor_complex is not None:
         liana_res = liana_res[np.isin(liana_res['receptor_complex'], receptor_complex)]
+        
+        
+    # inverse sc if needed
+    if inverse_colour:
+        liana_res[colour] = _inverse_scores(liana_res[colour])
+    if inverse_size:
+        liana_res[size] = _inverse_scores(liana_res[size])
 
     p = (ggplot(liana_res, aes(x='target', y='source', colour=colour, size=size))
             + geom_point()
@@ -232,9 +241,7 @@ def _prep_liana_res(adata=None,
                     source_labels=None,
                     target_labels=None,
                     colour=None,
-                    size=None,
-                    inverse_colour=False, 
-                    inverse_size=False):
+                    size=None):
     if colour is None:
         raise ValueError('`colour` must be provided!')
     if size is None:
@@ -255,12 +262,6 @@ def _prep_liana_res(adata=None,
     liana_res = _filter_labels(liana_res, labels=target_labels, label_type='target')
     
     liana_res['interaction'] = liana_res['ligand_complex'] + ' -> ' + liana_res['receptor_complex']
-    
-    # inverse sc if needed
-    if inverse_colour:
-        liana_res[colour] = _inverse_scores(liana_res[colour])
-    if inverse_size:
-        liana_res[size] = _inverse_scores(liana_res[size])
 
     return liana_res
 
