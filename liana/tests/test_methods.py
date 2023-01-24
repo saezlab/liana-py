@@ -1,6 +1,6 @@
 import pandas
 from scanpy.datasets import pbmc68k_reduced
-from numpy import max, min
+from numpy import max, min, random
 
 from liana.method import cellphonedb, singlecellsignalr as sca, \
     natmi, connectome, logfc, geometric_mean, cellchat, rank_aggregate
@@ -47,7 +47,7 @@ def test_geometric_mean():
     assert isinstance(liana_res, pandas.DataFrame)
 
     assert 'lr_gmeans' in liana_res.columns
-    assert 'pvals' in liana_res.columns
+    assert 'gmean_pvals' in liana_res.columns
     assert max(liana_res[(liana_res.ligand == "TIMP1")].lr_gmeans) == 2.126363309240465
 
 
@@ -112,3 +112,18 @@ def test_with_all_lrs():
     assert lr_all.shape == (4200, 15)
     assert all(lr_all[~lr_all.lrs_to_keep][natmi.magnitude] == min(lr_all[natmi.magnitude])) is True
     assert all(lr_all[~lr_all.lrs_to_keep][natmi.specificity] == min(lr_all[natmi.specificity])) is True
+
+
+def test_methods_by_sample():
+    
+    # make fake sample labels
+    sample_key = 'patient'
+    rng = random.default_rng(0)
+    adata.obs[sample_key] = rng.choice(['A', 'B', 'C', 'D'], size=len(adata.obs))
+    
+    logfc.by_sample(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, sample_key=sample_key)
+    lr_by_sample = adata.uns['liana_res']
+    
+    assert sample_key in lr_by_sample.columns
+    assert lr_by_sample.shape == (10836, 15)
+    

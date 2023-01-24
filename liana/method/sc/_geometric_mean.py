@@ -41,7 +41,7 @@ _geometric_mean = MethodMeta(method_name="Geometric Mean",
                              fun=_gmean_score,
                              magnitude="lr_gmeans",
                              magnitude_ascending=False,
-                             specificity="pvals",
+                             specificity="gmean_pvals",
                              specificity_ascending=True,
                              permute=True,
                              reference="CellPhoneDBv2's permutation approach applied to the "

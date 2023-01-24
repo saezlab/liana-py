@@ -4,7 +4,7 @@ import string
 
 
 # Function to generate a liana_res sample/example
-def sample_lrs():
+def sample_lrs(by_sample=False):
     """Create sample method output for testing metrics in this task."""
     row_num = 200
     rng = np.random.default_rng(seed=1)
@@ -17,9 +17,13 @@ def sample_lrs():
     df["target"] = rng.choice(label_vector, row_num)
     df["ligand_complex"] = rng.choice(entity_vector, row_num)
     df["receptor_complex"] = rng.choice(entity_vector, row_num)
-    df["specificity"] = rng.random((200, 1))
+    df["specificity_rank"] = rng.random((200, 1))        
 
     # deduplicate
     df = df.loc[~df.duplicated()]
+    
+    if by_sample:
+        df['sample'] = rng.choice(['sample1', 'sample2'], row_num)
+        df['sample'] = df['sample'].astype('category')
 
     return df

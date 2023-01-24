@@ -1,6 +1,19 @@
 Release notes
 =============
 
+0.1.6 (23.01.2023)
+-----
+- Fixed issue with duplicate subunits for non-expressed LRs when `return_all_lrs` is True
+- `min_prop` when working with `return_all_lrs` is now filled with 0s
+- Added `by_sample` function to class Method that returns a long-format dataframe of ligand-receptors, for each sample
+- Added `dotplot_by_sample` function to visualize ligand-receptor interactions across samples
+- Refractored preprocessing of `dotplot` and `dotplot_by_sample` to a separate function
+- Changed "pvals" of geometric_mean method to "gmean_pvals" for consistency
+- `to_tensor_c2c` utility function to convert a long-format dataframe of ligand-receptor interactions by sample to Tensor-cell2cell tensor.
+- Added a list to track the instances of `MethodMeta` class
+- Added `generate_lr_geneset` function to generate a geneset of ligand-receptors for different prior knowledge databases
+
+
 0.1.5 (11.01.2023)
 -----
 - Hotfix `return_all_lrs` specificity_rank being assigned to NaN

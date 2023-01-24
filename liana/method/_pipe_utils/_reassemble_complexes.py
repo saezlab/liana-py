@@ -51,7 +51,11 @@ def filter_reassemble_complexes(lr_res,
     else:
         expressed['lrs_to_keep'] = True
         lr_res = lr_res.merge(expressed, how='left', on=_key_cols)
+         # deal with duplicated subunits
+         # subunits that are not expressed might not represent the most relevant subunit
+        lr_res.drop_duplicates(subset=_key_cols, inplace=True)
         lr_res['lrs_to_keep'].fillna(value=False, inplace=True)
+        lr_res['prop_min'].fillna(value=0, inplace=True)
 
     # check if complex policy is only min
     aggs = {complex_policy, 'min'}
@@ -98,7 +102,7 @@ def _reduce_complexes(col: str,
     # Group by keys
     lr_res = lr_res.groupby(key_cols)
 
-    # Get min cols by which we will join - CHANGE WITH A FLAG INSTEAD !!!!
+    # Get min cols by which we will join - TODO use flag instead?
     # then rename from agg name to column name (e.g. 'min' to 'ligand_min')
     cols_dict[col] = lr_res[col].agg(aggs).reset_index().copy(). \
         rename(columns={agg: col.split('_')[0] + '_' + agg for agg in aggs})

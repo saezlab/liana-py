@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import anndata
 import numpy as np
 import pandas
@@ -10,7 +12,7 @@ def _get_means_perms(adata: anndata.AnnData,
                      n_perms: int,
                      seed: int,
                      agg_fun,
-                     norm_factor: (float, None),
+                     norm_factor: float | None,
                      verbose: bool):
     """
     Generate permutations and indices required for permutation-based methods
