@@ -31,6 +31,7 @@ def to_tensor_c2c(adata=None,
                   inverse_fun = lambda x: 1 - x,
                   non_negative = True,
                   return_dict=False,
+                  **kwargs
                   ):
     """
     Function to convert a LIANA result to a tensor for cell2cell analysis.
@@ -63,6 +64,7 @@ def to_tensor_c2c(adata=None,
         Whether to make the tensor non-negative.
     return_dict : `bool`, optional (default: False)
         Whether to return a dictionary of tensors.
+    **kwargs : keyword arguments to pass to Tensor-cell2cell.
         
     Returns
     -------
@@ -129,7 +131,8 @@ def to_tensor_c2c(adata=None,
                                              receiver_col=target_key,
                                              ligand_col=ligand_key,
                                              receptor_col=receptor_key,
-                                             score_col=score_key)
+                                             score_col=score_key,
+                                             **kwargs)
 
     return tensor
 
