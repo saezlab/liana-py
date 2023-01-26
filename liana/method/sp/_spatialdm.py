@@ -324,17 +324,16 @@ def _local_spatialdm(x_mat,
                                        pos=y_pos,
                                        order=xy_dataframe.receptor)
     ligand_mat, receptor_mat = ligand_mat.T, receptor_mat.T
-    # calculate local_Rs
-    local_x = ligand_mat * (dist @ receptor_mat)
-    local_y = receptor_mat * (dist @ ligand_mat)
-    local_r = (local_x + local_y).T
+    local_r = _calculate_local_moransI(ligand_mat, receptor_mat, dist)
 
     if pvalue_method == 'permutation':
         local_pvals = _local_permutation_pvals(x_mat=ligand_mat,
                                                y_mat=receptor_mat,
                                                dist=dist,
                                                local_truth=local_r,
-                                               n_perm=n_perm, seed=seed,
+                                               local_fun=_calculate_local_moransI,
+                                               n_perm=n_perm,
+                                               seed=seed,
                                                positive_only=positive_only
                                                )
     elif pvalue_method == 'analytical':
@@ -494,3 +493,25 @@ spatialdm = SpatialDM(_method=_spatialdm,
                       _obsm_keys=['proximity']
                       )
 
+
+def _calculate_local_moransI(x_mat, y_mat, dist):
+    """
+
+    Parameters
+    ----------
+    x_mat
+        2D array with x variables
+    y_mat
+        2D array with y variables
+    dist
+    
+    Returns
+    -------
+    Returns 2D array of local Moran's I with shape(n_spot, xy_n)
+
+    """
+    local_x = x_mat * (dist @ y_mat)
+    local_y = x_mat * (dist @ y_mat)
+    local_r = (local_x + local_y).T
+
+    return local_r

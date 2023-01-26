@@ -104,7 +104,7 @@ def _local_to_dataframe(idx, columns, array):
 
 
 
-def _local_permutation_pvals(x_mat, y_mat, local_truth, dist, n_perm, seed, positive_only):
+def _local_permutation_pvals(x_mat, y_mat, dist, local_truth, local_fun,n_perm, seed, positive_only, **kwargs):
     """
 
     Parameters
@@ -132,22 +132,20 @@ def _local_permutation_pvals(x_mat, y_mat, local_truth, dist, n_perm, seed, posi
     rng = np.random.default_rng(seed)
     assert isinstance(dist, csr_matrix)
 
-    spot_n = local_truth.shape[1]  # n of 1:1 edges (e.g. lrs)
     xy_n = local_truth.shape[0]
-
+    spot_n = local_truth.shape[1]
+    
     # permutation cubes to be populated
     local_pvals = np.zeros((xy_n, spot_n))
-
+    
+    # shuffle the matrix
     for i in tqdm(range(n_perm)):
-        _idx = rng.permutation(x_mat.shape[0])
-        perm_x = ((dist @ y_mat[_idx, :]) * x_mat).T
-        perm_y = ((dist @ x_mat[_idx, :]) * y_mat).T
-        perm_r = perm_x + perm_y
+        _idx = rng.permutation(spot_n)
+        perm_score = local_fun(x_mat = x_mat[_idx, :], y_mat=y_mat, dist=dist, **kwargs)
         if positive_only:
-            local_pvals += np.array(perm_r >= local_truth, dtype=int)
+            local_pvals += np.array(perm_score >= local_truth, dtype=int)
         else:
-            # TODO Proof this makes sense
-            local_pvals += np.array(np.abs(perm_r) >= np.abs(local_truth), dtype=int)
+            local_pvals += (np.array(np.abs(perm_score) >= np.abs(local_truth), dtype=int))
 
     local_pvals = local_pvals / n_perm
 

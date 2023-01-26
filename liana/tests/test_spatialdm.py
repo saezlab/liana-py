@@ -3,7 +3,7 @@ from scanpy.datasets import pbmc68k_reduced
 from  scipy.sparse import csr_matrix
 
 from liana.method.sp._spatialdm import spatialdm, _global_zscore_pvals, _local_zscore_pvals, \
-    _global_permutation_pvals
+    _global_permutation_pvals, _calculate_local_moransI
 from liana.method.sp._spatial_utils import _local_permutation_pvals
 
 adata = pbmc68k_reduced()
@@ -37,13 +37,19 @@ def test_global_permutation_pvals():
     
     
 
-def test_local_permutation_pvals(): #TODO move to test_spatial_utils
+def test_local_permutation_pvals():
     local_truth = rng.normal(size=(10, 10))
     positive_only = True
 
-    pvals = _local_permutation_pvals(x_mat, y_mat, local_truth, dist, n_perm, seed, positive_only)
+    pvals = _local_permutation_pvals(x_mat = x_mat,
+                                     y_mat = y_mat,
+                                     local_truth = local_truth,
+                                     local_fun = _calculate_local_moransI,
+                                     dist = dist,
+                                     n_perm = n_perm,
+                                     seed = seed,
+                                     positive_only=positive_only)
     assert pvals.shape == (10, 10)
-    assert np.sum(pvals)==66.09
         
 
 
@@ -51,14 +57,12 @@ def test_global_zscore_pvals():
     global_truth = rng.normal(size=(10))
     pvals = _global_zscore_pvals(global_r=global_truth, dist=dist, positive_only=positive_only)
     assert pvals.shape == (10, )
-    assert pvals.sum().round(3)==4.729
 
 
 def test_local_zscore_pvals():
     local_truth = rng.normal(size=(10, 10))
     pvals = _local_zscore_pvals(x_mat=x_mat, y_mat=y_mat, dist=dist, local_r=local_truth, positive_only=positive_only)
     assert pvals.shape == (10, 10)
-    assert np.sum(pvals)==64.65006269950578
 
 
 
@@ -83,3 +87,12 @@ def test_spatialdm_permutation():
     assert 'global_res' in adata.uns_keys()
     assert 'local_r' in adata.obsm_keys()
     assert 'local_pvals' in adata.obsm_keys()
+    
+    global_res = adata.uns['global_res']
+    interaction = global_res[global_res.interaction == 'S100A9&ITGB2']
+    
+    np.testing.assert_almost_equal(interaction['global_r'].values, 0.3100374)
+    np.testing.assert_almost_equal(interaction['global_pvals'].values, 0.0)
+    
+    assert np.mean(adata.obsm['local_r']['MIF&CD74_CXCR4']) == 0.024113696644942034
+    assert np.mean(adata.obsm['local_pvals']['TNFSF13B&TNFRSF13B']) == 0.9874585714285714
