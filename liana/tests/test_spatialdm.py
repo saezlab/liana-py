@@ -1,8 +1,10 @@
 import numpy as np
 from scanpy.datasets import pbmc68k_reduced
+from  scipy.sparse import csr_matrix
 
-from liana.method.sp._spatialdm import spatialdm, _global_zscore_pvals, _global_permutation_pvals, \
-    _local_zscore_pvals, _local_permutation_pvals
+from liana.method.sp._spatialdm import spatialdm, _global_zscore_pvals, _local_zscore_pvals, \
+    _global_permutation_pvals
+from liana.method.sp._spatial_utils import _local_permutation_pvals
 
 adata = pbmc68k_reduced()
 proximity = np.zeros([adata.shape[0], adata.shape[0]])
@@ -10,20 +12,54 @@ np.fill_diagonal(proximity, 1)
 adata.obsm['proximity'] = proximity
 
 
+# toy test data
+seed = 0
+rng = np.random.default_rng(seed=seed)
+dist = csr_matrix(rng.normal(size=(10, 10)))
+x_mat = rng.normal(size=(10, 10))
+y_mat = rng.normal(size=(10, 10))
+n_perm = 100
+positive_only = True
+    
+
 def test_global_permutation_pvals():
-    1
+    global_truth = rng.normal(size=(10))
+
+    pvals = _global_permutation_pvals(x_mat=x_mat,
+                                      y_mat=y_mat,
+                                      global_r=global_truth,
+                                      seed=seed,  
+                                      n_perm=n_perm,
+                                      positive_only=positive_only,
+                                      dist = dist)
+    assert pvals.shape == (10, )
+    assert pvals.sum().round(3)==4.65
+    
+    
+
+def test_local_permutation_pvals(): #TODO move to test_spatial_utils
+    local_truth = rng.normal(size=(10, 10))
+    positive_only = True
+
+    pvals = _local_permutation_pvals(x_mat, y_mat, local_truth, dist, n_perm, seed, positive_only)
+    assert pvals.shape == (10, 10)
+    assert np.sum(pvals)==66.09
+        
 
 
 def test_global_zscore_pvals():
-    1
+    global_truth = rng.normal(size=(10))
+    pvals = _global_zscore_pvals(global_r=global_truth, dist=dist, positive_only=positive_only)
+    assert pvals.shape == (10, )
+    assert pvals.sum().round(3)==4.729
 
 
 def test_local_zscore_pvals():
-    1
+    local_truth = rng.normal(size=(10, 10))
+    pvals = _local_zscore_pvals(x_mat=x_mat, y_mat=y_mat, dist=dist, local_r=local_truth, positive_only=positive_only)
+    assert pvals.shape == (10, 10)
+    assert np.sum(pvals)==64.65006269950578
 
-
-def test_local_permutation_pvals():
-    1
 
 
 def test_spatialdm():

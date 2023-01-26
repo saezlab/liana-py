@@ -1,5 +1,4 @@
 import numpy as np
-from tqdm import tqdm
 from scipy.sparse import csr_matrix
 from scipy.stats import norm
 
@@ -7,8 +6,11 @@ from anndata import AnnData
 from pandas import DataFrame
 from typing import Optional
 
+from tqdm import tqdm
+
 from liana.method.sp._SpatialMethod import SpatialMethod
 from liana.method._global_lr_pipe import _global_lr_pipe
+from liana.method.sp._spatial_utils import _local_to_dataframe, _local_permutation_pvals
 
 
 class SpatialDM(SpatialMethod):
@@ -217,6 +219,56 @@ def _global_spatialdm(x_mat,
     return global_r, global_pvals
 
 
+
+def _global_permutation_pvals(x_mat, y_mat, dist, global_r, n_perm, positive_only, seed):
+    """
+    Calculate permutation pvals
+
+    Parameters
+    ----------
+    x_mat
+        Matrix with x variables
+    y_mat
+        Matrix with y variables
+    dist
+        Proximity weights 2D array
+    global_r
+        Global Moran's I, 1D array
+    n_perm
+        Number of permutations
+    positive_only
+        Whether to mask negative p-values
+    seed
+        Reproducibility seed
+
+    Returns
+    -------
+    1D array with same size as global_r
+
+    """
+    assert isinstance(dist, csr_matrix)
+    rng = np.random.default_rng(seed)
+
+    # initialize mat /w n_perm * number of X->Y
+    idx = x_mat.shape[1]
+
+    # permutation mat /w n_perms x LR_n
+    perm_mat = np.zeros((n_perm, global_r.shape[0]))
+
+    for perm in tqdm(range(n_perm)):
+        _idx = rng.permutation(idx)
+        perm_mat[perm, :] = ((x_mat[:, _idx] @ dist) * y_mat).sum(axis=1)
+
+    if positive_only:
+        global_pvals = 1 - (global_r > perm_mat).sum(axis=0) / n_perm
+    else:
+        # TODO Proof this makes sense
+        global_pvals = 2 * (1 - (np.abs(global_r) > np.abs(perm_mat)).sum(axis=0) / n_perm)
+
+    return global_pvals
+
+
+
 def _local_spatialdm(x_mat,
                      y_mat,
                      x_pos,
@@ -281,7 +333,7 @@ def _local_spatialdm(x_mat,
         local_pvals = _local_permutation_pvals(x_mat=ligand_mat,
                                                y_mat=receptor_mat,
                                                dist=dist,
-                                               local_r=local_r,
+                                               local_truth=local_r,
                                                n_perm=n_perm, seed=seed,
                                                positive_only=positive_only
                                                )
@@ -293,10 +345,6 @@ def _local_spatialdm(x_mat,
                                           positive_only=positive_only)
 
     return local_r.T, local_pvals.T
-
-
-def _local_to_dataframe(idx, columns, array):
-    return DataFrame(array, index=idx, columns=columns)
 
 
 def _standardize_matrix(mat, local=True):
@@ -317,54 +365,6 @@ def _divide_by_msq(mat):
 def _get_ordered_matrix(mat, pos, order):
     _indx = np.array([pos[x] for x in order])
     return mat[:, _indx].T
-
-
-def _global_permutation_pvals(x_mat, y_mat, dist, global_r, n_perm, positive_only, seed):
-    """
-    Calculate permutation pvals
-
-    Parameters
-    ----------
-    x_mat
-        Matrix with x variables
-    y_mat
-        Matrix with y variables
-    dist
-        Proximity weights 2D array
-    global_r
-        Global Moran's I, 1D array
-    n_perm
-        Number of permutations
-    positive_only
-        Whether to mask negative p-values
-    seed
-        Reproducibility seed
-
-    Returns
-    -------
-    1D array with same size as global_r
-
-    """
-    assert isinstance(dist, csr_matrix)
-    rng = np.random.default_rng(seed)
-
-    # initialize mat /w n_perm * number of X->Y
-    idx = x_mat.shape[1]
-
-    # permutation mat /w n_perms x LR_n
-    perm_mat = np.zeros((n_perm, global_r.shape[0]))
-
-    for perm in tqdm(range(n_perm)):
-        _idx = rng.permutation(idx)
-        perm_mat[perm, :] = ((x_mat[:, _idx] @ dist) * y_mat).sum(axis=1)
-
-    if positive_only:
-        global_pvals = 1 - (global_r > perm_mat).sum(axis=0) / n_perm
-    else:
-        # TODO Proof this makes sense
-        global_pvals = 2 * (1 - (np.abs(global_r) > np.abs(perm_mat)).sum(axis=0) / n_perm)
-
-    return global_pvals
 
 
 def _global_zscore_pvals(dist, global_r, positive_only):
@@ -402,61 +402,6 @@ def _global_zscore_pvals(dist, global_r, positive_only):
         global_zpvals = norm.sf(np.abs(global_zscores)) * 2
 
     return global_zpvals
-
-
-def _local_permutation_pvals(x_mat, y_mat, local_r, dist, n_perm, seed, positive_only):
-    """
-
-    Parameters
-    ----------
-    x_mat
-        2D array with x variables
-    y_mat
-        2D array with y variables
-    local_r
-        2D array with Local Moran's I
-    dist
-        proximity weights
-    n_perm
-        number of permutations
-    seed
-        Reproducibility seed
-    positive_only
-        Whether to mask negative correlations pvalue
-
-    Returns
-    -------
-    2D array with shape(n_spot, xy_n)
-
-    """
-    rng = np.random.default_rng(seed)
-    assert isinstance(dist, csr_matrix)
-
-    spot_n = local_r.shape[1]  # n of 1:1 edges (e.g. lrs)
-    xy_n = local_r.shape[0]
-
-    # permutation cubes to be populated
-    local_pvals = np.zeros((xy_n, spot_n))
-
-    for i in tqdm(range(n_perm)):
-        _idx = rng.permutation(x_mat.shape[0])
-        perm_x = ((dist @ y_mat[_idx, :]) * x_mat).T
-        perm_y = ((dist @ x_mat[_idx, :]) * y_mat).T
-        perm_r = perm_x + perm_y
-        if positive_only:
-            local_pvals += np.array(perm_r >= local_r, dtype=int)
-        else:
-            # TODO Proof this makes sense
-            local_pvals += 2 * np.array(np.abs(perm_r) >= np.abs(local_r), dtype=int)
-
-    local_pvals = local_pvals / n_perm
-
-    if positive_only:  # mask?
-        # only keep positive pvals where either x or y is positive
-        pos_msk = ((x_mat > 0) + (y_mat > 0)).T
-        local_pvals[~pos_msk] = 1
-
-    return local_pvals
 
 
 def _local_zscore_pvals(x_mat, y_mat, local_r, dist, positive_only):
@@ -548,3 +493,4 @@ spatialdm = SpatialDM(_method=_spatialdm,
                       _complex_cols=['ligand_means', 'receptor_means'],
                       _obsm_keys=['proximity']
                       )
+

@@ -1,10 +1,12 @@
 import numpy as np
 import pandas as pd
 import anndata
+from pandas import DataFrame
 
 from sklearn.neighbors import NearestNeighbors
 from scipy.spatial.distance import pdist, squareform
 from scipy.sparse import csr_matrix
+from tqdm import tqdm
 
 
 def get_spatial_proximity(adata: anndata.AnnData,
@@ -95,3 +97,63 @@ def get_spatial_proximity(adata: anndata.AnnData,
 
     adata.obsm['proximity'] = proximity
     return None if inplace else proximity
+
+
+def _local_to_dataframe(idx, columns, array):
+    return DataFrame(array, index=idx, columns=columns)
+
+
+
+def _local_permutation_pvals(x_mat, y_mat, local_truth, dist, n_perm, seed, positive_only):
+    """
+
+    Parameters
+    ----------
+    x_mat
+        2D array with x variables
+    y_mat
+        2D array with y variables
+    local_truth
+        2D array with non-permuted local scores/co-expressions
+    dist
+        proximity weights
+    n_perm
+        number of permutations
+    seed
+        Reproducibility seed
+    positive_only
+        Whether to mask negative correlations pvalue
+
+    Returns
+    -------
+    2D array with shape(n_spot, xy_n)
+
+    """
+    rng = np.random.default_rng(seed)
+    assert isinstance(dist, csr_matrix)
+
+    spot_n = local_truth.shape[1]  # n of 1:1 edges (e.g. lrs)
+    xy_n = local_truth.shape[0]
+
+    # permutation cubes to be populated
+    local_pvals = np.zeros((xy_n, spot_n))
+
+    for i in tqdm(range(n_perm)):
+        _idx = rng.permutation(x_mat.shape[0])
+        perm_x = ((dist @ y_mat[_idx, :]) * x_mat).T
+        perm_y = ((dist @ x_mat[_idx, :]) * y_mat).T
+        perm_r = perm_x + perm_y
+        if positive_only:
+            local_pvals += np.array(perm_r >= local_truth, dtype=int)
+        else:
+            # TODO Proof this makes sense
+            local_pvals += np.array(np.abs(perm_r) >= np.abs(local_truth), dtype=int)
+
+    local_pvals = local_pvals / n_perm
+
+    if positive_only:  # mask?
+        # only keep positive pvals where either x or y is positive
+        pos_msk = ((x_mat > 0) + (y_mat > 0)).T
+        local_pvals[~pos_msk] = 1
+
+    return local_pvals
