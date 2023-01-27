@@ -404,6 +404,29 @@ def _global_zscore_pvals(dist, global_r, positive_only):
     return global_zpvals
 
 
+def _calculate_local_moransI(x_mat, y_mat, dist):
+    """
+
+    Parameters
+    ----------
+    x_mat
+        2D array with x variables
+    y_mat
+        2D array with y variables
+    dist
+    
+    Returns
+    -------
+    Returns 2D array of local Moran's I with shape(n_spot, xy_n)
+
+    """
+    local_x = x_mat * (dist @ y_mat)
+    local_y = x_mat * (dist @ y_mat)
+    local_r = (local_x + local_y).T
+
+    return local_r
+
+
 def _local_zscore_pvals(x_mat, y_mat, local_r, dist, positive_only):
     """
 
@@ -495,24 +518,3 @@ spatialdm = SpatialDM(_method=_spatialdm,
                       )
 
 
-def _calculate_local_moransI(x_mat, y_mat, dist):
-    """
-
-    Parameters
-    ----------
-    x_mat
-        2D array with x variables
-    y_mat
-        2D array with y variables
-    dist
-    
-    Returns
-    -------
-    Returns 2D array of local Moran's I with shape(n_spot, xy_n)
-
-    """
-    local_x = x_mat * (dist @ y_mat)
-    local_y = x_mat * (dist @ y_mat)
-    local_r = (local_x + local_y).T
-
-    return local_r
