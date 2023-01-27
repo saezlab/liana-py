@@ -36,7 +36,8 @@ class SpatialDM(SpatialMethod):
                  verbose: Optional[bool] = False,
                  seed: int = 1337,
                  resource: Optional[DataFrame] = None,
-                 inplace=True):
+                 inplace=True
+                 ):
         """
         Parameters
         ----------
@@ -156,9 +157,9 @@ def _global_spatialdm(x_mat,
     Parameters
     ----------
     x_mat
-
+        Gene expression matrix for entity x (e.g. ligand)
     y_mat
-
+        Gene expression matrix for entity y (e.g. receptor)
     x_pos
         Index positions of entity x (e.g. ligand) in `mat`
     y_pos
@@ -257,7 +258,7 @@ def _global_permutation_pvals(x_mat, y_mat, dist, global_r, n_perm, positive_onl
 
     for perm in tqdm(range(n_perm)):
         _idx = rng.permutation(idx)
-        perm_mat[perm, :] = ((x_mat[:, _idx] @ dist) * y_mat).sum(axis=1)
+        perm_mat[perm, :] = ((x_mat[:, _idx] @ dist) * y_mat).sum(axis=1) # flipped x_mat
 
     if positive_only:
         global_pvals = 1 - (global_r > perm_mat).sum(axis=0) / n_perm
