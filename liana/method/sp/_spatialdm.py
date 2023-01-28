@@ -82,7 +82,8 @@ class SpatialDM(SpatialMethod):
         - :attr:`anndata.AnnData.obsm` ``['local_pvals']`` with  `3)`
 
         """
-        assert pvalue_method in ['analytical', 'permutation']
+        if pvalue_method not in ['analytical', 'permutation']:
+            raise ValueError('pvalue_method must be one of [analytical, permutation]')
 
         temp, lr_res, ligand_pos, receptor_pos = _global_lr_pipe(adata=adata,
                                                                  resource_name=resource_name,
@@ -150,7 +151,9 @@ def _global_spatialdm(x_mat,
                       seed,
                       n_perm,
                       pvalue_method,
-                      positive_only):
+                      positive_only,
+                      x_key = 'ligand',
+                      y_key = 'receptor'):
     """
     Global Moran's Bivariate I as implemented in SpatialDM
 
@@ -194,10 +197,10 @@ def _global_spatialdm(x_mat,
     # convert to spot_n x lr_n matrices
     x_mat = _get_ordered_matrix(mat=x_mat,
                                 pos=x_pos,
-                                order=xy_dataframe.ligand)
+                                order=xy_dataframe[x_key])
     y_mat = _get_ordered_matrix(mat=y_mat,
                                 pos=y_pos,
-                                order=xy_dataframe.receptor)
+                                order=xy_dataframe[y_key])
 
     # Get global r
     global_r = ((x_mat @ dist) * y_mat).sum(axis=1)
@@ -279,7 +282,9 @@ def _local_spatialdm(x_mat,
                      n_perm,
                      seed,
                      pvalue_method,
-                     positive_only
+                     positive_only,
+                     x_key = 'ligand',
+                     y_key = 'receptor'
                      ):
     """
     Local Moran's Bivariate I as implemented in SpatialDM
@@ -320,10 +325,10 @@ def _local_spatialdm(x_mat,
 
     ligand_mat = _get_ordered_matrix(mat=x_mat,
                                      pos=x_pos,
-                                     order=xy_dataframe.ligand)
+                                     order=xy_dataframe[x_key])
     receptor_mat = _get_ordered_matrix(mat=y_mat,
                                        pos=y_pos,
-                                       order=xy_dataframe.receptor)
+                                       order=xy_dataframe[y_key])
     ligand_mat, receptor_mat = ligand_mat.T, receptor_mat.T
     local_r = _calculate_local_moransI(ligand_mat, receptor_mat, dist)
 

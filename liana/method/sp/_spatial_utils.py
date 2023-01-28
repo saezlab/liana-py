@@ -106,6 +106,7 @@ def _local_to_dataframe(idx, columns, array):
 
 def _local_permutation_pvals(x_mat, y_mat, dist, local_truth, local_fun,n_perm, seed, positive_only, **kwargs):
     """
+    Calculate local pvalues for a given local score function.
 
     Parameters
     ----------
@@ -149,7 +150,7 @@ def _local_permutation_pvals(x_mat, y_mat, dist, local_truth, local_fun,n_perm, 
 
     local_pvals = local_pvals / n_perm
 
-    if positive_only:  # mask?
+    if positive_only:  # TODO change to directed mask (both, negative, positive)
         # only keep positive pvals where either x or y is positive
         pos_msk = ((x_mat > 0) + (y_mat > 0)).T
         local_pvals[~pos_msk] = 1

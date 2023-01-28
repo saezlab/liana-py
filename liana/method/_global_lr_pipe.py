@@ -23,26 +23,28 @@ def _global_lr_pipe(adata,
     Parameters
     ----------
     adata
-
+        The annotated data matrix of shape `n_obs` × `n_vars`. Rows correspond to cells and
     resource
-
+        Ligand-receptor resource as a pandas dataframe with columns: ligand, receptor
     resource_name
-
+        Name of the resource
     expr_prop
-
+        Proportion of expression of the ligand and receptor in a cell for the interaction to be considered
     layer
-
+        Layer to use for the analysis. If None, use raw or X
     verbose
-
+        Verbosity
     _obms_keys
-
+        Keys of the adata.obsm to use for the analysis
     _key_cols
-
+        Columns to use as keys for the resource
     _complex_cols
-
+        Columns to use as keys for the complexes
 
     Returns
     -------
+    Returns adata, lr_res, ligand_pos, receptor_pos
+    
 
     """
     # prep adata
