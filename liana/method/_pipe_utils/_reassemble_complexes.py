@@ -71,13 +71,12 @@ def filter_reassemble_complexes(lr_res,
     # check if there are any duplicated subunits
     duplicate_mask = lr_res.duplicated(subset=_key_cols, keep=False)
     if duplicate_mask.any():
-        lr_res = lr_res.drop_duplicates(subset=_key_cols, keep='first')
-        
         # check if there are any non-equal subunit values
         if not lr_res[duplicate_mask].groupby(_key_cols)[complex_cols].transform(lambda x: x.duplicated(keep=False)).all().all():
             print('Warning: there were duplicated subunits in the complexes. ' + 
                   'The subunits were reduced to only the minimum expression subunit. ' +
                   'However, there were subunits that were not the same within a complex. ')
+        lr_res = lr_res.drop_duplicates(subset=_key_cols, keep='first')
 
     return lr_res
 
