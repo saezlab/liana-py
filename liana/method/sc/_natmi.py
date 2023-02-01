@@ -27,7 +27,7 @@ def _natmi_score(x) -> tuple:
     return expr_prod, spec_weight
 
 
-# Initialize CPDB Meta
+# Initialize natmi Meta
 _natmi = MethodMeta(method_name="NATMI",
                     complex_cols=['ligand_means', 'receptor_means'],
                     add_cols=['ligand_means_sums', 'receptor_means_sums'],

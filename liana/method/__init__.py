@@ -1,11 +1,12 @@
 from ._Method import Method, MethodMeta, _show_methods
 from .sc._rank_aggregate import AggregateClass, _rank_aggregate_meta
 from .sc import cellphonedb, connectome, logfc, natmi, singlecellsignalr, geometric_mean, cellchat
+from .ml.scores import mebocost
 
 import numpy as np
 
 # callable consensus instance
-_methods = [cellphonedb, connectome, logfc, natmi, singlecellsignalr, cellchat]
+_methods = [cellphonedb, connectome, logfc, natmi, singlecellsignalr, cellchat, mebocost]
 rank_aggregate = AggregateClass(_rank_aggregate_meta, methods=_methods)
 
 
