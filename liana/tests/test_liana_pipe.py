@@ -26,7 +26,7 @@ seed = 1337
 
 
 # Test ALL Default parameters
-def test_liana_pipe_defaults_shape():
+def test_liana_pipe_defaults():
     all_defaults = liana_pipe(adata=adata,
                               groupby=groupby,
                               resource_name=resource_name,

@@ -1,6 +1,15 @@
 Release notes
 =============
 
+0.1.7 (02.02.2023)
+------------------
+
+- Fixed an edge case where subunits within the same complex with identical values resulted in duplicates.
+These are now arbitrarily removed according to random order.
+- All methods' complexes will now be re-assembled according to the closest stat to expression that each 
+method uses, e.g. `cellchat` will use `trimeans` and the rest `means`.
+
+
 0.1.6 (23.01.2023)
 -----
 - Fixed issue with duplicate subunits for non-expressed LRs when `return_all_lrs` is True
