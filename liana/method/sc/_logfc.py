@@ -23,9 +23,8 @@ def _logfc_score(x):
 
 # Initialize CPDB Meta
 _logfc = MethodMeta(method_name="log2FC",
-                    complex_cols=['ligand_means', 'receptor_means',
-                                  'ligand_logfc', 'receptor_logfc'],
-                    add_cols=[],
+                    complex_cols=['ligand_means', 'receptor_means'],
+                    add_cols=['ligand_logfc', 'receptor_logfc'],
                     fun=_logfc_score,
                     magnitude=None,
                     magnitude_ascending=None,

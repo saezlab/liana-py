@@ -4,6 +4,7 @@ Functions to deal with protein complexes
 from __future__ import annotations
 
 import pandas as pd
+import numpy as np
 
 
 def filter_reassemble_complexes(lr_res,
@@ -59,18 +60,18 @@ def filter_reassemble_complexes(lr_res,
 
     # check if complex policy is only min
     aggs = {complex_policy, 'min'}
-
-    cols_dict = {}
+    
     for col in complex_cols:
-        lr_res = _reduce_complexes(col=col, cols_dict=cols_dict,
-                                   lr_res=lr_res, key_cols=_key_cols,
+        lr_res = _reduce_complexes(col=col, 
+                                   lr_res=lr_res,
+                                   key_cols=_key_cols,
                                    aggs=aggs)
 
     return lr_res
 
 
+
 def _reduce_complexes(col: str,
-                      cols_dict: dict,
                       lr_res: pd.DataFrame,
                       key_cols: list,
                       aggs: (dict | str)
@@ -82,9 +83,7 @@ def _reduce_complexes(col: str,
     ------------
 
     col
-        column by which we are reducing
-    cols_dict
-        dictionary that we populate with the reduced results for each ligand and receptor column
+        column by which we are reducing the complexes
     lr_res
      liana_pipe generated long DataFrame
     key_cols
@@ -103,16 +102,16 @@ def _reduce_complexes(col: str,
     # Group by keys
     lr_res = lr_res.groupby(key_cols)
 
-    # Get min cols by which we will join - TODO use flag instead?
+    # Get min cols by which we will join
     # then rename from agg name to column name (e.g. 'min' to 'ligand_min')
-    cols_dict[col] = lr_res[col].agg(aggs).reset_index().copy(). \
+    lr_min = lr_res[col].agg(aggs).reset_index().copy(). \
         rename(columns={agg: col.split('_')[0] + '_' + agg for agg in aggs})
 
     # right is the min subunit for that column
     join_key = col.split('_')[0] + '_min'  # ligand_min or receptor_min
 
     # Here, I join the min value and keep only those rows that match
-    lr_res = lr_res.obj.merge(cols_dict[col], on=key_cols)
+    lr_res = lr_res.obj.merge(lr_min, on=key_cols, how='inner')
     lr_res = lr_res[lr_res[col] == lr_res[join_key]].drop(join_key, axis=1)
 
     return lr_res
