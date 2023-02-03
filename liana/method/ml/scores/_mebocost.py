@@ -1,7 +1,6 @@
 from liana.method._Method import Method, MethodMeta
 from ..._pipe_utils._get_mean_perms import _get_lr_pvals # from cellphonedb
 from numpy import mean
-# write function that efficiently reads in a dataframe from csv and returns a dataframe using numpy
 
 def _simple_prod(x, y): return (x * y) 
 

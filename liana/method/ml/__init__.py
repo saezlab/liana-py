@@ -1,17 +1,18 @@
-from ._ml_Method import Method, MethodMeta  #, _show_methods
-from ..sc._rank_aggregate import AggregateClass, _rank_aggregate_meta
+from ._ml_Method import _show_met_est_methods
+from .met_inf._mrank_aggregate import MetabAggregateClass, _mrank_aggregate_meta
 from .scores._mebocost import mebocost
+from .met_inf._mebocost_est import mebocost_est
 
 import numpy as np
 
 # callable consensus instance
-_methods = [mebocost]
-rank_aggregate = AggregateClass(_rank_aggregate_meta, methods=_methods)
+_mmethods = [mebocost_est]
+rank_aggregate = MetabAggregateClass(_mrank_aggregate_meta, methods=_mmethods)
 
 
-# def show_methods():
-#     """Shows methods available in LIANA"""
-#     return _show_methods(_methods + [rank_aggregate, geometric_mean])
+def show_met_est_methods():
+     """Shows metaboic estimation methods available in LIANA"""
+     return _show_met_est_methods(_mmethods + [rank_aggregate])
 
 
 
