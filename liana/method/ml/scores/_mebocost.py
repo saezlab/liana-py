@@ -1,4 +1,4 @@
-from liana.method._Method import Method, MethodMeta
+from liana.method.ml._ml_Method import MetabMethod, MetabMethodMeta
 from ..._pipe_utils._get_mean_perms import _get_lr_pvals # from cellphonedb
 from numpy import mean
 
@@ -31,9 +31,9 @@ def _mebocost_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
     if (x.ligand_means == 0) | (x.receptor_means == 0):
         return 0, 1
 
-    # calculate the permu
+    # calculate the permutation scores
     scores = _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, _simple_prod)
-
+    
     # calculate the mebocost score
     mebocost_score =  scores[0]/mean(perms)
 
@@ -43,22 +43,26 @@ def _mebocost_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
 
 
 # Initialize mebocost Meta
-_mebocost = MethodMeta(method_name="MEBOCOST",
-                    complex_cols=['ligand_means', 'receptor_means'], ## attention
-                    add_cols=['ligand_means_sums', 'receptor_means_sums'], ## attention
-                    fun=_mebocost_score,
-                    magnitude='mebocost_score', ## attention
-                    magnitude_ascending=False,  ## attention
-                    specificity='cellphone_pval', ## attention
-                    specificity_ascending=True,  ## attention
-                    permute=True,
-                    reference='Zheng, R., Zhang, Y., Tsuji, T., Zhang, L., Tseng, Y.-H.& Chen,'
-                              'K., 2022,“MEBOCOST: Metabolic Cell-Cell Communication Modeling '
-                              'by Single Cell Transcriptome,” BioRxiv.'
+_mebocost = MetabMethodMeta(est_method_name="MEBOCOST_EST",
+                            score_method_name="MEBOCOST",
+                            complex_cols=['ligand_means', 'receptor_means'],
+                            add_cols=['ligand_means_sums', 'receptor_means_sums'],
+                            fun=_mebocost_score,
+                            magnitude='mebocost_score',
+                            magnitude_ascending=False, 
+                            specificity='cellphone_pval',
+                            specificity_ascending=True,  
+                            permute=True,
+                            agg_fun=_simple_prod,
+                            score_reference='Zheng, R., Zhang, Y., Tsuji, T., Zhang, L., Tseng, Y.-H.& Chen,'
+                                    'K., 2022,“MEBOCOST: Metabolic Cell-Cell Communication Modeling '
+                                    'by Single Cell Transcriptome,” BioRxiv.',
+                            est_reference=None
+                            
                     )
 
 # Initialize callable Method instance
-mebocost = Method(_SCORE=_mebocost)
+mebocost = MetabMethod(_SCORE=_mebocost, output = 'CCC')
 
 
 

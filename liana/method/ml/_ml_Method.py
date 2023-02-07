@@ -18,9 +18,19 @@ class MetabMethodMeta:
     instances = [] ## TODO separate instances for each subclass
     
     def __init__(self,
-                 method_name: str,
+                 score_method_name: str,
+                 est_method_name: str,
                  fun,
-                 reference: str
+                 est_reference: str,
+                 score_reference: str,
+                 complex_cols: list,
+                 add_cols: list,
+                 magnitude: str | None,
+                 magnitude_ascending: bool | None,
+                 specificity: str | None,
+                 specificity_ascending: bool | None,
+                 permute: bool,
+                 agg_fun,
                  ):
         """
         Parameters
@@ -33,26 +43,36 @@ class MetabMethodMeta:
             Publication reference in Harvard style
         """
         self.__class__.instances.append(weakref.proxy(self))
-        self.method_name = method_name
+        self.score_method_name = score_method_name
+        self.est_method_name = est_method_name
+        self.est_reference = est_reference
+        self.complex_cols = complex_cols
+        self.add_cols = add_cols
         self.fun = fun
-        self.reference = reference
+        self.magnitude = magnitude
+        self.magnitude_ascending = magnitude_ascending
+        self.specificity = specificity
+        self.specificity_ascending = specificity_ascending
+        self.permute = permute
+        self.score_reference = score_reference
+        self.agg_fun = agg_fun
 
     # describe self
     def describe(self):
         """Briefly described the method"""
         print(
-            f"{self.method_name} uses xxx"
+            f"{self.score_method_name} uses xxx"
             f" xx"
         )
 
-    def reference(self):
+    def score_reference(self):
         """Prints out reference in Harvard format"""
-        print(self.reference)
+        print(self.score_reference)
 
     def get_meta(self):
         """Returns method metadata as pandas row"""
-        meta = DataFrame([{"Method Name": self.method_name,
-                           "Reference": self.reference
+        meta = DataFrame([{"Method Name": self.score_method_name,
+                           "Reference": self.score_reference
                            }])
         return meta
     
@@ -96,12 +116,24 @@ class MetabMethod(MetabMethodMeta):
     """
     liana's Method Class
     """
-    def __init__(self, _ESTIMATION):
-        super().__init__(method_name=_ESTIMATION.method_name,
-                         fun=_ESTIMATION.fun,
-                         reference=_ESTIMATION.reference
+    def __init__(self, output, _SCORE):
+        super().__init__(est_method_name=_SCORE.est_method_name,
+                         score_method_name=_SCORE.score_method_name,
+                         est_reference=_SCORE.est_reference,
+                         score_reference=_SCORE.score_reference,
+                         complex_cols=_SCORE.complex_cols,
+                         add_cols=_SCORE.add_cols,
+                         fun=_SCORE.fun,
+                         magnitude=_SCORE.magnitude,
+                         magnitude_ascending=_SCORE.magnitude_ascending,
+                         specificity=_SCORE.specificity,
+                         specificity_ascending=_SCORE.specificity_ascending,
+                         permute=_SCORE.permute,
+                         agg_fun=_SCORE.agg_fun
                          )
-        self._ESTIMATION = _ESTIMATION
+        self._SCORE = _SCORE
+        
+
 
     def __call__(self,
                  adata: AnnData,
@@ -117,9 +149,11 @@ class MetabMethod(MetabMethodMeta):
                  return_all_lrs: bool = False,
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
-                 de_method='t-test',
                  verbose: Optional[bool] = False,
-                 inplace=True):
+                 n_perms: int = 1000,
+                 seed: int = 1337,
+                 inplace=True,
+                 output: str = 'CCC'):
         """
         Parameters
         ----------
@@ -173,24 +207,26 @@ class MetabMethod(MetabMethodMeta):
             supp_columns = []
 
         ml_res = ml_pipe(adata=adata,
-                               groupby=groupby,
-                               resource_name='mebocost',
-                               resource=resource,
-                               met_est_resource_name=met_est_resource_name,
-                               met_est_resource=met_est_resource,
-                               expr_prop=expr_prop,
-                               min_cells=min_cells,
-                               supp_columns=supp_columns,
-                               return_all_lrs=return_all_lrs,
-                               base=base,
-                               de_method=de_method,
-                               verbose=verbose,
-                               _estimation=self._ESTIMATION,
-                               use_raw=use_raw,
-                               layer=layer,
-                               )
+                        groupby=groupby,
+                        resource_name='mebocost',
+                        resource=resource,
+                        met_est_resource_name=met_est_resource_name,
+                        met_est_resource=met_est_resource,
+                        expr_prop=expr_prop,
+                        min_cells=min_cells,
+                        supp_columns=supp_columns,
+                        return_all_lrs=return_all_lrs,
+                        base=base,
+                        verbose=verbose,
+                        use_raw=use_raw,
+                        n_perms=n_perms,
+                        seed=seed,
+                        layer=layer,
+                        output=output,
+                        _score = self._SCORE,)
         if inplace:
-            adata.obsm['metabolite_abundance'] = ml_res
+            adata.obsm['metabolite_abundance'] = ml_res[0]
+            adata.uns['CCC_res'] = ml_res[1]
 
         
         return None if inplace else ml_res

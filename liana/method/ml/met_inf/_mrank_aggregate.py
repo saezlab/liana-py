@@ -8,12 +8,13 @@ from typing import Optional
 
 class MetabAggregateClass(MetabMethodMeta):
     """LIANA's Method Consensus Class"""
-    def __init__(self, _ESTIMATION, methods):
-        super().__init__(method_name=_ESTIMATION.method_name,
-                         fun=_ESTIMATION.fun,
-                         reference=_ESTIMATION.reference
+    def __init__(self, methods, _SCORE):
+        super().__init__(score_method_name=_SCORE.score_method_name,
+                         fun=_SCORE.fun,
+                         reference=_SCORE.reference
                          )
-        self._ESTIMATION = _ESTIMATION
+
+        self._SCORE = _SCORE
         self.methods = methods
         self.steady = 'steady_rank'
         self.steady_ascending = True
@@ -23,7 +24,7 @@ class MetabAggregateClass(MetabMethodMeta):
     def describe(self):
         """Briefly described the method"""
         print(
-            f"fix !!! new metabolite method name: {self.method_name}"
+            f"fix !!! new metabolite method name: {self.score_method_name}"
         )
 
     def __call__(self,
@@ -115,9 +116,9 @@ class MetabAggregateClass(MetabMethodMeta):
         return None if inplace else ml_res
 
 _mrank_aggregate_meta = \
-    MetabMethodMeta(method_name="MRank_Aggregate",
+    MetabMethodMeta(score_method_name="MRank_Aggregate",
                fun=None,  # change to _robust_rank
-               reference='Dimitrov, D., Türei, D., Garrido-Rodriguez, M., Burmedi, P.L., '
+               score_reference='Dimitrov, D., Türei, D., Garrido-Rodriguez, M., Burmedi, P.L., '
                          'Nagai, J.S., Boys, C., Ramirez Flores, R.O., Kim, H., Szalai, B., '
                          'Costa, I.G. and Valdeolivas, A., 2022. Comparison of methods and '
                          'resources for cell-cell communication inference from single-cell '

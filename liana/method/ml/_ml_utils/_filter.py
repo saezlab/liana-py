@@ -23,7 +23,5 @@ def filter_ml_resource(resource: DataFrame, met_ids: Index, var_names: Index) ->
     """
     # Remove those without any subunit
     resource = resource[(np.isin(resource.ligand, met_ids)) & (np.isin(resource.receptor, var_names))]
-
-    print(resource)
  
     return resource
