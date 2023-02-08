@@ -4,12 +4,9 @@ Release notes
 0.1.7 (08.02.2023)
 ------------------
 
-- Fixed an edge case where subunits within the same complex with identical values resulted in duplicates.
+- Fixed an edge case where subunits within the same complex with identical values resulted in duplicates. These are now arbitrarily removed according to random order.
 
-These are now arbitrarily removed according to random order.
-
-- All methods' complexes will now be re-assembled according to the closest stat to expression that each 
-method uses, e.g. `cellchat` will use `trimeans` and the rest `means`.
+- All methods' complexes will now be re-assembled according to the closest stat to expression that each method uses, e.g. `cellchat` will use `trimeans` and the rest `means`.
 
 - Added a basic liana to Tensor-cell2cell tutorial as a solution to liana issue #5
 
