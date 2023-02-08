@@ -45,3 +45,5 @@ Türei, D., Valdeolivas, A., Gul, L., Palacio‐Escat, N., Klein, M., Ivanova, O
    :caption: Vignettes
 
    notebooks/basic_usage
+
+   notebooks/liana_c2c
