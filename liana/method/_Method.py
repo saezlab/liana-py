@@ -5,6 +5,7 @@ from ._liana_pipe import liana_pipe
 from anndata import AnnData
 from pandas import DataFrame, concat
 from typing import Optional
+from tqdm import tqdm
 import weakref
 
 
@@ -101,7 +102,8 @@ class MethodMeta:
                 whether to store the results in `adata.uns['liana_res']` or return a dataframe
             
             verbose
-                whether to print verbose output
+                Possible values: False, True, 'full', where 'full' will print the results for each sample,
+                and True will only print the sample progress bar. Default is False.
             
             **kwargs
                 keyword arguments to pass to the method
@@ -119,17 +121,23 @@ class MethodMeta:
             (f"`{sample_key}` was assigned as a categorical.")
             adata.obs[sample_key] = adata.obs[sample_key].astype("category")
             
+        if verbose == 'full':
+            verbose = True
+            full_verbose = True
+        else:
+            full_verbose = False
+            
         samples = adata.obs[sample_key].cat.categories 
             
         adata.uns['liana_res'] = {}
-
-        for sample in samples:
+        
+        for sample in (progress_bar := tqdm(samples, disable=not verbose)):
             if verbose:
-                print("Now running {}".format(sample))
+                progress_bar.set_description(f"Now running: {sample}")
 
             temp = adata[adata.obs[sample_key]==sample].copy()
 
-            sample_res = self.__call__(temp, inplace=False, verbose=verbose, **kwargs)
+            sample_res = self.__call__(temp, inplace=False, verbose=full_verbose, **kwargs)
 
             adata.uns['liana_res'][sample] = sample_res
 

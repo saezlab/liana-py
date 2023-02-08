@@ -45,7 +45,7 @@ _geometric_mean = MethodMeta(method_name="Geometric Mean",
                              specificity_ascending=True,
                              permute=True,
                              reference="CellPhoneDBv2's permutation approach applied to the "
-                                       "geometric means of ligand-receptors, as opposed to "
+                                       "geometric means of ligand-receptors' mean, as opposed to "
                                        "their arithmetic mean."
                              )
 
