@@ -1,7 +1,8 @@
 from liana.method.ml._ml_Method import MetabMethod, MetabMethodMeta
-from ..._pipe_utils._get_mean_perms import _get_lr_pvals # from cellphonedb
+from ..._pipe_utils._get_mean_perms import _get_lr_pvals 
 from numpy import mean
 
+# define a function that calculates the product of two numbers
 def _simple_prod(x, y): return (x * y) 
 
 # write function that calculates the mebocost score from transcriptome and metabolome data
@@ -33,13 +34,13 @@ def _mebocost_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
 
     # calculate the permutation scores
     scores = _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, _simple_prod)
-    
+
     # calculate the mebocost score
     mebocost_score =  scores[0]/mean(perms)
 
     return mebocost_score, scores[1]
 
-
+# add fdr and expr_prop to the mebocost score !!!!
 
 
 # Initialize mebocost Meta
@@ -53,7 +54,7 @@ _mebocost = MetabMethodMeta(est_method_name="MEBOCOST_EST",
                             specificity='cellphone_pval',
                             specificity_ascending=True,  
                             permute=True,
-                            agg_fun=_simple_prod,
+                            agg_fun=_simple_prod, #check again
                             score_reference='Zheng, R., Zhang, Y., Tsuji, T., Zhang, L., Tseng, Y.-H.& Chen,'
                                     'K., 2022,“MEBOCOST: Metabolic Cell-Cell Communication Modeling '
                                     'by Single Cell Transcriptome,” BioRxiv.',
@@ -62,7 +63,7 @@ _mebocost = MetabMethodMeta(est_method_name="MEBOCOST_EST",
                     )
 
 # Initialize callable Method instance
-mebocost = MetabMethod(_SCORE=_mebocost, output = 'CCC')
+mebocost = MetabMethod(_SCORE=_mebocost)
 
 
 

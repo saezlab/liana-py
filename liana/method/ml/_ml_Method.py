@@ -1,5 +1,4 @@
 from __future__ import annotations
-from liana.method._Method import MethodMeta
 
 from ._ml_pipe import ml_pipe
 
@@ -116,7 +115,7 @@ class MetabMethod(MetabMethodMeta):
     """
     liana's Method Class
     """
-    def __init__(self, output, _SCORE):
+    def __init__(self, _SCORE):
         super().__init__(est_method_name=_SCORE.est_method_name,
                          score_method_name=_SCORE.score_method_name,
                          est_reference=_SCORE.est_reference,
@@ -138,7 +137,7 @@ class MetabMethod(MetabMethodMeta):
     def __call__(self,
                  adata: AnnData,
                  groupby: str,
-                 resource_name: str = 'consensus',
+                 output: str = 'CCC',
                  resource: Optional[DataFrame] = None,
                  met_est_resource_name: str = 'consensus',
                  met_est_resource: Optional[DataFrame] = None,
@@ -152,8 +151,7 @@ class MetabMethod(MetabMethodMeta):
                  verbose: Optional[bool] = False,
                  n_perms: int = 1000,
                  seed: int = 1337,
-                 inplace=True,
-                 output: str = 'CCC'):
+                 inplace=True):
         """
         Parameters
         ----------
@@ -161,8 +159,14 @@ class MetabMethod(MetabMethodMeta):
             Annotated data object.
         groupby
             The key of the observations grouping to consider.
+        output
+            Full MR calculation (CCC) or only metabolite estimation (ME).
         resource_name
             Name of the resource to be loaded and use for ligand-receptor inference.
+        met_est_resource_name
+            Name of the resource to be loaded and use for metabolite estimation.
+        met_est_resource
+            Metabolite-gene links to be used for metabolite estimation.
         expr_prop
             Minimum expression proportion for the ligands/receptors (and their subunits) in the
             corresponding cell identities. Set to `0`, to return unfiltered results.
@@ -216,7 +220,6 @@ class MetabMethod(MetabMethodMeta):
                         min_cells=min_cells,
                         supp_columns=supp_columns,
                         return_all_lrs=return_all_lrs,
-                        base=base,
                         verbose=verbose,
                         use_raw=use_raw,
                         n_perms=n_perms,
@@ -231,12 +234,6 @@ class MetabMethod(MetabMethodMeta):
         
         return None if inplace else ml_res
         
-        
-    
-
 
 def _show_met_est_methods(metab_methods):
     return concat([mmethod.get_meta() for mmethod in metab_methods])
-
-
-
