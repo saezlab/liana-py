@@ -25,9 +25,8 @@ def _connectome_score(x) -> tuple:
 
 # Initialize CPDB Meta
 _connectome = MethodMeta(method_name="Connectome",
-                         complex_cols=['ligand_zscores', 'receptor_zscores',
-                                       'ligand_means', 'receptor_means'],
-                         add_cols=[],
+                         complex_cols=['ligand_means', 'receptor_means'],
+                         add_cols=['ligand_zscores', 'receptor_zscores'],
                          fun=_connectome_score,
                          magnitude='expr_prod',
                          magnitude_ascending=False,

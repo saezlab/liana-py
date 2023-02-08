@@ -14,6 +14,9 @@ This is its faster and memory efficient Python implementation, an R version is a
 
 For further information please check LIANA's [documentation](https://liana-py.readthedocs.io/en/latest/api.html), and also [tutorial](https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html).
 
+We also refer users to the [Cell-cell communication chapter](https://www.sc-best-practices.org/mechanisms/cell_cell_communication.html) in the best-practices book from Theis lab, as it provides an overview of the common limitations and assumptions in CCC inference from (single-cell) transcriptomics data.
+
+
 ## Install LIANA
 
 Install liana's stable version:

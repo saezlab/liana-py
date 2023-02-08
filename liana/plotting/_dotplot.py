@@ -189,7 +189,6 @@ def dotplot_by_sample(adata: anndata.AnnData  = None,
     
     """
     
-    
     liana_res = _prep_liana_res(adata=adata,
                                 liana_res=liana_res, 
                                 source_labels=source_labels,

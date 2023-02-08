@@ -64,7 +64,7 @@ def to_tensor_c2c(adata=None,
         Whether to make the tensor non-negative.
     return_dict : `bool`, optional (default: False)
         Whether to return a dictionary of tensors.
-    **kwargs : keyword arguments to pass to Tensor-cell2cell.
+    **kwargs : keyword arguments to pass to Tensor-cell2cell's `cell2cell.tensor.external_scores.dataframes_to_tensor` function.
         
     Returns
     -------
