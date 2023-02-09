@@ -4,7 +4,7 @@ import pathlib
 from pandas import DataFrame
 
 
-def select_ml_resource(resource_name: str = 'consensus') -> DataFrame:
+def select_ml_resource(met_est_resource_name: str = 'metalinksdb') -> DataFrame:
     """
     Read resource of choice from the pre-generated resources in LIANA.
 
@@ -19,14 +19,21 @@ def select_ml_resource(resource_name: str = 'consensus') -> DataFrame:
 
     """
 
-    resource_name = resource_name.lower()
+    met_est_resource_name = met_est_resource_name.lower()
+        
+    if met_est_resource_name == 'oceandb':
 
-    #resource_path = pathlib.Path(__file__).parent.joinpath("omni_resource.csv")
-    resource_path = '/home/efarr/MEBOCOST/MEBOCOST/data/mebocost_db/human/metabolite_associated_gene_reaction_HMDB_summary.tsv'
-    resource = read_csv(resource_path, sep='\t')
+        resource_path = '~/Documents/Database_old/recon3D_full/proddeg_ocean.csv'
+        met_est_resource = read_csv(resource_path, sep=',')
+        
+    elif met_est_resource_name == 'metalinksdb':    
 
+        resource_path = '~/Documents/Database_old/recon3D_full/proddeg_liana.csv'
+        met_est_resource = read_csv(resource_path, sep=',')
     
-    return resource
+    #resource_path = pathlib.Path(__file__).parent.joinpath("omni_resource.csv")
+
+    return met_est_resource
 
 
 def show_ml_resources():

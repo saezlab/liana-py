@@ -1,28 +1,26 @@
 from __future__ import annotations
 
-import anndata
-import pandas
-
 from liana.method._pipe_utils import prep_check_adata
 from liana.method.ml._ml_utils._filter import filter_ml_resource
-from ...resource.ml import select_ml_resource, explode_proddeg
+from ...resource.ml import select_ml_resource
 from ...resource import select_resource
+from .estimations import _metalinks_estimation
 
-
-import pandas as pd
+from anndata import AnnData
+from pandas import DataFrame, Index, concat
 import numpy as np
-import scipy
+from scipy import sparse
 from tqdm import tqdm
+from statsmodels.stats.multitest import fdrcorrection
 
 
 
-def ml_pipe(adata: anndata.AnnData,
+def ml_pipe(adata: AnnData,
                groupby: str,
-               output:  str,
                resource_name: str,
-               resource: pd.DataFrame | None,
+               resource: DataFrame | None,
                met_est_resource_name: str,
-               met_est_resource: pd.DataFrame | None,
+               met_est_resource: DataFrame | None,
                min_cells: int,
                expr_prop: float,
                verbose: bool,
@@ -104,9 +102,6 @@ def ml_pipe(adata: anndata.AnnData,
         supp_columns = []
     _add_cols = _add_cols + ['ligand', 'receptor', 'ligand_props', 'receptor_props'] + supp_columns
 
-    if verbose:
-        print(f"Run with {output} as output")
-
     # Check and Reformat Mat if needed
     adata = prep_check_adata(adata=adata,
                              groupby=groupby,
@@ -116,42 +111,43 @@ def ml_pipe(adata: anndata.AnnData,
                              verbose=verbose)
 
     # Load metabolite resource
-    met_est_resource = select_ml_resource(met_est_resource_name.lower())
-
-    # Expand resource to one row per producing/degrading enzyme
-    met_est_resource = explode_proddeg(met_est_resource)
+    met_est_resource = select_ml_resource(met_est_resource_name)
 
     if verbose:
-        print(f"Estimating abundance of {len(met_est_resource['HMDB_ID'].unique().tolist())} metabolites ")
+        print(f"Estimating abundance of {len(met_est_resource['HMDB'].unique())} metabolites "
+                f"present in {met_est_resource_name} resource.")
 
     # Estimate metabolite abundances, check if ocean etc with flags and if or run_method
-    met_est_result = _mebocost_estimation(me_res=met_est_resource, adata=adata, verbose=verbose)
+    met_est_result = _metalinks_estimation(me_res=met_est_resource, 
+                                            adata=adata, 
+                                            est_fun = _score.est_fun,
+                                            verbose=verbose)
+    
+    # load metabolite-protein resource
+    resource = select_resource(resource_name.lower())
 
-    # Return only metabolite estimates if wanted
-    if output == 'ME':
-        return met_est_result.T, pd.DataFrame()
+    # Filter resource to only include metabolites and genes that were estimated 
+    resource = filter_ml_resource(resource, met_est_result.index, adata.var_names)
 
-    # Whole MR pipeline
-    else:
-        # load metabolite-protein resource
-        resource = select_resource(resource_name.lower())
+    if verbose:
+        print(f"Running ligand-receptor inference on {len(resource['ligand'].unique().tolist())} unique ligands "
+                f"and {len(resource['receptor'].unique().tolist())} unique receptors ")
+                
+    # Get lr results
+    lr_res = _get_lr(adata=adata, resource=resource, met_est=met_est_result)
 
-        # Filter resource to only include metabolites and genes that were estimated 
-        resource = filter_ml_resource(resource, met_est_result.index, adata.var_names)
+    # run scoring method
+    lr_res = _run_method(lr_res=lr_res, adata=adata, 
+                                return_all_lrs=return_all_lrs,
+                                verbose=verbose, expr_prop=expr_prop,
+                                _score=_score, _key_cols=_key_cols, _complex_cols=_complex_cols,
+                                _add_cols=_add_cols, n_perms=n_perms, seed=seed, met_est_index=met_est_result.index)
 
-        rel_cols = ['source', 'target', 'ligand', 'receptor', 'ligand_props', 'receptor_props', 'ligand_means', 'receptor_means']
+    # correct pvalues for fdr 
+    #lr_res[_score.specificity] = fdrcorrection(lr_res[_score.specificity])[1]
 
-        # Get lr results
-        lr_res = _get_lr(adata=adata, resource=resource, met_est=met_est_result)
+    return met_est_result.T, lr_res
 
-        # run scoring method
-        lr_res = _run_method(lr_res=lr_res, adata=adata, 
-                                    return_all_lrs=return_all_lrs,
-                                    verbose=verbose, expr_prop=expr_prop,
-                                 _score=_score, _key_cols=_key_cols, _complex_cols=_complex_cols,
-                                 _add_cols=_add_cols, n_perms=n_perms, seed=seed, met_est_index=met_est_result.index)
-
-        return met_est_result.T, lr_res
 
 
 def _join_stats(source, target, dedict_gene, dedict_met, resource):
@@ -223,8 +219,8 @@ def _get_lr(adata, resource, met_est):
     # # initialize dict
     # dedict_met = {}
     # for label in labels:
-    #     a = _get_props(scipy.sparse.csr_matrix(met_est.values.T))
-    #     stats = pd.DataFrame({'names': met_est.index, 'props': a}). \
+    #     a = _get_props(sparse.csr_matrix(met_est.values.T))
+    #     stats = DataFrame({'names': met_est.index, 'props': a}). \
     #         assign(label=label).sort_values('names')
     #     dedict_met[label] = stats
 
@@ -235,7 +231,7 @@ def _get_lr(adata, resource, met_est):
     # # Calculate Mean, logFC and z-scores by group
     # for label in labels:
     #     temp = adata[adata.obs.label.isin([label])]
-    #     dedict_met[label]['means'] = scipy.sparse.csr_matrix(met_est.values.T).mean(axis=0).A.flatten()
+    #     dedict_met[label]['means'] = sparse.csr_matrix(met_est.values.T).mean(axis=0).A.flatten()
 
     # # initialize dict
     # dedict_gene = {}
@@ -243,7 +239,7 @@ def _get_lr(adata, resource, met_est):
     # for label in labels:
     #     temp = adata[adata.obs.label == label, :]
     #     a = _get_props(temp.X)
-    #     stats = pd.DataFrame({'names': temp.var_names, 'props': a}). \
+    #     stats = DataFrame({'names': temp.var_names, 'props': a}). \
     #         assign(label=label).sort_values('names')
     #     dedict_gene[label] = stats
 
@@ -258,12 +254,12 @@ def _get_lr(adata, resource, met_est):
 
 
     # # Create df /w cell identity pairs
-    # pairs = (pd.DataFrame(np.array(np.meshgrid(labels, labels))
+    # pairs = (DataFrame(np.array(np.meshgrid(labels, labels))
     #                       .reshape(2, np.size(labels) * np.size(labels)).T)
     #          .rename(columns={0: "source", 1: "target"}))
 
     # # Join Stats
-    # lr_res = pd.concat(
+    # lr_res = concat(
     #     [_join_stats(source, target, dedict_gene, dedict_met, resource) for source, target in
     #      zip(pairs['source'], pairs['target'])]
     # )
@@ -274,9 +270,9 @@ def _get_lr(adata, resource, met_est):
     labels = adata.obs.label.cat.categories
     met_est = met_est.sort_index()
 
-    dedict_met = {label: pd.DataFrame({
+    dedict_met = {label: DataFrame({
         'names': met_est.index,
-        'props': _get_props(scipy.sparse.csr_matrix(met_est.values.T)),
+        'props': _get_props(sparse.csr_matrix(met_est.values.T)),
         'label': label
     }).sort_values('names') for label in labels}
 
@@ -284,9 +280,9 @@ def _get_lr(adata, resource, met_est):
         raise AssertionError("Variable names did not match DE results!")
 
     for label in labels:
-        dedict_met[label]['means'] = scipy.sparse.csr_matrix(met_est.values.T).mean(axis=0).A.flatten()
+        dedict_met[label]['means'] = sparse.csr_matrix(met_est.values.T).mean(axis=0).A.flatten()
 
-    dedict_gene = {label: pd.DataFrame({
+    dedict_gene = {label: DataFrame({
         'names': adata[adata.obs.label == label].var_names,
         'props': _get_props(adata[adata.obs.label == label].X),
         'label': label
@@ -298,9 +294,9 @@ def _get_lr(adata, resource, met_est):
     for label in labels:
         dedict_gene[label]['means'] = adata[adata.obs.label == label].X.mean(axis=0).A.flatten()
 
-    pairs = pd.DataFrame(np.array(np.meshgrid(labels, labels)).reshape(2, len(labels) ** 2).T, columns=["source", "target"])
+    pairs = DataFrame(np.array(np.meshgrid(labels, labels)).reshape(2, len(labels) ** 2).T, columns=["source", "target"])
 
-    lr_res = pd.concat([_join_stats(source, target, dedict_gene, dedict_met, resource) for source, target in pairs.to_numpy()])
+    lr_res = concat([_join_stats(source, target, dedict_gene, dedict_met, resource) for source, target in pairs.to_numpy()])
 
     return lr_res
 
@@ -310,73 +306,9 @@ def _get_props(X_mask):
     return X_mask.getnnz(axis=0) / X_mask.shape[0]
 
 
-def _mebocost_estimation(me_res, adata, verbose) -> pd.DataFrame: 
-    """
-    Estimate metabolite abundances using mebocost flavor
-
-    Parameters
-    ----------
-    me_res : pandas.core.frame.DataFrame
-        metabolite-gene associations
-    
-    adata : anndata.AnnData
-        object with gene expression data
-
-    verbose : bool
-        verbosity
-
-    Returns
-    -------
-    met_est : pandas.core.frame.DataFrame
-        metabolite abundance estimates
-
-    """
-
-    method = 'mean' # in mebocost there are more options, build_in
-    met_gene = me_res
-    mIdList = met_gene['HMDB_ID'].unique().tolist()
-
-    with_exp_gene_m = []
-    met_from_gene = pd.DataFrame()
-    for mId in mIdList:
-        gene_pos = met_gene[(met_gene['HMDB_ID'] == mId) & (met_gene['direction'] == 'product')]['gene_name'].tolist()
-        gene_pos = set(gene_pos) & set(adata.var_names.tolist())
-        gene_neg = met_gene[(met_gene['HMDB_ID'] == mId) & (met_gene['direction'] == 'substrate')]['gene_name'].tolist()
-        gene_neg = set(gene_neg) & set(adata.var_names.tolist())
-
-        if len(gene_pos) == 0:
-            continue
-
-        with_exp_gene_m.append(mId)
-        pos_g_index = np.where(adata.var_names.isin(gene_pos))
-        pos_exp = pd.DataFrame(adata.T[pos_g_index].X.toarray(), 
-                            index = adata.var_names[pos_g_index].tolist(),
-                            columns = adata.obs_names.tolist())
-
-        if not gene_neg:
-            m_from_enzyme = pos_exp.agg(method)
-        else:
-            neg_g_index = np.where(adata.var_names.isin(gene_neg))
-            neg_exp = pd.DataFrame(adata.T[neg_g_index].X.toarray(), 
-                            index = adata.var_names[neg_g_index].tolist(),
-                            columns = adata.obs_names.tolist())
-            pos = pos_exp.agg(method)
-            neg = neg_exp.agg(method)
-            m_from_enzyme = pos - neg
-        met_from_gene = pd.concat([met_from_gene, m_from_enzyme], axis = 1)
-
-    met_from_gene.columns = with_exp_gene_m
-    met_from_gene = met_from_gene.T
-
-    if verbose:
-        print('Metabolites with gene expression: ', len(with_exp_gene_m))
-        print('Metabolites without gene expression: ', len(mIdList) - len(with_exp_gene_m))
-
-    return met_from_gene
-
-def _run_method(lr_res: pandas.DataFrame,
-                adata: anndata.AnnData,
-                expr_prop: float, # build in to mebocost
+def _run_method(lr_res: DataFrame,
+                adata: AnnData,
+                expr_prop: float, # build in to metalinks
                 _score,
                 _key_cols: list,
                 _complex_cols: list,
@@ -387,7 +319,7 @@ def _run_method(lr_res: pandas.DataFrame,
                 verbose: bool,
                 _aggregate_flag: bool = False,  # Indicates whether we're generating the consensus
                 met_est_index: list = None,
-                ) -> pd.DataFrame:
+                ) -> DataFrame:
 
     _add_cols = _add_cols + ['ligand', 'receptor']
 
@@ -414,7 +346,7 @@ def _run_method(lr_res: pandas.DataFrame,
 
     # if return_all_lrs:
     #     # re-append rest of results
-    #     lr_res = pd.concat([lr_res, rest_res], copy=False)
+    #     lr_res = concat([lr_res, rest_res], copy=False)
     #     if _score.magnitude is not None:
     #         fill_value = _assign_min_or_max(lr_res[_score.magnitude],
     #                                         _score.magnitude_ascending)
@@ -434,13 +366,13 @@ def _run_method(lr_res: pandas.DataFrame,
     return lr_res    
 
 
-def _get_means_perms(adata: anndata.AnnData,
-                     lr_res: pandas.DataFrame,
+def _get_means_perms(adata: AnnData,
+                     lr_res: DataFrame,
                      n_perms: int,
                      seed: int,
                      agg_fun,
                      norm_factor: float | None,
-                     met_est_index: pandas.Index,
+                     met_est_index: Index,
                      verbose: bool):
     """
     Generate permutations and indices required for permutation-based methods

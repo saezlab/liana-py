@@ -4,7 +4,7 @@ import pathlib
 from pandas import DataFrame
 
 
-def select_resource(resource_name: str = 'consensus') -> DataFrame:
+def select_resource(resource_name: str = 'metalinksdb') -> DataFrame:
     """
     Read resource of choice from the pre-generated resources in LIANA.
 
@@ -18,17 +18,14 @@ def select_resource(resource_name: str = 'consensus') -> DataFrame:
     A dataframe with ``['ligand', 'receptor']`` columns
 
     """
+    if resource_name == 'metalinksdb':
+        
+        resource_path = '/home/efarr/Documents/Startover/interactions_small.csv'
+        resource = read_csv(resource_path, sep=',')
 
-    if resource_name == 'mebocost':
-
-        resource_path = '/home/efarr/MEBOCOST/MEBOCOST/data/mebocost_db/human/met_sen_October-25-2022_14-52-47.tsv'
-        resource = read_csv(resource_path, sep='\t')
-    
-        #resource = resource[resource['resource'] == resource_name]
-
-        resource = resource[['HMDB_ID', 'Gene_name']]
-        resource = resource.rename(columns={'HMDB_ID': 'ligand',
-                                            'Gene_name': 'receptor'})
+        resource = resource[['HMDB', 'symbol']]
+        resource = resource.rename(columns={'HMDB': 'ligand',
+                                            'symbol': 'receptor'})
 
     else:
 
@@ -43,7 +40,6 @@ def select_resource(resource_name: str = 'consensus') -> DataFrame:
         resource = resource.rename(columns={'source_genesymbol': 'ligand',
                                             'target_genesymbol': 'receptor'})
 
-    
     return resource
 
 

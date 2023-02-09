@@ -20,6 +20,7 @@ class MetabMethodMeta:
                  score_method_name: str,
                  est_method_name: str,
                  fun,
+                 est_fun,
                  est_reference: str,
                  score_reference: str,
                  complex_cols: list,
@@ -48,6 +49,7 @@ class MetabMethodMeta:
         self.complex_cols = complex_cols
         self.add_cols = add_cols
         self.fun = fun
+        self.est_fun = est_fun
         self.magnitude = magnitude
         self.magnitude_ascending = magnitude_ascending
         self.specificity = specificity
@@ -123,6 +125,7 @@ class MetabMethod(MetabMethodMeta):
                          complex_cols=_SCORE.complex_cols,
                          add_cols=_SCORE.add_cols,
                          fun=_SCORE.fun,
+                         est_fun=_SCORE.est_fun,
                          magnitude=_SCORE.magnitude,
                          magnitude_ascending=_SCORE.magnitude_ascending,
                          specificity=_SCORE.specificity,
@@ -137,9 +140,9 @@ class MetabMethod(MetabMethodMeta):
     def __call__(self,
                  adata: AnnData,
                  groupby: str,
-                 output: str = 'CCC',
                  resource: Optional[DataFrame] = None,
-                 met_est_resource_name: str = 'consensus',
+                 resource_name: str = 'metalinksdb',
+                 met_est_resource_name: str = 'metalinksdb',
                  met_est_resource: Optional[DataFrame] = None,
                  expr_prop: float = 0.1,
                  min_cells: int = 5,
@@ -212,7 +215,7 @@ class MetabMethod(MetabMethodMeta):
 
         ml_res = ml_pipe(adata=adata,
                         groupby=groupby,
-                        resource_name='mebocost',
+                        resource_name=resource_name,
                         resource=resource,
                         met_est_resource_name=met_est_resource_name,
                         met_est_resource=met_est_resource,
@@ -225,7 +228,6 @@ class MetabMethod(MetabMethodMeta):
                         n_perms=n_perms,
                         seed=seed,
                         layer=layer,
-                        output=output,
                         _score = self._SCORE,)
         if inplace:
             adata.obsm['metabolite_abundance'] = ml_res[0]
