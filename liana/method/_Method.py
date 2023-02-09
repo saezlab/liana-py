@@ -142,7 +142,7 @@ class MethodMeta:
             adata.uns['liana_res'][sample] = sample_res
 
         liana_res = concat(adata.uns['liana_res']).reset_index(level=1, drop=True).reset_index()
-        liana_res = liana_res.rename({"index":sample_key}, axis=1)
+        liana_res = liana_res.rename({"index":sample_key}, axis=1)  ## TODO this should rename - easier downstream if it doesn't
         
         if inplace:
             adata.uns['liana_res'] = liana_res
