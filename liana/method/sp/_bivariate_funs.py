@@ -4,12 +4,12 @@ from scipy.stats import rankdata
 
 
 
-@nb.njit(nb.float64(nb.float64[:], nb.float64[:], nb.float64[:], nb.float64, nb.boolean), cache=True)
+@nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:], nb.float32, nb.boolean), cache=True)
 def _wcorr(x, y, w, wsum, rank):
     
     if rank:
-        x = np.argsort(x).argsort().astype(nb.float64)
-        y = np.argsort(y).argsort().astype(nb.float64)
+        x = np.argsort(x).argsort().astype(nb.float32)
+        y = np.argsort(y).argsort().astype(nb.float32)
     
     wx = w * x
     wy = w * y
@@ -26,7 +26,7 @@ def _wcorr(x, y, w, wsum, rank):
     return numerator / (denominator**0.5) ## TODO numba rounding issue?
 
 
-@nb.njit(nb.float64(nb.float64[:], nb.float64[:], nb.float64[:], nb.float64, nb.int64), cache=True)
+@nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:], nb.float32, nb.int8), cache=True)
 def _wcoex(x, y, w, wsum, method):
         if method == 0: # pearson
             c = _wcorr(x, y, w, wsum, False)
@@ -39,12 +39,12 @@ def _wcoex(x, y, w, wsum, method):
 
 
 # 0 = pearson, 1 = spearman
-@nb.njit(nb.float64[:,:](nb.float64[:,:], nb.float64[:,:], nb.float64[:,:], nb.float64, nb.int64), parallel=True, cache=True)
+@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:], nb.float32, nb.int8), parallel=True, cache=True)
 def _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method):
     spot_n = x_mat.shape[0]
     xy_n = x_mat.shape[1]
     
-    local_correlations = np.zeros((spot_n, xy_n), dtype=nb.float64)
+    local_correlations = np.zeros((spot_n, xy_n), dtype=nb.float32)
     
     for i in nb.prange(spot_n):
         w = weight[i, :]
@@ -62,6 +62,12 @@ def _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method):
 
 
 def _vectorized_correlations(x_mat, y_mat, dist, method="pearson"):
+    """
+    Vectorized implementation of weighted correlations.
+    
+    Note: due to the imprecision of np.sum and np.dot, the function is accurate to 5 decimal places.
+    
+    """
     if method not in ["pearson", "spearman"]:
         raise ValueError("method must be one of 'pearson', 'spearman'")
     
@@ -82,10 +88,17 @@ def _vectorized_correlations(x_mat, y_mat, dist, method="pearson"):
     
     denominator_x = (weight_sums * (x_mat ** 2).dot(weight)) - (x_mat.dot(weight))**2
     denominator_y = (weight_sums * (y_mat ** 2).dot(weight)) - (y_mat.dot(weight))**2
-    denominator = np.sqrt(denominator_x * denominator_y)
-    denominator[denominator == 0] = np.finfo(np.float32).eps # add noise to avoid division by zero
+    denominator = (denominator_x * denominator_y)
     
-    local_corrs = (numerator / denominator)
+    # numpy sum is unstable below 1e-6?
+    denominator[denominator < 1e-6] = 0
+    denominator = denominator ** 0.5
+    
+    zeros = np.zeros(numerator.shape)
+    local_corrs = np.divide(numerator, denominator, out=zeros, where=denominator!=0)
+    
+    # fix numpy imprecision TODO related to numba rounding issue?
+    local_corrs = np.clip(local_corrs, -1, 1, out=local_corrs)
     
     return local_corrs
 
