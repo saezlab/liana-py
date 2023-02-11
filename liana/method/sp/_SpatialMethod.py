@@ -8,13 +8,11 @@ from typing import Optional
 
 from tqdm import tqdm
 
-from liana.method._global_lr_pipe import _global_lr_pipe
+from liana.method.sp._spatial_pipe import _global_lr_pipe
 from liana.method.sp._spatial_utils import _local_to_dataframe, _local_permutation_pvals
 
 
-
-# TODO MethodMeta class to generalizable, SpatialMethod & SingleCellMethod should inherit and extend
-class SpatialMethod:
+class _SpatialMeta:
     """
     A SpatialMethod Class
     """
@@ -56,7 +54,7 @@ class SpatialMethod:
 
 
 
-class SpatialDM(SpatialMethod):
+class SpatialMethod(_SpatialMeta):
     def __init__(self, _method, _obsm_keys):
         super().__init__(method_name=_method.method_name,
                          key_cols=_method.key_cols,
@@ -67,7 +65,7 @@ class SpatialDM(SpatialMethod):
         self._method = _method
 
     def __call__(self,
-                 adata: AnnData, ## TODO mats or adatas?
+                 mdata: AnnData, ## TODO mats or adatas?
                  expr_prop: float = 0.05,
                  n_perm: int = 100,
                  positive_only: bool = True, ## TODO - both directions?
@@ -86,12 +84,12 @@ class SpatialDM(SpatialMethod):
     
     
 # initialize instance
-_spatialmethod = SpatialMethod(
+_spatialmethod = _SpatialMeta(
     method_name="Bivariate Coexpressions",
     key_cols=[],
     reference=""
 )
 
-spatial_method = SpatialDM(_method=_spatialmethod,
-                           _obsm_keys=['proximity']
-                      )
+# spatial_method = SpatialMethod(_method=_spatialmethod,
+#                                _obsm_keys=['proximity']
+#                                )

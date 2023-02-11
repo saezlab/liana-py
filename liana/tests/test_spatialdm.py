@@ -3,7 +3,7 @@ from scanpy.datasets import pbmc68k_reduced
 from  scipy.sparse import csr_matrix
 
 from liana.method.sp._spatialdm import spatialdm, _global_zscore_pvals, _local_zscore_pvals, \
-    _global_permutation_pvals, _calculate_local_moransI
+    _global_permutation_pvals, _local_morans
 from liana.method.sp._spatial_utils import _local_permutation_pvals
 
 adata = pbmc68k_reduced()
@@ -44,7 +44,7 @@ def test_local_permutation_pvals():
     pvals = _local_permutation_pvals(x_mat = x_mat,
                                      y_mat = y_mat,
                                      local_truth = local_truth,
-                                     local_fun = _calculate_local_moransI,
+                                     local_fun = _local_morans,
                                      dist = dist,
                                      n_perm = n_perm,
                                      seed = seed,

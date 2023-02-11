@@ -8,12 +8,12 @@ from typing import Optional
 
 from tqdm import tqdm
 
-from liana.method.sp._SpatialMethod import SpatialMethod
-from liana.method._global_lr_pipe import _global_lr_pipe
+from liana.method.sp._SpatialMethod import _SpatialMeta
+from liana.method.sp._spatial_pipe import _global_lr_pipe, _get_ordered_matrix
 from liana.method.sp._spatial_utils import _local_to_dataframe, _local_permutation_pvals
 
 
-class SpatialDM(SpatialMethod):
+class SpatialDM(_SpatialMeta):
     def __init__(self, _method, _complex_cols, _obsm_keys):
         super().__init__(method_name=_method.method_name,
                          key_cols=_method.key_cols,
@@ -330,14 +330,14 @@ def _local_spatialdm(x_mat,
                                        pos=y_pos,
                                        order=xy_dataframe[y_key])
     ligand_mat, receptor_mat = ligand_mat.T, receptor_mat.T
-    local_r = _calculate_local_moransI(ligand_mat, receptor_mat, dist)
+    local_r = _local_morans(ligand_mat, receptor_mat, dist)
 
     if pvalue_method == 'permutation':
         local_pvals = _local_permutation_pvals(x_mat=ligand_mat,
                                                y_mat=receptor_mat,
                                                dist=dist,
                                                local_truth=local_r,
-                                               local_fun=_calculate_local_moransI,
+                                               local_fun=_local_morans,
                                                n_perm=n_perm,
                                                seed=seed,
                                                positive_only=positive_only
@@ -366,10 +366,6 @@ def _divide_by_msq(mat):
     msq = (np.sum(mat ** 2, axis=0) / (spot_n - 1))
     return mat / msq
 
-
-def _get_ordered_matrix(mat, pos, order):
-    _indx = np.array([pos[x] for x in order])
-    return mat[:, _indx].T
 
 
 def _global_zscore_pvals(dist, global_r, positive_only):
@@ -409,7 +405,7 @@ def _global_zscore_pvals(dist, global_r, positive_only):
     return global_zpvals
 
 
-def _calculate_local_moransI(x_mat, y_mat, dist):
+def _local_morans(x_mat, y_mat, dist):
     """
 
     Parameters
@@ -509,7 +505,7 @@ def _get_local_var(x_sigma, y_sigma, dist, spot_n):
 
 
 # initialize instance
-_spatialdm = SpatialMethod(
+_spatialdm = _SpatialMeta(
     method_name="SpatialDM",
     key_cols=['ligand_complex', 'receptor_complex'],
     reference="Zhuoxuan, L.I., Wang, T., Liu, P. and Huang, Y., 2022. SpatialDM: Rapid "
