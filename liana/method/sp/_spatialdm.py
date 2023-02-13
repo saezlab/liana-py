@@ -499,7 +499,7 @@ def _get_local_var(x_sigma, y_sigma, dist, spot_n):
     core = n_weight * sigma_prod
 
     var = np.multiply.outer(dist_sq, core) + core
-    std = var ** (1 / 2)
+    std = var ** 0.5
 
     return std.T
 

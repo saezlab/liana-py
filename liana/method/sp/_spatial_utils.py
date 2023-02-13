@@ -156,4 +156,3 @@ def _local_permutation_pvals(x_mat, y_mat, dist, local_truth, local_fun,n_perm, 
         local_pvals[~pos_msk] = 1
 
     return local_pvals
-

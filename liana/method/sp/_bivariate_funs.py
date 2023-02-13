@@ -38,7 +38,8 @@ def _wcoex(x, y, w, wsum, method):
         return c
 
 
-# 0 = pearson, 1 = spearman
+
+# 0 = pearson, 1 = spearman 
 @nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:], nb.float32, nb.int8), parallel=True, cache=True)
 def _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method):
     spot_n = x_mat.shape[0]
@@ -58,6 +59,16 @@ def _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method):
             local_correlations[i, j] = _wcoex(x, y, w[msk], wsum, method)
     
     return local_correlations
+
+
+@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:], nb.float32), cache=True)
+def _masked_pearson(x_mat, y_mat, weight, weight_thr):
+    return _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method=0)
+
+
+@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:], nb.float32), cache=True)
+def _masked_spearman(x_mat, y_mat, weight, weight_thr):
+    return _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method=1)
 
 
 
@@ -90,17 +101,28 @@ def _vectorized_correlations(x_mat, y_mat, dist, method="pearson"):
     denominator_y = (weight_sums * (y_mat ** 2).dot(weight)) - (y_mat.dot(weight))**2
     denominator = (denominator_x * denominator_y)
     
-    # numpy sum is unstable below 1e-6?
+    # numpy sum is unstable below 1e-6... 
+    # results in the denominator being smaller than the numerator
     denominator[denominator < 1e-6] = 0
     denominator = denominator ** 0.5
     
     zeros = np.zeros(numerator.shape)
     local_corrs = np.divide(numerator, denominator, out=zeros, where=denominator!=0)
     
-    # fix numpy imprecision TODO related to numba rounding issue?
+    # fix numpy imprecision, related to numba rounding issue? TODO check if it does not hide other issues
     local_corrs = np.clip(local_corrs, -1, 1, out=local_corrs)
     
     return local_corrs
+
+
+
+def _vectorized_pearson(x_mat, y_mat, dist):
+    return _vectorized_correlations(x_mat, y_mat, dist, method="pearson")
+
+
+def _vectorized_spearman(x_mat, y_mat, dist):
+    return _vectorized_correlations(x_mat, y_mat, dist, method="spearman")
+    
 
 
 def _vectorized_wcosine(x_mat, y_mat, dist):
@@ -117,7 +139,7 @@ def _vectorized_wcosine(x_mat, y_mat, dist):
 
 def _vectorized_jaccard(x_mat, y_mat, dist):
     # binarize
-    x_mat, y_mat = x_mat > 0, y_mat > 0 ## TODO, only positive?
+    x_mat, y_mat = np.abs(x_mat) > 0, np.abs(y_mat) > 0 ## TODO, only positive?
     # transpose
     x_mat, y_mat = x_mat.T, y_mat.T    
     weight = dist.A.T
