@@ -11,6 +11,7 @@ from tqdm import tqdm
 from liana.method.sp._SpatialMethod import _SpatialMeta
 from liana.method.sp._spatial_pipe import _global_lr_pipe, _get_ordered_matrix
 from liana.method.sp._spatial_utils import _local_to_dataframe, _local_permutation_pvals, _standardize_matrix
+from liana.method.sp._bivariate_funs import _local_morans
 
 
 class SpatialDM(_SpatialMeta):
@@ -399,27 +400,6 @@ def _global_zscore_pvals(dist, global_r, positive_only):
     return global_zpvals
 
 
-def _local_morans(x_mat, y_mat, dist):
-    """
-
-    Parameters
-    ----------
-    x_mat
-        2D array with x variables
-    y_mat
-        2D array with y variables
-    dist
-    
-    Returns
-    -------
-    Returns 2D array of local Moran's I with shape(n_spot, xy_n)
-
-    """
-    local_x = x_mat * (dist @ y_mat)
-    local_y = x_mat * (dist @ y_mat)
-    local_r = (local_x + local_y).T
-
-    return local_r
 
 
 def _local_zscore_pvals(x_mat, y_mat, local_r, dist, positive_only):

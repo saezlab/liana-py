@@ -3,7 +3,6 @@ import numpy as np
 from scipy.stats import rankdata
 
 
-
 @nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:], nb.float32, nb.boolean), cache=True)
 def _wcorr(x, y, w, wsum, rank):
     
@@ -71,7 +70,6 @@ def _masked_spearman(x_mat, y_mat, weight, weight_thr):
     return _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method=1)
 
 
-
 def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
     """
     Vectorized implementation of weighted correlations.
@@ -122,10 +120,9 @@ def _vectorized_pearson(x_mat, y_mat, dist):
 
 def _vectorized_spearman(x_mat, y_mat, dist):
     return _vectorized_correlations(x_mat, y_mat, dist, method="spearman")
-    
 
 
-def _vectorized_wcosine(x_mat, y_mat, weight):
+def _vectorized_cosine(x_mat, y_mat, weight):
     x_mat, y_mat = x_mat.T, y_mat.T    
     
     xy_dot = (x_mat * y_mat).dot(weight)
@@ -147,3 +144,26 @@ def _vectorized_jaccard(x_mat, y_mat, weight):
     denominator = np.dot(np.maximum(x_mat, y_mat), weight) + np.finfo(np.float32).eps
     
     return numerator / denominator
+
+
+def _local_morans(x_mat, y_mat, dist):
+    """
+
+    Parameters
+    ----------
+    x_mat
+        2D array with x variables
+    y_mat
+        2D array with y variables
+    dist
+    
+    Returns
+    -------
+    Returns 2D array of local Moran's I with shape(n_spot, xy_n)
+
+    """
+    local_x = x_mat * (dist @ y_mat)
+    local_y = x_mat * (dist @ y_mat)
+    local_r = (local_x + local_y).T
+
+    return local_r

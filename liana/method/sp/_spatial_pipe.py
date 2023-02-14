@@ -1,133 +1,151 @@
 import numpy as np
 import pandas as pd
 from itertools import product
+from scipy.sparse import csr_matrix
+
 
 from liana.resource import select_resource
 from liana.method._pipe_utils._reassemble_complexes import explode_complexes
 from liana.method._pipe_utils import prep_check_adata, filter_resource, assert_covered, filter_reassemble_complexes
 from liana.utils._utils import _get_props
-from scipy.sparse import csr_matrix
-from liana.method.sp._spatial_utils import _local_to_dataframe, _local_permutation_pvals, _categorize, _simplify_cats, _encode_as_char
+from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
+from liana.method.sp._spatial_utils import _local_to_dataframe, _local_permutation_pvals, _categorize, _simplify_cats, _encode_as_char, _handle_functions
 
 
 
-def global_bivariate_pipe(mdata, 
-                          local_fun,
-                          x_mod,
-                          y_mod, 
-                          dist,
-                          score_key = "local_score",
-                          categorize = False,
-                          n_perm = None, 
-                          nz_threshold=0
-                          ):
-    """
-    Global Bivariate analysis pipeline
-    
-    Parameters
-    ----------
-    mdata : anndata
-        The annotated data matrix of shape `n_obs` × `n_vars`. Rows correspond to cells and
-    x_mod : str
-        Name of the modality to use as x
-    y_mod : str
-        Name of the modality to use as y
-    nz_threshold : float
-        Threshold for the proportion of non-zero values in a cell for the interaction to be considered
+class SpatialBivariate(_SpatialMeta):
+    def __init__(self, _method):
+        super().__init__(method_name=_method.method_name,
+                         key_cols=_method.key_cols,
+                         reference=_method.reference,
+                         )
+        self._method = _method
+
+    def __call__(self,
+                 mdata, 
+                 function_name,
+                 x_mod,
+                 y_mod, 
+                 dist,
+                 score_key = "local_score",
+                 categorize = False,
+                 n_perm = None, 
+                 nz_threshold=0,
+                 keep_self_interactions=False,
+                 ):
+        """
+        Global Bivariate analysis pipeline
         
-    Returns
-    -------
-    Returns xy_stats, x_pos, y_pos
-    
-    """
-    
-    xdata = mdata[x_mod]
-    ydata = mdata[y_mod]
-    
-    # change Index names to entity
-    xdata.var_names.rename('entity', inplace=True)
-    ydata.var_names.rename('entity', inplace=True)
-    
-    
-    x_stats = _rename_means(_anndata_to_stats(xdata, nz_threshold), entity='x')
-    y_stats = _rename_means(_anndata_to_stats(ydata, nz_threshold), entity='y')
-    
-    xy_stats = pd.DataFrame(list(product(x_stats['x_entity'], 
-                                         y_stats['y_entity'])
-                                 ),
-                            columns=['x_entity', 'y_entity'])
-    
-    # join global stats to LRs from resource
-    xy_stats = xy_stats.merge(x_stats).merge(y_stats)
-    
-    xy_stats['interaction'] = xy_stats['x_entity'] + '&' + xy_stats['y_entity']
-    
-    # Remove self-interactions (when x_mod = y_mod)
-    xy_stats = xy_stats[xy_stats['x_entity'] != xy_stats['y_entity']]
-    
-    # assign the positions of x, y to the adata
-    x_pos = {entity: np.where(xdata.var_names == entity)[0][0] for entity in xy_stats['x_entity']}
-    y_pos = {entity: np.where(ydata.var_names == entity)[0][0] for entity in xy_stats['y_entity']}
-    # reorder columns
-    xy_stats = xy_stats.reindex(columns=sorted(xy_stats.columns))
-    
-    # convert to spot_n x xy_n matrices
-    x_mat = _get_ordered_matrix(mat=mdata[x_mod].X,
-                                pos=x_pos,
-                                order=xy_stats['x_entity'])
-    y_mat = _get_ordered_matrix(mat=mdata[y_mod].X,
-                                pos=y_pos,
-                                order=xy_stats['y_entity'])
-    
-    
-    if local_fun.__name__== "_local_morans": ## TODO move specifics to method instances
-        norm_factor = dist.shape[0] / dist.sum()
-        weight = csr_matrix(norm_factor * dist)
-    else:
-        weight = dist.A
-    
-    local_score = local_fun(x_mat.T.A, y_mat.T.A, weight)
-    mdata.obsm[score_key] = _local_to_dataframe(array=local_score.T,
-                                                idx=mdata.obs.index,
-                                                columns=xy_stats.interaction)
-    
-    # global scores, TODO should be score specific, e.g. spatialMD has its own global score
-    xy_stats.loc[:,['local_mean','local_sd']] = np.vstack([np.mean(local_score, axis=1), np.std(local_score, axis=1)]).T
-    mdata.uns['global_res'] = xy_stats
+        Parameters
+        ----------
+        mdata : anndata
+            The annotated data matrix of shape `n_obs` × `n_vars`. Rows correspond to cells and
+        x_mod : str
+            Name of the modality to use as x
+        y_mod : str
+            Name of the modality to use as y
+        nz_threshold : float
+            Threshold for the proportion of non-zero values in a cell for the interaction to be considered
+            
+        Returns
+        -------
+        Returns xy_stats, x_pos, y_pos
+        
+        """
+        
+        # TODO currently works only with .X
+        xdata = mdata[x_mod]
+        ydata = mdata[y_mod]
+        
+        
+        local_fun = _handle_functions(function_name)
+        
+        # change Index names to entity
+        xdata.var_names.rename('entity', inplace=True)
+        ydata.var_names.rename('entity', inplace=True)
+        
+        
+        x_stats = _rename_means(_anndata_to_stats(xdata, nz_threshold), entity='x')
+        y_stats = _rename_means(_anndata_to_stats(ydata, nz_threshold), entity='y')
+        
+        xy_stats = pd.DataFrame(list(product(x_stats['x_entity'], 
+                                            y_stats['y_entity'])
+                                    ),
+                                columns=['x_entity', 'y_entity'])
+        
+        # join global stats to LRs from resource
+        xy_stats = xy_stats.merge(x_stats).merge(y_stats)
+        
+        xy_stats['interaction'] = xy_stats['x_entity'] + '&' + xy_stats['y_entity']
+        
+        # Remove self-interactions (when x_mod = y_mod)
+        xy_stats = xy_stats[xy_stats['x_entity'] != xy_stats['y_entity']]
+        
+        # assign the positions of x, y to the adata
+        x_pos = {entity: np.where(xdata.var_names == entity)[0][0] for entity in xy_stats['x_entity']}
+        y_pos = {entity: np.where(ydata.var_names == entity)[0][0] for entity in xy_stats['y_entity']}
+        # reorder columns
+        xy_stats = xy_stats.reindex(columns=sorted(xy_stats.columns))
+        
+        # convert to spot_n x xy_n matrices
+        x_mat = _get_ordered_matrix(mat=mdata[x_mod].X,
+                                    pos=x_pos,
+                                    order=xy_stats['x_entity'])
+        y_mat = _get_ordered_matrix(mat=mdata[y_mod].X,
+                                    pos=y_pos,
+                                    order=xy_stats['y_entity'])
+        
+        
+        if local_fun.__name__== "_local_morans": ## TODO move specifics to method instances
+            norm_factor = dist.shape[0] / dist.sum()
+            weight = csr_matrix(norm_factor * dist)
+        else:
+            weight = dist.A
+        
+        local_score = local_fun(x_mat.T.A, y_mat.T.A, weight)
+        mdata.obsm[score_key] = _local_to_dataframe(array=local_score.T,
+                                                    idx=mdata.obs.index,
+                                                    columns=xy_stats.interaction)
+        
+        # global scores, TODO should be score specific, e.g. spatialMD has its own global score
+        if local_fun.__name__== "_local_morans":
+            x
+        else:
+            xy_stats.loc[:,['local_mean','local_sd']] = np.vstack([np.mean(local_score, axis=1), np.std(local_score, axis=1)]).T
+            mdata.uns['global_res'] = xy_stats
 
 
-    if n_perm is not None:
-        local_pvals = _local_permutation_pvals(x_mat = x_mat.A.T, 
-                                               y_mat = y_mat.A.T, 
-                                               local_truth=local_score,
-                                               local_fun=local_fun,
-                                               dist=weight, 
-                                               n_perm=n_perm, 
-                                               positive_only=False,
-                                               seed=0
-                                               )
-        mdata.obsm['local_pvals'] = _local_to_dataframe(array=local_pvals.T,
-                                                        idx=mdata.obs.index,
-                                                        columns=xy_stats.interaction)
-    
-    if categorize:
-        # TODO categorizing is currently done following standardization of the matrix
-        # i.e. each variable is standardized independently, and then a category is
-        # defined based on the values within each stop.
-        # (taking into consideration when the input is signed, but not weight or surrounding spots).
+        if n_perm is not None:
+            local_pvals = _local_permutation_pvals(x_mat = x_mat.A.T, 
+                                                   y_mat = y_mat.A.T, 
+                                                   local_truth=local_score,
+                                                   local_fun=local_fun,
+                                                   dist=weight, 
+                                                   n_perm=n_perm, 
+                                                   positive_only=False,
+                                                   seed=0
+                                                   )
+            mdata.obsm['local_pvals'] = _local_to_dataframe(array=local_pvals.T,
+                                                            idx=mdata.obs.index,
+                                                            columns=xy_stats.interaction)
         
-        local_catageries = _categorize(_encode_as_char(x_mat.A), _encode_as_char(y_mat.A))
-         ## TODO these to helper function that can extract multiple of these
-         # and these all saved as arrays, or alternatively saved a modalities in mudata
-        mdata.obsm['local_categories'] = _local_to_dataframe(array=local_catageries.T,
-                                                             idx=mdata.obs.index,
-                                                             columns=xy_stats.interaction)
-        mdata.obsm['local_categories'] = _simplify_cats(mdata.obsm['local_categories'])
-        
-    return mdata
-        
-        
-    
+        if categorize:
+            # TODO categorizing is currently done following standardization of the matrix
+            # i.e. each variable is standardized independently, and then a category is
+            # defined based on the values within each stop.
+            # (taking into consideration when the input is signed, but not weight or surrounding spots).
+            local_catageries = _categorize(_encode_as_char(x_mat.A), _encode_as_char(y_mat.A))
+            ## TODO these to helper function that can extract multiple of these
+            # and these all saved as arrays, or alternatively saved a modalities in mudata
+            mdata.obsm['local_categories'] = _local_to_dataframe(array=local_catageries.T,
+                                                                idx=mdata.obs.index,
+                                                                columns=xy_stats.interaction)
+            mdata.obsm['local_categories'] = _simplify_cats(mdata.obsm['local_categories'])
+            
+        return mdata
+
+
+basis = SpatialBivariate(_basis_meta)
 
 
 
@@ -142,9 +160,6 @@ def _anndata_to_stats(adata, nz_thr=0.1):
     global_stats = global_stats[global_stats['non_zero'] >= nz_thr]
 
     return global_stats
-
-
-
 
 
 ### TODO into another file & complete pipe (as liana in sc)

@@ -8,6 +8,8 @@ from scipy.spatial.distance import pdist, squareform
 from scipy.sparse import csr_matrix
 from tqdm import tqdm
 
+from liana.method.sp._bivariate_funs import _vectorized_spearman, _vectorized_pearson, _vectorized_cosine, _vectorized_jaccard, _masked_pearson, _masked_spearman
+
 
 def get_spatial_proximity(adata: anndata.AnnData,
                           parameter,
@@ -103,7 +105,6 @@ def _local_to_dataframe(idx, columns, array):
     return DataFrame(array, index=idx, columns=columns)
 
 
-
 def _local_permutation_pvals(x_mat, y_mat, dist, local_truth, local_fun,n_perm, seed, positive_only, **kwargs):
     """
     Calculate local pvalues for a given local score function.
@@ -149,6 +150,7 @@ def _local_permutation_pvals(x_mat, y_mat, dist, local_truth, local_fun,n_perm, 
 
     local_pvals = local_pvals / n_perm
 
+    ## TODO change this to directed which uses the categories as mask
     if positive_only:  # TODO change to directed mask (both, negative, positive)
         # only keep positive pvals where either x or y is positive
         pos_msk = ((x_mat > 0) + (y_mat > 0)).T # TODO this would only work if x and y are are normalized
@@ -191,11 +193,22 @@ def _simplify_cats(df):
     
     return df.replace({r'(^*Z*$)': 0, 'NN': 0, 'PP': 1, 'PN': -1, "NP": -1})
 
-# def _simplify_cats(a):
-#     result = np.where(np.char.find(a, 'Z') >= 0, 'U',
-#               np.where(a == 'PP', 'P',
-#                        np.where(a == 'NN', 'P*',
-#                                 np.where(np.char.find(a, 'N') >= 0, 'N', a))))
-#     return result
 
 
+def _handle_functions(function_name):
+    function_name = function_name.lower()
+    
+    if function_name == "pearson":
+        return _vectorized_pearson
+    elif function_name == "spearman":
+        return _vectorized_spearman
+    elif function_name == "masked_pearson":
+        return _masked_pearson
+    elif function_name == "masked_spearman":
+        return _masked_spearman
+    elif function_name == "cosine":
+        return _vectorized_cosine
+    elif function_name == "jaccard":
+        return _vectorized_jaccard
+    elif function_name == "morans":
+        raise ValueError("Function not implemented")
