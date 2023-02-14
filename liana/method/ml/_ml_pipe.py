@@ -21,6 +21,7 @@ def ml_pipe(adata: AnnData,
                resource: DataFrame | None,
                met_est_resource_name: str,
                met_est_resource: DataFrame | None,
+               est_fun: str,
                min_cells: int,
                expr_prop: float,
                verbose: bool,
@@ -120,7 +121,7 @@ def ml_pipe(adata: AnnData,
     # Estimate metabolite abundances, check if ocean etc with flags and if or run_method
     met_est_result = _metalinks_estimation(me_res=met_est_resource, 
                                             adata=adata, 
-                                            est_fun = _score.est_fun,
+                                            est_fun = est_fun,
                                             verbose=verbose)
     
     # load metabolite-protein resource

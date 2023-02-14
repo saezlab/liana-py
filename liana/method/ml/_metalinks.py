@@ -1,16 +1,16 @@
 from liana.method.ml._ml_Method import MetabMethod, MetabMethodMeta
 from liana.method.ml.scores import _product_score, _simple_prod
-from liana.method.ml.estimations import mean_per_cell
+#from liana.method.ml.estimations import mean_per_cell
+
+
 
 
 
 # Initialize metalinks Meta
-_metalinks = MetabMethodMeta(est_method_name="sub_means",
-                            score_method_name="product_score",
+_metalinks = MetabMethodMeta(score_method_name="product_score",
                             complex_cols=['ligand_means', 'receptor_means'],
                             add_cols=['ligand_means_sums', 'receptor_means_sums'],
                             fun=_product_score,
-                            est_fun=mean_per_cell,
                             magnitude='metalinks_score',
                             magnitude_ascending=False, 
                             specificity='cellphone_pval',

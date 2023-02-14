@@ -18,9 +18,7 @@ class MetabMethodMeta:
     
     def __init__(self,
                  score_method_name: str,
-                 est_method_name: str,
                  fun,
-                 est_fun,
                  est_reference: str,
                  score_reference: str,
                  complex_cols: list,
@@ -44,12 +42,10 @@ class MetabMethodMeta:
         """
         self.__class__.instances.append(weakref.proxy(self))
         self.score_method_name = score_method_name
-        self.est_method_name = est_method_name
         self.est_reference = est_reference
         self.complex_cols = complex_cols
         self.add_cols = add_cols
         self.fun = fun
-        self.est_fun = est_fun
         self.magnitude = magnitude
         self.magnitude_ascending = magnitude_ascending
         self.specificity = specificity
@@ -118,14 +114,12 @@ class MetabMethod(MetabMethodMeta):
     liana's Method Class
     """
     def __init__(self, _SCORE):
-        super().__init__(est_method_name=_SCORE.est_method_name,
-                         score_method_name=_SCORE.score_method_name,
+        super().__init__(score_method_name=_SCORE.score_method_name,
                          est_reference=_SCORE.est_reference,
                          score_reference=_SCORE.score_reference,
                          complex_cols=_SCORE.complex_cols,
                          add_cols=_SCORE.add_cols,
                          fun=_SCORE.fun,
-                         est_fun=_SCORE.est_fun,
                          magnitude=_SCORE.magnitude,
                          magnitude_ascending=_SCORE.magnitude_ascending,
                          specificity=_SCORE.specificity,
@@ -144,6 +138,7 @@ class MetabMethod(MetabMethodMeta):
                  resource_name: str = 'metalinksdb',
                  met_est_resource_name: str = 'metalinksdb',
                  met_est_resource: Optional[DataFrame] = None,
+                 est_fun: str = 'mean_per_cell',
                  expr_prop: float = 0.1,
                  min_cells: int = 5,
                  base: float = 2.718281828459045,
@@ -220,6 +215,7 @@ class MetabMethod(MetabMethodMeta):
                         met_est_resource_name=met_est_resource_name,
                         met_est_resource=met_est_resource,
                         expr_prop=expr_prop,
+                        est_fun=est_fun,
                         min_cells=min_cells,
                         supp_columns=supp_columns,
                         return_all_lrs=return_all_lrs,
@@ -236,6 +232,3 @@ class MetabMethod(MetabMethodMeta):
         
         return None if inplace else ml_res
         
-
-def _show_met_est_methods(metab_methods):
-    return concat([mmethod.get_meta() for mmethod in metab_methods])

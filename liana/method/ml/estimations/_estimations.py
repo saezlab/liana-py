@@ -1,14 +1,41 @@
 from pandas import DataFrame
-from numpy import array, mean, zeros
+from numpy import array, mean, zeros, median, diff, divide, zeros_like
 from scipy.sparse import csr_matrix
+from scipy.stats import gmean, hmean
+
 
 def mean_per_cell(adata, genes):
         if genes == []:
             return zeros(adata.shape[0])
         return array(mean(adata[:,genes].X, axis=1)).flatten()
 
+def nnzmean_per_cell(adata, genes):
+        if genes == []:
+            return zeros(adata.shape[0])
+        a = adata[:,genes].X
+        sums = a.sum(axis=1).A1
+        counts = diff(a.indptr)
+        averages = divide(sums, counts, out=zeros_like(sums), where=counts!=0)
+        return averages
 
-def _metalinks_estimation(me_res, adata, verbose, est_fun = mean_per_cell,) -> DataFrame: 
+def max_per_cell(adata, genes):
+        if genes == []:
+            return zeros(adata.shape[0])
+        a = adata[:,genes].X.max(axis=1).toarray().flatten()
+        return a
+
+def gmean_per_cell(adata, genes):
+        if genes == []:
+            return zeros(adata.shape[0])
+        return array(gmean(adata[:,genes].X)).flatten()
+
+def hmean_per_cell(adata, genes):
+        if genes == []:
+            return zeros(adata.shape[0])
+        return array(hmean(adata[:,genes].X)).flatten()
+
+
+def _metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell') -> DataFrame: 
     """
     Estimate metabolite abundances 
     Parameters
@@ -31,6 +58,18 @@ def _metalinks_estimation(me_res, adata, verbose, est_fun = mean_per_cell,) -> D
         metabolite abundance estimates
 
     """
+
+    # write dictionary that links est_fun to method name
+    est_fun_dict = {'mean_per_cell': mean_per_cell,
+                    'nnzmean_per_cell': nnzmean_per_cell,
+                    'gmean_per_cell': gmean_per_cell,
+                    'hmean_per_cell': hmean_per_cell,
+                    'max_per_cell': max_per_cell}
+
+    if est_fun not in est_fun_dict.keys():
+        raise ValueError(f"est_fun must be one of {est_fun_dict.keys()}")
+
+    est_fun = est_fun_dict[est_fun]
     
     metabolites = me_res['HMDB'].unique()
 
@@ -40,7 +79,8 @@ def _metalinks_estimation(me_res, adata, verbose, est_fun = mean_per_cell,) -> D
     prod_vals = array([est_fun(adata, prod) for prod in prod_genes])
     deg_vals = array([est_fun(adata, deg) for deg in deg_genes])
 
-    final_estimates = get_est(prod_vals, deg_vals) # think about clippping .clip(0, None)
+    # Get final estimates and clip negative values to 0 to prevent product errors later in the pipeline
+    final_estimates = get_est(prod_vals, deg_vals).clip(0, None)
     
     if verbose:
         print(f"Metabolites with gene expression: {160}")
