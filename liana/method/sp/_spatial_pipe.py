@@ -9,8 +9,8 @@ from liana.method._pipe_utils._reassemble_complexes import explode_complexes
 from liana.method._pipe_utils import prep_check_adata, filter_resource, assert_covered, filter_reassemble_complexes
 from liana.utils._utils import _get_props
 from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
-from liana.method.sp._spatial_utils import _local_to_dataframe, _local_permutation_pvals, _categorize, _simplify_cats, _encode_as_char, _handle_functions
-
+from liana.method.sp._spatial_utils import _local_to_dataframe, _local_permutation_pvals, _categorize, _simplify_cats, _encode_as_char
+from liana.method.sp._bivariate_funs import _handle_functions
 
 
 class SpatialBivariate(_SpatialMeta):

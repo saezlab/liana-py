@@ -6,9 +6,8 @@ from pandas import DataFrame
 from sklearn.neighbors import NearestNeighbors
 from scipy.spatial.distance import pdist, squareform
 from scipy.sparse import csr_matrix
+from scipy.stats import norm
 from tqdm import tqdm
-
-from liana.method.sp._bivariate_funs import _vectorized_spearman, _vectorized_pearson, _vectorized_cosine, _vectorized_jaccard, _masked_pearson, _masked_spearman
 
 
 def get_spatial_proximity(adata: anndata.AnnData,
@@ -153,7 +152,7 @@ def _local_permutation_pvals(x_mat, y_mat, dist, local_truth, local_fun,n_perm, 
     ## TODO change this to directed which uses the categories as mask
     if positive_only:  # TODO change to directed mask (both, negative, positive)
         # only keep positive pvals where either x or y is positive
-        pos_msk = ((x_mat > 0) + (y_mat > 0)).T # TODO this would only work if x and y are are normalized
+        pos_msk = ((x_mat > 0) + (y_mat > 0)).T
         local_pvals[~pos_msk] = 1
 
     return local_pvals
@@ -194,22 +193,169 @@ def _simplify_cats(df):
     
     return df.replace({r'(^*Z*$)': 0, 'NN': 0, 'PP': 1, 'PN': -1, "NP": -1})
 
-
-
-def _handle_functions(function_name):
-    function_name = function_name.lower()
     
-    if function_name == "pearson":
-        return _vectorized_pearson
-    elif function_name == "spearman":
-        return _vectorized_spearman
-    elif function_name == "masked_pearson":
-        return _masked_pearson
-    elif function_name == "masked_spearman":
-        return _masked_spearman
-    elif function_name == "cosine":
-        return _vectorized_cosine
-    elif function_name == "jaccard":
-        return _vectorized_jaccard
-    elif function_name == "morans":
-        raise ValueError("Function not implemented")
+    
+### Specific to SpatialDM - TODO generalize these functions
+def _global_permutation_pvals(x_mat, y_mat, dist, global_r, n_perm, positive_only, seed):
+    """
+    Calculate permutation pvals
+
+    Parameters
+    ----------
+    x_mat
+        Matrix with x variables
+    y_mat
+        Matrix with y variables
+    dist
+        Proximity weights 2D array
+    global_r
+        Global Moran's I, 1D array
+    n_perm
+        Number of permutations
+    positive_only
+        Whether to mask negative p-values
+    seed
+        Reproducibility seed
+
+    Returns
+    -------
+    1D array with same size as global_r
+
+    """
+    assert isinstance(dist, csr_matrix)
+    rng = np.random.default_rng(seed)
+
+    # initialize mat /w n_perm * number of X->Y
+    idx = x_mat.shape[1]
+
+    # permutation mat /w n_perms x LR_n
+    perm_mat = np.zeros((n_perm, global_r.shape[0]))
+
+    for perm in tqdm(range(n_perm)):
+        _idx = rng.permutation(idx)
+        perm_mat[perm, :] = ((x_mat[:, _idx] @ dist) * y_mat).sum(axis=1) # flipped x_mat
+
+    if positive_only:
+        global_pvals = 1 - (global_r > perm_mat).sum(axis=0) / n_perm
+    else:
+        # TODO Proof this makes sense
+        global_pvals = 2 * (1 - (np.abs(global_r) > np.abs(perm_mat)).sum(axis=0) / n_perm)
+
+    return global_pvals
+
+
+
+def _global_zscore_pvals(dist, global_r, positive_only):
+    """
+
+    Parameters
+    ----------
+    dist
+        proximity weight matrix (spot_n x spot_n)
+    global_r
+        Array with
+    positive_only: bool
+        whether to mask negative correlation p-values
+
+    Returns
+    -------
+        1D array with the size of global_r
+
+    """
+    dist = np.array(dist.todense())
+    spot_n = dist.shape[0]
+
+    # global distance variance as in spatialDM
+    numerator = spot_n ** 2 * ((dist * dist).sum()) - \
+                (2 * spot_n * (dist @ dist).sum()) + \
+                (dist.sum() ** 2)
+    denominator = spot_n ** 2 * (spot_n - 1) ** 2
+    dist_var_sq = (numerator / denominator) ** (1 / 2)
+
+    global_zscores = global_r / dist_var_sq
+
+    if positive_only:
+        global_zpvals = norm.sf(global_zscores)
+    else:
+        global_zpvals = norm.sf(np.abs(global_zscores)) * 2
+
+    return global_zpvals
+
+
+
+
+def _local_zscore_pvals(x_mat, y_mat, local_r, dist, positive_only):
+    """
+
+    Parameters
+    ----------
+    x_mat
+        2D array with x variables
+    y_mat
+        2D array with y variables
+    local_r
+        2D array with Local Moran's I
+    dist
+        proximity weights
+    positive_only
+        Whether to mask negative correlations pvalue
+
+    Returns
+    -------
+    2D array of p-values with shape(n_spot, xy_n)
+
+    """
+    spot_n = dist.shape[0]
+
+    x_norm = np.apply_along_axis(norm.fit, axis=0, arr=x_mat)
+    y_norm = np.apply_along_axis(norm.fit, axis=0, arr=y_mat)
+
+    # get x,y std
+    x_sigma, y_sigma = x_norm[1, :], y_norm[1, :]
+
+    x_sigma = x_sigma * spot_n / (spot_n - 1)
+    y_sigma = y_sigma * spot_n / (spot_n - 1)
+
+    std = _get_local_var(x_sigma, y_sigma, dist, spot_n)
+    local_zscores = local_r / std
+
+    if positive_only:
+        local_zpvals = norm.sf(local_zscores)
+        pos_msk = ((x_mat > 0) + (y_mat > 0)).T  # mask?
+        local_zpvals[~pos_msk] = 1
+    else:
+        local_zpvals = norm.sf(np.abs(local_zscores))
+
+    return local_zpvals
+
+
+def _get_local_var(x_sigma, y_sigma, dist, spot_n):
+    """
+    Spatial weight variance as in spatialDM (Li et al., 2022)
+
+    Parameters
+    ----------
+    x_sigma
+        Standard deviations for each x (e.g. std of all ligands in the matrix)
+    y_sigma
+        Standard deviations for each y (e.g. std of all receptors in the matrix)
+    dist
+        proximity weight matrix
+    spot_n
+        number of spots/cells in the matrix
+
+    Returns
+    -------
+    2D array of standard deviations with shape(n_spot, xy_n)
+
+    """
+    dist_sq = (np.array(dist.todense()) ** 2).sum(axis=1)
+
+    n_weight = 2 * (spot_n - 1) ** 2 / spot_n ** 2
+    sigma_prod = x_sigma * y_sigma
+    core = n_weight * sigma_prod
+
+    var = np.multiply.outer(dist_sq, core) + core
+    std = var ** 0.5
+
+    return std.T
