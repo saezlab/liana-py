@@ -101,25 +101,29 @@ class SpatialDM(_SpatialMeta):
         # n / sum(W) for Moran's I
         norm_factor = temp.obsm['proximity'].shape[0] / temp.obsm['proximity'].sum()
         dist = csr_matrix(norm_factor * temp.obsm['proximity'])
+        
+        x_key = 'ligand'
+        y_key = 'receptor'
+        # convert to spot_n x lr_n matrices
+        x_mat = _get_ordered_matrix(mat=temp.X,
+                                    pos=ligand_pos,
+                                    order=lr_res[x_key])
+        y_mat = _get_ordered_matrix(mat=temp.X,
+                                    pos=receptor_pos,
+                                    order=lr_res[y_key])
 
         # we use the same gene expression matrix for both x and y
         lr_res['global_r'], lr_res['global_pvals'] = \
-            _global_spatialdm(x_mat=temp.X,
-                              y_mat=temp.X,
-                              x_pos=ligand_pos,
-                              y_pos=receptor_pos,
-                              xy_dataframe=lr_res,
+            _global_spatialdm(x_mat=x_mat,
+                              y_mat=y_mat,
                               dist=dist,
                               seed=seed,
                               n_perm=n_perm,
                               pvalue_method=pvalue_method,
                               positive_only=positive_only
                               )
-        local_r, local_pvals = _local_spatialdm(x_mat=temp.X,
-                                                y_mat=temp.X,
-                                                x_pos=ligand_pos,
-                                                y_pos=receptor_pos,
-                                                xy_dataframe=lr_res,
+        local_r, local_pvals = _local_spatialdm(x_mat=x_mat,
+                                                y_mat=y_mat,
                                                 dist=dist,  # TODO msq?
                                                 seed=seed,
                                                 n_perm=n_perm,
@@ -145,16 +149,11 @@ class SpatialDM(_SpatialMeta):
 
 def _global_spatialdm(x_mat,
                       y_mat,
-                      x_pos,
-                      y_pos,
-                      xy_dataframe,
                       dist,
                       seed,
                       n_perm,
                       pvalue_method,
-                      positive_only,
-                      x_key = 'ligand',
-                      y_key = 'receptor'):
+                      positive_only):
     """
     Global Moran's Bivariate I as implemented in SpatialDM
 
@@ -192,16 +191,8 @@ def _global_spatialdm(x_mat,
     """
 
     # normalize matrices
-    x_mat = _standardize_matrix(x_mat, local=False)
-    y_mat = _standardize_matrix(y_mat, local=False)
-
-    # convert to spot_n x lr_n matrices
-    x_mat = _get_ordered_matrix(mat=x_mat,
-                                pos=x_pos,
-                                order=xy_dataframe[x_key])
-    y_mat = _get_ordered_matrix(mat=y_mat,
-                                pos=y_pos,
-                                order=xy_dataframe[y_key])
+    x_mat = _standardize_matrix(x_mat, local=False, axis=1)
+    y_mat = _standardize_matrix(y_mat, local=False, axis=1)
 
     # Get global r
     global_r = ((x_mat @ dist) * y_mat).sum(axis=1)
@@ -276,16 +267,11 @@ def _global_permutation_pvals(x_mat, y_mat, dist, global_r, n_perm, positive_onl
 
 def _local_spatialdm(x_mat,
                      y_mat,
-                     x_pos,
-                     y_pos,
-                     xy_dataframe,
                      dist,
                      n_perm,
                      seed,
                      pvalue_method,
                      positive_only,
-                     x_key = 'ligand',
-                     y_key = 'receptor'
                      ):
     """
     Local Moran's Bivariate I as implemented in SpatialDM
@@ -321,21 +307,15 @@ def _local_spatialdm(x_mat,
          or in other words calculates local_I and local_pval for
          each interaction in `xy_dataframe` and each sample in mat
     """
-    x_mat = _standardize_matrix(x_mat, local=True)
-    y_mat = _standardize_matrix(y_mat, local=True)
+    x_mat = _standardize_matrix(x_mat, local=True, axis=1)
+    y_mat = _standardize_matrix(y_mat, local=True, axis=1)
 
-    ligand_mat = _get_ordered_matrix(mat=x_mat,
-                                     pos=x_pos,
-                                     order=xy_dataframe[x_key])
-    receptor_mat = _get_ordered_matrix(mat=y_mat,
-                                       pos=y_pos,
-                                       order=xy_dataframe[y_key])
-    ligand_mat, receptor_mat = ligand_mat.T, receptor_mat.T
-    local_r = _local_morans(ligand_mat, receptor_mat, dist)
+    x_mat, y_mat = x_mat.T, y_mat.T
+    local_r = _local_morans(x_mat, y_mat, dist)
 
     if pvalue_method == 'permutation':
-        local_pvals = _local_permutation_pvals(x_mat=ligand_mat,
-                                               y_mat=receptor_mat,
+        local_pvals = _local_permutation_pvals(x_mat=x_mat,
+                                               y_mat=y_mat,
                                                dist=dist,
                                                local_truth=local_r,
                                                local_fun=_local_morans,
@@ -344,8 +324,8 @@ def _local_spatialdm(x_mat,
                                                positive_only=positive_only
                                                )
     elif pvalue_method == 'analytical':
-        local_pvals = _local_zscore_pvals(x_mat=ligand_mat,
-                                          y_mat=receptor_mat,
+        local_pvals = _local_zscore_pvals(x_mat=x_mat,
+                                          y_mat=y_mat,
                                           local_r=local_r,
                                           dist=dist,
                                           positive_only=positive_only)

@@ -159,17 +159,18 @@ def _local_permutation_pvals(x_mat, y_mat, dist, local_truth, local_fun,n_perm, 
     return local_pvals
 
 
-def _standardize_matrix(mat, local=True):
-    mat = np.array(mat - np.array(mat.mean(axis=0)))
+def _standardize_matrix(mat, local=True, axis=0):
+    mat = np.array(mat - np.array(mat.mean(axis=axis)))
     if not local:
-        mat = mat / np.sqrt(np.sum(mat ** 2, axis=0, keepdims=True))
+        mat = mat / np.sqrt(np.sum(mat ** 2, axis=axis, keepdims=True))
     return mat
 
 
 def _encode_as_char(a):
     # if only positive
     if np.all(a >= 0):
-        a = _standardize_matrix(a, local=True)
+        # TODO check if axis is correct
+        a = _standardize_matrix(a, local=True, axis=0)
     a = np.where(a > 0, 'P', np.where(a < 0, 'N', 'Z'))
     return a
 
