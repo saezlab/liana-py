@@ -72,7 +72,7 @@ def _masked_spearman(x_mat, y_mat, weight, weight_thr):
 
 
 
-def _vectorized_correlations(x_mat, y_mat, dist, method="pearson"):
+def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
     """
     Vectorized implementation of weighted correlations.
     
@@ -85,7 +85,7 @@ def _vectorized_correlations(x_mat, y_mat, dist, method="pearson"):
     # transpose
     x_mat, y_mat = x_mat.T, y_mat.T
     
-    weight = dist.A.T
+
     weight_sums = np.sum(weight, axis = 0).flatten()
         
     if method=="spearman":
@@ -125,9 +125,8 @@ def _vectorized_spearman(x_mat, y_mat, dist):
     
 
 
-def _vectorized_wcosine(x_mat, y_mat, dist):
+def _vectorized_wcosine(x_mat, y_mat, weight):
     x_mat, y_mat = x_mat.T, y_mat.T    
-    weight = dist.A.T
     
     xy_dot = (x_mat * y_mat).dot(weight)
     x_dot = (x_mat ** 2).dot(weight.T)
@@ -137,12 +136,11 @@ def _vectorized_wcosine(x_mat, y_mat, dist):
     return xy_dot / (denominator**0.5)
 
 
-def _vectorized_jaccard(x_mat, y_mat, dist):
+def _vectorized_jaccard(x_mat, y_mat, weight):
     # binarize
-    x_mat, y_mat = np.abs(x_mat) > 0, np.abs(y_mat) > 0 ## TODO, only positive?
+    x_mat, y_mat = x_mat > 0, y_mat > 0 ## TODO, only positive?
     # transpose
     x_mat, y_mat = x_mat.T, y_mat.T    
-    weight = dist.A.T
     
     # intersect and union
     numerator = np.dot(np.minimum(x_mat, y_mat), weight)

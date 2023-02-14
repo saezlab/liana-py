@@ -6,10 +6,21 @@ from liana.resource import select_resource
 from liana.method._pipe_utils._reassemble_complexes import explode_complexes
 from liana.method._pipe_utils import prep_check_adata, filter_resource, assert_covered, filter_reassemble_complexes
 from liana.utils._utils import _get_props
+from scipy.sparse import csr_matrix
+from liana.method.sp._spatial_utils import _local_to_dataframe, _local_permutation_pvals, _categorize, _simplify_cats, _encode_as_char
 
 
 
-def global_bivariate_pipe(mdata, x_mod, y_mod, nz_threshold=0):
+def global_bivariate_pipe(mdata, 
+                          local_fun,
+                          x_mod,
+                          y_mod, 
+                          dist,
+                          score_key = "local_score",
+                          categorize = False,
+                          n_perm = None, 
+                          nz_threshold=0
+                          ):
     """
     Global Bivariate analysis pipeline
     
@@ -33,11 +44,16 @@ def global_bivariate_pipe(mdata, x_mod, y_mod, nz_threshold=0):
     xdata = mdata[x_mod] ## TODO takes both anndatas and strings for mudata modalities
     ydata = mdata[y_mod]
     
+    # change Index names to entity
+    xdata.var_names.rename('entity', inplace=True)
+    ydata.var_names.rename('entity', inplace=True)
+    
+    
     x_stats = _rename_means(_anndata_to_stats(xdata, nz_threshold), entity='x')
     y_stats = _rename_means(_anndata_to_stats(ydata, nz_threshold), entity='y')
     
     xy_stats = pd.DataFrame(list(product(x_stats['x_entity'], 
-                                             y_stats['y_entity'])
+                                         y_stats['y_entity'])
                                  ),
                             columns=['x_entity', 'y_entity'])
     
@@ -55,9 +71,58 @@ def global_bivariate_pipe(mdata, x_mod, y_mod, nz_threshold=0):
     # reorder columns
     xy_stats = xy_stats.reindex(columns=sorted(xy_stats.columns))
     
-    return xy_stats, x_pos, y_pos
+    # convert to spot_n x xy_n matrices
+    x_mat = _get_ordered_matrix(mat=mdata[x_mod].X,
+                                pos=x_pos,
+                                order=xy_stats['x_entity'])
+    y_mat = _get_ordered_matrix(mat=mdata[y_mod].X,
+                                pos=y_pos,
+                                order=xy_stats['y_entity'])
+    
+    
+    if local_fun.__name__== "_local_morans": ## TODO move specifics to method instances
+        norm_factor = dist.shape[0] / dist.sum()
+        weight = csr_matrix(norm_factor * dist)
+    else:
+        weight = dist.A
+    
+    local_score = local_fun(x_mat.T.A, y_mat.T.A, weight)
+    mdata.obsm[score_key] = _local_to_dataframe(array=local_score.T,
+                                                idx=mdata.obs.index,
+                                                columns=xy_stats.interaction)
+    
+    # global scores, TODO should be score specific, e.g. spatialMD has its own global score
+    xy_stats.loc[:,['local_mean','local_sd']] = np.vstack([np.mean(local_score, axis=1), np.std(local_score, axis=1)]).T
+    mdata.uns['global_res'] = xy_stats
 
-
+    
+    if n_perm is not None:
+        local_pvals = _local_permutation_pvals(x_mat = x_mat.A.T, 
+                                               y_mat = y_mat.A.T, 
+                                               local_truth=local_score,
+                                               local_fun=local_fun,
+                                               dist=weight, 
+                                               n_perm=n_perm, 
+                                               positive_only=False,
+                                               seed=0
+                                               )
+        mdata.obsm['local_pvals'] = _local_to_dataframe(array=local_pvals.T,
+                                                        idx=mdata.obs.index,
+                                                        columns=xy_stats.interaction)
+    
+    if categorize:
+        local_catageries = _categorize(_encode_as_char(x_mat.A), _encode_as_char(y_mat.A))
+        local_catageries = _simplify_cats(local_catageries)
+         ## TODO these to helper function that can extract multiple of these
+         # and these all saved as arrays, or alternatively saved a modalities in mudata
+        mdata.obsm['local_categories'] = _local_to_dataframe(array=local_catageries.T,
+                                                             idx=mdata.obs.index,
+                                                             columns=xy_stats.interaction)
+        
+    return mdata
+        
+        
+    
 
 
 
@@ -68,7 +133,7 @@ def _anndata_to_stats(adata, nz_thr=0.1):
     global_stats = pd.DataFrame({'means': adata.X.mean(axis=0).A.flatten(),
                                  'non_zero': _get_props(adata.X)},
                                 index=adata.var_names)
-    global_stats = global_stats.reset_index().rename(columns={'index': 'entity'})
+    global_stats = global_stats.reset_index().rename(columns={'index': 'entity'}).rename(columns={'interaction': 'entity'})
     global_stats = global_stats[global_stats['non_zero'] >= nz_thr]
 
     return global_stats

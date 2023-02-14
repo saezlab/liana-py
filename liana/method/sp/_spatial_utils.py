@@ -131,7 +131,6 @@ def _local_permutation_pvals(x_mat, y_mat, dist, local_truth, local_fun,n_perm, 
 
     """
     rng = np.random.default_rng(seed)
-    assert isinstance(dist, csr_matrix)
 
     xy_n = local_truth.shape[0]
     spot_n = local_truth.shape[1]
@@ -156,3 +155,22 @@ def _local_permutation_pvals(x_mat, y_mat, dist, local_truth, local_fun,n_perm, 
         local_pvals[~pos_msk] = 1
 
     return local_pvals
+
+
+
+def _encode_as_char(a):
+    a = np.where(a > 0, 'P', np.where(a<0, 'N', 'Z'))
+    return a
+
+
+def _categorize(x, y):
+    cat = np.core.defchararray.add(x, y)
+    return cat
+
+
+def _simplify_cats(a):
+    result = np.where(np.char.find(a, 'Z') >= 0, 'U',
+              np.where(a == 'PP', 'P',
+                       np.where(a == 'NN', 'P*',
+                                np.where(np.char.find(a, 'N') >= 0, 'N', a))))
+    return result
