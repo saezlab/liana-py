@@ -100,8 +100,19 @@ def get_spatial_proximity(adata: anndata.AnnData,
     return None if inplace else proximity
 
 
+def _rename_means(lr_stats, entity):
+    df = lr_stats.copy()
+    df.columns = df.columns.map(lambda x: entity + '_' + str(x) if x != 'gene' else 'gene')
+    return df.rename(columns={'gene': entity})
+
+
 def _local_to_dataframe(idx, columns, array):
     return DataFrame(array, index=idx, columns=columns)
+
+
+def _get_ordered_matrix(mat, pos, order):
+    _indx = np.array([pos[x] for x in order])
+    return mat[:, _indx].T
 
 
 def _local_permutation_pvals(x_mat, y_mat, dist, local_truth, local_fun,n_perm, seed, positive_only, **kwargs):

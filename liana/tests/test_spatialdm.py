@@ -2,7 +2,7 @@ import numpy as np
 from scanpy.datasets import pbmc68k_reduced
 from  scipy.sparse import csr_matrix
 
-from liana.method.sp._spatialdm import spatialdm
+from liana.method.sp._lr_spatial_pipe import spatialdm
 from liana.method.sp._spatial_utils import _global_zscore_pvals, _global_permutation_pvals, _local_permutation_pvals, _local_zscore_pvals
 from liana.method.sp._bivariate_funs import _local_morans
 

@@ -2,28 +2,35 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 from anndata import AnnData
-from pandas import DataFrame
+import pandas as pd
 from typing import Optional
 
+from liana.resource import select_resource
+from liana.method._pipe_utils._reassemble_complexes import explode_complexes
+from liana.method._pipe_utils import prep_check_adata, filter_resource, assert_covered, filter_reassemble_complexes
+from liana.utils._utils import _get_props
+
 from liana.method.sp._SpatialMethod import _SpatialMeta
-from liana.method.sp._spatial_pipe import _global_lr_pipe, _get_ordered_matrix
-from liana.method.sp._spatial_utils import _local_to_dataframe, _standardize_matrix
-from liana.method.sp._bivariate_funs import _global_spatialdm, _local_spatialdm
+from liana.method.sp._spatial_pipe import _get_ordered_matrix
+from liana.method.sp._spatial_utils import _local_to_dataframe, _standardize_matrix, _rename_means
+from liana.method.sp._bivariate_funs import _global_spatialdm, _local_spatialdm, _handle_functions
 
 
-class SpatialDM(_SpatialMeta):
-    def __init__(self, _method, _complex_cols, _obsm_keys):
+
+class SpatialLR(_SpatialMeta):
+    def __init__(self, _method, _complex_cols):
         super().__init__(method_name=_method.method_name,
                          key_cols=_method.key_cols,
                          reference=_method.reference,
                          )
 
-        self.complex_cols = _complex_cols
-        self.obsm_keys = _obsm_keys
-        self._method = _method
+        self._method = _method # TODO change to method_meta
+        self._complex_cols = _complex_cols
 
     def __call__(self,
                  adata: AnnData,
+                #  function_name,
+                 proximity_key = 'proximity',
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.05,
                  pvalue_method: str = 'analytical',
@@ -33,7 +40,7 @@ class SpatialDM(_SpatialMeta):
                  layer: Optional[str] = None,
                  verbose: Optional[bool] = False,
                  seed: int = 1337,
-                 resource: Optional[DataFrame] = None,
+                 resource: Optional[pd.DataFrame] = None,
                  inplace=True
                  ):
         """
@@ -83,31 +90,68 @@ class SpatialDM(_SpatialMeta):
         if pvalue_method not in ['analytical', 'permutation']:
             raise ValueError('pvalue_method must be one of [analytical, permutation]')
 
-        temp, lr_res, ligand_pos, receptor_pos = _global_lr_pipe(adata=adata,
-                                                                 resource_name=resource_name,
-                                                                 resource=resource,
-                                                                 expr_prop=expr_prop,
-                                                                 use_raw=use_raw,
-                                                                 layer=layer,
-                                                                 verbose=verbose,
-                                                                 _key_cols=self.key_cols,
-                                                                 _complex_cols=self.complex_cols,
-                                                                 _obms_keys=self.obsm_keys
-                                                                 )
+        temp = prep_check_adata(adata=adata,
+                                use_raw=use_raw,
+                                layer=layer,
+                                verbose=verbose,
+                                groupby=None,
+                                min_cells=None,
+                                obsm_keys=[proximity_key],
+                                )
+        
+        dist = adata.obsm[proximity_key]
+        # local_fun = _handle_functions(function_name)
+
+        # select & process resource
+        if resource is None:
+            resource = select_resource(resource_name.lower())
+        resource = explode_complexes(resource)
+        resource = filter_resource(resource, adata.var_names)
+
+        # get entities
+        entities = np.union1d(np.unique(resource["ligand"]),
+                            np.unique(resource["receptor"]))
+
+        # Check overlap between resource and adata  TODO check if this works
+        assert_covered(entities, temp.var_names, verbose=verbose)
+
+        # Filter to only include the relevant features
+        temp = temp[:, np.intersect1d(entities, temp.var.index)]
+
+        # global_stats
+        global_stats = pd.DataFrame({'means': temp.X.mean(axis=0).A.flatten(),
+                                    'props': _get_props(temp.X)},
+                                    index=temp.var_names).reset_index().rename(
+            columns={'index': 'gene'})
+
+        # join global stats to LRs from resource
+        lr_res = resource.merge(_rename_means(global_stats, entity='ligand')).merge(
+            _rename_means(global_stats, entity='receptor'))
+
+        # get lr_res /w relevant x,y (lig, rec) and filter acc to expr_prop
+        lr_res = filter_reassemble_complexes(lr_res=lr_res,
+                                            expr_prop=expr_prop,
+                                            _key_cols=self.key_cols,
+                                            complex_cols=self._complex_cols
+                                            )
+
+        # assign the positions of x, y to the adata
+        ligand_pos = {entity: np.where(temp.var_names == entity)[0][0] for entity in
+                    lr_res['ligand']}
+        receptor_pos = {entity: np.where(temp.var_names == entity)[0][0] for entity in
+                        lr_res['receptor']}
 
         # n / sum(W) for Moran's I
-        norm_factor = temp.obsm['proximity'].shape[0] / temp.obsm['proximity'].sum()
-        dist = csr_matrix(norm_factor * temp.obsm['proximity'])
+        norm_factor = temp.obsm[proximity_key].shape[0] / temp.obsm[proximity_key].sum()
+        dist = csr_matrix(norm_factor * temp.obsm[proximity_key])
         
-        x_key = 'ligand'
-        y_key = 'receptor'
         # convert to spot_n x lr_n matrices
         x_mat = _get_ordered_matrix(mat=temp.X,
                                     pos=ligand_pos,
-                                    order=lr_res[x_key])
+                                    order=lr_res['ligand'])
         y_mat = _get_ordered_matrix(mat=temp.X,
                                     pos=receptor_pos,
-                                    order=lr_res[y_key])
+                                    order=lr_res['receptor'])
 
         # we use the same gene expression matrix for both x and y
         lr_res['global_r'], lr_res['global_pvals'] = \
@@ -144,9 +188,8 @@ class SpatialDM(_SpatialMeta):
         return None if inplace else (lr_res, local_r, local_pvals)
 
 
-
 # initialize instance
-_spatialdm = _SpatialMeta(
+_spatial_lr = _SpatialMeta(
     method_name="SpatialDM",
     key_cols=['ligand_complex', 'receptor_complex'],
     reference="Zhuoxuan, L.I., Wang, T., Liu, P. and Huang, Y., 2022. SpatialDM: Rapid "
@@ -154,9 +197,8 @@ _spatialdm = _SpatialMeta(
               "communication patterns. bioRxiv. "
 )
 
-spatialdm = SpatialDM(_method=_spatialdm,
+spatialdm = SpatialLR(_method=_spatial_lr,
                       _complex_cols=['ligand_means', 'receptor_means'],
-                      _obsm_keys=['proximity']
                       )
 
 

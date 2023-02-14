@@ -11,6 +11,8 @@ class _SpatialMeta:
                  reference: str
                  ):
         """
+        Class to store metadata for spatial methods
+        
         Parameters
         ----------
         method_name
