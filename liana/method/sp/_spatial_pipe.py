@@ -9,8 +9,8 @@ from liana.method._pipe_utils._reassemble_complexes import explode_complexes
 from liana.method._pipe_utils import prep_check_adata, filter_resource, assert_covered, filter_reassemble_complexes
 from liana.utils._utils import _get_props
 from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
-from liana.method.sp._spatial_utils import _local_to_dataframe, _local_permutation_pvals, _categorize, _simplify_cats, _encode_as_char
-from liana.method.sp._bivariate_funs import _handle_functions
+from liana.method.sp._spatial_utils import _local_to_dataframe, _local_permutation_pvals, _categorize, _simplify_cats, _encode_as_char, _standardize_matrix
+from liana.method.sp._bivariate_funs import _handle_functions, _global_spatialdm
 
 
 class SpatialBivariate(_SpatialMeta):
@@ -30,8 +30,9 @@ class SpatialBivariate(_SpatialMeta):
                  score_key = "local_score",
                  categorize = False,
                  n_perm = None, 
+                 seed = 1337,
                  nz_threshold=0,
-                 keep_self_interactions=False,
+                 remove_self_interactions=True,
                  ):
         """
         Global Bivariate analysis pipeline
@@ -78,8 +79,8 @@ class SpatialBivariate(_SpatialMeta):
         
         xy_stats['interaction'] = xy_stats['x_entity'] + '&' + xy_stats['y_entity']
         
-        # Remove self-interactions (when x_mod = y_mod)
-        xy_stats = xy_stats[xy_stats['x_entity'] != xy_stats['y_entity']]
+        if remove_self_interactions:
+            xy_stats = xy_stats[xy_stats['x_entity'] != xy_stats['y_entity']]
         
         # assign the positions of x, y to the adata
         x_pos = {entity: np.where(xdata.var_names == entity)[0][0] for entity in xy_stats['x_entity']}
@@ -107,11 +108,20 @@ class SpatialBivariate(_SpatialMeta):
                                                     idx=mdata.obs.index,
                                                     columns=xy_stats.interaction)
         
-        # global scores, TODO should be score specific, e.g. spatialMD has its own global score
+        # global scores, TODO should they be be score specific? e.g. spatialMD has its own global score
         if local_fun.__name__== "_local_morans":
-            x
+            xy_stats.loc[:, ['global_r', 'global_pvals']] = \
+                _global_spatialdm(x_mat=_standardize_matrix(x_mat, local=False, axis=1),
+                                  y_mat=_standardize_matrix(y_mat, local=False, axis=1),
+                                  dist=weight,
+                                  seed=seed,
+                                  n_perm=n_perm,
+                                  pvalue_method='analytical',
+                                  positive_only=False
+                                  ).T
         else:
-            xy_stats.loc[:,['local_mean','local_sd']] = np.vstack([np.mean(local_score, axis=1), np.std(local_score, axis=1)]).T
+            # any other local score
+            xy_stats.loc[:,['global_mean','global_sd']] = np.vstack([np.mean(local_score, axis=1), np.std(local_score, axis=1)]).T
             mdata.uns['global_res'] = xy_stats
 
 
@@ -123,7 +133,7 @@ class SpatialBivariate(_SpatialMeta):
                                                    dist=weight, 
                                                    n_perm=n_perm, 
                                                    positive_only=False,
-                                                   seed=0
+                                                   seed=seed
                                                    )
             mdata.obsm['local_pvals'] = _local_to_dataframe(array=local_pvals.T,
                                                             idx=mdata.obs.index,

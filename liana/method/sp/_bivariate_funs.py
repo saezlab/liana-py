@@ -185,7 +185,7 @@ def _handle_functions(function_name): # TODO improve this, maybe use a dict, or 
     elif function_name == "jaccard":
         return _vectorized_jaccard
     elif function_name == "morans":
-        XXX
+        return _local_morans
     else:
         raise ValueError("Function not implemented")
 
@@ -197,7 +197,8 @@ def _global_spatialdm(x_mat,
                       seed,
                       n_perm,
                       pvalue_method,
-                      positive_only):
+                      positive_only
+                      ):
     """
     Global Moran's Bivariate I as implemented in SpatialDM
 
@@ -251,7 +252,7 @@ def _global_spatialdm(x_mat,
                                             global_r=global_r,
                                             positive_only=positive_only)
 
-    return global_r, global_pvals
+    return np.array((global_r, global_pvals))
 
 
 
