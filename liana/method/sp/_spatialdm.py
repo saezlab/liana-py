@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from liana.method.sp._SpatialMethod import _SpatialMeta
 from liana.method.sp._spatial_pipe import _global_lr_pipe, _get_ordered_matrix
-from liana.method.sp._spatial_utils import _local_to_dataframe, _local_permutation_pvals
+from liana.method.sp._spatial_utils import _local_to_dataframe, _local_permutation_pvals, _standardize_matrix
 
 
 class SpatialDM(_SpatialMeta):
@@ -351,12 +351,6 @@ def _local_spatialdm(x_mat,
 
     return local_r.T, local_pvals.T
 
-
-def _standardize_matrix(mat, local=True):
-    mat = np.array(mat - np.array(mat.mean(axis=0)))
-    if not local:
-        mat = mat / np.sqrt(np.sum(mat ** 2, axis=0, keepdims=True))
-    return mat
 
 
 # TODO Check why they omit m_squared?

@@ -151,15 +151,24 @@ def _local_permutation_pvals(x_mat, y_mat, dist, local_truth, local_fun,n_perm, 
 
     if positive_only:  # TODO change to directed mask (both, negative, positive)
         # only keep positive pvals where either x or y is positive
-        pos_msk = ((x_mat > 0) + (y_mat > 0)).T
+        pos_msk = ((x_mat > 0) + (y_mat > 0)).T # TODO this would only work if x and y are are normalized
         local_pvals[~pos_msk] = 1
 
     return local_pvals
 
 
+def _standardize_matrix(mat, local=True):
+    mat = np.array(mat - np.array(mat.mean(axis=0)))
+    if not local:
+        mat = mat / np.sqrt(np.sum(mat ** 2, axis=0, keepdims=True))
+    return mat
+
 
 def _encode_as_char(a):
-    a = np.where(a > 0, 'P', np.where(a<0, 'N', 'Z'))
+    # if only positive
+    if np.all(a >= 0):
+        a = _standardize_matrix(a, local=True)
+    a = np.where(a > 0, 'P', np.where(a < 0, 'N', 'Z'))
     return a
 
 
@@ -168,9 +177,25 @@ def _categorize(x, y):
     return cat
 
 
-def _simplify_cats(a):
-    result = np.where(np.char.find(a, 'Z') >= 0, 'U',
-              np.where(a == 'PP', 'P',
-                       np.where(a == 'NN', 'P*',
-                                np.where(np.char.find(a, 'N') >= 0, 'N', a))))
-    return result
+def _simplify_cats(df):
+    """
+    This function simplifies the categories of the co-expression matrix.
+    
+    Any combination of 'P' and 'N' is replaced by '-1' (negative co-expression).
+    Any string containing 'Z' or 'NN' is replace by 0 (undefined or absence-absence)
+    A 'PP' is replaced by 1 (positive co-expression)
+    
+    Note that  absence-absence is not definitive, but rather indicates that the 
+    co-expression is between two genes expressed lower than their means
+    """
+    
+    return df.replace({r'(^*Z*$)': 0, 'NN': 0, 'PP': 1, 'PN': -1, "NP": -1})
+
+# def _simplify_cats(a):
+#     result = np.where(np.char.find(a, 'Z') >= 0, 'U',
+#               np.where(a == 'PP', 'P',
+#                        np.where(a == 'NN', 'P*',
+#                                 np.where(np.char.find(a, 'N') >= 0, 'N', a))))
+#     return result
+
+

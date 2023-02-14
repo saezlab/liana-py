@@ -41,7 +41,7 @@ def global_bivariate_pipe(mdata,
     
     """
     
-    xdata = mdata[x_mod] ## TODO takes both anndatas and strings for mudata modalities
+    xdata = mdata[x_mod]
     ydata = mdata[y_mod]
     
     # change Index names to entity
@@ -62,7 +62,7 @@ def global_bivariate_pipe(mdata,
     
     xy_stats['interaction'] = xy_stats['x_entity'] + '&' + xy_stats['y_entity']
     
-    # Remove self-interactions (e.g. x = x) # TODO: check if this is necessary, pointless for bivariate metrics
+    # Remove self-interactions (when x_mod = y_mod)
     xy_stats = xy_stats[xy_stats['x_entity'] != xy_stats['y_entity']]
     
     # assign the positions of x, y to the adata
@@ -95,7 +95,7 @@ def global_bivariate_pipe(mdata,
     xy_stats.loc[:,['local_mean','local_sd']] = np.vstack([np.mean(local_score, axis=1), np.std(local_score, axis=1)]).T
     mdata.uns['global_res'] = xy_stats
 
-    
+
     if n_perm is not None:
         local_pvals = _local_permutation_pvals(x_mat = x_mat.A.T, 
                                                y_mat = y_mat.A.T, 
@@ -111,13 +111,18 @@ def global_bivariate_pipe(mdata,
                                                         columns=xy_stats.interaction)
     
     if categorize:
+        # TODO categorizing is currently done following standardization of the matrix
+        # i.e. each variable is standardized independently, and then a category is
+        # defined based on the values within each stop.
+        # (taking into consideration when the input is signed, but not weight or surrounding spots).
+        
         local_catageries = _categorize(_encode_as_char(x_mat.A), _encode_as_char(y_mat.A))
-        local_catageries = _simplify_cats(local_catageries)
          ## TODO these to helper function that can extract multiple of these
          # and these all saved as arrays, or alternatively saved a modalities in mudata
         mdata.obsm['local_categories'] = _local_to_dataframe(array=local_catageries.T,
                                                              idx=mdata.obs.index,
                                                              columns=xy_stats.interaction)
+        mdata.obsm['local_categories'] = _simplify_cats(mdata.obsm['local_categories'])
         
     return mdata
         
