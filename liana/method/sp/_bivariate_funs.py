@@ -38,6 +38,33 @@ def _wcoex(x, y, w, wsum, method):
         return c
 
 
+# @nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:]), cache=True)
+# def _wcossim(x, y , w):
+#     dot = np.dot(x * w, y)
+#     x_dot = np.dot(x * w, x)
+#     y_dot = np.dot(y * w, y)
+#     denominator = (x_dot * y_dot)
+    
+#     if denominator == 0:
+#         return 0.0
+    
+#     return dot / (denominator**0.5)
+
+
+# @nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:]), cache=True)
+# def _wjaccard(x, y , w):
+#     x = (x > 0).astype(np.int8)
+#     y = (y > 0).astype(np.int8)
+    
+#     # intersect and union
+#     numerator = np.sum(np.minimum(x, y) * w)
+#     denominator = np.sum(np.maximum(x, y) * w)
+    
+#     if denominator == 0:
+#         return 0.0
+    
+#     return numerator / denominator
+
 
 # 0 = pearson, 1 = spearman 
 @nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:], nb.float32, nb.int8), parallel=True, cache=True)
