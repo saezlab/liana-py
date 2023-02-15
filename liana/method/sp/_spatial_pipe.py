@@ -8,7 +8,7 @@ from liana.utils._utils import _get_props
 from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
 from liana.method.sp._spatial_utils import _local_to_dataframe, _local_permutation_pvals, _categorize, \
     _simplify_cats, _encode_as_char, _get_ordered_matrix, _standardize_matrix, _rename_means
-from liana.method.sp._bivariate_funs import _handle_functions, _global_spatialdm
+from liana.method.sp._bivariate_funs import _handle_functions, _global_spatialdm, _get_local_scores
 
 
 class SpatialBivariate(_SpatialMeta):
@@ -27,7 +27,8 @@ class SpatialBivariate(_SpatialMeta):
                  proximity_key,
                  score_key = "local_score",
                  categorize = False,
-                 n_perm = None, 
+                 pvalue_method : (str | None) = 'permutation',
+                 n_perm: (int) = 50, 
                  seed = 1337,
                  nz_threshold=0,
                  remove_self_interactions=True,
@@ -101,17 +102,30 @@ class SpatialBivariate(_SpatialMeta):
         else:
             weight = dist.A
         
-        local_score = local_fun(x_mat.T.A, y_mat.T.A, weight)
-        mdata.obsm[score_key] = _local_to_dataframe(array=local_score.T,
+        
+        local_scores, local_pvals = _get_local_scores(x_mat = x_mat.T,
+                                                      y_mat = y_mat.T,
+                                                      local_fun = local_fun,
+                                                      weight = weight,
+                                                      seed = seed,
+                                                      n_perm = n_perm,
+                                                      pvalue_method = pvalue_method,
+                                                      positive_only=False,
+                                                      )
+        
+        mdata.obsm[score_key] = _local_to_dataframe(array=local_scores.T,
                                                     idx=mdata.obs.index,
                                                     columns=xy_stats.interaction)
+        mdata.obsm['local_pvals'] = _local_to_dataframe(array=local_pvals.T,
+                                                        idx=mdata.obs.index,
+                                                        columns=xy_stats.interaction)
         
-        # global scores, TODO should they be be score specific? e.g. spatialMD has its own global score
+        # global scores, TODO should they be score specific? e.g. spatialMD has its own global score
         if local_fun.__name__== "_local_morans":
             xy_stats.loc[:, ['global_r', 'global_pvals']] = \
                 _global_spatialdm(x_mat=_standardize_matrix(x_mat, local=False, axis=1),
                                   y_mat=_standardize_matrix(y_mat, local=False, axis=1),
-                                  dist=weight,
+                                  weight=weight,
                                   seed=seed,
                                   n_perm=n_perm,
                                   pvalue_method='analytical',
@@ -119,24 +133,11 @@ class SpatialBivariate(_SpatialMeta):
                                   ).T
         else:
             # any other local score
-            xy_stats.loc[:,['global_mean','global_sd']] = np.vstack([np.mean(local_score, axis=1), np.std(local_score, axis=1)]).T
-            mdata.uns['global_res'] = xy_stats
+            xy_stats.loc[:,['global_mean','global_sd']] = np.vstack([np.mean(local_scores, axis=1), np.std(local_scores, axis=1)]).T
+            
+        # save to uns
+        mdata.uns['global_res'] = xy_stats
 
-
-        if n_perm is not None:
-            local_pvals = _local_permutation_pvals(x_mat = x_mat.A.T, 
-                                                   y_mat = y_mat.A.T, 
-                                                   local_truth=local_score,
-                                                   local_fun=local_fun,
-                                                   dist=weight, 
-                                                   n_perm=n_perm, 
-                                                   positive_only=False,
-                                                   seed=seed
-                                                   )
-            mdata.obsm['local_pvals'] = _local_to_dataframe(array=local_pvals.T,
-                                                            idx=mdata.obs.index,
-                                                            columns=xy_stats.interaction)
-        
         if categorize:
             # TODO categorizing is currently done following standardization of the matrix
             # i.e. each variable is standardized independently, and then a category is

@@ -115,7 +115,7 @@ def _get_ordered_matrix(mat, pos, order):
     return mat[:, _indx].T
 
 
-def _local_permutation_pvals(x_mat, y_mat, dist, local_truth, local_fun,n_perm, seed, positive_only, **kwargs):
+def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun,n_perm, seed, positive_only, **kwargs):
     """
     Calculate local pvalues for a given local score function.
 
@@ -127,7 +127,7 @@ def _local_permutation_pvals(x_mat, y_mat, dist, local_truth, local_fun,n_perm, 
         2D array with y variables
     local_truth
         2D array with non-permuted local scores/co-expressions
-    dist
+    weight
         proximity weights
     n_perm
         number of permutations
@@ -152,7 +152,7 @@ def _local_permutation_pvals(x_mat, y_mat, dist, local_truth, local_fun,n_perm, 
     # shuffle the matrix
     for i in tqdm(range(n_perm)):
         _idx = rng.permutation(spot_n)
-        perm_score = local_fun(x_mat = x_mat[_idx, :], y_mat=y_mat, dist=dist, **kwargs)
+        perm_score = local_fun(x_mat = x_mat[_idx, :], y_mat=y_mat, weight=weight, **kwargs)
         if positive_only:
             local_pvals += np.array(perm_score >= local_truth, dtype=int)
         else:
@@ -207,7 +207,7 @@ def _simplify_cats(df):
     
     
 ### Specific to SpatialDM - TODO generalize these functions
-def _global_permutation_pvals(x_mat, y_mat, dist, global_r, n_perm, positive_only, seed):
+def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perm, positive_only, seed):
     """
     Calculate permutation pvals
 
@@ -233,7 +233,7 @@ def _global_permutation_pvals(x_mat, y_mat, dist, global_r, n_perm, positive_onl
     1D array with same size as global_r
 
     """
-    assert isinstance(dist, csr_matrix)
+    assert isinstance(weight, csr_matrix)
     rng = np.random.default_rng(seed)
 
     # initialize mat /w n_perm * number of X->Y
@@ -244,7 +244,7 @@ def _global_permutation_pvals(x_mat, y_mat, dist, global_r, n_perm, positive_onl
 
     for perm in tqdm(range(n_perm)):
         _idx = rng.permutation(idx)
-        perm_mat[perm, :] = ((x_mat[:, _idx] @ dist) * y_mat).sum(axis=1) # flipped x_mat
+        perm_mat[perm, :] = ((x_mat[:, _idx] @ weight) * y_mat).sum(axis=1) # flipped x_mat
 
     if positive_only:
         global_pvals = 1 - (global_r > perm_mat).sum(axis=0) / n_perm
@@ -256,12 +256,12 @@ def _global_permutation_pvals(x_mat, y_mat, dist, global_r, n_perm, positive_onl
 
 
 
-def _global_zscore_pvals(dist, global_r, positive_only):
+def _global_zscore_pvals(weight, global_r, positive_only):
     """
 
     Parameters
     ----------
-    dist
+    weight
         proximity weight matrix (spot_n x spot_n)
     global_r
         Array with
@@ -273,17 +273,17 @@ def _global_zscore_pvals(dist, global_r, positive_only):
         1D array with the size of global_r
 
     """
-    dist = np.array(dist.todense())
-    spot_n = dist.shape[0]
+    weight = np.array(weight.todense())
+    spot_n = weight.shape[0]
 
-    # global distance variance as in spatialDM
-    numerator = spot_n ** 2 * ((dist * dist).sum()) - \
-                (2 * spot_n * (dist @ dist).sum()) + \
-                (dist.sum() ** 2)
+    # global distance/weight variance as in spatialDM
+    numerator = spot_n ** 2 * ((weight * weight).sum()) - \
+                (2 * spot_n * (weight @ weight).sum()) + \
+                (weight.sum() ** 2)
     denominator = spot_n ** 2 * (spot_n - 1) ** 2
-    dist_var_sq = (numerator / denominator) ** (1 / 2)
+    weight_var_sq = (numerator / denominator) ** (1 / 2)
 
-    global_zscores = global_r / dist_var_sq
+    global_zscores = global_r / weight_var_sq
 
     if positive_only:
         global_zpvals = norm.sf(global_zscores)
@@ -295,7 +295,7 @@ def _global_zscore_pvals(dist, global_r, positive_only):
 
 
 
-def _local_zscore_pvals(x_mat, y_mat, local_r, dist, positive_only):
+def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, positive_only):
     """
 
     Parameters
@@ -306,7 +306,7 @@ def _local_zscore_pvals(x_mat, y_mat, local_r, dist, positive_only):
         2D array with y variables
     local_r
         2D array with Local Moran's I
-    dist
+    weight
         proximity weights
     positive_only
         Whether to mask negative correlations pvalue
@@ -316,7 +316,7 @@ def _local_zscore_pvals(x_mat, y_mat, local_r, dist, positive_only):
     2D array of p-values with shape(n_spot, xy_n)
 
     """
-    spot_n = dist.shape[0]
+    spot_n = weight.shape[0]
 
     x_norm = np.apply_along_axis(norm.fit, axis=0, arr=x_mat)
     y_norm = np.apply_along_axis(norm.fit, axis=0, arr=y_mat)
@@ -327,8 +327,8 @@ def _local_zscore_pvals(x_mat, y_mat, local_r, dist, positive_only):
     x_sigma = x_sigma * spot_n / (spot_n - 1)
     y_sigma = y_sigma * spot_n / (spot_n - 1)
 
-    std = _get_local_var(x_sigma, y_sigma, dist, spot_n)
-    local_zscores = local_r / std
+    std = _get_local_var(x_sigma, y_sigma, weight, spot_n)
+    local_zscores = local_truth / std
 
     if positive_only:
         local_zpvals = norm.sf(local_zscores)
@@ -340,7 +340,7 @@ def _local_zscore_pvals(x_mat, y_mat, local_r, dist, positive_only):
     return local_zpvals
 
 
-def _get_local_var(x_sigma, y_sigma, dist, spot_n):
+def _get_local_var(x_sigma, y_sigma, weight, spot_n):
     """
     Spatial weight variance as in spatialDM (Li et al., 2022)
 
@@ -350,7 +350,7 @@ def _get_local_var(x_sigma, y_sigma, dist, spot_n):
         Standard deviations for each x (e.g. std of all ligands in the matrix)
     y_sigma
         Standard deviations for each y (e.g. std of all receptors in the matrix)
-    dist
+    weight
         proximity weight matrix
     spot_n
         number of spots/cells in the matrix
@@ -360,13 +360,13 @@ def _get_local_var(x_sigma, y_sigma, dist, spot_n):
     2D array of standard deviations with shape(n_spot, xy_n)
 
     """
-    dist_sq = (np.array(dist.todense()) ** 2).sum(axis=1)
+    weight_sq = (np.array(weight.todense()) ** 2).sum(axis=1)
 
     n_weight = 2 * (spot_n - 1) ** 2 / spot_n ** 2
     sigma_prod = x_sigma * y_sigma
     core = n_weight * sigma_prod
 
-    var = np.multiply.outer(dist_sq, core) + core
+    var = np.multiply.outer(weight_sq, core) + core
     std = var ** 0.5
 
     return std.T

@@ -1,7 +1,7 @@
 import numba as nb
 import numpy as np
 from scipy.stats import rankdata
-from liana.method.sp._spatial_utils import _global_zscore_pvals, _global_permutation_pvals, _local_permutation_pvals, _local_zscore_pvals
+from liana.method.sp._spatial_utils import _global_zscore_pvals, _global_permutation_pvals, _local_permutation_pvals, _local_zscore_pvals, _standardize_matrix
 
 
 @nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:], nb.float32, nb.boolean), cache=True)
@@ -114,12 +114,12 @@ def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
     return local_corrs
 
 
-def _vectorized_pearson(x_mat, y_mat, dist):
-    return _vectorized_correlations(x_mat, y_mat, dist, method="pearson")
+def _vectorized_pearson(x_mat, y_mat, weight):
+    return _vectorized_correlations(x_mat, y_mat, weight, method="pearson")
 
 
-def _vectorized_spearman(x_mat, y_mat, dist):
-    return _vectorized_correlations(x_mat, y_mat, dist, method="spearman")
+def _vectorized_spearman(x_mat, y_mat, weight):
+    return _vectorized_correlations(x_mat, y_mat, weight, method="spearman")
 
 
 def _vectorized_cosine(x_mat, y_mat, weight):
@@ -146,7 +146,7 @@ def _vectorized_jaccard(x_mat, y_mat, weight):
     return numerator / denominator
 
 
-def _local_morans(x_mat, y_mat, dist):
+def _local_morans(x_mat, y_mat, weight):
     """
 
     Parameters
@@ -155,15 +155,15 @@ def _local_morans(x_mat, y_mat, dist):
         2D array with x variables
     y_mat
         2D array with y variables
-    dist
     
     Returns
     -------
     Returns 2D array of local Moran's I with shape(n_spot, xy_n)
 
     """
-    local_x = x_mat * (dist @ y_mat)
-    local_y = x_mat * (dist @ y_mat)
+    
+    local_x = x_mat * (weight @ y_mat)
+    local_y = x_mat * (weight @ y_mat)
     local_r = (local_x + local_y).T
 
     return local_r
@@ -193,7 +193,7 @@ def _handle_functions(function_name): # TODO improve this, maybe use a dict, or 
 
 def _global_spatialdm(x_mat,
                       y_mat,
-                      dist,
+                      weight,
                       seed,
                       n_perm,
                       pvalue_method,
@@ -214,9 +214,9 @@ def _global_spatialdm(x_mat,
         Index positions of entity y (e.g. receptor) in `mat`
     xy_dataframe
         a dataframe with x,y relationships to be estimated, for example `lr_res`.
-    dist
+    weight
         proximity weight matrix, obtained e.g. via `liana.method.get_spatial_proximity`.
-        Note that for spatialDM/Morans'I `dist` has to be weighed by n / sum(W).
+        Note that for spatialDM/Morans'I `weight` has to be weighed by n / sum(W).
     seed
         Reproducibility seed
     n_perm
@@ -235,20 +235,20 @@ def _global_spatialdm(x_mat,
 
     """
     # Get global r
-    global_r = ((x_mat @ dist) * y_mat).sum(axis=1)
+    global_r = ((x_mat @ weight) * y_mat).sum(axis=1)
 
     # calc p-values
     if pvalue_method == 'permutation':
         global_pvals = _global_permutation_pvals(x_mat=x_mat,
                                                  y_mat=y_mat,
-                                                 dist=dist,
+                                                 weight=weight,
                                                  global_r=global_r,
                                                  n_perm=n_perm,
                                                  positive_only=positive_only,
                                                  seed=seed
                                                  )
     elif pvalue_method == 'analytical':
-        global_pvals = _global_zscore_pvals(dist=dist,
+        global_pvals = _global_zscore_pvals(weight=weight,
                                             global_r=global_r,
                                             positive_only=positive_only)
 
@@ -257,14 +257,15 @@ def _global_spatialdm(x_mat,
 
 
 
-def _local_spatialdm(x_mat,
-                     y_mat,
-                     dist,
-                     n_perm,
-                     seed,
-                     pvalue_method,
-                     positive_only,
-                     ):
+def _get_local_scores(x_mat,
+                      y_mat,
+                      local_fun,
+                      weight,
+                      n_perm,
+                      seed,
+                      pvalue_method,
+                      positive_only,
+                      ):
     """
     Local Moran's Bivariate I as implemented in SpatialDM
 
@@ -280,9 +281,9 @@ def _local_spatialdm(x_mat,
         Index positions of entity y (e.g. receptor) in `mat`
     xy_dataframe
         a dataframe with x,y relationships to be estimated, for example `lr_res`.
-    dist
+    weight
         proximity weight matrix, obtained e.g. via `liana.method.get_spatial_proximity`.
-        Note that for spatialDM/Morans'I `dist` has to be weighed by n / sum(W).
+        Note that for spatialDM/Morans'I `weight` has to be weighed by n / sum(W).
     seed
         Reproducibility seed
     n_perm
@@ -299,15 +300,22 @@ def _local_spatialdm(x_mat,
          or in other words calculates local_I and local_pval for
          each interaction in `xy_dataframe` and each sample in mat
     """
-    x_mat, y_mat = x_mat.T, y_mat.T
-    local_r = _local_morans(x_mat, y_mat, dist)
+    
+    if local_fun.__name__ == '_local_morans':
+        x_mat = _standardize_matrix(x_mat, local=True, axis=0)
+        y_mat = _standardize_matrix(y_mat, local=True, axis=0)
+    else:
+        x_mat = x_mat.A
+        y_mat = y_mat.A
+    
+    local_scores = local_fun(x_mat, y_mat, weight)
 
     if pvalue_method == 'permutation':
         local_pvals = _local_permutation_pvals(x_mat=x_mat,
                                                y_mat=y_mat,
-                                               dist=dist,
-                                               local_truth=local_r,
-                                               local_fun=_local_morans,
+                                               weight=weight,
+                                               local_truth=local_scores,
+                                               local_fun=local_fun,
                                                n_perm=n_perm,
                                                seed=seed,
                                                positive_only=positive_only
@@ -315,10 +323,11 @@ def _local_spatialdm(x_mat,
     elif pvalue_method == 'analytical':
         local_pvals = _local_zscore_pvals(x_mat=x_mat,
                                           y_mat=y_mat,
-                                          local_r=local_r,
-                                          dist=dist,
-                                          positive_only=positive_only)
+                                          local_truth=local_scores,
+                                          weight=weight,
+                                          positive_only=positive_only
+                                          )
 
-    return local_r.T, local_pvals.T
+    return local_scores, local_pvals
 
 

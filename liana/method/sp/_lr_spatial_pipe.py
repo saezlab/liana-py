@@ -13,7 +13,7 @@ from liana.utils._utils import _get_props
 from liana.method.sp._SpatialMethod import _SpatialMeta
 from liana.method.sp._spatial_pipe import _get_ordered_matrix
 from liana.method.sp._spatial_utils import _local_to_dataframe, _standardize_matrix, _rename_means
-from liana.method.sp._bivariate_funs import _global_spatialdm, _local_spatialdm, _handle_functions
+from liana.method.sp._bivariate_funs import _global_spatialdm, _handle_functions, _get_local_scores
 
 
 
@@ -29,7 +29,7 @@ class SpatialLR(_SpatialMeta):
 
     def __call__(self,
                  adata: AnnData,
-                #  function_name,
+                 function_name: str,
                  proximity_key = 'proximity',
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.05,
@@ -100,7 +100,15 @@ class SpatialLR(_SpatialMeta):
                                 )
         
         dist = adata.obsm[proximity_key]
-        # local_fun = _handle_functions(function_name)
+        local_fun = _handle_functions(function_name)
+        
+         ## TODO move specifics to method instances (repetitive /w _spatial_pipe)
+        if local_fun.__name__== "_local_morans":
+            norm_factor = dist.shape[0] / dist.sum()
+            weight = csr_matrix(norm_factor * dist)
+        else:
+            weight = dist.A
+        
 
         # select & process resource
         if resource is None:
@@ -119,14 +127,14 @@ class SpatialLR(_SpatialMeta):
         temp = temp[:, np.intersect1d(entities, temp.var.index)]
 
         # global_stats
-        global_stats = pd.DataFrame({'means': temp.X.mean(axis=0).A.flatten(),
-                                    'props': _get_props(temp.X)},
-                                    index=temp.var_names).reset_index().rename(
-            columns={'index': 'gene'})
+        lr_res = pd.DataFrame({'means': temp.X.mean(axis=0).A.flatten(),
+                               'props': _get_props(temp.X)},
+                              index=temp.var_names
+                              ).reset_index().rename(columns={'index': 'gene'})
 
         # join global stats to LRs from resource
-        lr_res = resource.merge(_rename_means(global_stats, entity='ligand')).merge(
-            _rename_means(global_stats, entity='receptor'))
+        lr_res = resource.merge(_rename_means(lr_res, entity='ligand')).merge(
+            _rename_means(lr_res, entity='receptor'))
 
         # get lr_res /w relevant x,y (lig, rec) and filter acc to expr_prop
         lr_res = filter_reassemble_complexes(lr_res=lr_res,
@@ -140,10 +148,6 @@ class SpatialLR(_SpatialMeta):
                     lr_res['ligand']}
         receptor_pos = {entity: np.where(temp.var_names == entity)[0][0] for entity in
                         lr_res['receptor']}
-
-        # n / sum(W) for Moran's I
-        norm_factor = temp.obsm[proximity_key].shape[0] / temp.obsm[proximity_key].sum()
-        dist = csr_matrix(norm_factor * temp.obsm[proximity_key])
         
         # convert to spot_n x lr_n matrices
         x_mat = _get_ordered_matrix(mat=temp.X,
@@ -154,38 +158,42 @@ class SpatialLR(_SpatialMeta):
                                     order=lr_res['receptor'])
 
         # we use the same gene expression matrix for both x and y
+        # TODO move this also to function as _get_local_scores
         lr_res['global_r'], lr_res['global_pvals'] = \
             _global_spatialdm(x_mat=_standardize_matrix(x_mat, local=False, axis=1),
                               y_mat=_standardize_matrix(y_mat, local=False, axis=1),
-                              dist=dist,
+                              weight=weight,
                               seed=seed,
                               n_perm=n_perm,
                               pvalue_method=pvalue_method,
                               positive_only=positive_only
                               )
-        local_r, local_pvals = _local_spatialdm(x_mat=_standardize_matrix(x_mat, local=True, axis=1),
-                                                y_mat=_standardize_matrix(y_mat, local=True, axis=1),
-                                                dist=dist,  # TODO msq?
-                                                seed=seed,
-                                                n_perm=n_perm,
-                                                pvalue_method=pvalue_method,
-                                                positive_only=positive_only
-                                                )
-
-        # convert to dataframes
-        local_r = _local_to_dataframe(array=local_r,
-                                      idx=temp.obs.index,
-                                      columns=lr_res['interaction'])
-        local_pvals = _local_to_dataframe(array=local_pvals,
+            
+        local_scores, local_pvals = _get_local_scores(x_mat=x_mat.T,
+                                                      y_mat=y_mat.T,
+                                                      local_fun=local_fun,
+                                                      weight=weight,
+                                                      seed=seed,
+                                                      n_perm=n_perm,
+                                                      pvalue_method=pvalue_method,
+                                                      positive_only=positive_only,
+                                                      )
+        
+        local_scores = _local_to_dataframe(array=local_scores.T,
                                           idx=temp.obs.index,
                                           columns=lr_res['interaction'])
 
+        local_pvals = _local_to_dataframe(array=local_pvals.T,
+                                          idx=temp.obs.index,
+                                          columns=lr_res['interaction'])
+
+
         if inplace:
             adata.uns['global_res'] = lr_res
-            adata.obsm['local_r'] = local_r
+            adata.obsm['local_scores'] = local_scores
             adata.obsm['local_pvals'] = local_pvals
 
-        return None if inplace else (lr_res, local_r, local_pvals)
+        return None if inplace else (lr_res, local_scores, local_pvals)
 
 
 # initialize instance
