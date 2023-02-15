@@ -2,7 +2,7 @@ import numpy as np
 from scanpy.datasets import pbmc68k_reduced
 from  scipy.sparse import csr_matrix
 
-from liana.method.sp._lr_spatial_pipe import spatialdm
+from liana.method.sp._lr_spatial_pipe import lr_basis
 from liana.method.sp._spatial_utils import _global_zscore_pvals, _global_permutation_pvals, _local_permutation_pvals, _local_zscore_pvals
 from liana.method.sp._bivariate_funs import _local_morans
 
@@ -73,7 +73,7 @@ def test_local_zscore_pvals():
 
 
 def test_spatialdm():
-    spatialdm(adata, function_name='morans', pvalue_method="analytical", use_raw=True)
+    lr_basis(adata, function_name='morans', pvalue_method="analytical", use_raw=True)
     assert 'global_res' in adata.uns_keys()
     assert 'local_scores' in adata.obsm_keys()
     assert 'local_pvals' in adata.obsm_keys()
@@ -89,7 +89,7 @@ def test_spatialdm():
 
 
 def test_spatialdm_permutation():
-    spatialdm(adata, function_name='morans', use_raw=True, pvalue_method="permutation")
+    lr_basis(adata, function_name='morans', use_raw=True, pvalue_method="permutation")
     assert 'global_res' in adata.uns_keys()
     assert 'local_scores' in adata.obsm_keys()
     assert 'local_pvals' in adata.obsm_keys()

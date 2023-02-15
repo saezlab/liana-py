@@ -6,9 +6,9 @@ from scipy.sparse import csr_matrix
 
 from liana.utils._utils import _get_props
 from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
-from liana.method.sp._spatial_utils import _local_to_dataframe, _local_permutation_pvals, _categorize, \
-    _simplify_cats, _encode_as_char, _get_ordered_matrix, _standardize_matrix, _rename_means
-from liana.method.sp._bivariate_funs import _handle_functions, _global_spatialdm, _get_local_scores
+from liana.method.sp._spatial_utils import _local_to_dataframe, _categorize, \
+    _simplify_cats, _encode_as_char, _get_ordered_matrix, _rename_means, _get_local_scores, _get_global_scores, _dist_to_weight
+from liana.method.sp._bivariate_funs import _handle_functions
 
 
 class SpatialBivariate(_SpatialMeta):
@@ -28,10 +28,11 @@ class SpatialBivariate(_SpatialMeta):
                  score_key = "local_score",
                  categorize = False,
                  pvalue_method : (str | None) = 'permutation',
-                 n_perm: (int) = 50, 
+                 n_perm: int = 50,
                  seed = 1337,
                  nz_threshold=0,
                  remove_self_interactions=True,
+                 positive_only=False, ## TODO change to categorical
                  ):
         """
         Global Bivariate analysis pipeline
@@ -59,11 +60,11 @@ class SpatialBivariate(_SpatialMeta):
         
         dist = mdata.obsm[proximity_key]
         local_fun = _handle_functions(function_name)
+        weight = _dist_to_weight(dist, local_fun)
         
         # change Index names to entity
         xdata.var_names.rename('entity', inplace=True)
         ydata.var_names.rename('entity', inplace=True)
-        
         
         x_stats = _rename_means(_anndata_to_stats(xdata, nz_threshold), entity='x')
         y_stats = _rename_means(_anndata_to_stats(ydata, nz_threshold), entity='y')
@@ -94,14 +95,7 @@ class SpatialBivariate(_SpatialMeta):
         y_mat = _get_ordered_matrix(mat=mdata[y_mod].X,
                                     pos=y_pos,
                                     order=xy_stats['y_entity'])
-        
-        
-        if local_fun.__name__== "_local_morans": ## TODO move specifics to method instances
-            norm_factor = dist.shape[0] / dist.sum()
-            weight = csr_matrix(norm_factor * dist)
-        else:
-            weight = dist.A
-        
+            
         
         local_scores, local_pvals = _get_local_scores(x_mat = x_mat.T,
                                                       y_mat = y_mat.T,
@@ -110,7 +104,7 @@ class SpatialBivariate(_SpatialMeta):
                                                       seed = seed,
                                                       n_perm = n_perm,
                                                       pvalue_method = pvalue_method,
-                                                      positive_only=False,
+                                                      positive_only=positive_only,
                                                       )
         
         mdata.obsm[score_key] = _local_to_dataframe(array=local_scores.T,
@@ -120,20 +114,18 @@ class SpatialBivariate(_SpatialMeta):
                                                         idx=mdata.obs.index,
                                                         columns=xy_stats.interaction)
         
-        # global scores, TODO should they be score specific? e.g. spatialMD has its own global score
-        if local_fun.__name__== "_local_morans":
-            xy_stats.loc[:, ['global_r', 'global_pvals']] = \
-                _global_spatialdm(x_mat=_standardize_matrix(x_mat, local=False, axis=1),
-                                  y_mat=_standardize_matrix(y_mat, local=False, axis=1),
-                                  weight=weight,
-                                  seed=seed,
-                                  n_perm=n_perm,
-                                  pvalue_method='analytical',
-                                  positive_only=False
-                                  ).T
-        else:
-            # any other local score
-            xy_stats.loc[:,['global_mean','global_sd']] = np.vstack([np.mean(local_scores, axis=1), np.std(local_scores, axis=1)]).T
+        # global scores fun
+        xy_stats = _get_global_scores(xy_stats=xy_stats,
+                                      x_mat=x_mat,
+                                      y_mat=y_mat,
+                                      local_fun=local_fun,
+                                      pvalue_method=pvalue_method,
+                                      weight=weight,
+                                      seed=seed,
+                                      n_perm=n_perm,
+                                      positive_only=positive_only,
+                                      local_scores=local_scores,
+                                      )
             
         # save to uns
         mdata.uns['global_res'] = xy_stats
@@ -157,7 +149,6 @@ class SpatialBivariate(_SpatialMeta):
 basis = SpatialBivariate(_basis_meta)
 
 
-
 def _anndata_to_stats(adata, nz_thr=0.1):
     from scipy.sparse import csr_matrix
     adata.X = csr_matrix(adata.X) ## TODO change to ~prep_check_adata (but not for gene expression alone)
@@ -169,8 +160,3 @@ def _anndata_to_stats(adata, nz_thr=0.1):
     global_stats = global_stats[global_stats['non_zero'] >= nz_thr]
 
     return global_stats
-
-
-
-
-

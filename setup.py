@@ -36,7 +36,8 @@ setup(name='liana',
                         "pandas",
                         "anndata",
                         "scanpy",
-                        "plotnine"
+                        "plotnine",
+                        "numba>=0.54.0",
                         ],
       python_requires=">=3.7",
       classifiers=[

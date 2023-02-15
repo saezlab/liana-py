@@ -370,3 +370,170 @@ def _get_local_var(x_sigma, y_sigma, weight, spot_n):
     std = var ** 0.5
 
     return std.T
+
+def _global_spatialdm(x_mat,
+                      y_mat,
+                      weight,
+                      seed,
+                      n_perm,
+                      pvalue_method,
+                      positive_only
+                      ):
+    """
+    Global Moran's Bivariate I as implemented in SpatialDM
+
+    Parameters
+    ----------
+    x_mat
+        Gene expression matrix for entity x (e.g. ligand)
+    y_mat
+        Gene expression matrix for entity y (e.g. receptor)
+    x_pos
+        Index positions of entity x (e.g. ligand) in `mat`
+    y_pos
+        Index positions of entity y (e.g. receptor) in `mat`
+    xy_dataframe
+        a dataframe with x,y relationships to be estimated, for example `lr_res`.
+    weight
+        proximity weight matrix, obtained e.g. via `liana.method.get_spatial_proximity`.
+        Note that for spatialDM/Morans'I `weight` has to be weighed by n / sum(W).
+    seed
+        Reproducibility seed
+    n_perm
+        Number of permutatins to perform (if `pvalue_method`=='permutation')
+    pvalue_method
+        Method to estimate pseudo p-value, must be in ['permutation', 'analytical']
+    positive_only
+        Whether to return only p-values for positive spatial correlations.
+        By default, `True`.
+
+    Returns
+    -------
+    Tupple of 2 1D Numpy arrays of size xy_dataframe.shape[1],
+    or in other words calculates global_I and global_pval for
+    each interaction in `xy_dataframe`
+
+    """
+    # Get global r
+    global_r = ((x_mat @ weight) * y_mat).sum(axis=1)
+
+    # calc p-values
+    if pvalue_method == 'permutation':
+        global_pvals = _global_permutation_pvals(x_mat=x_mat,
+                                                 y_mat=y_mat,
+                                                 weight=weight,
+                                                 global_r=global_r,
+                                                 n_perm=n_perm,
+                                                 positive_only=positive_only,
+                                                 seed=seed
+                                                 )
+    elif pvalue_method == 'analytical':
+        global_pvals = _global_zscore_pvals(weight=weight,
+                                            global_r=global_r,
+                                            positive_only=positive_only)
+
+    return np.array((global_r, global_pvals))
+
+
+
+def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, pvalue_method, positive_only, n_perm, seed, local_scores):
+        if local_fun.__name__== "_local_morans":
+            xy_stats.loc[:, ['global_r', 'global_pvals']] = \
+                _global_spatialdm(x_mat=_standardize_matrix(x_mat, local=False, axis=1),
+                                  y_mat=_standardize_matrix(y_mat, local=False, axis=1),
+                                  weight=weight,
+                                  seed=seed,
+                                  n_perm=n_perm,
+                                  pvalue_method=pvalue_method,
+                                  positive_only=positive_only
+                                  ).T
+        else:
+            # any other local score
+            xy_stats.loc[:,['global_mean','global_sd']] = np.vstack([np.mean(local_scores, axis=1), np.std(local_scores, axis=1)]).T
+            
+        return xy_stats
+
+
+def _get_local_scores(x_mat,
+                      y_mat,
+                      local_fun,
+                      weight,
+                      n_perm,
+                      seed,
+                      pvalue_method,
+                      positive_only,
+                      ):
+    """
+    Local Moran's Bivariate I as implemented in SpatialDM
+
+    Parameters
+    ----------
+    x_mat
+        Matrix with x variables
+    y_mat
+        Matrix with y variables
+    x_pos
+        Index positions of entity x (e.g. ligand) in `mat`
+    y_pos
+        Index positions of entity y (e.g. receptor) in `mat`
+    xy_dataframe
+        a dataframe with x,y relationships to be estimated, for example `lr_res`.
+    weight
+        proximity weight matrix, obtained e.g. via `liana.method.get_spatial_proximity`.
+        Note that for spatialDM/Morans'I `weight` has to be weighed by n / sum(W).
+    seed
+        Reproducibility seed
+    n_perm
+        Number of permutatins to perform (if `pvalue_method`=='permutation')
+    pvalue_method
+        Method to estimate pseudo p-value, must be in ['permutation', 'analytical']
+    positive_only
+        Whether to return only p-values for positive spatial correlations.
+        By default, `True`.
+
+    Returns
+    -------
+        Tupple of two 2D Numpy arrays of size (n_spots, n_xy),
+         or in other words calculates local_I and local_pval for
+         each interaction in `xy_dataframe` and each sample in mat
+    """
+    
+    if local_fun.__name__ == '_local_morans':
+        x_mat = _standardize_matrix(x_mat, local=True, axis=0)
+        y_mat = _standardize_matrix(y_mat, local=True, axis=0)
+    else:
+        x_mat = x_mat.A
+        y_mat = y_mat.A
+    
+    local_scores = local_fun(x_mat, y_mat, weight)
+
+    if pvalue_method == 'permutation':
+        local_pvals = _local_permutation_pvals(x_mat=x_mat,
+                                               y_mat=y_mat,
+                                               weight=weight,
+                                               local_truth=local_scores,
+                                               local_fun=local_fun,
+                                               n_perm=n_perm,
+                                               seed=seed,
+                                               positive_only=positive_only
+                                               )
+    elif pvalue_method == 'analytical':
+        local_pvals = _local_zscore_pvals(x_mat=x_mat,
+                                          y_mat=y_mat,
+                                          local_truth=local_scores,
+                                          weight=weight,
+                                          positive_only=positive_only
+                                          )
+
+    return local_scores, local_pvals
+
+
+def _dist_to_weight(dist, local_fun):
+    # Format the weight matrix accordingly
+    if local_fun.__name__== "_local_morans":
+        norm_factor = dist.shape[0] / dist.sum()
+        weight = csr_matrix(norm_factor * dist)
+    else:
+        weight = dist.A
+        
+    return weight

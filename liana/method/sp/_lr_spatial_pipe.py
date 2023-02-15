@@ -11,9 +11,8 @@ from liana.method._pipe_utils import prep_check_adata, filter_resource, assert_c
 from liana.utils._utils import _get_props
 
 from liana.method.sp._SpatialMethod import _SpatialMeta
-from liana.method.sp._spatial_pipe import _get_ordered_matrix
-from liana.method.sp._spatial_utils import _local_to_dataframe, _standardize_matrix, _rename_means
-from liana.method.sp._bivariate_funs import _global_spatialdm, _handle_functions, _get_local_scores
+from liana.method.sp._spatial_utils import _local_to_dataframe, _get_ordered_matrix, _rename_means, _get_local_scores, _get_global_scores, _dist_to_weight
+from liana.method.sp._bivariate_funs import _handle_functions
 
 
 
@@ -35,7 +34,7 @@ class SpatialLR(_SpatialMeta):
                  expr_prop: float = 0.05,
                  pvalue_method: str = 'analytical',
                  n_perm: int = 1000,
-                 positive_only: bool = True,
+                 positive_only: bool = True, ## TODO change to categorical
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
                  verbose: Optional[bool] = False,
@@ -101,13 +100,7 @@ class SpatialLR(_SpatialMeta):
         
         dist = adata.obsm[proximity_key]
         local_fun = _handle_functions(function_name)
-        
-         ## TODO move specifics to method instances (repetitive /w _spatial_pipe)
-        if local_fun.__name__== "_local_morans":
-            norm_factor = dist.shape[0] / dist.sum()
-            weight = csr_matrix(norm_factor * dist)
-        else:
-            weight = dist.A
+        weight = _dist_to_weight(dist, local_fun)
         
 
         # select & process resource
@@ -156,18 +149,6 @@ class SpatialLR(_SpatialMeta):
         y_mat = _get_ordered_matrix(mat=temp.X,
                                     pos=receptor_pos,
                                     order=lr_res['receptor'])
-
-        # we use the same gene expression matrix for both x and y
-        # TODO move this also to function as _get_local_scores
-        lr_res['global_r'], lr_res['global_pvals'] = \
-            _global_spatialdm(x_mat=_standardize_matrix(x_mat, local=False, axis=1),
-                              y_mat=_standardize_matrix(y_mat, local=False, axis=1),
-                              weight=weight,
-                              seed=seed,
-                              n_perm=n_perm,
-                              pvalue_method=pvalue_method,
-                              positive_only=positive_only
-                              )
             
         local_scores, local_pvals = _get_local_scores(x_mat=x_mat.T,
                                                       y_mat=y_mat.T,
@@ -186,7 +167,19 @@ class SpatialLR(_SpatialMeta):
         local_pvals = _local_to_dataframe(array=local_pvals.T,
                                           idx=temp.obs.index,
                                           columns=lr_res['interaction'])
-
+        
+        # get global scores
+        lr_res = _get_global_scores(xy_stats=lr_res,
+                                    x_mat=x_mat,
+                                    y_mat=y_mat,
+                                    local_fun=local_fun,
+                                    pvalue_method=pvalue_method,
+                                    weight=weight,
+                                    seed=seed,
+                                    n_perm=n_perm,
+                                    positive_only=positive_only,
+                                    local_scores=local_scores,
+                                    )
 
         if inplace:
             adata.uns['global_res'] = lr_res
@@ -205,8 +198,8 @@ _spatial_lr = _SpatialMeta(
               "communication patterns. bioRxiv. "
 )
 
-spatialdm = SpatialLR(_method=_spatial_lr,
-                      _complex_cols=['ligand_means', 'receptor_means'],
-                      )
+lr_basis = SpatialLR(_method=_spatial_lr,
+                     _complex_cols=['ligand_means', 'receptor_means'],
+                     )
 
 

@@ -23,7 +23,7 @@ def _wcorr(x, y, w, wsum, rank):
     if (denominator == 0) or (numerator == 0):
         return 0
     
-    return numerator / (denominator**0.5) ## TODO numba rounding issue?
+    return numerator / (denominator**0.5)
 
 
 @nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:], nb.float32, nb.int8), cache=True)
@@ -45,7 +45,7 @@ def _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method):
     spot_n = x_mat.shape[0]
     xy_n = x_mat.shape[1]
     
-    local_correlations = np.zeros((spot_n, xy_n), dtype=nb.float32)
+    local_corrs = np.zeros((spot_n, xy_n), dtype=nb.float32)
     
     for i in nb.prange(spot_n):
         w = weight[i, :]
@@ -56,14 +56,17 @@ def _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method):
             x = x_mat[:, j][msk]
             y = y_mat[:, j][msk]
             
-            local_correlations[i, j] = _wcoex(x, y, w[msk], wsum, method)
+            local_corrs[i, j] = _wcoex(x, y, w[msk], wsum, method)
     
-    return local_correlations
+    # fix numpy/numba sum imprecision, https://github.com/numba/numba/issues/8749
+    local_corrs = np.clip(a=local_corrs, a_min=-1.0, a_max=1.0, out=local_corrs)
+    
+    return local_corrs
 
 
 @nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:], nb.float32), cache=True)
 def _masked_pearson(x_mat, y_mat, weight, weight_thr):
-    return _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method=0)
+    return _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method=0) 
 
 
 @nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:], nb.float32), cache=True)
@@ -108,8 +111,8 @@ def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
     zeros = np.zeros(numerator.shape)
     local_corrs = np.divide(numerator, denominator, out=zeros, where=denominator!=0)
     
-    # fix numpy imprecision, related to numba rounding issue? TODO check if it does not hide other issues
-    local_corrs = np.clip(local_corrs, -1, 1, out=local_corrs)
+    # fix numpy/numba sum imprecision, https://github.com/numba/numba/issues/8749
+    local_corrs = np.clip(local_corrs, -1, 1, out=local_corrs, dtype=np.float32)
     
     return local_corrs
 
@@ -188,146 +191,3 @@ def _handle_functions(function_name): # TODO improve this, maybe use a dict, or 
         return _local_morans
     else:
         raise ValueError("Function not implemented")
-
-
-
-def _global_spatialdm(x_mat,
-                      y_mat,
-                      weight,
-                      seed,
-                      n_perm,
-                      pvalue_method,
-                      positive_only
-                      ):
-    """
-    Global Moran's Bivariate I as implemented in SpatialDM
-
-    Parameters
-    ----------
-    x_mat
-        Gene expression matrix for entity x (e.g. ligand)
-    y_mat
-        Gene expression matrix for entity y (e.g. receptor)
-    x_pos
-        Index positions of entity x (e.g. ligand) in `mat`
-    y_pos
-        Index positions of entity y (e.g. receptor) in `mat`
-    xy_dataframe
-        a dataframe with x,y relationships to be estimated, for example `lr_res`.
-    weight
-        proximity weight matrix, obtained e.g. via `liana.method.get_spatial_proximity`.
-        Note that for spatialDM/Morans'I `weight` has to be weighed by n / sum(W).
-    seed
-        Reproducibility seed
-    n_perm
-        Number of permutatins to perform (if `pvalue_method`=='permutation')
-    pvalue_method
-        Method to estimate pseudo p-value, must be in ['permutation', 'analytical']
-    positive_only
-        Whether to return only p-values for positive spatial correlations.
-        By default, `True`.
-
-    Returns
-    -------
-    Tupple of 2 1D Numpy arrays of size xy_dataframe.shape[1],
-    or in other words calculates global_I and global_pval for
-    each interaction in `xy_dataframe`
-
-    """
-    # Get global r
-    global_r = ((x_mat @ weight) * y_mat).sum(axis=1)
-
-    # calc p-values
-    if pvalue_method == 'permutation':
-        global_pvals = _global_permutation_pvals(x_mat=x_mat,
-                                                 y_mat=y_mat,
-                                                 weight=weight,
-                                                 global_r=global_r,
-                                                 n_perm=n_perm,
-                                                 positive_only=positive_only,
-                                                 seed=seed
-                                                 )
-    elif pvalue_method == 'analytical':
-        global_pvals = _global_zscore_pvals(weight=weight,
-                                            global_r=global_r,
-                                            positive_only=positive_only)
-
-    return np.array((global_r, global_pvals))
-
-
-
-
-def _get_local_scores(x_mat,
-                      y_mat,
-                      local_fun,
-                      weight,
-                      n_perm,
-                      seed,
-                      pvalue_method,
-                      positive_only,
-                      ):
-    """
-    Local Moran's Bivariate I as implemented in SpatialDM
-
-    Parameters
-    ----------
-    x_mat
-        Matrix with x variables
-    y_mat
-        Matrix with y variables
-    x_pos
-        Index positions of entity x (e.g. ligand) in `mat`
-    y_pos
-        Index positions of entity y (e.g. receptor) in `mat`
-    xy_dataframe
-        a dataframe with x,y relationships to be estimated, for example `lr_res`.
-    weight
-        proximity weight matrix, obtained e.g. via `liana.method.get_spatial_proximity`.
-        Note that for spatialDM/Morans'I `weight` has to be weighed by n / sum(W).
-    seed
-        Reproducibility seed
-    n_perm
-        Number of permutatins to perform (if `pvalue_method`=='permutation')
-    pvalue_method
-        Method to estimate pseudo p-value, must be in ['permutation', 'analytical']
-    positive_only
-        Whether to return only p-values for positive spatial correlations.
-        By default, `True`.
-
-    Returns
-    -------
-        Tupple of two 2D Numpy arrays of size (n_spots, n_xy),
-         or in other words calculates local_I and local_pval for
-         each interaction in `xy_dataframe` and each sample in mat
-    """
-    
-    if local_fun.__name__ == '_local_morans':
-        x_mat = _standardize_matrix(x_mat, local=True, axis=0)
-        y_mat = _standardize_matrix(y_mat, local=True, axis=0)
-    else:
-        x_mat = x_mat.A
-        y_mat = y_mat.A
-    
-    local_scores = local_fun(x_mat, y_mat, weight)
-
-    if pvalue_method == 'permutation':
-        local_pvals = _local_permutation_pvals(x_mat=x_mat,
-                                               y_mat=y_mat,
-                                               weight=weight,
-                                               local_truth=local_scores,
-                                               local_fun=local_fun,
-                                               n_perm=n_perm,
-                                               seed=seed,
-                                               positive_only=positive_only
-                                               )
-    elif pvalue_method == 'analytical':
-        local_pvals = _local_zscore_pvals(x_mat=x_mat,
-                                          y_mat=y_mat,
-                                          local_truth=local_scores,
-                                          weight=weight,
-                                          positive_only=positive_only
-                                          )
-
-    return local_scores, local_pvals
-
-
