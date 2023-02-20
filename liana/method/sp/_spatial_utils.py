@@ -16,7 +16,8 @@ def get_spatial_proximity(adata: anndata.AnnData,
                           cutoff=None,
                           n_neighbors=None,
                           bypass_diagonal=False,
-                          inplace=True):
+                          inplace=True
+                          ):
     """
     Generate spatial proximity weights using Euclidean distance.
 
@@ -206,7 +207,6 @@ def _simplify_cats(df):
 
     
     
-### Specific to SpatialDM - TODO generalize these functions
 def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perm, positive_only, seed):
     """
     Calculate permutation pvals

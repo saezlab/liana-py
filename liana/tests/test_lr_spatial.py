@@ -89,7 +89,7 @@ def test_spatialdm():
 
 
 def test_spatialdm_permutation():
-    lr_basis(adata, function_name='morans', use_raw=True, pvalue_method="permutation")
+    lr_basis(adata, function_name='morans', pvalue_method="permutation", use_raw=True)
     assert 'global_res' in adata.uns_keys()
     assert 'local_scores' in adata.obsm_keys()
     assert 'local_pvals' in adata.obsm_keys()

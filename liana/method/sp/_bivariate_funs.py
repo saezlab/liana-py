@@ -1,7 +1,6 @@
 import numba as nb
 import numpy as np
 from scipy.stats import rankdata
-from liana.method.sp._spatial_utils import _global_zscore_pvals, _global_permutation_pvals, _local_permutation_pvals, _local_zscore_pvals, _standardize_matrix
 
 
 @nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:], nb.float32, nb.boolean), cache=True)
@@ -38,32 +37,32 @@ def _wcoex(x, y, w, wsum, method):
         return c
 
 
-# @nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:]), cache=True)
-# def _wcossim(x, y , w):
-#     dot = np.dot(x * w, y)
-#     x_dot = np.dot(x * w, x)
-#     y_dot = np.dot(y * w, y)
-#     denominator = (x_dot * y_dot)
+@nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:]), cache=True)
+def _wcossim(x, y, w):
+    dot = np.dot(x * w, y)
+    x_dot = np.dot(x * w, x)
+    y_dot = np.dot(y * w, y)
+    denominator = (x_dot * y_dot)
     
-#     if denominator == 0:
-#         return 0.0
+    if denominator == 0:
+        return 0.0
     
-#     return dot / (denominator**0.5)
+    return dot / (denominator**0.5)
 
 
-# @nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:]), cache=True)
-# def _wjaccard(x, y , w):
-#     x = (x > 0).astype(np.int8)
-#     y = (y > 0).astype(np.int8)
+@nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:]), cache=True)
+def _wjaccard(x, y , w):
+    x = (x > 0).astype(nb.int8)
+    y = (y > 0).astype(nb.int8)
     
-#     # intersect and union
-#     numerator = np.sum(np.minimum(x, y) * w)
-#     denominator = np.sum(np.maximum(x, y) * w)
+    # intersect and union
+    numerator = np.sum(np.minimum(x, y) * w)
+    denominator = np.sum(np.maximum(x, y) * w)
     
-#     if denominator == 0:
-#         return 0.0
+    if denominator == 0:
+        return 0.0
     
-#     return numerator / denominator
+    return numerator / denominator
 
 
 # 0 = pearson, 1 = spearman 
@@ -86,6 +85,7 @@ def _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method):
             local_corrs[i, j] = _wcoex(x, y, w[msk], wsum, method)
     
     # fix numpy/numba sum imprecision, https://github.com/numba/numba/issues/8749
+     ## TODO make sure this doesnt mask errors
     local_corrs = np.clip(a=local_corrs, a_min=-1.0, a_max=1.0, out=local_corrs)
     
     return local_corrs
