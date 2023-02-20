@@ -3,6 +3,34 @@ import numpy as np
 from scipy.stats import rankdata
 
 
+@nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:]), cache=True)
+def _wcossim(x, y, w):
+    dot = np.dot(x * w, y)
+    x_dot = np.dot(x * w, x)
+    y_dot = np.dot(y * w, y)
+    denominator = (x_dot * y_dot)
+    
+    if denominator == 0:
+        return 0.0
+    
+    return dot / (denominator**0.5)
+
+
+@nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:]), cache=True)
+def _wjaccard(x, y , w):
+    x = (x > 0).astype(nb.int8)
+    y = (y > 0).astype(nb.int8)
+    
+    # intersect and union
+    numerator = np.sum(np.minimum(x, y) * w)
+    denominator = np.sum(np.maximum(x, y) * w)
+    
+    if denominator == 0:
+        return 0.0
+    
+    return numerator / denominator
+
+
 @nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:], nb.float32, nb.boolean), cache=True)
 def _wcorr(x, y, w, wsum, rank):
     
@@ -32,42 +60,18 @@ def _wcoex(x, y, w, wsum, method):
         elif method == 1: # spearman
             c = _wcorr(x, y, w, wsum, True)
             ## Any other method
+        elif method == 2: # cosine
+            c = _wcossim(x, y, w)
+        elif method == 3: # jaccard
+            c = _wjaccard(x, y, w)
         else: 
             raise ValueError("method not supported")
         return c
 
 
-@nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:]), cache=True)
-def _wcossim(x, y, w):
-    dot = np.dot(x * w, y)
-    x_dot = np.dot(x * w, x)
-    y_dot = np.dot(y * w, y)
-    denominator = (x_dot * y_dot)
-    
-    if denominator == 0:
-        return 0.0
-    
-    return dot / (denominator**0.5)
-
-
-@nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:]), cache=True)
-def _wjaccard(x, y , w):
-    x = (x > 0).astype(nb.int8)
-    y = (y > 0).astype(nb.int8)
-    
-    # intersect and union
-    numerator = np.sum(np.minimum(x, y) * w)
-    denominator = np.sum(np.maximum(x, y) * w)
-    
-    if denominator == 0:
-        return 0.0
-    
-    return numerator / denominator
-
-
 # 0 = pearson, 1 = spearman 
-@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:], nb.float32, nb.int8), parallel=True, cache=True)
-def _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method):
+@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:], nb.int8), parallel=True, cache=True)
+def _masked_coexpressions(x_mat, y_mat, weight, method):
     spot_n = x_mat.shape[0]
     xy_n = x_mat.shape[1]
     
@@ -75,7 +79,7 @@ def _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method):
     
     for i in nb.prange(spot_n):
         w = weight[i, :]
-        msk = w > weight_thr
+        msk = w > 0
         wsum = sum(w[msk])
         
         for j in range(xy_n):
@@ -85,20 +89,31 @@ def _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method):
             local_corrs[i, j] = _wcoex(x, y, w[msk], wsum, method)
     
     # fix numpy/numba sum imprecision, https://github.com/numba/numba/issues/8749
-     ## TODO make sure this doesnt mask errors
+    ## TODO make sure this doesnt mask errors
     local_corrs = np.clip(a=local_corrs, a_min=-1.0, a_max=1.0, out=local_corrs)
     
-    return local_corrs
+    return local_corrs.T
 
 
-@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:], nb.float32), cache=True)
-def _masked_pearson(x_mat, y_mat, weight, weight_thr):
-    return _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method=0) 
+@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), cache=True)
+def _masked_pearson(x_mat, y_mat, weight):
+    return _masked_coexpressions(x_mat, y_mat, weight, method=0)
 
 
-@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:], nb.float32), cache=True)
-def _masked_spearman(x_mat, y_mat, weight, weight_thr):
-    return _masked_coexpressions(x_mat, y_mat, weight, weight_thr, method=1)
+@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), cache=True)
+def _masked_spearman(x_mat, y_mat, weight):
+    return _masked_coexpressions(x_mat, y_mat, weight, method=1)
+
+
+@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), cache=True)
+def _masked_cosine(x_mat, y_mat, weight):
+    return _masked_coexpressions(x_mat, y_mat, weight, method=2)
+
+
+@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), cache=True)
+def _masked_jaccard(x_mat, y_mat, weight):
+    return _masked_coexpressions(x_mat, y_mat, weight, method=3)
+
 
 
 def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
@@ -206,15 +221,19 @@ def _handle_functions(function_name): # TODO improve this, maybe use a dict, or 
         return _vectorized_pearson
     elif function_name == "spearman":
         return _vectorized_spearman
-    elif function_name == "masked_pearson":
-        return _masked_pearson
-    elif function_name == "masked_spearman":
-        return _masked_spearman
     elif function_name == "cosine":
         return _vectorized_cosine
     elif function_name == "jaccard":
         return _vectorized_jaccard
     elif function_name == "morans":
         return _local_morans
+    elif function_name == "masked_spearman":
+        return _masked_spearman
+    elif function_name == "masked_pearson":
+        return _masked_pearson
+    elif function_name == "masked_cosine":
+        return _masked_cosine
+    elif function_name == "masked_jaccard":
+        return _masked_jaccard
     else:
         raise ValueError("Function not implemented")

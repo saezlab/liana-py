@@ -28,7 +28,7 @@ class SpatialBivariate(_SpatialMeta):
                  score_key = "local_score",
                  categorize = False,
                  pvalue_method : (str | None) = 'permutation',
-                 n_perm: int = 50,
+                 n_perms: int = 50,
                  seed = 1337,
                  nz_threshold=0,
                  remove_self_interactions=True,
@@ -102,16 +102,16 @@ class SpatialBivariate(_SpatialMeta):
                                                       local_fun = local_fun,
                                                       weight = weight,
                                                       seed = seed,
-                                                      n_perm = n_perm,
+                                                      n_perms = n_perms,
                                                       pvalue_method = pvalue_method,
                                                       positive_only=positive_only,
                                                       )
         
         mdata.obsm[score_key] = _local_to_dataframe(array=local_scores.T,
-                                                    idx=mdata.obs.index,
+                                                    idx=xdata.obs.index,
                                                     columns=xy_stats.interaction)
         mdata.obsm['local_pvals'] = _local_to_dataframe(array=local_pvals.T,
-                                                        idx=mdata.obs.index,
+                                                        idx=ydata.obs.index,
                                                         columns=xy_stats.interaction)
         
         # global scores fun
@@ -122,7 +122,7 @@ class SpatialBivariate(_SpatialMeta):
                                       pvalue_method=pvalue_method,
                                       weight=weight,
                                       seed=seed,
-                                      n_perm=n_perm,
+                                      n_perms=n_perms,
                                       positive_only=positive_only,
                                       local_scores=local_scores,
                                       )

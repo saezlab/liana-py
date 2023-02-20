@@ -116,7 +116,7 @@ def _get_ordered_matrix(mat, pos, order):
     return mat[:, _indx].T
 
 
-def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun,n_perm, seed, positive_only, **kwargs):
+def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun,n_perms, seed, positive_only, **kwargs):
     """
     Calculate local pvalues for a given local score function.
 
@@ -130,7 +130,7 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun,n_perm
         2D array with non-permuted local scores/co-expressions
     weight
         proximity weights
-    n_perm
+    n_perms
         number of permutations
     seed
         Reproducibility seed
@@ -151,7 +151,7 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun,n_perm
     local_pvals = np.zeros((xy_n, spot_n))
     
     # shuffle the matrix
-    for i in tqdm(range(n_perm)):
+    for i in tqdm(range(n_perms)):
         _idx = rng.permutation(spot_n)
         perm_score = local_fun(x_mat = x_mat[_idx, :], y_mat=y_mat, weight=weight, **kwargs)
         if positive_only:
@@ -159,7 +159,7 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun,n_perm
         else:
             local_pvals += (np.array(np.abs(perm_score) >= np.abs(local_truth), dtype=int))
 
-    local_pvals = local_pvals / n_perm
+    local_pvals = local_pvals / n_perms
 
     ## TODO change this to directed which uses the categories as mask
     if positive_only:  # TODO change to directed mask (both, negative, positive)
@@ -207,7 +207,7 @@ def _simplify_cats(df):
 
     
     
-def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perm, positive_only, seed):
+def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, positive_only, seed):
     """
     Calculate permutation pvals
 
@@ -221,7 +221,7 @@ def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perm, positive_o
         Proximity weights 2D array
     global_r
         Global Moran's I, 1D array
-    n_perm
+    n_perms
         Number of permutations
     positive_only
         Whether to mask negative p-values
@@ -236,21 +236,21 @@ def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perm, positive_o
     assert isinstance(weight, csr_matrix)
     rng = np.random.default_rng(seed)
 
-    # initialize mat /w n_perm * number of X->Y
+    # initialize mat /w n_perms * number of X->Y
     idx = x_mat.shape[1]
 
-    # permutation mat /w n_perms x LR_n
-    perm_mat = np.zeros((n_perm, global_r.shape[0]))
+    # permutation mat /w n_permss x LR_n
+    perm_mat = np.zeros((n_perms, global_r.shape[0]))
 
-    for perm in tqdm(range(n_perm)):
+    for perm in tqdm(range(n_perms)):
         _idx = rng.permutation(idx)
         perm_mat[perm, :] = ((x_mat[:, _idx] @ weight) * y_mat).sum(axis=1) # flipped x_mat
 
     if positive_only:
-        global_pvals = 1 - (global_r > perm_mat).sum(axis=0) / n_perm
+        global_pvals = 1 - (global_r > perm_mat).sum(axis=0) / n_perms
     else:
         # TODO Proof this makes sense
-        global_pvals = 2 * (1 - (np.abs(global_r) > np.abs(perm_mat)).sum(axis=0) / n_perm)
+        global_pvals = 2 * (1 - (np.abs(global_r) > np.abs(perm_mat)).sum(axis=0) / n_perms)
 
     return global_pvals
 
@@ -375,7 +375,7 @@ def _global_spatialdm(x_mat,
                       y_mat,
                       weight,
                       seed,
-                      n_perm,
+                      n_perms,
                       pvalue_method,
                       positive_only
                       ):
@@ -399,7 +399,7 @@ def _global_spatialdm(x_mat,
         Note that for spatialDM/Morans'I `weight` has to be weighed by n / sum(W).
     seed
         Reproducibility seed
-    n_perm
+    n_perms
         Number of permutatins to perform (if `pvalue_method`=='permutation')
     pvalue_method
         Method to estimate pseudo p-value, must be in ['permutation', 'analytical']
@@ -423,7 +423,7 @@ def _global_spatialdm(x_mat,
                                                  y_mat=y_mat,
                                                  weight=weight,
                                                  global_r=global_r,
-                                                 n_perm=n_perm,
+                                                 n_perms=n_perms,
                                                  positive_only=positive_only,
                                                  seed=seed
                                                  )
@@ -436,14 +436,14 @@ def _global_spatialdm(x_mat,
 
 
 
-def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, pvalue_method, positive_only, n_perm, seed, local_scores):
+def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, pvalue_method, positive_only, n_perms, seed, local_scores):
         if local_fun.__name__== "_local_morans":
             xy_stats.loc[:, ['global_r', 'global_pvals']] = \
                 _global_spatialdm(x_mat=_standardize_matrix(x_mat, local=False, axis=1),
                                   y_mat=_standardize_matrix(y_mat, local=False, axis=1),
                                   weight=weight,
                                   seed=seed,
-                                  n_perm=n_perm,
+                                  n_perms=n_perms,
                                   pvalue_method=pvalue_method,
                                   positive_only=positive_only
                                   ).T
@@ -458,7 +458,7 @@ def _get_local_scores(x_mat,
                       y_mat,
                       local_fun,
                       weight,
-                      n_perm,
+                      n_perms,
                       seed,
                       pvalue_method,
                       positive_only,
@@ -483,7 +483,7 @@ def _get_local_scores(x_mat,
         Note that for spatialDM/Morans'I `weight` has to be weighed by n / sum(W).
     seed
         Reproducibility seed
-    n_perm
+    n_perms
         Number of permutatins to perform (if `pvalue_method`=='permutation')
     pvalue_method
         Method to estimate pseudo p-value, must be in ['permutation', 'analytical']
@@ -513,7 +513,7 @@ def _get_local_scores(x_mat,
                                                weight=weight,
                                                local_truth=local_scores,
                                                local_fun=local_fun,
-                                               n_perm=n_perm,
+                                               n_perms=n_perms,
                                                seed=seed,
                                                positive_only=positive_only
                                                )

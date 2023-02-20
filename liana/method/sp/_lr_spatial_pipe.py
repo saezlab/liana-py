@@ -33,7 +33,7 @@ class SpatialLR(_SpatialMeta):
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.05,
                  pvalue_method: str = 'analytical',
-                 n_perm: int = 1000,
+                 n_perms: int = 1000,
                  positive_only: bool = True, ## TODO change to categorical
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
@@ -55,7 +55,7 @@ class SpatialLR(_SpatialMeta):
         pvalue_method
             Method to obtain P-values: One out of ['permutation', 'analytical'];
             'analytical' by default.
-        n_perm
+        n_perms
             Number of permutations to be performed if `pvalue_method`=='permutation'
         positive_only
             Whether to calculate p-values only for positive correlations. `True` by default.
@@ -131,10 +131,10 @@ class SpatialLR(_SpatialMeta):
 
         # get lr_res /w relevant x,y (lig, rec) and filter acc to expr_prop
         lr_res = filter_reassemble_complexes(lr_res=lr_res,
-                                            expr_prop=expr_prop,
-                                            _key_cols=self.key_cols,
-                                            complex_cols=self._complex_cols
-                                            )
+                                             expr_prop=expr_prop,
+                                             _key_cols=self.key_cols,
+                                             complex_cols=self._complex_cols
+                                             )
 
         # assign the positions of x, y to the adata
         ligand_pos = {entity: np.where(temp.var_names == entity)[0][0] for entity in
@@ -149,24 +149,17 @@ class SpatialLR(_SpatialMeta):
         y_mat = _get_ordered_matrix(mat=temp.X,
                                     pos=receptor_pos,
                                     order=lr_res['receptor'])
-            
+        
+        # get local scores
         local_scores, local_pvals = _get_local_scores(x_mat=x_mat.T,
                                                       y_mat=y_mat.T,
                                                       local_fun=local_fun,
                                                       weight=weight,
                                                       seed=seed,
-                                                      n_perm=n_perm,
+                                                      n_perms=n_perms,
                                                       pvalue_method=pvalue_method,
                                                       positive_only=positive_only,
                                                       )
-        
-        local_scores = _local_to_dataframe(array=local_scores.T,
-                                          idx=temp.obs.index,
-                                          columns=lr_res['interaction'])
-
-        local_pvals = _local_to_dataframe(array=local_pvals.T,
-                                          idx=temp.obs.index,
-                                          columns=lr_res['interaction'])
         
         # get global scores
         lr_res = _get_global_scores(xy_stats=lr_res,
@@ -176,10 +169,19 @@ class SpatialLR(_SpatialMeta):
                                     pvalue_method=pvalue_method,
                                     weight=weight,
                                     seed=seed,
-                                    n_perm=n_perm,
+                                    n_perms=n_perms,
                                     positive_only=positive_only,
                                     local_scores=local_scores,
                                     )
+
+        # convert to dataframes
+        local_scores = _local_to_dataframe(array=local_scores.T,
+                                           idx=temp.obs.index,
+                                           columns=lr_res['interaction'])
+        
+        local_pvals = _local_to_dataframe(array=local_pvals.T,
+                                          idx=temp.obs.index,
+                                          columns=lr_res['interaction'])
 
         if inplace:
             adata.uns['global_res'] = lr_res
