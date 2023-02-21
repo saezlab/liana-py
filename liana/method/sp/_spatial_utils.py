@@ -99,7 +99,7 @@ def get_spatial_proximity(adata: anndata.AnnData,
 
     proximity = csr_matrix(proximity)
 
-    adata.obsm['proximity'] = proximity
+    adata.obsp['proximity'] = proximity
     return None if inplace else proximity
 
 
@@ -539,3 +539,10 @@ def _proximity_to_weight(proximity, local_fun):
         weight = proximity.A
         
     return weight
+
+def _handle_proximity(adata, proximity, proximity_key):
+    if proximity is None:
+        if adata.obsp[proximity_key] is None:
+            raise ValueError(f'No proximity matrix founds in mdata.obsp[{proximity_key}]')
+        proximity = adata.obsp[proximity_key]
+    proximity = csr_matrix(proximity)

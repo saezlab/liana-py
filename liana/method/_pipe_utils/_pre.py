@@ -65,7 +65,6 @@ def prep_check_adata(adata: AnnData,
                      min_cells: (int | None),
                      use_raw: Optional[bool] = False,
                      layer: Optional[str] = None,
-                     obsm_keys=None,
                      verbose: Optional[bool] = False) -> AnnData:
     """
     Check if the anndata object is in the correct format and preprocess
@@ -105,16 +104,12 @@ def prep_check_adata(adata: AnnData,
     else:
         var = adata.var.copy()
 
-    if obsm_keys:
-        obsm = {key: adata.obsm[key] for key in obsm_keys}
-    else:
-        obsm = None
 
     adata = sc.AnnData(X=X,
                        obs=adata.obs.copy(),
                        dtype="float32",
                        var=var,
-                       obsm=obsm
+                       obsp=adata.obsp
                        )
 
     # convert to sparse csr matrix

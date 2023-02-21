@@ -11,7 +11,8 @@ from liana.method._pipe_utils import prep_check_adata, filter_resource, assert_c
 from liana.utils._utils import _get_props
 
 from liana.method.sp._SpatialMethod import _SpatialMeta
-from liana.method.sp._spatial_utils import _local_to_dataframe, _get_ordered_matrix, _rename_means, _get_local_scores, _get_global_scores, _proximity_to_weight
+from liana.method.sp._spatial_utils import _local_to_dataframe, _get_ordered_matrix, _rename_means, \
+    _get_local_scores, _get_global_scores, _proximity_to_weight, _handle_proximity
 from liana.method.sp._bivariate_funs import _handle_functions
 
 
@@ -39,6 +40,7 @@ class SpatialLR(_SpatialMeta):
                  layer: Optional[str] = None,
                  verbose: Optional[bool] = False,
                  seed: int = 1337,
+                 proximity = None,
                  resource: Optional[pd.DataFrame] = None,
                  inplace=True
                  ):
@@ -49,6 +51,8 @@ class SpatialLR(_SpatialMeta):
             Annotated data object.
         resource_name
             Name of the resource to be loaded and use for ligand-receptor inference.
+        proximity_key: str
+            Key to use to retrieve the proximity matrix from adata.obsp.
         expr_prop
             Minimum expression proportion for the ligands/receptors (and their subunits).
              Set to `0` to return unfiltered results.
@@ -71,6 +75,9 @@ class SpatialLR(_SpatialMeta):
             Parameter to enable external resources to be passed. Expects a pandas dataframe
             with [`ligand`, `receptor`] columns. None by default. If provided will overrule
             the resource requested via `resource_name`
+        proximity : np.array 
+            Proximity matrix to be used to calculate bivariate relationships, should be with shape (n_obs, n_obs).
+            If provided, will overrule the proximities provided via `proximity_key`.
         inplace
             If true return `DataFrame` with results, else assign to `.uns`.
 
@@ -94,11 +101,10 @@ class SpatialLR(_SpatialMeta):
                                 layer=layer,
                                 verbose=verbose,
                                 groupby=None,
-                                min_cells=None,
-                                obsm_keys=[proximity_key],
+                                min_cells=None
                                 )
         
-        proximity = adata.obsm[proximity_key]
+        proximity = _handle_proximity(adata, proximity, proximity_key)
         local_fun = _handle_functions(function_name)
         weight = _proximity_to_weight(proximity, local_fun)
         

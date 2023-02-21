@@ -7,7 +7,8 @@ from scipy.sparse import csr_matrix
 from liana.utils._utils import _get_props
 from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
 from liana.method.sp._spatial_utils import _local_to_dataframe, _categorize, \
-    _simplify_cats, _encode_as_char, _get_ordered_matrix, _rename_means, _get_local_scores, _get_global_scores, _proximity_to_weight
+    _simplify_cats, _encode_as_char, _get_ordered_matrix, _rename_means, _get_local_scores, \
+    _get_global_scores, _proximity_to_weight, _handle_proximity
 from liana.method.sp._bivariate_funs import _handle_functions
 
 
@@ -28,11 +29,12 @@ class SpatialBivariate(_SpatialMeta):
                  score_key = "local_score",
                  categorize = False,
                  pvalue_method : (str | None) = 'permutation',
+                 positive_only=False, ## TODO change to categorical
                  n_perms: int = 50,
                  seed = 1337,
                  nz_threshold=0,
                  remove_self_interactions=True,
-                 positive_only=False, ## TODO change to categorical
+                 proximity = None,
                  ):
         """
         Global Bivariate analysis pipeline
@@ -58,7 +60,7 @@ class SpatialBivariate(_SpatialMeta):
         xdata = mdata[x_mod]
         ydata = mdata[y_mod]
         
-        proximity = mdata.obsm[proximity_key]
+        proximity = _handle_proximity(mdata, proximity, proximity_key)
         local_fun = _handle_functions(function_name)
         weight = _proximity_to_weight(proximity, local_fun)
         

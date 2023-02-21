@@ -1,5 +1,5 @@
 import numpy as np
-from liana.testing.toydata import generate_toy_spatial
+from liana.testing._sample_anndata import generate_toy_spatial
 
 from liana.method.sp._lr_spatial_pipe import lr_basis
 
