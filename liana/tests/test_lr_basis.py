@@ -6,6 +6,7 @@ from liana.method.sp._lr_spatial_pipe import lr_basis
 adata = generate_toy_spatial()    
 
 def test_spatialdm():
+    adata = generate_toy_spatial()    
     lr_basis(adata, function_name='morans', pvalue_method="analytical", use_raw=True)
     assert 'global_res' in adata.uns_keys()
     assert 'local_scores' in adata.obsm_keys()
@@ -22,6 +23,7 @@ def test_spatialdm():
 
 
 def test_spatialdm_permutation():
+    adata = generate_toy_spatial()    
     lr_basis(adata, function_name='morans', pvalue_method="permutation", use_raw=True)
     assert 'global_res' in adata.uns_keys()
     assert 'local_scores' in adata.obsm_keys()
@@ -35,3 +37,12 @@ def test_spatialdm_permutation():
     
     assert np.mean(adata.obsm['local_scores']['MIF&CD74_CXCR4']) == -0.01743059967445572
     assert np.mean(adata.obsm['local_pvals']['TNFSF13B&TNFRSF13B']) == 0.9611128571428571
+
+
+def test_morans_pval_none():
+    adata = generate_toy_spatial()
+    lr_basis(adata, function_name='morans', pvalue_method=None, use_raw=True)
+    assert 'global_res' in adata.uns_keys()
+    assert 'local_scores' in adata.obsm_keys()
+    # NOT IN
+    assert 'local_pvals' not in adata.obsm_keys()

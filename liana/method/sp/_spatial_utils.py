@@ -109,8 +109,10 @@ def _rename_means(lr_stats, entity):
     return df.rename(columns={'gene': entity})
 
 
-def _local_to_dataframe(idx, columns, array):
-    return DataFrame(array, index=idx, columns=columns)
+def _local_to_dataframe(array, idx, columns):
+    if array is None:
+        return None
+    return DataFrame(array.T, index=idx, columns=columns)
 
 
 def _get_ordered_matrix(mat, pos, order):
@@ -295,8 +297,6 @@ def _global_zscore_pvals(weight, global_r, positive_only):
     return global_zpvals
 
 
-
-
 def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, positive_only):
     """
 
@@ -433,6 +433,8 @@ def _global_spatialdm(x_mat,
         global_pvals = _global_zscore_pvals(weight=weight,
                                             global_r=global_r,
                                             positive_only=positive_only)
+    elif pvalue_method is None:
+        global_pvals = None
 
     return np.array((global_r, global_pvals))
 
@@ -526,6 +528,8 @@ def _get_local_scores(x_mat,
                                           weight=weight,
                                           positive_only=positive_only
                                           )
+    elif pvalue_method is None:
+        local_pvals = None
 
     return local_scores, local_pvals
 
@@ -537,8 +541,8 @@ def _proximity_to_weight(proximity, local_fun):
         weight = csr_matrix(norm_factor * proximity)
     else:
         weight = proximity.A
-        
     return weight
+
 
 def _handle_proximity(adata, proximity, proximity_key):
     if proximity is None:

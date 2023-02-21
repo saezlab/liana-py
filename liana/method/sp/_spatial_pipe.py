@@ -28,7 +28,7 @@ class SpatialBivariate(_SpatialMeta):
                  proximity_key,
                  score_key = "local_score",
                  categorize = False,
-                 pvalue_method : (str | None) = 'permutation',
+                 pvalue_method: (str | None) = None,
                  positive_only=False, ## TODO change to categorical
                  n_perms: int = 50,
                  seed = 1337,
@@ -55,6 +55,8 @@ class SpatialBivariate(_SpatialMeta):
         Returns xy_stats, x_pos, y_pos
         
         """
+        if pvalue_method not in ['analytical', 'permutation', None]:
+            raise ValueError("`pvalue_method` must be one of ['analytical', 'permutation', None]")
         
         # TODO currently works only with .X
         xdata = mdata[x_mod]
@@ -109,10 +111,10 @@ class SpatialBivariate(_SpatialMeta):
                                                       positive_only=positive_only,
                                                       )
         
-        mdata.obsm[score_key] = _local_to_dataframe(array=local_scores.T,
+        mdata.obsm[score_key] = _local_to_dataframe(array=local_scores,
                                                     idx=xdata.obs.index,
                                                     columns=xy_stats.interaction)
-        mdata.obsm['local_pvals'] = _local_to_dataframe(array=local_pvals.T,
+        mdata.obsm['local_pvals'] = _local_to_dataframe(array=local_pvals,
                                                         idx=ydata.obs.index,
                                                         columns=xy_stats.interaction)
         

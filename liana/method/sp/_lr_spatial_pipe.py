@@ -33,7 +33,7 @@ class SpatialLR(_SpatialMeta):
                  proximity_key = 'proximity',
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.05,
-                 pvalue_method: str = 'analytical',
+                 pvalue_method: (str | None) = None,
                  n_perms: int = 1000,
                  positive_only: bool = True, ## TODO change to categorical
                  use_raw: Optional[bool] = True,
@@ -93,8 +93,8 @@ class SpatialLR(_SpatialMeta):
         - :attr:`anndata.AnnData.obsm` ``['local_pvals']`` with  `3)`
 
         """
-        if pvalue_method not in ['analytical', 'permutation']:
-            raise ValueError('pvalue_method must be one of [analytical, permutation]')
+        if pvalue_method not in ['analytical', 'permutation', None]:
+            raise ValueError("`pvalue_method` must be one of ['analytical', 'permutation', None]")
 
         temp = prep_check_adata(adata=adata,
                                 use_raw=use_raw,
@@ -181,18 +181,17 @@ class SpatialLR(_SpatialMeta):
                                     )
 
         # convert to dataframes
-        local_scores = _local_to_dataframe(array=local_scores.T,
+        local_scores = _local_to_dataframe(array=local_scores,
                                            idx=temp.obs.index,
                                            columns=lr_res['interaction'])
-        
-        local_pvals = _local_to_dataframe(array=local_pvals.T,
+        local_pvals = _local_to_dataframe(array=local_pvals,
                                           idx=temp.obs.index,
                                           columns=lr_res['interaction'])
-
         if inplace:
             adata.uns['global_res'] = lr_res
             adata.obsm['local_scores'] = local_scores
-            adata.obsm['local_pvals'] = local_pvals
+            if pvalue_method is not None:
+                adata.obsm['local_pvals'] = local_pvals
 
         return None if inplace else (lr_res, local_scores, local_pvals)
 
