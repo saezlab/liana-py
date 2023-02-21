@@ -5,10 +5,14 @@ from scipy.sparse import csr_matrix
 
 
 from liana.utils._utils import _get_props
+from liana.method._pipe_utils._pre import _choose_mtx_rep
+
 from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
+
 from liana.method.sp._spatial_utils import _local_to_dataframe, _categorize, \
     _simplify_cats, _encode_as_char, _get_ordered_matrix, _rename_means, _get_local_scores, \
     _get_global_scores, _proximity_to_weight, _handle_proximity
+    
 from liana.method.sp._bivariate_funs import _handle_functions
 
 
@@ -25,7 +29,7 @@ class SpatialBivariate(_SpatialMeta):
                  function_name,
                  x_mod,
                  y_mod, 
-                 proximity_key,
+                 proximity_key = 'proximity',
                  score_key = "local_score",
                  categorize = False,
                  pvalue_method: (str | None) = None,
@@ -35,6 +39,10 @@ class SpatialBivariate(_SpatialMeta):
                  nz_threshold=0,
                  remove_self_interactions=True,
                  proximity = None,
+                 x_use_raw=False,
+                 x_layer = None,
+                 y_use_raw=False,
+                 y_layer = None,
                  ):
         """
         Global Bivariate analysis pipeline
@@ -58,9 +66,11 @@ class SpatialBivariate(_SpatialMeta):
         if pvalue_method not in ['analytical', 'permutation', None]:
             raise ValueError("`pvalue_method` must be one of ['analytical', 'permutation', None]")
         
-        # TODO currently works only with .X
         xdata = mdata[x_mod]
+        xdata.X = _choose_mtx_rep(xdata, use_raw = x_use_raw, layer = x_layer)
+        
         ydata = mdata[y_mod]
+        ydata.X = _choose_mtx_rep(ydata, use_raw = y_use_raw, layer = y_layer)
         
         proximity = _handle_proximity(mdata, proximity, proximity_key)
         local_fun = _handle_functions(function_name)
@@ -114,9 +124,10 @@ class SpatialBivariate(_SpatialMeta):
         mdata.obsm[score_key] = _local_to_dataframe(array=local_scores,
                                                     idx=xdata.obs.index,
                                                     columns=xy_stats.interaction)
-        mdata.obsm['local_pvals'] = _local_to_dataframe(array=local_pvals,
-                                                        idx=ydata.obs.index,
-                                                        columns=xy_stats.interaction)
+        if local_pvals is not None:
+            mdata.obsm['local_pvals'] = _local_to_dataframe(array=local_pvals,
+                                                            idx=ydata.obs.index,
+                                                            columns=xy_stats.interaction)
         
         # global scores fun
         xy_stats = _get_global_scores(xy_stats=xy_stats,
@@ -142,12 +153,10 @@ class SpatialBivariate(_SpatialMeta):
             local_catageries = _categorize(_encode_as_char(x_mat.A), _encode_as_char(y_mat.A))
             ## TODO these to helper function that can extract multiple of these
             # and these all saved as arrays, or alternatively saved a modalities in mudata
-            mdata.obsm['local_categories'] = _local_to_dataframe(array=local_catageries.T,
+            mdata.obsm['local_categories'] = _local_to_dataframe(array=local_catageries,
                                                                 idx=mdata.obs.index,
                                                                 columns=xy_stats.interaction)
             mdata.obsm['local_categories'] = _simplify_cats(mdata.obsm['local_categories'])
-            
-        return mdata
 
 
 basis = SpatialBivariate(_basis_meta)

@@ -115,7 +115,6 @@ def test_with_all_lrs():
 
 
 def test_methods_by_sample():
-    
     # make fake sample labels
     sample_key = 'patient'
     rng = random.default_rng(0)

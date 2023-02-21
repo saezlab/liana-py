@@ -5,8 +5,9 @@ from liana.method.sp._lr_spatial_pipe import lr_basis
 
 adata = generate_toy_spatial()    
 
-def test_spatialdm():
-    adata = generate_toy_spatial()    
+
+def test_morans_analytical():
+    adata = generate_toy_spatial()
     lr_basis(adata, function_name='morans', pvalue_method="analytical", use_raw=True)
     assert 'global_res' in adata.uns_keys()
     assert 'local_scores' in adata.obsm_keys()
@@ -22,7 +23,7 @@ def test_spatialdm():
     assert np.mean(adata.obsm['local_pvals']['TNFSF13B&TNFRSF13B']) == 0.8990116969730065
 
 
-def test_spatialdm_permutation():
+def test_morans_permutation():
     adata = generate_toy_spatial()    
     lr_basis(adata, function_name='morans', pvalue_method="permutation", use_raw=True)
     assert 'global_res' in adata.uns_keys()

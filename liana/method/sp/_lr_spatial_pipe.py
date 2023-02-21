@@ -108,7 +108,6 @@ class SpatialLR(_SpatialMeta):
         local_fun = _handle_functions(function_name)
         weight = _proximity_to_weight(proximity, local_fun)
         
-
         # select & process resource
         if resource is None:
             resource = select_resource(resource_name.lower())
