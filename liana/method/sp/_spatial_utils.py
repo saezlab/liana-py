@@ -61,22 +61,24 @@ def get_spatial_proximity(adata: anndata.AnnData,
                                index=adata.obs_names,
                                columns=['x', 'y'])
 
-    proximity = pdist(coordinates, 'euclidean')
-    proximity = squareform(proximity)
+    dist = pdist(coordinates, 'euclidean')
+    dist = squareform(dist)
 
     # prevent overflow
-    proximity = np.array(proximity, dtype=np.float64)
+    dist = np.array(dist, dtype=np.float64)
     parameter = np.array(parameter, dtype=np.float64)
 
     if family == 'gaussian':
-        proximity = np.exp(-(proximity ** 2.0) / (2.0 * parameter ** 2.0))
+        proximity = np.exp(-(dist ** 2.0) / (2.0 * parameter ** 2.0))
     elif family == 'misty_rbf':
-        proximity = np.exp(-(proximity ** 2.0) / (parameter ** 2.0))
+        proximity = np.exp(-(dist ** 2.0) / (parameter ** 2.0))
     elif family == 'exponential':
-        proximity = np.exp(-proximity / parameter)
+        proximity = np.exp(-dist / parameter)
     elif family == 'linear':
-        proximity = 1 - proximity / parameter
+        proximity = 1 - dist / parameter
         proximity[proximity < 0] = 0
+    else:
+        raise ValueError("Please specify a valid family to generate proximity weights")
 
     if bypass_diagonal:
         np.fill_diagonal(proximity, 0)
@@ -86,7 +88,7 @@ def get_spatial_proximity(adata: anndata.AnnData,
     if n_neighbors is not None:
         nn = NearestNeighbors(n_neighbors=n_neighbors).fit(proximity)
         knn = nn.kneighbors_graph(proximity).toarray()
-        proximity = proximity * knn  # knn works as mask
+        proximity = proximity * knn  # knn works as a mask
 
     spot_n = proximity.shape[0]
     assert spot_n == adata.shape[0]
@@ -528,12 +530,12 @@ def _get_local_scores(x_mat,
     return local_scores, local_pvals
 
 
-def _dist_to_weight(dist, local_fun):
+def _proximity_to_weight(proximity, local_fun):
     # Format the weight matrix accordingly
     if local_fun.__name__== "_local_morans":
-        norm_factor = dist.shape[0] / dist.sum()
-        weight = csr_matrix(norm_factor * dist)
+        norm_factor = proximity.shape[0] / proximity.sum()
+        weight = csr_matrix(norm_factor * proximity)
     else:
-        weight = dist.A
+        weight = proximity.A
         
     return weight

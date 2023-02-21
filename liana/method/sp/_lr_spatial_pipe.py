@@ -11,7 +11,7 @@ from liana.method._pipe_utils import prep_check_adata, filter_resource, assert_c
 from liana.utils._utils import _get_props
 
 from liana.method.sp._SpatialMethod import _SpatialMeta
-from liana.method.sp._spatial_utils import _local_to_dataframe, _get_ordered_matrix, _rename_means, _get_local_scores, _get_global_scores, _dist_to_weight
+from liana.method.sp._spatial_utils import _local_to_dataframe, _get_ordered_matrix, _rename_means, _get_local_scores, _get_global_scores, _proximity_to_weight
 from liana.method.sp._bivariate_funs import _handle_functions
 
 
@@ -98,9 +98,9 @@ class SpatialLR(_SpatialMeta):
                                 obsm_keys=[proximity_key],
                                 )
         
-        dist = adata.obsm[proximity_key]
+        proximity = adata.obsm[proximity_key]
         local_fun = _handle_functions(function_name)
-        weight = _dist_to_weight(dist, local_fun)
+        weight = _proximity_to_weight(proximity, local_fun)
         
 
         # select & process resource

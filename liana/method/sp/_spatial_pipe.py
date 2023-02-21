@@ -7,7 +7,7 @@ from scipy.sparse import csr_matrix
 from liana.utils._utils import _get_props
 from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
 from liana.method.sp._spatial_utils import _local_to_dataframe, _categorize, \
-    _simplify_cats, _encode_as_char, _get_ordered_matrix, _rename_means, _get_local_scores, _get_global_scores, _dist_to_weight
+    _simplify_cats, _encode_as_char, _get_ordered_matrix, _rename_means, _get_local_scores, _get_global_scores, _proximity_to_weight
 from liana.method.sp._bivariate_funs import _handle_functions
 
 
@@ -58,9 +58,9 @@ class SpatialBivariate(_SpatialMeta):
         xdata = mdata[x_mod]
         ydata = mdata[y_mod]
         
-        dist = mdata.obsm[proximity_key]
+        proximity = mdata.obsm[proximity_key]
         local_fun = _handle_functions(function_name)
-        weight = _dist_to_weight(dist, local_fun)
+        weight = _proximity_to_weight(proximity, local_fun)
         
         # change Index names to entity
         xdata.var_names.rename('entity', inplace=True)
@@ -150,7 +150,6 @@ basis = SpatialBivariate(_basis_meta)
 
 
 def _anndata_to_stats(adata, nz_thr=0.1):
-    from scipy.sparse import csr_matrix
     adata.X = csr_matrix(adata.X) ## TODO change to ~prep_check_adata (but not for gene expression alone)
     
     global_stats = pd.DataFrame({'means': adata.X.mean(axis=0).A.flatten(),
