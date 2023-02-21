@@ -546,3 +546,4 @@ def _handle_proximity(adata, proximity, proximity_key):
             raise ValueError(f'No proximity matrix founds in mdata.obsp[{proximity_key}]')
         proximity = adata.obsp[proximity_key]
     proximity = csr_matrix(proximity)
+    return proximity
