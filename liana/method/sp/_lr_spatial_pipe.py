@@ -12,7 +12,7 @@ from liana.utils._utils import _get_props
 
 from liana.method.sp._SpatialMethod import _SpatialMeta
 from liana.method.sp._spatial_utils import _local_to_dataframe, _get_ordered_matrix, _rename_means, \
-    _get_local_scores, _get_global_scores, _proximity_to_weight, _handle_proximity
+    _run_scores_pipeline, _proximity_to_weight, _handle_proximity
 from liana.method.sp._bivariate_funs import _handle_functions
 
 
@@ -156,36 +156,19 @@ class SpatialLR(_SpatialMeta):
                                     order=lr_res['receptor'])
         
         # get local scores
-        local_scores, local_pvals = _get_local_scores(x_mat=x_mat.T,
-                                                      y_mat=y_mat.T,
-                                                      local_fun=local_fun,
-                                                      weight=weight,
-                                                      seed=seed,
-                                                      n_perms=n_perms,
-                                                      pvalue_method=pvalue_method,
-                                                      positive_only=positive_only,
-                                                      )
-        
-        # get global scores
-        lr_res = _get_global_scores(xy_stats=lr_res,
-                                    x_mat=x_mat,
-                                    y_mat=y_mat,
-                                    local_fun=local_fun,
-                                    pvalue_method=pvalue_method,
-                                    weight=weight,
-                                    seed=seed,
-                                    n_perms=n_perms,
-                                    positive_only=positive_only,
-                                    local_scores=local_scores,
-                                    )
-
-        # convert to dataframes
-        local_scores = _local_to_dataframe(array=local_scores,
-                                           idx=temp.obs.index,
-                                           columns=lr_res['interaction'])
-        local_pvals = _local_to_dataframe(array=local_pvals,
-                                          idx=temp.obs.index,
-                                          columns=lr_res['interaction'])
+        lr_res, local_scores, local_pvals = \
+            _run_scores_pipeline(xy_stats=lr_res,
+                                 x_mat=x_mat,
+                                 y_mat=y_mat,
+                                 idx=temp.obs.index,
+                                 local_fun=local_fun,
+                                 weight=weight,
+                                 seed=seed,
+                                 n_perms=n_perms,
+                                 pvalue_method=pvalue_method,
+                                 positive_only=positive_only,
+                                 )
+            
         if inplace:
             adata.uns['global_res'] = lr_res
             adata.obsm['local_scores'] = local_scores

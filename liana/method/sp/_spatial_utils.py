@@ -440,22 +440,73 @@ def _global_spatialdm(x_mat,
 
 
 
-def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, pvalue_method, positive_only, n_perms, seed, local_scores):
-        if local_fun.__name__== "_local_morans":
-            xy_stats.loc[:, ['global_r', 'global_pvals']] = \
-                _global_spatialdm(x_mat=_standardize_matrix(x_mat, local=False, axis=1),
-                                  y_mat=_standardize_matrix(y_mat, local=False, axis=1),
-                                  weight=weight,
-                                  seed=seed,
-                                  n_perms=n_perms,
-                                  pvalue_method=pvalue_method,
-                                  positive_only=positive_only
-                                  ).T
-        else:
-            # any other local score
-            xy_stats.loc[:,['global_mean','global_sd']] = np.vstack([np.mean(local_scores, axis=1), np.std(local_scores, axis=1)]).T
-            
-        return xy_stats
+def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, weight, pvalue_method, positive_only, n_perms, seed):
+        """
+        Calculates local and global scores for each interaction in `xy_dataframe`
+
+        Parameters
+        ----------
+        xy_stats
+            a dataframe with x,y relationships to be estimated, for example `lr_res`.
+        x_mat
+            Gene expression matrix for entity x (e.g. ligand)
+        y_mat
+            Gene expression matrix for entity y (e.g. receptor)
+        idx
+            Index positions of cells/spots (i.e. adata.obs.index)
+        local_fun
+            Function to calculate local scores, e.g. `liana.method._local_morans`
+        weight
+            proximity weight matrix, obtained e.g. via `liana.method.get_spatial_proximity`.
+            Note that for spatialDM/Morans'I `weight` has to be weighed by n / sum(W).
+        pvalue_method
+            Method to estimate pseudo p-value, must be in ['permutation', 'analytical']
+        positive_only
+            Whether to return only p-values for positive spatial correlations.
+            By default, `True`.
+        n_perms
+            Number of permutatins to perform (if `pvalue_method`=='permutation')
+        seed
+            Reproducibility seed
+
+        Returns
+        -------
+        A dataframe and two 2D arrays of size xy_dataframe.shape[1], adata.shape[0]
+
+        """
+        local_scores, local_pvals = _get_local_scores(x_mat = x_mat.T,
+                                                      y_mat = y_mat.T,
+                                                      local_fun = local_fun,
+                                                      weight = weight,
+                                                      seed = seed,
+                                                      n_perms = n_perms,
+                                                      pvalue_method = pvalue_method,
+                                                      positive_only=positive_only,
+                                                      )
+        
+        # global scores fun
+        xy_stats = _get_global_scores(xy_stats=xy_stats,
+                                      x_mat=x_mat,
+                                      y_mat=y_mat,
+                                      local_fun=local_fun,
+                                      pvalue_method=pvalue_method,
+                                      weight=weight,
+                                      seed=seed,
+                                      n_perms=n_perms,
+                                      positive_only=positive_only,
+                                      local_scores=local_scores,
+                                      )
+        
+        # convert to DataFrames
+        local_scores = _local_to_dataframe(array=local_scores,
+                                           idx=idx,
+                                           columns=xy_stats['interaction'])
+        if local_pvals is not None:
+            local_pvals = _local_to_dataframe(array=local_pvals,
+                                              idx=idx,
+                                              columns=xy_stats['interaction'])
+
+        return xy_stats, local_scores, local_pvals
 
 
 def _get_local_scores(x_mat,
@@ -532,6 +583,24 @@ def _get_local_scores(x_mat,
         local_pvals = None
 
     return local_scores, local_pvals
+
+
+def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, pvalue_method, positive_only, n_perms, seed, local_scores):
+        if local_fun.__name__== "_local_morans":
+            xy_stats.loc[:, ['global_r', 'global_pvals']] = \
+                _global_spatialdm(x_mat=_standardize_matrix(x_mat, local=False, axis=1),
+                                  y_mat=_standardize_matrix(y_mat, local=False, axis=1),
+                                  weight=weight,
+                                  seed=seed,
+                                  n_perms=n_perms,
+                                  pvalue_method=pvalue_method,
+                                  positive_only=positive_only
+                                  ).T
+        else:
+            # any other local score
+            xy_stats.loc[:,['global_mean','global_sd']] = np.vstack([np.mean(local_scores, axis=1), np.std(local_scores, axis=1)]).T
+            
+        return xy_stats
 
 
 def _proximity_to_weight(proximity, local_fun):

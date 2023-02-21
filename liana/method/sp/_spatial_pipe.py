@@ -4,14 +4,14 @@ from itertools import product
 from scipy.sparse import csr_matrix
 
 
-from liana.utils._utils import _get_props
+from liana.utils._utils import _get_props, obsm_to_adata
 from liana.method._pipe_utils._pre import _choose_mtx_rep
 
 from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
 
 from liana.method.sp._spatial_utils import _local_to_dataframe, _categorize, \
-    _simplify_cats, _encode_as_char, _get_ordered_matrix, _rename_means, _get_local_scores, \
-    _get_global_scores, _proximity_to_weight, _handle_proximity
+    _simplify_cats, _encode_as_char, _get_ordered_matrix, _rename_means, _run_scores_pipeline, \
+        _proximity_to_weight, _handle_proximity
     
 from liana.method.sp._bivariate_funs import _handle_functions
 
@@ -30,7 +30,7 @@ class SpatialBivariate(_SpatialMeta):
                  x_mod,
                  y_mod, 
                  proximity_key = 'proximity',
-                 score_key = "local_score",
+                 mod_added = "local_scores",
                  categorize = False,
                  pvalue_method: (str | None) = None,
                  positive_only=False, ## TODO change to categorical
@@ -43,6 +43,7 @@ class SpatialBivariate(_SpatialMeta):
                  x_layer = None,
                  y_use_raw=False,
                  y_layer = None,
+                 inplace = True,
                  ):
         """
         Global Bivariate analysis pipeline
@@ -50,17 +51,55 @@ class SpatialBivariate(_SpatialMeta):
         Parameters
         ----------
         mdata : anndata
-            The annotated data matrix of shape `n_obs` × `n_vars`. Rows correspond to cells and
+            MuData object containing two modalities of interest
+        function_name : str
+            Name of the function to use for the local analysis.
         x_mod : str
             Name of the modality to use as x
         y_mod : str
             Name of the modality to use as y
-        nz_threshold : float
-            Threshold for the proportion of non-zero values in a cell for the interaction to be considered
-            
+        proximity_key : str
+            Key to use to retrieve the proximity matrix from adata.obsp.
+        mod_added : str
+            Name of the modality to add to the MuData object (in case of inplace=True)
+        categorize : bool
+            Whether to categorize the local scores or not
+        pvalue_method : str
+            Method to obtain P-values: One out of ['permutation', 'analytical', None];
+        positive_only : bool
+            Whether to only consider positive local scores
+        n_perms : int
+            Number of permutations to use for the p-value calculation (when set to permutation)
+        seed : int
+            Seed to use for the permutation
+        nz_threshold : int
+            Threshold to use to remove zero-inflated features from the data
+        remove_self_interactions : bool
+            Whether to remove self-interactions from the data (i.e. x & y have the same name)
+        proximity : np.ndarray
+            Proximity matrix to use for the local analysis. If None, will use the one stored in adata.obsp[proximity_key].
+        x_use_raw : bool
+            Whether to use the raw data for the x modality (By default it will use the .X matrix)
+        x_layer : str
+            Layer to use for the x modality
+        y_use_raw : bool
+            Whether to use the raw data for the y modality (By default it will use the .X matrix)
+        y_layer : str
+            Layer to use for the y modality
+        inplace : bool
+            Whether to add the results as modalities to to the MuData object
+            or return them as a pandas.DataFrame, and local_scores/local_pvalues as a pandas.DataFrame
         Returns
         -------
-        Returns xy_stats, x_pos, y_pos
+        
+        If inplace is True, it will add the following modalities to the MuData object:
+            - local_scores: pandas.DataFrame with the local scores
+            - local_pvalues: pandas.DataFrame with the local p-values (if pvalue_method is not None)
+            - global_scores: pandas.DataFrame with the global scores
+        if inplace is False, it will return:
+            - global_scores: pandas.DataFrame with the global scores
+            - local_scores: pandas.DataFrame with the local scores
+            - local_pvalues: pandas.DataFrame with the local p-values (if pvalue_method is not None)
         
         """
         if pvalue_method not in ['analytical', 'permutation', None]:
@@ -110,42 +149,33 @@ class SpatialBivariate(_SpatialMeta):
                                     pos=y_pos,
                                     order=xy_stats['y_entity'])
             
+        # get local scores
+        xy_stats, local_scores, local_pvals = \
+            _run_scores_pipeline(xy_stats=xy_stats,
+                                 x_mat=x_mat,
+                                 y_mat=y_mat,
+                                 idx=mdata.obs.index,
+                                 local_fun=local_fun,
+                                 weight=weight,
+                                 seed=seed,
+                                 n_perms=n_perms,
+                                 pvalue_method=pvalue_method,
+                                 positive_only=positive_only,
+                                 )
         
-        local_scores, local_pvals = _get_local_scores(x_mat = x_mat.T,
-                                                      y_mat = y_mat.T,
-                                                      local_fun = local_fun,
-                                                      weight = weight,
-                                                      seed = seed,
-                                                      n_perms = n_perms,
-                                                      pvalue_method = pvalue_method,
-                                                      positive_only=positive_only,
-                                                      )
-        
-        mdata.obsm[score_key] = _local_to_dataframe(array=local_scores,
-                                                    idx=xdata.obs.index,
-                                                    columns=xy_stats.interaction)
-        if local_pvals is not None:
-            mdata.obsm['local_pvals'] = _local_to_dataframe(array=local_pvals,
-                                                            idx=ydata.obs.index,
-                                                            columns=xy_stats.interaction)
-        
-        # global scores fun
-        xy_stats = _get_global_scores(xy_stats=xy_stats,
-                                      x_mat=x_mat,
-                                      y_mat=y_mat,
-                                      local_fun=local_fun,
-                                      pvalue_method=pvalue_method,
-                                      weight=weight,
-                                      seed=seed,
-                                      n_perms=n_perms,
-                                      positive_only=positive_only,
-                                      local_scores=local_scores,
-                                      )
+        if not inplace:
+            return xy_stats, local_scores, local_pvals
             
         # save to uns
         mdata.uns['global_res'] = xy_stats
+        
+        # save to obsm ## TODO think if this is the best way to do this
+        mdata.mod[mod_added] = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None)
+        
+        if local_pvals is not None:
+            mdata.mod['local_pvals'] = obsm_to_adata(adata=mdata, df=local_pvals, obsm_key=None)
 
-        if categorize:
+        if categorize: # TODO move to a pipeline
             # TODO categorizing is currently done following standardization of the matrix
             # i.e. each variable is standardized independently, and then a category is
             # defined based on the values within each stop.
