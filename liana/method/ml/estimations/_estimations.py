@@ -2,6 +2,7 @@ from pandas import DataFrame
 from numpy import array, mean, zeros, median, diff, divide, zeros_like
 from scipy.sparse import csr_matrix
 from scipy.stats import gmean, hmean
+from tqdm import tqdm
 
 
 def mean_per_cell(adata, genes):
@@ -73,8 +74,16 @@ def _metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell') -> 
     
     metabolites = me_res['HMDB'].unique()
 
-    prod_genes = array([get_gene_sets(i, 'producing', me_res, adata.var_names) for i in metabolites], dtype=object)
-    deg_genes = array([get_gene_sets(i, 'degrading', me_res, adata.var_names) for i in metabolites], dtype=object)
+    if verbose:
+        print(f"Estimating production values for {len(metabolites)} metabolites.")
+
+    prod_genes = array([get_gene_sets(i, 'producing', me_res, adata.var_names) for i in tqdm(metabolites)], dtype=object)
+
+
+    if verbose:
+        print(f"Estimating degradation values for {len(metabolites)} metabolites.")
+        
+    deg_genes = array([get_gene_sets(i, 'degrading', me_res, adata.var_names) for i in tqdm(metabolites)], dtype=object)
 
     prod_vals = array([est_fun(adata, prod) for prod in prod_genes])
     deg_vals = array([est_fun(adata, deg) for deg in deg_genes])
@@ -83,8 +92,9 @@ def _metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell') -> 
     final_estimates = get_est(prod_vals, deg_vals).clip(0, None)
     
     if verbose:
-        print(f"Metabolites with gene expression: {160}")
-        print(f"Metabolites without gene expression: {len(metabolites) - 160}")
+        print(f"Metabolites with production values: {sum(prod_vals.sum(axis=1) > 0)}")
+        print(f"Metabolites with degradation values: {sum(deg_vals.sum(axis=1) > 0)}")
+        print(f"Metabolites with final estimates: {sum(final_estimates.sum(axis=1) > 0)}")
 
 
     return DataFrame(final_estimates, columns=adata.obs_names, index=metabolites)

@@ -12,6 +12,7 @@ import numpy as np
 from scipy import sparse
 from tqdm import tqdm
 from statsmodels.stats.multitest import fdrcorrection
+from statsmodels.distributions.empirical_distribution import ECDF
 
 
 
@@ -114,16 +115,17 @@ def ml_pipe(adata: AnnData,
     # Load metabolite resource
     met_est_resource = select_ml_resource(met_est_resource_name)
 
-    if verbose:
-        print(f"Estimating abundance of {len(met_est_resource['HMDB'].unique())} metabolites "
-                f"present in {met_est_resource_name} resource.")
-
     # Estimate metabolite abundances, check if ocean etc with flags and if or run_method
     met_est_result = _metalinks_estimation(me_res=met_est_resource, 
                                             adata=adata, 
                                             est_fun = est_fun,
                                             verbose=verbose)
+
+    met_est_result = met_est_result.sort_index()
+
+    adata.obsm['metabolite_abundance'] = sparse.csr_matrix(met_est_result.T) ################ attention
     
+    adata.uns['met_index'] = met_est_result.index
     # load metabolite-protein resource
     resource = select_resource(resource_name.lower())
 
@@ -135,14 +137,14 @@ def ml_pipe(adata: AnnData,
                 f"and {len(resource['receptor'].unique().tolist())} unique receptors ")
                 
     # Get lr results
-    lr_res = _get_lr(adata=adata, resource=resource, met_est=met_est_result)
+    lr_res = _get_lr(adata=adata, resource=resource)
 
     # run scoring method
     lr_res = _run_method(lr_res=lr_res, adata=adata, 
                                 return_all_lrs=return_all_lrs,
                                 verbose=verbose, expr_prop=expr_prop,
                                 _score=_score, _key_cols=_key_cols, _complex_cols=_complex_cols,
-                                _add_cols=_add_cols, n_perms=n_perms, seed=seed, met_est_index=met_est_result.index)
+                                _add_cols=_add_cols, n_perms=n_perms, seed=seed)
 
     # correct pvalues for fdr 
     #lr_res[_score.specificity] = fdrcorrection(lr_res[_score.specificity])[1]
@@ -190,7 +192,7 @@ def _join_stats(source, target, dedict_gene, dedict_met, resource):
     return bound
 
 
-def _get_lr(adata, resource, met_est):
+def _get_lr(adata, resource):
     """
     Run DE analysis and merge needed information with resource for LR inference
 
@@ -203,85 +205,27 @@ def _get_lr(adata, resource, met_est):
     dataframe with the following columns: [interaction, ligand, receptor,
     ligand_complex, receptor_complex]
 
-    met_est : metabolite abundance estimates
-
     Returns
     -------
     lr_res : pandas.core.frame.DataFrame long-format pandas dataframe with stats
     for all interactions /w matching variables in the dataset.
 
     """
-    # # get label cats
-    # labels = adata.obs.label.cat.categories
-
-    # # Sort metabolite estimates by index
-    # met_est = met_est.sort_index()
-
-    # # initialize dict
-    # dedict_met = {}
-    # for label in labels:
-    #     a = _get_props(sparse.csr_matrix(met_est.values.T))
-    #     stats = DataFrame({'names': met_est.index, 'props': a}). \
-    #         assign(label=label).sort_values('names')
-    #     dedict_met[label] = stats
-
-    # # check if genes are ordered correctly
-    # if not list(met_est.index) == list(dedict_met[labels[0]]['names']):
-    #     raise AssertionError("Variable names did not match DE results!")
-
-    # # Calculate Mean, logFC and z-scores by group
-    # for label in labels:
-    #     temp = adata[adata.obs.label.isin([label])]
-    #     dedict_met[label]['means'] = sparse.csr_matrix(met_est.values.T).mean(axis=0).A.flatten()
-
-    # # initialize dict
-    # dedict_gene = {}
-
-    # for label in labels:
-    #     temp = adata[adata.obs.label == label, :]
-    #     a = _get_props(temp.X)
-    #     stats = DataFrame({'names': temp.var_names, 'props': a}). \
-    #         assign(label=label).sort_values('names')
-    #     dedict_gene[label] = stats
-
-    # # check if genes are ordered correctly
-    # if not list(adata.var_names) == list(dedict_gene[labels[0]]['names']):
-    #     raise AssertionError("Variable names did not match DE results!")
-
-    # # Calculate Mean, logFC and z-scores by group
-    # for label in labels:
-    #     temp = adata[adata.obs.label.isin([label])]
-    #     dedict_gene[label]['means'] = temp.X.mean(axis=0).A.flatten()
-
-
-    # # Create df /w cell identity pairs
-    # pairs = (DataFrame(np.array(np.meshgrid(labels, labels))
-    #                       .reshape(2, np.size(labels) * np.size(labels)).T)
-    #          .rename(columns={0: "source", 1: "target"}))
-
-    # # Join Stats
-    # lr_res = concat(
-    #     [_join_stats(source, target, dedict_gene, dedict_met, resource) for source, target in
-    #      zip(pairs['source'], pairs['target'])]
-    # )
-
-    # return  lr_res  
 
 
     labels = adata.obs.label.cat.categories
-    met_est = met_est.sort_index()
 
     dedict_met = {label: DataFrame({
-        'names': met_est.index,
-        'props': _get_props(sparse.csr_matrix(met_est.values.T)),
+        'names': adata.uns['met_index'],
+        'props': _get_props(adata.obsm['metabolite_abundance']),
         'label': label
     }).sort_values('names') for label in labels}
 
-    if list(met_est.index) != list(dedict_met[labels[0]]['names']):
+    if list(adata.uns['met_index']) != list(dedict_met[labels[0]]['names']):
         raise AssertionError("Variable names did not match DE results!")
 
     for label in labels:
-        dedict_met[label]['means'] = sparse.csr_matrix(met_est.values.T).mean(axis=0).A.flatten()
+        dedict_met[label]['means'] = adata[adata.obs.label == label].obsm['metabolite_abundance'].mean(axis=0).A.flatten()
 
     dedict_gene = {label: DataFrame({
         'names': adata[adata.obs.label == label].var_names,
@@ -289,8 +233,8 @@ def _get_lr(adata, resource, met_est):
         'label': label
     }).sort_values('names') for label in labels}
 
-    if list(adata.var_names) != list(dedict_gene[labels[0]]['names']):
-        raise AssertionError("Variable names did not match DE results!")
+    # if list(adata.var_names) != list(dedict_gene[labels[0]]['names']):
+    #     raise AssertionError("Variable names did not match DE results!")
 
     for label in labels:
         dedict_gene[label]['means'] = adata[adata.obs.label == label].X.mean(axis=0).A.flatten()
@@ -298,6 +242,8 @@ def _get_lr(adata, resource, met_est):
     pairs = DataFrame(np.array(np.meshgrid(labels, labels)).reshape(2, len(labels) ** 2).T, columns=["source", "target"])
 
     lr_res = concat([_join_stats(source, target, dedict_gene, dedict_met, resource) for source, target in pairs.to_numpy()])
+
+    lr_res.drop_duplicates(inplace=True)
 
     return lr_res
 
@@ -319,7 +265,6 @@ def _run_method(lr_res: DataFrame,
                 return_all_lrs: bool,
                 verbose: bool,
                 _aggregate_flag: bool = False,  # Indicates whether we're generating the consensus
-                met_est_index: list = None,
                 ) -> DataFrame:
 
     _add_cols = _add_cols + ['ligand', 'receptor']
@@ -327,35 +272,29 @@ def _run_method(lr_res: DataFrame,
     agg_fun = np.mean
     norm_factor = None
 
+    tqdm.pandas()
+
     if _score.permute:
-        perms, ligand_pos, receptor_pos, labels_pos = \
+        perms, ligand_pos, receptor_pos, labels_pos, perms2 = \
             _get_means_perms(adata=adata,
                              lr_res=lr_res,
                              n_perms=n_perms,
                              seed=seed,
                              agg_fun=agg_fun,
                              norm_factor=norm_factor,
-                             verbose=verbose,
-                             met_est_index=met_est_index,)
+                             verbose=verbose)
+
+        if verbose:
+            print("Permutations done, calculating scores...")
+
         lr_res[[_score.magnitude, _score.specificity]] = \
-            lr_res.apply(_score.fun, axis=1, result_type="expand",
+            lr_res.progress_apply(_score.fun, axis=1, result_type="expand",
                          perms=perms, ligand_pos=ligand_pos,
-                         receptor_pos=receptor_pos, labels_pos=labels_pos)
+                         receptor_pos=receptor_pos, labels_pos=labels_pos, perms2=perms2)
     else:  # non-perm funs
         lr_res[[_score.magnitude, _score.specificity]] = \
             lr_res.apply(_score.fun, axis=1, result_type="expand")
 
-    # if return_all_lrs:
-    #     # re-append rest of results
-    #     lr_res = concat([lr_res, rest_res], copy=False)
-    #     if _score.magnitude is not None:
-    #         fill_value = _assign_min_or_max(lr_res[_score.magnitude],
-    #                                         _score.magnitude_ascending)
-    #         lr_res.loc[~lr_res['lrs_to_keep'], _score.magnitude] = fill_value
-    #     if _score.specificity is not None:
-    #         fill_value = _assign_min_or_max(lr_res[_score.specificity],
-    #                                         _score.specificity_ascending)
-    #         lr_res.loc[~lr_res['lrs_to_keep'], _score.specificity] = fill_value
 
     if _aggregate_flag:  # if consensus keep only the keys and the method scores
         lr_res = lr_res[_key_cols + [_score.magnitude, _score.specificity]]
@@ -373,7 +312,6 @@ def _get_means_perms(adata: AnnData,
                      seed: int,
                      agg_fun,
                      norm_factor: float | None,
-                     met_est_index: Index,
                      verbose: bool):
     """
     Generate permutations and indices required for permutation-based methods
@@ -392,8 +330,6 @@ def _get_means_perms(adata: AnnData,
         function by which to aggregate the matrix, should take `axis` argument
     norm_factor
         additionally normalize the data by some factor (e.g. matrix max for CellChat)
-    met_est_index
-        Index of metabolites that were estimated
     verbose
         Verbosity bool
 
@@ -421,20 +357,68 @@ def _get_means_perms(adata: AnnData,
 
     # Perm should be a cube /w dims: n_perms x idents x n_genes
     perms = np.zeros((n_perms, labels.shape[0], adata.shape[1]))
+    perms2 = np.zeros((n_perms, labels.shape[0], adata.obsm['metabolite_abundance'].shape[1]))
+
 
     # Assign permuted matrix
     for perm in tqdm(range(n_perms), disable=not verbose):
         perm_idx = rng.permutation(idx)
         perm_mat = adata.X[perm_idx]
+        perm_mat2 = adata.obsm['metabolite_abundance'][perm_idx]
         # populate matrix /w permuted means
         for cind in range(labels.shape[0]):
             perms[perm, cind] = agg_fun(perm_mat[labels_dict[labels[cind]]], axis=0)
+            perms2[perm, cind] = agg_fun(perm_mat2[labels_dict[labels[cind]]], axis=0)
+
+
 
     # Get indexes for each gene and label in the permutations
-    ligand_pos = {entity: np.where(met_est_index == entity)[0][0] for entity
+    ligand_pos = {entity: np.where(adata.uns['met_index'] == entity)[0][0] for entity
                   in lr_res['ligand']}
     receptor_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity
                     in lr_res['receptor']}
     labels_pos = {labels[pos]: pos for pos in range(labels.shape[0])}
 
-    return perms, ligand_pos, receptor_pos, labels_pos
+    return perms, ligand_pos, receptor_pos, labels_pos, perms2
+
+
+
+def _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, perms2, agg_fun,
+                  ligand_col='ligand_means', receptor_col='receptor_means'):
+    """
+    Calculate Permutation means and p-values
+
+    Parameters
+    ----------
+    x
+        DataFrame row
+    perms
+        3D tensor with permuted averages per cluster
+    ligand_pos
+        Index of the ligand in the tensor
+    receptor_pos
+        Index of the receptor in the perms tensor
+    labels_pos
+        Index of cell identities in the perms tensor
+    agg_fun
+        function to aggregate the ligand and receptor
+
+    Returns
+    -------
+    A tuple with lr_score (aggregated according to `agg_fun`) and ECDF p-value for x
+
+    """
+    # actual lr_score
+    lr_score = agg_fun(x[ligand_col], x[receptor_col])
+
+    if lr_score == 0:
+        return 0, 1
+
+    # Permutations lr mean
+    ligand_perm_means = perms2[:, labels_pos[x.source], ligand_pos[x.ligand]]
+    receptor_perm_means = perms[:, labels_pos[x.target], receptor_pos[x.receptor]]
+    lr_perm_score = agg_fun(ligand_perm_means, receptor_perm_means)
+
+    p_value = (1 - ECDF(lr_perm_score)(lr_score))
+
+    return lr_score, p_value
