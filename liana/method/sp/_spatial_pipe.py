@@ -31,7 +31,7 @@ class SpatialBivariate(_SpatialMeta):
                  y_mod, 
                  proximity_key = 'proximity',
                  mod_added = "local_scores",
-                 categorize = False,
+                 add_categories = False,
                  pvalue_method: (str | None) = None,
                  positive_only=False, ## TODO change to categorical
                  n_perms: int = 50,
@@ -62,8 +62,8 @@ class SpatialBivariate(_SpatialMeta):
             Key to use to retrieve the proximity matrix from adata.obsp.
         mod_added : str
             Name of the modality to add to the MuData object (in case of inplace=True)
-        categorize : bool
-            Whether to categorize the local scores or not
+        add_categories : bool
+            Whether to add_categories the local scores or not
         pvalue_method : str
             Method to obtain P-values: One out of ['permutation', 'analytical', None];
         positive_only : bool
@@ -115,7 +115,7 @@ class SpatialBivariate(_SpatialMeta):
         local_fun = _handle_functions(function_name)
         weight = _proximity_to_weight(proximity, local_fun)
         
-        # change Index names to entity
+        # change index names to entity
         xdata.var_names.rename('entity', inplace=True)
         ydata.var_names.rename('entity', inplace=True)
         
@@ -175,7 +175,7 @@ class SpatialBivariate(_SpatialMeta):
         if local_pvals is not None:
             mdata.mod['local_pvals'] = obsm_to_adata(adata=mdata, df=local_pvals, obsm_key=None)
 
-        if categorize: # TODO move to a pipeline
+        if add_categories: # TODO move to a pipeline
             # TODO categorizing is currently done following standardization of the matrix
             # i.e. each variable is standardized independently, and then a category is
             # defined based on the values within each stop.
