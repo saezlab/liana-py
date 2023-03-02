@@ -117,7 +117,7 @@ def test_with_all_lrs():
 def test_methods_by_sample():
     
     # make fake sample labels
-    sample_key = 'patient'
+    sample_key = 'sample'
     rng = random.default_rng(0)
     adata.obs[sample_key] = rng.choice(['A', 'B', 'C', 'D'], size=len(adata.obs))
     
