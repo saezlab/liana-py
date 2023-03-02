@@ -1,18 +1,18 @@
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 from itertools import product
 from scipy.sparse import csr_matrix
 
-
-from liana.utils._utils import _get_props, obsm_to_adata
-from liana.method._pipe_utils._pre import _choose_mtx_rep
+from liana.method._pipe_utils._pre import _choose_mtx_rep, _get_props
 
 from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
 
 from liana.method.sp._spatial_utils import _local_to_dataframe, _categorize, \
     _simplify_cats, _encode_as_char, _get_ordered_matrix, _rename_means, _run_scores_pipeline, \
-        _proximity_to_weight, _handle_proximity
-    
+    _proximity_to_weight, _handle_proximity, obsm_to_adata
+
 from liana.method.sp._bivariate_funs import _handle_functions
 
 

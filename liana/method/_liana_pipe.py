@@ -5,7 +5,7 @@ import pandas
 
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
-from liana.utils._utils import _get_props
+from ._pipe_utils._pre import _get_props
 from ..resource import select_resource
 from ._pipe_utils._reassemble_complexes import explode_complexes
 from liana.method._pipe_utils._get_mean_perms import _get_means_perms
@@ -504,12 +504,7 @@ def _assign_min_or_max(x, x_ascending):
         return np.max(x)
     else:
         return np.min(x)
-
-
-# Function to get gene expr proportions
-def _get_props(X_mask):
-    return X_mask.getnnz(axis=0) / X_mask.shape[0]
-
+    
 
 def _trimean(a, axis=0):
     """

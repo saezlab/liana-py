@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 import anndata
+from anndata import AnnData
 from pandas import DataFrame
 
 from sklearn.neighbors import NearestNeighbors
@@ -120,7 +123,8 @@ def _get_ordered_matrix(mat, pos, order):
     return mat[:, _indx].T
 
 
-def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun,n_perms, seed, positive_only, **kwargs):
+def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_perms, seed,
+                             positive_only, **kwargs):
     """
     Calculate local pvalues for a given local score function.
 
@@ -150,14 +154,14 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun,n_perm
 
     xy_n = local_truth.shape[0]
     spot_n = local_truth.shape[1]
-    
+
     # permutation cubes to be populated
     local_pvals = np.zeros((xy_n, spot_n))
-    
+
     # shuffle the matrix
     for i in tqdm(range(n_perms)):
         _idx = rng.permutation(spot_n)
-        perm_score = local_fun(x_mat = x_mat[_idx, :], y_mat=y_mat, weight=weight, **kwargs)
+        perm_score = local_fun(x_mat=x_mat[_idx, :], y_mat=y_mat, weight=weight, **kwargs)
         if positive_only:
             local_pvals += np.array(perm_score >= local_truth, dtype=int)
         else:
@@ -206,11 +210,10 @@ def _simplify_cats(df):
     Note that  absence-absence is not definitive, but rather indicates that the 
     co-expression is between two genes expressed lower than their means
     """
-    
+
     return df.replace({r'(^*Z*$)': 0, 'NN': 0, 'PP': 1, 'PN': -1, "NP": -1})
 
-    
-    
+
 def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, positive_only, seed):
     """
     Calculate permutation pvals
@@ -248,7 +251,7 @@ def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, positive_
 
     for perm in tqdm(range(n_perms)):
         _idx = rng.permutation(idx)
-        perm_mat[perm, :] = ((x_mat[:, _idx] @ weight) * y_mat).sum(axis=1) # flipped x_mat
+        perm_mat[perm, :] = ((x_mat[:, _idx] @ weight) * y_mat).sum(axis=1)  # flipped x_mat
 
     if positive_only:
         global_pvals = 1 - (global_r > perm_mat).sum(axis=0) / n_perms
@@ -257,7 +260,6 @@ def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, positive_
         global_pvals = 2 * (1 - (np.abs(global_r) > np.abs(perm_mat)).sum(axis=0) / n_perms)
 
     return global_pvals
-
 
 
 def _global_zscore_pvals(weight, global_r, positive_only):
@@ -373,6 +375,7 @@ def _get_local_var(x_sigma, y_sigma, weight, spot_n):
 
     return std.T
 
+
 def _global_spatialdm(x_mat,
                       y_mat,
                       weight,
@@ -439,9 +442,9 @@ def _global_spatialdm(x_mat,
     return np.array((global_r, global_pvals))
 
 
-
-def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, weight, pvalue_method, positive_only, n_perms, seed):
-        """
+def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun,
+                         weight, pvalue_method, positive_only, n_perms, seed):
+    """
         Calculates local and global scores for each interaction in `xy_dataframe`
 
         Parameters
@@ -474,39 +477,39 @@ def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, weight, pvalue_
         A dataframe and two 2D arrays of size xy_dataframe.shape[1], adata.shape[0]
 
         """
-        local_scores, local_pvals = _get_local_scores(x_mat = x_mat.T,
-                                                      y_mat = y_mat.T,
-                                                      local_fun = local_fun,
-                                                      weight = weight,
-                                                      seed = seed,
-                                                      n_perms = n_perms,
-                                                      pvalue_method = pvalue_method,
-                                                      positive_only=positive_only,
-                                                      )
-        
-        # global scores fun
-        xy_stats = _get_global_scores(xy_stats=xy_stats,
-                                      x_mat=x_mat,
-                                      y_mat=y_mat,
-                                      local_fun=local_fun,
-                                      pvalue_method=pvalue_method,
-                                      weight=weight,
-                                      seed=seed,
-                                      n_perms=n_perms,
-                                      positive_only=positive_only,
-                                      local_scores=local_scores,
-                                      )
-        
-        # convert to DataFrames
-        local_scores = _local_to_dataframe(array=local_scores,
-                                           idx=idx,
-                                           columns=xy_stats['interaction'])
-        if local_pvals is not None:
-            local_pvals = _local_to_dataframe(array=local_pvals,
-                                              idx=idx,
-                                              columns=xy_stats['interaction'])
+    local_scores, local_pvals = _get_local_scores(x_mat=x_mat.T,
+                                                  y_mat=y_mat.T,
+                                                  local_fun=local_fun,
+                                                  weight=weight,
+                                                  seed=seed,
+                                                  n_perms=n_perms,
+                                                  pvalue_method=pvalue_method,
+                                                  positive_only=positive_only,
+                                                  )
 
-        return xy_stats, local_scores, local_pvals
+    # global scores fun
+    xy_stats = _get_global_scores(xy_stats=xy_stats,
+                                  x_mat=x_mat,
+                                  y_mat=y_mat,
+                                  local_fun=local_fun,
+                                  pvalue_method=pvalue_method,
+                                  weight=weight,
+                                  seed=seed,
+                                  n_perms=n_perms,
+                                  positive_only=positive_only,
+                                  local_scores=local_scores,
+                                  )
+
+    # convert to DataFrames
+    local_scores = _local_to_dataframe(array=local_scores,
+                                       idx=idx,
+                                       columns=xy_stats['interaction'])
+    if local_pvals is not None:
+        local_pvals = _local_to_dataframe(array=local_pvals,
+                                          idx=idx,
+                                          columns=xy_stats['interaction'])
+
+    return xy_stats, local_scores, local_pvals
 
 
 def _get_local_scores(x_mat,
@@ -552,14 +555,14 @@ def _get_local_scores(x_mat,
          or in other words calculates local_I and local_pval for
          each interaction in `xy_dataframe` and each sample in mat
     """
-    
+
     if local_fun.__name__ == '_local_morans':
         x_mat = _standardize_matrix(x_mat, local=True, axis=0)
         y_mat = _standardize_matrix(y_mat, local=True, axis=0)
     else:
         x_mat = x_mat.A
         y_mat = y_mat.A
-    
+
     local_scores = local_fun(x_mat, y_mat, weight)
 
     if pvalue_method == 'permutation':
@@ -585,27 +588,29 @@ def _get_local_scores(x_mat,
     return local_scores, local_pvals
 
 
-def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, pvalue_method, positive_only, n_perms, seed, local_scores):
-        if local_fun.__name__== "_local_morans":
-            xy_stats.loc[:, ['global_r', 'global_pvals']] = \
-                _global_spatialdm(x_mat=_standardize_matrix(x_mat, local=False, axis=1),
-                                  y_mat=_standardize_matrix(y_mat, local=False, axis=1),
-                                  weight=weight,
-                                  seed=seed,
-                                  n_perms=n_perms,
-                                  pvalue_method=pvalue_method,
-                                  positive_only=positive_only
-                                  ).T
-        else:
-            # any other local score
-            xy_stats.loc[:,['global_mean','global_sd']] = np.vstack([np.mean(local_scores, axis=1), np.std(local_scores, axis=1)]).T
-            
-        return xy_stats
+def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, pvalue_method, positive_only,
+                       n_perms, seed, local_scores):
+    if local_fun.__name__ == "_local_morans":
+        xy_stats.loc[:, ['global_r', 'global_pvals']] = \
+            _global_spatialdm(x_mat=_standardize_matrix(x_mat, local=False, axis=1),
+                              y_mat=_standardize_matrix(y_mat, local=False, axis=1),
+                              weight=weight,
+                              seed=seed,
+                              n_perms=n_perms,
+                              pvalue_method=pvalue_method,
+                              positive_only=positive_only
+                              ).T
+    else:
+        # any other local score
+        xy_stats.loc[:, ['global_mean', 'global_sd']] = np.vstack(
+            [np.mean(local_scores, axis=1), np.std(local_scores, axis=1)]).T
+
+    return xy_stats
 
 
 def _proximity_to_weight(proximity, local_fun):
     # Format the weight matrix accordingly
-    if local_fun.__name__== "_local_morans":
+    if local_fun.__name__ == "_local_morans":
         norm_factor = proximity.shape[0] / proximity.sum()
         weight = csr_matrix(norm_factor * proximity)
     else:
@@ -620,3 +625,39 @@ def _handle_proximity(adata, proximity, proximity_key):
         proximity = adata.obsp[proximity_key]
     proximity = csr_matrix(proximity)
     return proximity
+
+
+def obsm_to_adata(adata, obsm_key, df=None):
+    """
+    Extracts activities as AnnData object.
+    From an AnnData object with source activities stored in `.obsm`, generates a new AnnData object
+    with activities in `X`. This allows to reuse many scanpy processing and visualization functions.
+
+    Parameters
+    ----------
+    adata : AnnData
+        Annotated data matrix with activities stored in .obsm.
+    obsm_key
+        `.osbm` key to extract.
+    df : pd.DataFrame
+        Dataframe with stats per cell/spot. If None, it will be extracted from adata.obsm[obsm_key].
+    Returns
+    -------
+    acts : AnnData
+        New AnnData object with activities in X.
+    """
+
+    if df is None:
+        df = adata.obsm[obsm_key]
+
+    obs = adata.obs
+    uns = adata.uns
+    obsm = adata.obsm
+    obsp = adata.obsp
+
+    var = pd.DataFrame(df.columns)
+    X = np.array(df, dtype=np.float32)
+
+    return AnnData(X=X, obs=obs, var=var, uns=uns, obsm=obsm, obsp=obsp)
+
+

@@ -89,7 +89,7 @@ def _masked_coexpressions(x_mat, y_mat, weight, method):
             local_corrs[i, j] = _wcoex(x, y, w[msk], wsum, method)
     
     # fix numpy/numba sum imprecision, https://github.com/numba/numba/issues/8749
-    ## TODO make sure this doesnt mask errors
+    ## TODO make sure this doesn't mask errors
     local_corrs = np.clip(a=local_corrs, a_min=-1.0, a_max=1.0, out=local_corrs)
     
     return local_corrs.T

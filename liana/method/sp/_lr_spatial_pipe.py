@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import numpy as np
-from scipy.sparse import csr_matrix
 
 from anndata import AnnData
 import pandas as pd
@@ -8,11 +9,11 @@ from typing import Optional
 from liana.resource import select_resource
 from liana.method._pipe_utils._reassemble_complexes import explode_complexes
 from liana.method._pipe_utils import prep_check_adata, filter_resource, assert_covered, filter_reassemble_complexes
-from liana.utils._utils import _get_props
 
 from liana.method.sp._SpatialMethod import _SpatialMeta
-from liana.method.sp._spatial_utils import _local_to_dataframe, _get_ordered_matrix, _rename_means, \
+from liana.method.sp._spatial_utils import _get_ordered_matrix, _rename_means, \
     _run_scores_pipeline, _proximity_to_weight, _handle_proximity
+from liana.method._pipe_utils._pre import _get_props
 from liana.method.sp._bivariate_funs import _handle_functions
 
 
