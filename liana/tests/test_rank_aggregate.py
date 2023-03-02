@@ -50,8 +50,8 @@ def test_aggregate_res():
 
 
 def test_aggregate_all():
-    rank_aggregate(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True)
-    assert adata.uns['liana_res'].shape == (4200, 16)
+    rank_aggregate(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, key_added='all_res')
+    assert adata.uns['all_res'].shape == (4200, 16)
 
 
 def test_aggregate_by_sample():

@@ -107,8 +107,8 @@ def test_connectome():
 
 
 def test_with_all_lrs():
-    natmi(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True)
-    lr_all = adata.uns['liana_res']
+    natmi(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, key_added='all_res')
+    lr_all = adata.uns['all_res']
     assert lr_all.shape == (4200, 15)
     assert all(lr_all[~lr_all.lrs_to_keep][natmi.magnitude] == min(lr_all[natmi.magnitude])) is True
     assert all(lr_all[~lr_all.lrs_to_keep][natmi.specificity] == min(lr_all[natmi.specificity])) is True

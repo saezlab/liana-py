@@ -70,6 +70,7 @@ class AggregateClass(MethodMeta):
                  base: float = 2.718281828459045,
                  aggregate_method='rra',
                  return_all_lrs: bool = False,
+                 key_added : str = 'liana_res',
                  consensus_opts=None,
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
@@ -78,7 +79,8 @@ class AggregateClass(MethodMeta):
                  n_perms: int = 1000,
                  seed: int = 1337,
                  resource: Optional[DataFrame] = None,
-                 inplace=True):
+                 inplace=True
+                 ):
         """
         Parameters
         ----------
@@ -104,6 +106,8 @@ class AggregateClass(MethodMeta):
             Bool whether to return all LRs, or only those that surpass the `expr_prop`
             threshold. Those interactions that do not pass the `expr_prop` threshold will
             be assigned to the *worst* score of the ones that do. `False` by default.
+        key_added
+            Key to add the results to the `uns` attribute of `adata`.
         use_raw
             Use raw attribute of adata if present. True, by default.
         layer
@@ -151,7 +155,7 @@ class AggregateClass(MethodMeta):
                                _aggregate_method=aggregate_method,
                                _consensus_opts=consensus_opts
                                )
-        adata.uns['liana_res'] = liana_res
+        adata.uns[key_added] = liana_res
 
         return None if inplace else liana_res
 
