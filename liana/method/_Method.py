@@ -131,7 +131,8 @@ class MethodMeta:
             
         adata.uns['liana_res'] = {}
         
-        for sample in (progress_bar := tqdm(samples, disable=not verbose)):
+        progress_bar = tqdm(samples, disable=not verbose)
+        for sample in (progress_bar):
             if verbose:
                 progress_bar.set_description(f"Now running: {sample}")
 
