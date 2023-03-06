@@ -20,12 +20,13 @@ def select_resource(resource_name: str = 'metalinksdb') -> DataFrame:
     """
     if resource_name == 'metalinksdb':
         
-        resource_path = '/home/efarr/Documents/Startover/interactions_small.csv'
-        resource = read_csv(resource_path, sep=',')
+        resource_path = '/home/efarr/Documents/GitHub/metalinks/metalinksDB/MR_ai_cgno.csv'
+        resource = read_csv(resource_path, sep='\t')
 
-        resource = resource[['HMDB', 'symbol']]
-        resource = resource.rename(columns={'HMDB': 'ligand',
-                                            'symbol': 'receptor'})
+        resource = resource[['hmdb_id', 'symbol', 'name']]
+        resource = resource.rename(columns={'hmdb_id': 'ligand',
+                                            'symbol': 'receptor', 
+                                            'name': 'ligand_name'})
 
     else:
 

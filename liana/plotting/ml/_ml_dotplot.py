@@ -5,7 +5,7 @@ import numpy as np
 import pandas
 
 from plotnine import ggplot, geom_point, aes, \
-    facet_grid, labs, theme_bw, theme, element_text, element_rect, scale_size_continuous
+    facet_grid, labs, theme_bw, theme, element_text, element_rect, scale_size_continuous, scale_color_cmap
 
 
 def ml_dotplot(adata: anndata.AnnData = None,
@@ -227,8 +227,7 @@ def ml_dotplot_by_sample(adata: anndata.AnnData  = None,
                     axis_text_x=element_text(size=11, face="bold", angle=90),
                     axis_title_x=element_text(colour="#808080", face="bold", size=12),
                     figure_size=figure_size,
-                    plot_title=element_text(vjust=0, hjust=0.5, face="bold", size=12),
-                    )
+                    plot_title=element_text(vjust=0, hjust=0.5, face="bold", size=12)) 
             )
     if return_fig:
         return p
@@ -261,7 +260,7 @@ def _prep_liana_res(adata=None,
     liana_res = _filter_labels(liana_res, labels=source_labels, label_type='source')
     liana_res = _filter_labels(liana_res, labels=target_labels, label_type='target')
     
-    liana_res['interaction'] = liana_res['ligand'] + ' -> ' + liana_res['receptor']
+    liana_res['interaction'] = liana_res['ligand_name'] + ' -> ' + liana_res['receptor']
 
     return liana_res
 

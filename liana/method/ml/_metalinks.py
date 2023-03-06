@@ -13,7 +13,7 @@ _metalinks = MetabMethodMeta(score_method_name="product_score",
                             fun=_product_score,
                             magnitude='metalinks_score',
                             magnitude_ascending=False, 
-                            specificity='cellphone_pval',
+                            specificity='pval',
                             specificity_ascending=True,  
                             permute=True,
                             agg_fun=_simple_prod, #check again

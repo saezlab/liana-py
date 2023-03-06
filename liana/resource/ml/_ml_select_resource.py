@@ -28,7 +28,7 @@ def select_ml_resource(met_est_resource_name: str = 'metalinksdb') -> DataFrame:
         
     elif met_est_resource_name == 'metalinksdb':    
 
-        resource_path = '~/Documents/Database_old/recon3D_full/recon_hmdb_scarp_merged.csv'
+        resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_hmdb_recon.csv'
         met_est_resource = read_csv(resource_path, sep=',')
     
     #resource_path = pathlib.Path(__file__).parent.joinpath("omni_resource.csv")

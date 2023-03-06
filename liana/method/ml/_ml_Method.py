@@ -228,6 +228,7 @@ class MetabMethod(MetabMethodMeta):
         if inplace:
             adata.obsm['metabolite_abundance'] = ml_res[0]
             adata.uns['CCC_res'] = ml_res[1]
+            adata.uns['met_meta'] = ml_res[2]
 
         
         return None if inplace else ml_res
