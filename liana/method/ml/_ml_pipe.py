@@ -123,9 +123,9 @@ def ml_pipe(adata: AnnData,
 
     met_est_result = met_est_result.sort_index()
 
-    adata.obsm['metabolite_abundance'] = sparse.csr_matrix(met_est_result.T) ################ attention
+    adata.obsm['metabolite_abundance'] = sparse.csr_matrix(met_est_result[(met_est_result != 0).any(axis=1)].T) ################ attention
     
-    adata.uns['met_index'] = met_est_result.index
+    adata.uns['met_index'] = met_est_result.index[(met_est_result != 0).any(axis=1)]
 
     PD_genes = _save_PD_names(met_est_result.index, met_est_resource)
 
@@ -133,14 +133,14 @@ def ml_pipe(adata: AnnData,
     resource = select_resource(resource_name.lower())
 
     # Filter resource to only include metabolites and genes that were estimated 
-    resource = filter_ml_resource(resource, met_est_result.index, adata.var_names)
+    resource = filter_ml_resource(resource, adata.uns['met_index'], adata.var_names)
 
     if verbose:
         print(f"Running ligand-receptor inference on {len(resource['ligand'].unique().tolist())} unique ligands "
                 f"and {len(resource['receptor'].unique().tolist())} unique receptors ")
                 
     # Get lr results
-    lr_res = _get_lr(adata=adata, resource=resource)
+    lr_res = _get_lr(adata=adata, resource=resource, expr_prop=expr_prop)
 
     # run scoring method
     lr_res = _run_method(lr_res=lr_res, adata=adata, 
@@ -195,7 +195,7 @@ def _join_stats(source, target, dedict_gene, dedict_met, resource):
     return bound
 
 
-def _get_lr(adata, resource):
+def _get_lr(adata, resource, expr_prop):
     """
     Run DE analysis and merge needed information with resource for LR inference
 
@@ -247,6 +247,8 @@ def _get_lr(adata, resource):
     lr_res = concat([_join_stats(source, target, dedict_gene, dedict_met, resource) for source, target in pairs.to_numpy()])
 
     lr_res.drop_duplicates(inplace=True)
+
+    lr_res = lr_res[(lr_res['receptor_props'] >= expr_prop) & (lr_res['ligand_means'] > 0) & (lr_res['ligand_props'] >= expr_prop)]
 
     return lr_res
 
@@ -432,13 +434,19 @@ def _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, perms2, agg_fu
 def _save_PD_names(index, resource):
     # create array with three columns: metabolite name, producing genes, degrading genes
     df = DataFrame(index, columns=['metabolite'])
-    df['producing_genes'] = np.nan
-    df['degrading_genes'] = np.nan
+    df['producing_genes'] = 'no values'
+    df['degrading_genes'] = 'no values'
     # for every metabolite in index, find the row in the resource that match the metabolite name and store the gene names of producing and degrading genes
     for i in range(len(index)):
         a = resource[resource['HMDB'] == index[i]]
-        df['producing_genes'][i] = a['GENE'][a['direction'] == 'producing'].values.copy()
-        df['degrading_genes'][i] = a['GENE'][a['direction'] == 'degrading'].values.copy()
+        # df['producing_genes'][i] = a['GENE'][a['direction'] == 'producing'].values.copy()
+        # df['degrading_genes'][i] = a['GENE'][a['direction'] == 'degrading'].values.copy()
+
+        df.at[i, 'producing_genes'] = a['GENE'][a['direction'] == 'producing'].values
+        df.at[i, 'degrading_genes'] = a['GENE'][a['direction'] == 'degrading'].values
+
+
+
     return df
 
 

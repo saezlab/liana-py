@@ -90,11 +90,11 @@ def _metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell') -> 
 
     # Get final estimates and clip negative values to 0 to prevent product errors later in the pipeline
     final_estimates = get_est(prod_vals, deg_vals).clip(0, None)
-    
+
     if verbose:
         print(f"Metabolites with production values: {sum(prod_vals.sum(axis=1) > 0)}")
         print(f"Metabolites with degradation values: {sum(deg_vals.sum(axis=1) > 0)}")
-        print(f"Metabolites with final estimates: {sum(final_estimates.sum(axis=1) > 0)}")
+        print(f"Metabolites with final estimates: {sum(final_estimates.sum(axis=1) > 0)} \n")
 
 
     return DataFrame(final_estimates, columns=adata.obs_names, index=metabolites)

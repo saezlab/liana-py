@@ -4,8 +4,8 @@ import anndata
 import numpy as np
 import pandas
 
-from plotnine import ggplot, geom_point, aes, \
-    facet_grid, labs, theme_bw, theme, element_text, element_rect, scale_size_continuous, scale_color_cmap
+from plotnine import ggplot, geom_point, aes, facet_wrap, \
+    facet_grid, labs, theme_bw, theme, element_text, element_rect, scale_size_continuous
 
 
 def ml_dotplot(adata: anndata.AnnData = None,
@@ -235,6 +235,28 @@ def ml_dotplot_by_sample(adata: anndata.AnnData  = None,
     p.draw()
 
 
+
+def gene_plot(adata, metabolite, groupby, return_fig=True):
+
+    df = get_gene_dfs(id=metabolite, adata=adata, groupby=groupby)
+    
+    
+    p = (ggplot(df, aes(x='bulk_labels', y='index', size='percentage', color='expression')) 
+            + geom_point()
+            + facet_wrap('~prod') 
+            + theme_bw() 
+            + theme(axis_text_x=element_text(angle=90, hjust=1)) 
+            + labs(x='celltypes', 
+                    y=f'Genes associated with {metabolite}'))
+
+
+    if return_fig:
+        return p
+
+    p.draw()
+
+
+
 def _prep_liana_res(adata=None,
                     liana_res=None,
                     source_labels=None,
@@ -285,4 +307,70 @@ def _filter_labels(liana_res, labels, label_type):
         liana_res = liana_res[msk]
         
     return liana_res
+
+
+def get_gene_dfs(id, adata, groupby):
+    prod_genes = adata.uns['met_meta']['producing_genes'][adata.uns['met_meta']['metabolite'] == id]
+    prod_genes = list(prod_genes)
+    prod_genes = str(prod_genes[0]).split("'")
+    prod_genes = [x for x in prod_genes if any(c.isalpha() for c in x)]
+
+    deg_genes = adata.uns['met_meta']['degrading_genes'][adata.uns['met_meta']['metabolite'] == id]
+    deg_genes = list(deg_genes)
+    deg_genes = str(deg_genes[0]).split("'")
+    deg_genes = [x for x in deg_genes if any(c.isalpha() for c in x)]   
+
+    prod_df = adata.X[:,adata.var_names.isin(prod_genes)]
+    deg_df = adata.X[:,adata.var_names.isin(deg_genes)]
+
+    p = adata.var_names[adata.var_names.isin(prod_genes)]
+    deg = adata.var_names[adata.var_names.isin(deg_genes)]
+
+    percentage = pandas.DataFrame(np.zeros((prod_df.shape[1], len(adata.obs[groupby].unique()))), columns=adata.obs[groupby].unique(), index=p)
+    expression = pandas.DataFrame(np.zeros((prod_df.shape[1], len(adata.obs[groupby].unique()))), columns=adata.obs[groupby].unique(), index=p)
+
+    for i in range(prod_df.shape[1]):
+        for j in adata.obs[groupby].unique():
+            d = prod_df[adata.obs[groupby] == j,i]
+            percentage[j][i] = np.sum(d > 0)/d.shape[0]
+            expression[j][i] = d.mean()
+
+    prod_percentage = percentage
+    prod_expression = expression
+
+    percentage = pandas.DataFrame(np.zeros((deg_df.shape[1], len(adata.obs[groupby].unique()))), columns=adata.obs[groupby].unique(), index=deg)
+    expression = pandas.DataFrame(np.zeros((deg_df.shape[1], len(adata.obs[groupby].unique()))), columns=adata.obs[groupby].unique(), index=deg)
+
+    for i in range(deg_df.shape[1]):
+        for j in adata.obs[groupby].unique():
+            d = deg_df[adata.obs[groupby] == j,i]
+            percentage[j][i] = np.sum(d > 0)/d.shape[0]
+            expression[j][i] = d.mean()
+
+    deg_percentage = percentage
+    deg_expression = expression
+
+    # melt the dataframe to make a dotplot and add prod as a column
+    prod_percentage = prod_percentage.reset_index().melt(id_vars='index', var_name='bulk_labels', value_name='percentage')
+
+    # make the same with prod_expression and merge both dataframes
+    prod_expression = prod_expression.reset_index().melt(id_vars='index', var_name='bulk_labels', value_name='expression')
+
+    prod = pandas.merge(prod_percentage, prod_expression, on=['index', 'bulk_labels'])
+
+    # do the same for deg
+    deg_percentage = deg_percentage.reset_index().melt(id_vars='index', var_name='bulk_labels', value_name='percentage')
+    deg_expression = deg_expression.reset_index().melt(id_vars='index', var_name='bulk_labels', value_name='expression')
+    deg = pandas.merge(deg_percentage, deg_expression, on=['index', 'bulk_labels'])
+
+    # add a column to both dataframes that says if the gene is produced or degraded
+    prod['prod'] = 'produced'
+    deg['prod'] = 'degraded'
+
+    # concatenate both dataframes
+    df = pandas.concat([prod, deg])
+
+
+
+    return df
         
