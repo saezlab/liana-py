@@ -173,7 +173,8 @@ def lrs_to_views(adata,
     MuData = _check_if_mudata()
     
     if (sample_key not in adata.obs.columns) or (sample_key not in adata.uns[uns_key].columns):
-        raise ValueError(f'`{sample_key}` not found in `adata.obs` or `adata.uns[uns_key]`! Please ensure that the sample key is present in both objects.')
+        raise ValueError(f'`{sample_key}` not found in `adata.obs` or `adata.uns[uns_key]`!' +
+                         'Please ensure that the sample key is present in both objects.')
     
     if uns_key not in adata.uns_keys():
         raise ValueError(f'`{uns_key}` not found in `adata.uns`! Please run `li.mt.rank_aggregate.by_sample` first.')

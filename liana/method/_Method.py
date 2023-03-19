@@ -141,7 +141,7 @@ class MethodMeta:
             adata.uns[key_added][sample] = sample_res
 
         liana_res = concat(adata.uns[key_added]).reset_index(level=1, drop=True).reset_index()
-        liana_res = liana_res.rename({"index":'sample'}, axis=1)
+        liana_res = liana_res.rename({"index":sample_key}, axis=1)
         
         if inplace:
             adata.uns[key_added] = liana_res
