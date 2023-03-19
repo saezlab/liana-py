@@ -20,3 +20,12 @@ def test_to_tensor_c2c():
                            score_key='specificity_rank')
     assert isinstance(tensor, c2c.tensor.tensor.PreBuiltTensor)
     assert tensor.sparsity_fraction()==0.0
+
+
+def test_adata_to_views():
+    """Test adata_to_views."""
+    pass
+    
+
+
+
