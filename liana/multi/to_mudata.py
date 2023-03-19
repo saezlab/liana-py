@@ -40,108 +40,6 @@ def _check_if_decoupler() -> ModuleType:
     return dc
 
 
-
-def get_variable_loadings(mdata,
-                          idx,
-                          varm_key = 'LFs',
-                          view_separator = None,
-                          variable_separator = None,
-                          pair_separator = None,
-                          var_names = ['ligand_complex', 'receptor_complex'],
-                          pair_names = ['source', 'target'],
-                          drop_columns = True
-                          ):
-    """
-    A helper function to extract variable loadings from a MuData object.
-    
-    Parameters
-    ----------
-    
-    mdata: :class:`~mudata.MuData`
-        MuData object
-    idx: int
-        Index of the variable to extract. Pass index 0 to extract the first Factor.
-    varm_key: str
-        Key to use when extracting variable loadings from `mdata.varm`
-    view_separator: str
-        Separator to use when splitting view:variable names into view and variable
-    variable_separator: str
-        Separator to use when splitting variable names into `var_names` ('ligand_complex' and 'receptor_complex' by default)
-    pair_separator: str
-        Separator to use when splitting view names into `pair_names` ('source' and 'target' by default)
-    drop_columns: bool
-        If True, drop the `view:variable` column
-        
-    Returns
-    -------
-    Returns a pandas DataFrame with the variable loadings for the specified index.
-    
-    """
-    
-    df = sc.get.var_df(mdata, varm_keys=[(varm_key, idx)])
-    df = df.reset_index(names='view:variable')
-    
-    if view_separator is not None:
-        df[['view', 'variable']] = df['view:variable'].str.split(view_separator, 1, expand=True)
-        
-        if drop_columns:
-            df.drop(columns='view:variable', inplace=True)
-    
-    if variable_separator is not None:
-        df[var_names] = df['variable'].str.split(variable_separator, 1, expand=True)
-        
-        if drop_columns:
-            df.drop(columns='variable', inplace=True)
-        
-    
-    if pair_separator is not None:
-        df[pair_names] = df['view'].str.split(pair_separator, 1, expand=True)
-        
-        if drop_columns:
-            df.drop(columns='view', inplace=True)
-    
-    df = df.rename(columns={"LFs-{0}".format(0):'loadings'})
-    
-    # re-order to absolute values
-    df = (df.reindex(df['loadings'].abs().sort_values(ascending=False).index))
-    
-    return df
-
-
-def get_factor_scores(mdata, obsm_key='X_mofa'):
-    """
-    A helper function to extract factor scores from a MuData object.
-    
-    Parameters
-    ----------
-    mdata: :class:`~mudata.MuData`
-        MuData object
-    obsm_key: str
-        Key to use when extracting factor scores from `mdata.obsm`
-        
-    Returns
-    -------
-    Returns a pandas DataFrame with the factor scores.
-    
-    """
-    
-    if obsm_key not in mdata.obsm.keys():
-        raise ValueError(f'{obsm_key} not found in mdata.obsm')
-    
-    df = pd.DataFrame(mdata.obsm['X_mofa'], index=mdata.obs.index)
-    
-    df.columns = ['Factor_{0}'.format(x + 1) for x in range(df.shape[1])]
-    df = df.reset_index()
-    
-    # join with metadata
-    df = df.merge(mdata.obs.reset_index())
-    
-    return df
-
-
-
-
-
 def adata_to_views(adata, groupby, sample_key, obs_keys, view_separator=':', verbose=False, **kwargs):
     """
     Converts an AnnData object to a MuData object with views that represent an aggregate for each entity in `adata.obs[groupby]`.
@@ -239,7 +137,7 @@ def lrs_to_views(adata,
         List of keys in `adata.obs` that should be included in the MuData object. Default is `[]`. 
         These columns should correspond to the number of samples in `adata.obs[sample_key]`.
     lr_prop
-        Reflects the minimum required proportion of interactions in a view to be considered for building the views. Default is `0.5`.
+        Reflects the minimum required proportion of samples for an interaction to be considered for building the views. Default is `0.5`.
     lr_min
         Reflects the minimum required number of interactions in a view to be considered for building the views. Default is `20`.
     lr_fill
@@ -273,6 +171,9 @@ def lrs_to_views(adata,
     
     # Check if MuData is installed
     MuData = _check_if_mudata()
+    
+    if (sample_key not in adata.obs.columns) or (sample_key not in adata.uns[uns_key].columns):
+        raise ValueError(f'`{sample_key}` not found in `adata.obs` or `adata.uns[uns_key]`! Please ensure that the sample key is present in both objects.')
     
     if uns_key not in adata.uns_keys():
         raise ValueError(f'`{uns_key}` not found in `adata.uns`! Please run `li.mt.rank_aggregate.by_sample` first.')
@@ -357,3 +258,102 @@ def _dataframe_to_anndata(df):
     X = np.array(df.values).T
     
     return AnnData(X=X, obs=obs, var=var)
+
+
+
+def get_variable_loadings(mdata,
+                          idx,
+                          varm_key = 'LFs',
+                          view_separator = None,
+                          variable_separator = None,
+                          pair_separator = None,
+                          var_names = ['ligand_complex', 'receptor_complex'],
+                          pair_names = ['source', 'target'],
+                          drop_columns = True
+                          ):
+    """
+    A helper function to extract variable loadings from a MuData object.
+    
+    Parameters
+    ----------
+    
+    mdata: :class:`~mudata.MuData`
+        MuData object
+    idx: int
+        Index of the variable to extract. Pass index 0 to extract the first Factor.
+    varm_key: str
+        Key to use when extracting variable loadings from `mdata.varm`
+    view_separator: str
+        Separator to use when splitting view:variable names into view and variable
+    variable_separator: str
+        Separator to use when splitting variable names into `var_names` ('ligand_complex' and 'receptor_complex' by default)
+    pair_separator: str
+        Separator to use when splitting view names into `pair_names` ('source' and 'target' by default)
+    drop_columns: bool
+        If True, drop the `view:variable` column
+        
+    Returns
+    -------
+    Returns a pandas DataFrame with the variable loadings for the specified index.
+    
+    """
+    
+    df = sc.get.var_df(mdata, varm_keys=[(varm_key, idx)])
+    df = df.reset_index(names='view:variable')
+    
+    if view_separator is not None:
+        df[['view', 'variable']] = df['view:variable'].str.split(view_separator, 1, expand=True)
+        
+        if drop_columns:
+            df.drop(columns='view:variable', inplace=True)
+    
+    if variable_separator is not None:
+        df[var_names] = df['variable'].str.split(variable_separator, 1, expand=True)
+        
+        if drop_columns:
+            df.drop(columns='variable', inplace=True)
+        
+    
+    if pair_separator is not None:
+        df[pair_names] = df['view'].str.split(pair_separator, 1, expand=True)
+        
+        if drop_columns:
+            df.drop(columns='view', inplace=True)
+    
+    df = df.rename(columns={"LFs-{0}".format(0):'loadings'})
+    
+    # re-order to absolute values
+    df = (df.reindex(df['loadings'].abs().sort_values(ascending=False).index))
+    
+    return df
+
+
+def get_factor_scores(mdata, obsm_key='X_mofa'):
+    """
+    A helper function to extract factor scores from a MuData object.
+    
+    Parameters
+    ----------
+    mdata: :class:`~mudata.MuData`
+        MuData object
+    obsm_key: str
+        Key to use when extracting factor scores from `mdata.obsm`
+        
+    Returns
+    -------
+    Returns a pandas DataFrame with the factor scores.
+    
+    """
+    
+    if obsm_key not in mdata.obsm.keys():
+        raise ValueError(f'{obsm_key} not found in mdata.obsm')
+    
+    df = pd.DataFrame(mdata.obsm['X_mofa'], index=mdata.obs.index)
+    
+    df.columns = ['Factor_{0}'.format(x + 1) for x in range(df.shape[1])]
+    df = df.reset_index()
+    
+    # join with metadata
+    df = df.merge(mdata.obs.reset_index())
+    
+    return df
