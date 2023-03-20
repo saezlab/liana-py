@@ -107,8 +107,10 @@ def lrs_to_views(adata,
                  inverse_fun= lambda x: 1 - x,
                  obs_keys=[],
                  lr_prop=0.5,
-                 lr_min=20,
                  lr_fill=np.nan,
+                 lrs_per_view=20,
+                 lrs_per_sample=10,
+                 samples_per_view=3,
                  lr_separator='^',
                  cell_separator='&',
                  var_separator=':',
@@ -138,10 +140,14 @@ def lrs_to_views(adata,
         These columns should correspond to the number of samples in `adata.obs[sample_key]`.
     lr_prop
         Reflects the minimum required proportion of samples for an interaction to be considered for building the views. Default is `0.5`.
-    lr_min
-        Reflects the minimum required number of interactions in a view to be considered for building the views. Default is `20`.
     lr_fill
         Value to fill in for interactions that are not present in a view. Default is `np.nan`.
+    lrs_per_sample
+        Reflects the minimum required number of interactions in a sample to be considered when building a specific view. Default is `10`.
+    lrs_per_view
+        Reflects the minimum required number of interactions in a view to be considered for building the views. Default is `20`.
+    samples_per_view
+        Reflects the minimum required samples to keep a view. Default is `3`.
     lr_separator
         Separator to use for the interaction names in the views. Default is `^`.
     cell_separator
@@ -210,7 +216,7 @@ def lrs_to_views(adata,
     if(ascending_order):
         liana_res[score_key] = inverse_fun(liana_res[score_key])
         
-    # count lrs per sample
+    # count samples per interaction
     count_pairs = (liana_res.
                    drop(columns=score_key).
                    groupby(['interaction', 'ct_pair']).
@@ -225,10 +231,23 @@ def lrs_to_views(adata,
     count_pairs = count_pairs[count_pairs['count'] >= sample_n * lr_prop]
     liana_res = liana_res.merge(count_pairs.drop(columns='count') , how='inner')
     
+    
+    # Keep only samples above a certain number of LRs
+    count_lrs = (liana_res.
+                 drop(columns=score_key).
+                 groupby([sample_key, 'ct_pair']).
+                 count().
+                 rename(columns={'interaction': 'count'}).
+                 reset_index()
+                 )
+    count_lrs = count_lrs[count_lrs['count'] >= lrs_per_sample]
+    liana_res = liana_res.merge(count_lrs.drop(columns='count') , how='inner')
+    
+    
+    # convert to anndata views
     views = liana_res['ct_pair'].unique()
     views = tqdm(views, disable=not verbose)
     
-    # convert to anndata views
     lr_adatas = {}    
     for view in views:
         lrs_per_ct = liana_res[liana_res['ct_pair']==view]
@@ -238,11 +257,13 @@ def lrs_to_views(adata,
     
         lrs_wide.index = view + var_separator + lrs_wide.index
         lrs_wide = lrs_wide.replace(np.nan, lr_fill)
-    
-        if lrs_wide.shape[0] >= lr_min:
+        
+        if lrs_wide.shape[0] >= lrs_per_view: # check if enough LRs
             temp = _dataframe_to_anndata(lrs_wide)
-            lr_adatas[view] = temp
-    
+            
+            if (temp.shape[0] >= samples_per_view): # check if enough samples
+                lr_adatas[view] = temp
+                
     # to mdata
     mdata = MuData(lr_adatas)
     
@@ -258,7 +279,7 @@ def _dataframe_to_anndata(df):
     var = pd.DataFrame(index=df.index)
     X = np.array(df.values).T
     
-    return AnnData(X=X, obs=obs, var=var)
+    return AnnData(X=X, obs=obs, var=var, dtype=np.float32)
 
 
 
