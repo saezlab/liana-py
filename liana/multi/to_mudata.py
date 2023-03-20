@@ -231,7 +231,6 @@ def lrs_to_views(adata,
     count_pairs = count_pairs[count_pairs['count'] >= sample_n * lr_prop]
     liana_res = liana_res.merge(count_pairs.drop(columns='count') , how='inner')
     
-    
     # Keep only samples above a certain number of LRs
     count_lrs = (liana_res.
                  drop(columns=score_key).

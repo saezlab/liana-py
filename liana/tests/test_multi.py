@@ -81,7 +81,9 @@ def test_get_funs():
                          score_key='specificity_rank',
                          uns_key = 'liana_results',
                          lr_prop=0.1,
-                         lr_min=5,
+                         lrs_per_sample=0,
+                         lrs_per_view=5,
+                         samples_per_view=0,
                          verbose=True
                          )
     
