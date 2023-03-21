@@ -111,6 +111,7 @@ def lrs_to_views(adata,
                  lrs_per_view=20,
                  lrs_per_sample=10,
                  samples_per_view=3,
+                 min_variance=0,
                  lr_separator='^',
                  cell_separator='&',
                  var_separator=':',
@@ -148,6 +149,9 @@ def lrs_to_views(adata,
         Reflects the minimum required number of interactions in a view to be considered for building the views. Default is `20`.
     samples_per_view
         Reflects the minimum required samples to keep a view. Default is `3`.
+    min_variance
+        Reflects the minimum required variance across samples for each interaction in each view. Default is `0`.
+        NaNs are ignored when computing the variance.
     lr_separator
         Separator to use for the interaction names in the views. Default is `^`.
     cell_separator
@@ -259,6 +263,9 @@ def lrs_to_views(adata,
         
         if lrs_wide.shape[0] >= lrs_per_view: # check if enough LRs
             temp = _dataframe_to_anndata(lrs_wide)
+            
+            # keep only variables with variance > min_variance
+            temp = temp[:, np.nanvar(temp.X, axis=0) > min_variance]
             
             if (temp.shape[0] >= samples_per_view): # check if enough samples
                 lr_adatas[view] = temp

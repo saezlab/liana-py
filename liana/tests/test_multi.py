@@ -41,6 +41,7 @@ def test_lrs_to_views():
                          lrs_per_sample=0,
                          lrs_per_view=5,
                          samples_per_view=0,
+                         min_variance=-1, # don't filter
                          verbose=True
                          )
     
@@ -84,6 +85,7 @@ def test_get_funs():
                          lrs_per_sample=0,
                          lrs_per_view=5,
                          samples_per_view=0,
+                         min_variance=-1, # don't filter
                          verbose=True
                          )
     
