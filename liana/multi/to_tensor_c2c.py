@@ -3,6 +3,7 @@ from ..method import get_method_scores
 import numpy as np
 from types import ModuleType
 
+from ._common import _process_scores
 
 def _check_if_tensorc2c() -> ModuleType:
 
@@ -103,15 +104,7 @@ def to_tensor_c2c(adata=None,
     if liana_res[[sample_key, source_key, target_key, ligand_key, receptor_key]].duplicated().any():
         raise ValueError("Duplicate rows found in the input data")
 
-    scores = get_method_scores()
-
-    if not np.isin(score_key, list(scores.keys())).any():
-        raise ValueError(f"Score column {score_key} not found method scores. ")
-
-    # reverse if ascending order
-    ascending_order = scores[score_key]
-    if(ascending_order):
-        liana_res[score_key] = inverse_fun(liana_res[score_key])
+    liana_res = _process_scores(liana_res, score_key, inverse_fun)
 
     # set negative to 0
     if non_negative:

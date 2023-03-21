@@ -46,7 +46,7 @@ def test_lrs_to_views():
                          )
     
     assert mdata.shape == (4, 16)
-    assert 'case' in mdata.obs
+    assert 'case' in mdata.obs.columns
     assert len(mdata.varm_keys())==3
 
     

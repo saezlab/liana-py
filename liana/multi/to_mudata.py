@@ -7,7 +7,7 @@ import scanpy as sc
 from anndata import AnnData
 from tqdm import tqdm
 
-from ..method import get_method_scores
+from ._common import _process_scores
 
 
 def _check_if_mudata() -> ModuleType:
@@ -95,9 +95,8 @@ def adata_to_views(adata, groupby, sample_key, obs_keys, view_separator=':', ver
     # Convert to MuData
     mdata = MuData(padatas)
     
-    # merge metadata
-    metadata = adata.obs[[sample_key, *obs_keys]].drop_duplicates()
-    mdata.obs = mdata.obs.reset_index(names=sample_key).merge(metadata).set_index(sample_key)
+    # process metadata
+    _process_meta(adata=adata, mdata=mdata, sample_key=sample_key, obs_keys=obs_keys)
     
     return mdata
 
@@ -208,17 +207,10 @@ def lrs_to_views(adata,
     liana_res['ct_pair'] = liana_res[source_key] + cell_separator + liana_res[target_key]
     liana_res = liana_res[[sample_key, 'ct_pair', 'interaction', score_key]]
     
-    
     # get scores & invert if necessary
-    ## TODO - get rid of redundancy here /w Tensor_c2c function
-    scores = get_method_scores()
-    if not np.isin(score_key, list(scores.keys())).any():
-        raise ValueError(f"Score column {score_key} not found method scores. ")
-    
-    # reverse if ascending order
-    ascending_order = scores[score_key]
-    if(ascending_order):
-        liana_res[score_key] = inverse_fun(liana_res[score_key])
+    liana_res = _process_scores(liana_res=liana_res,
+                                score_key=score_key,
+                                inverse_fun=inverse_fun)
         
     # count samples per interaction
     count_pairs = (liana_res.
@@ -273,9 +265,8 @@ def lrs_to_views(adata,
     # to mdata
     mdata = MuData(lr_adatas)
     
-    # merge metadata, TODO redundancy
-    metadata = adata.obs[[sample_key, *obs_keys]].drop_duplicates()
-    mdata.obs = mdata.obs.reset_index(names=sample_key).merge(metadata).set_index(sample_key)
+    # process metadata
+    _process_meta(adata=adata, mdata=mdata, sample_key=sample_key, obs_keys=obs_keys)
     
     return mdata
         
@@ -385,3 +376,14 @@ def get_factor_scores(mdata, obsm_key='X_mofa'):
     df = df.merge(mdata.obs.reset_index())
     
     return df
+
+
+def _process_meta(adata, mdata, sample_key, obs_keys):
+    if len(obs_keys) > 0:
+        metadata = adata.obs[[sample_key, *obs_keys]].drop_duplicates()
+        
+        sample_n = adata.obs[sample_key].nunique()
+        if metadata.shape[0] != sample_n:
+            raise ValueError('`obs_keys` must be unique per sample in `adata.obs`')
+        
+        mdata.obs = mdata.obs.reset_index(names=sample_key).merge(metadata).set_index(sample_key)

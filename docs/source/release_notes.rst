@@ -1,6 +1,18 @@
 Release notes
 =============
 
+0.1.8 (24.03.2023)
+------------------
+
+- Removed walrus operator to support Python 3.7
+
+- Added a tutorial that shows the repurposed use of MOFA with liana to obtain intercellular communication programmes
+
+- Added a tutorial that shows the repurposed use of MOFA to the analysis of multicellular programmes as in Ramirez et al., 2023
+
+- Added `key_added` parameter to save liana results to any `adata.uns`` slot, and `uns_key` to use liana results from any `adata.uns` slot
+
+
 0.1.7 (08.02.2023)
 ------------------
 
