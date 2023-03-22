@@ -155,9 +155,10 @@ class AggregateClass(MethodMeta):
                                _aggregate_method=aggregate_method,
                                _consensus_opts=consensus_opts
                                )
-        adata.uns[key_added] = liana_res
-
-        return None if inplace else liana_res
+        if inplace == False:
+            return liana_res
+        else:
+            adata.uns['liana_res'] = liana_res
 
 _rank_aggregate_meta = \
     MethodMeta(method_name="Rank_Aggregate",
