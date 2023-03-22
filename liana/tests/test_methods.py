@@ -1,11 +1,13 @@
 import pandas
-from scanpy.datasets import pbmc68k_reduced
-from numpy import max, min, random
+from numpy import max, min
 
 from liana.method import cellphonedb, singlecellsignalr as sca, \
-    natmi, connectome, logfc, geometric_mean, cellchat, rank_aggregate
+    natmi, connectome, logfc, geometric_mean, cellchat
+    
+from liana.testing._toy_adata import get_toy_adata
 
-adata = pbmc68k_reduced()
+# load toy adata
+adata = get_toy_adata()
 expected_shape = adata.shape
 
 
@@ -107,22 +109,17 @@ def test_connectome():
 
 
 def test_with_all_lrs():
-    natmi(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True)
-    lr_all = adata.uns['liana_res']
+    natmi(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, key_added='all_res')
+    lr_all = adata.uns['all_res']
     assert lr_all.shape == (4200, 15)
     assert all(lr_all[~lr_all.lrs_to_keep][natmi.magnitude] == min(lr_all[natmi.magnitude])) is True
     assert all(lr_all[~lr_all.lrs_to_keep][natmi.specificity] == min(lr_all[natmi.specificity])) is True
 
 
 def test_methods_by_sample():
-    # make fake sample labels
-    sample_key = 'patient'
-    rng = random.default_rng(0)
-    adata.obs[sample_key] = rng.choice(['A', 'B', 'C', 'D'], size=len(adata.obs))
-    
-    logfc.by_sample(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, sample_key=sample_key)
+    logfc.by_sample(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, sample_key='sample')
     lr_by_sample = adata.uns['liana_res']
     
-    assert sample_key in lr_by_sample.columns
+    assert 'sample' in lr_by_sample.columns
     assert lr_by_sample.shape == (10836, 15)
     

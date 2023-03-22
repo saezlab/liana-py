@@ -1,16 +1,20 @@
 import pathlib
 
 from unittest import TestCase
-from liana.method import rank_aggregate
-from liana.method.sc._rank_aggregate import AggregateClass
-from scanpy.datasets import pbmc68k_reduced
+
 from pandas import read_csv
 from pandas.testing import assert_frame_equal
 from numpy import random
 
+from liana.method import rank_aggregate
+from liana.method.sc._rank_aggregate import AggregateClass
+from liana.testing._toy_adata import get_toy_adata
+
+
+
 test_path = pathlib.Path(__file__).parent
 
-adata = pbmc68k_reduced()
+adata = get_toy_adata()
 
 
 def test_consensus():
@@ -50,18 +54,14 @@ def test_aggregate_res():
 
 
 def test_aggregate_all():
-    rank_aggregate(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True)
-    assert adata.uns['liana_res'].shape == (4200, 16)
+    rank_aggregate(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, key_added='all_res')
+    assert adata.uns['all_res'].shape == (4200, 16)
 
 
 def test_aggregate_by_sample():
-    # make fake sample labels
-    sample_key = 'patient'
-    rng = random.default_rng(0)
-    adata.obs[sample_key] = rng.choice(['A', 'B'], size=len(adata.obs))
     
-    rank_aggregate.by_sample(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, sample_key=sample_key)
-    lr_by_sample = adata.uns['liana_res']
+    rank_aggregate.by_sample(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, sample_key='sample', key_added='liana_by_sample')
+    lr_by_sample = adata.uns['liana_by_sample']
     
-    assert sample_key in lr_by_sample.columns
-    assert lr_by_sample.shape == (6804, 17)
+    assert 'sample' in lr_by_sample.columns
+    assert lr_by_sample.shape == (10836, 17)

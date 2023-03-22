@@ -12,9 +12,21 @@ LIANA is a Ligand-Receptor inference framework that enables the use of any LR me
 This is its faster and memory efficient Python implementation, an R version is also available [here](https://github.com/saezlab/liana).
 
 
-For further information please check LIANA's [documentation](https://liana-py.readthedocs.io/en/latest/api.html), and also [tutorial](https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html).
+## Tutorials & Documentation
 
-We also refer users to the [Cell-cell communication chapter](https://www.sc-best-practices.org/mechanisms/cell_cell_communication.html) in the best-practices book from Theis lab, as it provides an overview of the common limitations and assumptions in CCC inference from (single-cell) transcriptomics data.
+- [LIANA's basic tutorial](https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html) in dissociated single-cell data
+
+- [LIANA with cell2cell-Tensor](https://liana-py.readthedocs.io/en/latest/notebooks/liana_c2c.html) to obtain intercellular communication programmes across samples and conditions
+
+- [LIANA with MOFA](https://liana-py.readthedocs.io/en/latest/notebooks/mofacell.html). Using MOFA to infer intercellular communication programmes across samples and conditions, as initially proposed by cell2cell-Tensor.
+
+- [Multicellular programmes with MOFA](https://liana-py.readthedocs.io/en/latest/notebooks/mofacell.html). Using MOFA to obtain coordinates
+gene expression programmes across samples and conditions, as done in [Ramirez et al., 2023](https://europepmc.org/article/ppr/ppr620471)
+
+
+For further information please check LIANA's [API documentation](https://liana-py.readthedocs.io/en/latest/api.html).
+
+We also refer users to the [Cell-cell communication chapter](https://www.sc-best-practices.org/mechanisms/cell_cell_communication.html) in the best-practices book from Theis lab, as it provides an overview of the common limitations and assumptions in CCC inference from (dissociated single-cell) transcriptomics data.
 
 
 ## Install LIANA
@@ -82,5 +94,3 @@ Also, if you use the OmniPath CCC Resource for your analysis, please cite:
 Türei, D., Valdeolivas, A., Gul, L., Palacio‐Escat, N., Klein, M., Ivanova, O., Ölbei, M., Gábor, A., Theis, F., Módos, D. and Korcsmáros, T., 2021. Integrated intra‐and intercellular signaling knowledge for multicellular omics analysis. Molecular systems biology, 17(3), p.e9923. https://doi.org/10.15252/msb.20209923
 
 Similarly, please consider citing any of the methods and/or resources implemented in liana, that were particularly relevant for your research!
-
-

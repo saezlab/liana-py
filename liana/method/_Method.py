@@ -15,7 +15,7 @@ class MethodMeta:
     """
     
     # initiate a list to store weak references to all instances
-    instances = [] ## TODO separate instances for each subclass
+    instances = [] ## TODO separate instances for each child class
     
     def __init__(self,
                  method_name: str,
@@ -85,7 +85,7 @@ class MethodMeta:
                            }])
         return meta
     
-    def by_sample(self, adata, sample_key, inplace=True, verbose=False, **kwargs):
+    def by_sample(self, adata, sample_key, key_added='liana_res', inplace=True, verbose=False, **kwargs):
         """
         Run a method by sample.
         
@@ -93,17 +93,15 @@ class MethodMeta:
         ----------
             adata 
                 AnnData object to run the method on
-            
             sample_key
                 key in `adata.obs` to use for grouping by sample/context
-                
+            key_added
+                key to store the results in `adata.uns` if `inplace` is True
             inplace
                 whether to store the results in `adata.uns['liana_res']` or return a dataframe
-            
             verbose
                 Possible values: False, True, 'full', where 'full' will print the results for each sample,
                 and True will only print the sample progress bar. Default is False.
-            
             **kwargs
                 keyword arguments to pass to the method
         
@@ -128,7 +126,7 @@ class MethodMeta:
             
         samples = adata.obs[sample_key].cat.categories 
             
-        adata.uns['liana_res'] = {}
+        adata.uns[key_added] = {}
         
         progress_bar = tqdm(samples, disable=not verbose)
         for sample in (progress_bar):
@@ -139,13 +137,13 @@ class MethodMeta:
 
             sample_res = self.__call__(temp, inplace=False, verbose=full_verbose, **kwargs)
 
-            adata.uns['liana_res'][sample] = sample_res
+            adata.uns[key_added][sample] = sample_res
 
-        liana_res = concat(adata.uns['liana_res']).reset_index(level=1, drop=True).reset_index()
+        liana_res = concat(adata.uns[key_added]).reset_index(level=1, drop=True).reset_index()
         liana_res = liana_res.rename({"index":sample_key}, axis=1)
         
         if inplace:
-            adata.uns['liana_res'] = liana_res
+            adata.uns[key_added] = liana_res
         return None if inplace else liana_res
 
 
@@ -176,6 +174,7 @@ class Method(MethodMeta):
                  base: float = 2.718281828459045,
                  supp_columns: list = None,
                  return_all_lrs: bool = False,
+                 key_added: str = 'liana_res',
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
                  de_method='t-test',
@@ -210,6 +209,8 @@ class Method(MethodMeta):
             Bool whether to return all LRs, or only those that surpass the `expr_prop`
             threshold. Those interactions that do not pass the `expr_prop` threshold will
             be assigned to the *worst* score of the ones that do. `False` by default.
+        key_added
+            Key under which the results will be stored in `adata.uns` if `inplace` is True.
         use_raw
             Use raw attribute of adata if present.
         layer
@@ -236,7 +237,7 @@ class Method(MethodMeta):
         -------
             If ``inplace = False``, returns a `DataFrame` with ligand-receptor results
             Otherwise, modifies the ``adata`` object with the following key:
-            - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
+            - :attr:`anndata.AnnData.uns` ``[`key_added`]`` with the aforementioned DataFrame
         """
         if supp_columns is None:
             supp_columns = []
@@ -259,14 +260,9 @@ class Method(MethodMeta):
                                layer=layer,
                                )
         if inplace:
-            adata.uns['liana_res'] = liana_res
+            adata.uns[key_added] = liana_res
         return None if inplace else liana_res
         
-    
-
 
 def _show_methods(methods):
     return concat([method.get_meta() for method in methods])
-
-
-

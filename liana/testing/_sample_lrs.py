@@ -23,7 +23,7 @@ def sample_lrs(by_sample=False):
     df = df.loc[~df.duplicated()]
     
     if by_sample:
-        df['sample'] = rng.choice(['sample1', 'sample2'], row_num)
+        df['sample'] = rng.choice(['A', 'B', 'C', 'D'], row_num)
         df['sample'] = df['sample'].astype('category')
 
     return df
