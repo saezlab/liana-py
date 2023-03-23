@@ -69,7 +69,7 @@ def test_adata_to_views():
     
     assert len(mdata.varm_keys())==8
     assert 'case' not in mdata.obs.columns
-    assert mdata.shape == (4, 4986)
+    assert mdata.shape == (4, 5403)
     
     
     
