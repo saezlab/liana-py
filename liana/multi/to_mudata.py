@@ -320,7 +320,8 @@ def get_variable_loadings(mdata,
     """
     
     df = sc.get.var_df(mdata, varm_keys=[(varm_key, idx)])
-    df = df.reset_index(names='view:variable')
+    df.index.name = None
+    df = df.reset_index().rename(columns={'index':'view:variable'})
     
     if view_separator is not None:
         df[['view', 'variable']] = df['view:variable'].str.split(view_separator, 1, expand=True)
@@ -388,4 +389,4 @@ def _process_meta(adata, mdata, sample_key, obs_keys):
         if metadata.shape[0] != sample_n:
             raise ValueError('`obs_keys` must be unique per sample in `adata.obs`')
         
-        mdata.obs = mdata.obs.reset_index(names=sample_key).merge(metadata).set_index(sample_key)
+        mdata.obs = mdata.obs.reset_index().merge(metadata).set_index(sample_key)
