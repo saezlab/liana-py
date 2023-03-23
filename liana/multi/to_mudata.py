@@ -104,7 +104,7 @@ def adata_to_views(adata, groupby, sample_key, obs_keys, view_separator=':', ver
 def lrs_to_views(adata, 
                  score_key=None, 
                  inverse_fun= lambda x: 1 - x,
-                 obs_keys=[],
+                 obs_keys=None,
                  lr_prop=0.5,
                  lr_fill=np.nan,
                  lrs_per_view=20,
@@ -136,7 +136,7 @@ def lrs_to_views(adata,
         reflect probabilities (e.g. magnitude_rank), i.e. such for which lower values reflect higher relevance.
         This is handled automatically for the scores in liana.
     obs_keys
-        List of keys in `adata.obs` that should be included in the MuData object. Default is `[]`. 
+        List of keys in `adata.obs` that should be included in the MuData object. Default is `None`. 
         These columns should correspond to the number of samples in `adata.obs[sample_key]`.
     lr_prop
         Reflects the minimum required proportion of samples for an interaction to be considered for building the views. Default is `0.5`.
@@ -193,8 +193,11 @@ def lrs_to_views(adata,
     if (score_key is None) or (score_key not in liana_res.columns):
         raise ValueError(f"Score column `{score_key}` not found in `liana_res`")
     
-    if any([key not in adata.obs.keys() for key in obs_keys]):
-        raise ValueError(f'`{obs_keys}` not found in `adata.obs`! Please check your input.')
+    if isinstance(obs_keys, list):
+        if any([key not in adata.obs.keys() for key in obs_keys]):
+            raise ValueError(f'`{obs_keys}` not found in `adata.obs`!')
+    elif obs_keys is not None:
+        raise ValueError(f'`obs_keys` must be a list or `None`!')
     
     keys = np.array([sample_key, source_key, target_key, ligand_key, receptor_key])
     missing_keys = keys[[ key not in liana_res.columns for key in keys]]
@@ -237,7 +240,6 @@ def lrs_to_views(adata,
                  )
     count_lrs = count_lrs[count_lrs['count'] >= lrs_per_sample]
     liana_res = liana_res.merge(count_lrs.drop(columns='count') , how='inner')
-    
     
     # convert to anndata views
     views = liana_res['ct_pair'].unique()
@@ -379,7 +381,7 @@ def get_factor_scores(mdata, obsm_key='X_mofa'):
 
 
 def _process_meta(adata, mdata, sample_key, obs_keys):
-    if len(obs_keys) > 0:
+    if obs_keys is not None:
         metadata = adata.obs[[sample_key, *obs_keys]].drop_duplicates()
         
         sample_n = adata.obs[sample_key].nunique()
