@@ -56,7 +56,7 @@ def test_adata_to_views():
     mdata = adata_to_views(adata,
                            groupby='bulk_labels',
                            sample_key='sample',
-                           obs_keys=['case'],
+                           obs_keys=None,
                            min_prop=0.05,
                            min_smpls=1,
                            min_cells=5,
@@ -68,8 +68,8 @@ def test_adata_to_views():
                            )
     
     assert len(mdata.varm_keys())==8
-    assert 'case' in mdata.obs.columns
-    assert mdata.shape == (4, 4986)
+    assert 'case' not in mdata.obs.columns
+    assert mdata.shape == (4, 5403)
     
     
     
