@@ -226,9 +226,10 @@ class MetabMethod(MetabMethodMeta):
                         layer=layer,
                         _score = self._SCORE,)
         if inplace:
-            adata.obsm['metabolite_abundance'] = ml_res[0]
-            adata.uns['CCC_res'] = ml_res[1]
-            adata.uns['met_meta'] = ml_res[2]
+            adata.uns['CCC_res'] = ml_res[0]
+            adata.obsm['metabolite_abundance'] = ml_res[1]
+            adata.uns['mask'] = ml_res[2]
+            # adata.uns['met_meta'] = ml_res[3]
 
         
         return None if inplace else ml_res

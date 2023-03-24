@@ -310,15 +310,20 @@ def _filter_labels(liana_res, labels, label_type):
 
 
 def get_gene_dfs(id, adata, groupby):
-    prod_genes = adata.uns['met_meta']['producing_genes'][adata.uns['met_meta']['metabolite'] == id]
-    prod_genes = list(prod_genes)
-    prod_genes = str(prod_genes[0]).split("'")
-    prod_genes = [x for x in prod_genes if any(c.isalpha() for c in x)]
 
-    deg_genes = adata.uns['met_meta']['degrading_genes'][adata.uns['met_meta']['metabolite'] == id]
-    deg_genes = list(deg_genes)
-    deg_genes = str(deg_genes[0]).split("'")
-    deg_genes = [x for x in deg_genes if any(c.isalpha() for c in x)]   
+
+    prod_genes = adata.uns['mask'].index[adata.uns['mask'][id] == 1]
+    deg_genes = adata.uns['mask'].index[adata.uns['mask'][id] == -1]
+
+    # prod_genes = adata.uns['met_meta']['producing_genes'][adata.uns['met_meta']['metabolite'] == id]
+    # prod_genes = list(prod_genes)
+    # prod_genes = str(prod_genes[0]).split("'")
+    # prod_genes = [x for x in prod_genes if any(c.isalpha() for c in x)]
+
+    # deg_genes = adata.uns['met_meta']['degrading_genes'][adata.uns['met_meta']['metabolite'] == id]
+    # deg_genes = list(deg_genes)
+    # deg_genes = str(deg_genes[0]).split("'")
+    # deg_genes = [x for x in deg_genes if any(c.isalpha() for c in x)]   
 
     prod_df = adata.X[:,adata.var_names.isin(prod_genes)]
     deg_df = adata.X[:,adata.var_names.isin(deg_genes)]

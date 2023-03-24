@@ -121,13 +121,15 @@ def ml_pipe(adata: AnnData,
                                             est_fun = est_fun,
                                             verbose=verbose)
 
-    met_est_result = met_est_result.sort_index()
+    # met_est_result = met_est_result.sort_index()
 
-    adata.obsm['metabolite_abundance'] = sparse.csr_matrix(met_est_result[(met_est_result != 0).any(axis=1)].T) ################ attention
+    adata.obsm['metabolite_abundance'] = met_est_result[0] ################ attention
     
-    adata.uns['met_index'] = met_est_result.index[(met_est_result != 0).any(axis=1)]
+    adata.uns['met_index'] = met_est_result[1]
 
-    PD_genes = _save_PD_names(met_est_result.index, met_est_resource)
+    mask = DataFrame(met_est_result[2].todense(), columns=adata.var_names, index=met_est_result[1])
+
+    # PD_genes = _save_PD_names(met_est_result[1], met_est_resource)
 
     # load metabolite-protein resource
     resource = select_resource(resource_name.lower())
@@ -152,7 +154,7 @@ def ml_pipe(adata: AnnData,
     # correct pvalues for fdr 
     #lr_res[_score.specificity] = fdrcorrection(lr_res[_score.specificity])[1]
 
-    return met_est_result.T, lr_res, PD_genes
+    return lr_res, met_est_result[0], mask.T
 
 
 
@@ -430,24 +432,24 @@ def _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, perms2, agg_fu
 
 
 
-# write a function that creates an array with the corresponding gene names in the resource for the metabolite names in the index
-def _save_PD_names(index, resource):
-    # create array with three columns: metabolite name, producing genes, degrading genes
-    df = DataFrame(index, columns=['metabolite'])
-    df['producing_genes'] = 'no values'
-    df['degrading_genes'] = 'no values'
-    # for every metabolite in index, find the row in the resource that match the metabolite name and store the gene names of producing and degrading genes
-    for i in range(len(index)):
-        a = resource[resource['HMDB'] == index[i]]
-        # df['producing_genes'][i] = a['GENE'][a['direction'] == 'producing'].values.copy()
-        # df['degrading_genes'][i] = a['GENE'][a['direction'] == 'degrading'].values.copy()
+# # write a function that creates an array with the corresponding gene names in the resource for the metabolite names in the index
+# def _save_PD_names(index, resource):
+#     # create array with three columns: metabolite name, producing genes, degrading genes
+#     df = DataFrame(index, columns=['metabolite'])
+#     df['producing_genes'] = 'no values'
+#     df['degrading_genes'] = 'no values'
+#     # for every metabolite in index, find the row in the resource that match the metabolite name and store the gene names of producing and degrading genes
+#     for i in range(len(index)):
+#         a = resource[resource['HMDB'] == index[i]]
+#         # df['producing_genes'][i] = a['GENE'][a['direction'] == 'producing'].values.copy()
+#         # df['degrading_genes'][i] = a['GENE'][a['direction'] == 'degrading'].values.copy()
 
-        df.at[i, 'producing_genes'] = a['GENE'][a['direction'] == 'producing'].values
-        df.at[i, 'degrading_genes'] = a['GENE'][a['direction'] == 'degrading'].values
+#         df.at[i, 'producing_genes'] = a['GENE'][a['direction'] == 'producing'].values
+#         df.at[i, 'degrading_genes'] = a['GENE'][a['direction'] == 'degrading'].values
 
 
 
-    return df
+#     return df
 
 
 
