@@ -11,7 +11,9 @@ from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
 
 from liana.method.sp._spatial_utils import _local_to_dataframe, _categorize, \
     _simplify_cats, _encode_as_char, _get_ordered_matrix, _rename_means, _run_scores_pipeline, \
-    _proximity_to_weight, _handle_proximity, obsm_to_adata
+    _proximity_to_weight, _handle_proximity
+    
+from liana.funcomics.obsm_to_adata import obsm_to_adata
 
 from liana.method.sp._bivariate_funs import _handle_functions
 
@@ -31,7 +33,7 @@ class SpatialBivariate(_SpatialMeta):
                  y_mod, 
                  proximity_key = 'proximity',
                  mod_added = "local_scores",
-                 add_categories = False,
+                 add_categories = False, ## TODO currently very experimental
                  pvalue_method: (str | None) = None,
                  positive_only=False, ## TODO change to categorical
                  n_perms: int = 50,
@@ -169,24 +171,26 @@ class SpatialBivariate(_SpatialMeta):
         # save to uns
         mdata.uns['global_res'] = xy_stats
         
-        # save to obsm ## TODO think if this is the best way to do this
-        mdata.mod[mod_added] = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None)
+        # save as a modality
+        mdata.mod[mod_added] = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
         
-        if local_pvals is not None:
-            mdata.mod['local_pvals'] = obsm_to_adata(adata=mdata, df=local_pvals, obsm_key=None)
+        if local_pvals is not None: # TODO maybe categories and pvals should be saved to obsm of the modality assigned to scores?
+            mdata.mod['local_pvals'] = obsm_to_adata(adata=mdata, df=local_pvals, obsm_key=None, _uns=mdata.uns)
 
         if add_categories: # TODO move to a pipeline
             # TODO categorizing is currently done following standardization of the matrix
             # i.e. each variable is standardized independently, and then a category is
             # defined based on the values within each stop.
             # (taking into consideration when the input is signed, but not weight or surrounding spots).
-            local_catageries = _categorize(_encode_as_char(x_mat.A), _encode_as_char(y_mat.A))
+            local_categories = _categorize(_encode_as_char(x_mat.A), _encode_as_char(y_mat.A))
             ## TODO these to helper function that can extract multiple of these
             # and these all saved as arrays, or alternatively saved a modalities in mudata
-            mdata.obsm['local_categories'] = _local_to_dataframe(array=local_catageries,
-                                                                idx=mdata.obs.index,
-                                                                columns=xy_stats.interaction)
-            mdata.obsm['local_categories'] = _simplify_cats(mdata.obsm['local_categories'])
+            local_categories = _local_to_dataframe(array=local_categories,
+                                                   idx=mdata.obs.index,
+                                                   columns=xy_stats.interaction)
+            local_categories = _simplify_cats(local_categories)
+            mdata.mod['local_categories'] = obsm_to_adata(adata=mdata, df=local_categories, obsm_key=None, _uns=mdata.uns)
+            
 
 
 basis = SpatialBivariate(_basis_meta)

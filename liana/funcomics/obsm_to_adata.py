@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from anndata import AnnData
 
-def obsm_to_adata(adata, obsm_key, df = None):
+def obsm_to_adata(adata, obsm_key, df = None, _uns=None):
     """
     Extracts activities as AnnData object.
     From an AnnData object with source activities stored in `.obsm`, generates a new AnnData object with activities in `X`.
@@ -25,11 +25,16 @@ def obsm_to_adata(adata, obsm_key, df = None):
         df = adata.obsm[obsm_key]
     
     obs = adata.obs
-    uns = adata.uns
+    
+    if _uns is None:
+        uns = adata.uns
+    else:
+        uns = _uns
+    
     obsm = adata.obsm
     obsp = adata.obsp
     
-    var = pd.DataFrame(df.columns)
+    var = pd.DataFrame(index = df.columns)
     X = np.array(df, dtype=np.float32)
 
     return AnnData(X=X, obs=obs, var=var, uns=uns, obsm=obsm, obsp=obsp)
