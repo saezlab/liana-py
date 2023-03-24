@@ -100,9 +100,9 @@ def prep_check_adata(adata: AnnData,
                         layer=layer, verbose=verbose)
 
     if use_raw & (layer is None):
-        var = adata.raw.var.copy()
+        var = DataFrame(index=adata.raw.var_names)
     else:
-        var = adata.var.copy()
+        var = DataFrame(index=adata.var_names)
 
 
     adata = sc.AnnData(X=X,

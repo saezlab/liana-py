@@ -5,15 +5,16 @@ import numpy as np
 from anndata import AnnData
 import pandas as pd
 from typing import Optional
+from scipy.sparse import hstack, csr_matrix
+
 
 from liana.resource import select_resource
-from liana.method._pipe_utils._reassemble_complexes import explode_complexes
-from liana.method._pipe_utils import prep_check_adata, filter_resource, assert_covered, filter_reassemble_complexes
+from liana.method._pipe_utils import prep_check_adata, assert_covered
+from liana.method._pipe_utils._pre import _get_props
 
 from liana.method.sp._SpatialMethod import _SpatialMeta
 from liana.method.sp._spatial_utils import _get_ordered_matrix, _rename_means, \
     _run_scores_pipeline, _proximity_to_weight, _handle_proximity
-from liana.method._pipe_utils._pre import _get_props
 from liana.method.sp._bivariate_funs import _handle_functions
 
 
@@ -96,7 +97,16 @@ class SpatialLR(_SpatialMeta):
         """
         if pvalue_method not in ['analytical', 'permutation', None]:
             raise ValueError("`pvalue_method` must be one of ['analytical', 'permutation', None]")
+        
+        # select & process resource
+        if resource is None:
+            resource = select_resource(resource_name.lower())
 
+        proximity = _handle_proximity(adata, proximity, proximity_key)
+        local_fun = _handle_functions(function_name)
+        weight = _proximity_to_weight(proximity, local_fun)
+
+        # prep adata
         temp = prep_check_adata(adata=adata,
                                 use_raw=use_raw,
                                 layer=layer,
@@ -104,16 +114,11 @@ class SpatialLR(_SpatialMeta):
                                 groupby=None,
                                 min_cells=None
                                 )
-        
-        proximity = _handle_proximity(adata, proximity, proximity_key)
-        local_fun = _handle_functions(function_name)
-        weight = _proximity_to_weight(proximity, local_fun)
-        
-        # select & process resource
-        if resource is None:
-            resource = select_resource(resource_name.lower())
-        resource = explode_complexes(resource)
-        resource = filter_resource(resource, adata.var_names)
+        temp = _add_complexes_to_var(temp, resource)
+
+        # filter_resource
+        resource = resource[(np.isin(resource.ligand, temp.var_names)) &
+                            (np.isin(resource.receptor, temp.var_names))]
 
         # get entities
         entities = np.union1d(np.unique(resource["ligand"]),
@@ -136,11 +141,11 @@ class SpatialLR(_SpatialMeta):
             _rename_means(lr_res, entity='receptor'))
 
         # get lr_res /w relevant x,y (lig, rec) and filter acc to expr_prop
-        lr_res = filter_reassemble_complexes(lr_res=lr_res,
-                                             expr_prop=expr_prop,
-                                             _key_cols=self.key_cols,
-                                             complex_cols=self._complex_cols
-                                             )
+        # filter according to ligand_props and receptor_props >= expr_prop
+        lr_res = lr_res[(lr_res['ligand_props'] >= expr_prop) &
+                        (lr_res['receptor_props'] >= expr_prop)]
+        # create interaction column
+        lr_res['interaction'] = lr_res['ligand'] + '&' + lr_res['receptor']
 
         # assign the positions of x, y to the adata
         ligand_pos = {entity: np.where(temp.var_names == entity)[0][0] for entity in
@@ -193,3 +198,35 @@ lr_basis = SpatialLR(_method=_spatial_lr,
                      )
 
 
+
+## TODO this function will become duplicated with the feature branch
+def _add_complexes_to_var(adata, resource):
+    """
+    Generate an AnnData object with complexes appended as variables.
+    """
+    
+    complexes = np.union1d(resource['receptor'].astype(str), resource['ligand'].astype(str))
+    complexes = complexes[pd.Series(complexes).str.contains('_')]
+    
+    X = None
+
+    for comp in complexes:
+        subunits = comp.split('_')
+        
+        # keep only complexes, the subunits of which are in var
+        if all([subunit in adata.var.index for subunit in subunits]):
+            adata.var.loc[comp,:] = None
+
+            # create matrix for this complex
+            new_array = csr_matrix(adata[:, subunits].X.min(axis=1))
+
+            if X is None:
+                X = new_array
+            else:
+                X = hstack((X, new_array))
+
+    adata.var
+
+    adata = AnnData(X=hstack((adata.X, X)), obs=adata.obs, var=adata.var)
+    
+    return adata
