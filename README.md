@@ -18,13 +18,15 @@ This is its faster and memory efficient Python implementation, an R version is a
 
 - [LIANA with cell2cell-Tensor](https://liana-py.readthedocs.io/en/latest/notebooks/liana_c2c.html) to obtain intercellular communication programmes across samples and conditions
 
-- [LIANA with MOFA](https://liana-py.readthedocs.io/en/latest/notebooks/mofacell.html). Using MOFA to infer intercellular communication programmes across samples and conditions, as initially proposed by cell2cell-Tensor.
+- [LIANA with MOFA](https://liana-py.readthedocs.io/en/latest/notebooks/mofatalk.html). Using MOFA to infer intercellular communication programmes across samples and conditions, as initially proposed by cell2cell-Tensor
 
 - [Multicellular programmes with MOFA](https://liana-py.readthedocs.io/en/latest/notebooks/mofacell.html). Using MOFA to obtain coordinates
 gene expression programmes across samples and conditions, as done in [Ramirez et al., 2023](https://europepmc.org/article/ppr/ppr620471)
 
 
+
 For further information please check LIANA's [API documentation](https://liana-py.readthedocs.io/en/latest/api.html).
+
 
 We also refer users to the [Cell-cell communication chapter](https://www.sc-best-practices.org/mechanisms/cell_cell_communication.html) in the best-practices book from Theis lab, as it provides an overview of the common limitations and assumptions in CCC inference from (dissociated single-cell) transcriptomics data.
 
