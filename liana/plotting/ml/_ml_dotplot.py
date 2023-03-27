@@ -236,9 +236,9 @@ def ml_dotplot_by_sample(adata: anndata.AnnData  = None,
 
 
 
-def gene_plot(adata, metabolite, groupby, return_fig=True):
+def gene_plot(adata, metabolite, groupby, return_fig=True, use_raw=True):
 
-    df = get_gene_dfs(id=metabolite, adata=adata, groupby=groupby)
+    df = get_gene_dfs(id=metabolite, adata=adata, groupby=groupby, use_raw=use_raw)
     
     
     p = (ggplot(df, aes(x='bulk_labels', y='index', size='percentage', color='expression')) 
@@ -309,8 +309,7 @@ def _filter_labels(liana_res, labels, label_type):
     return liana_res
 
 
-def get_gene_dfs(id, adata, groupby):
-
+def get_gene_dfs(id, adata, groupby, use_raw=True):
 
     prod_genes = adata.uns['mask'].index[adata.uns['mask'][id] == 1]
     deg_genes = adata.uns['mask'].index[adata.uns['mask'][id] == -1]
@@ -325,8 +324,12 @@ def get_gene_dfs(id, adata, groupby):
     # deg_genes = str(deg_genes[0]).split("'")
     # deg_genes = [x for x in deg_genes if any(c.isalpha() for c in x)]   
 
-    prod_df = adata.X[:,adata.var_names.isin(prod_genes)]
-    deg_df = adata.X[:,adata.var_names.isin(deg_genes)]
+    if use_raw:
+        prod_df = adata.raw.X[:,adata.var_names.isin(prod_genes)]
+        deg_df = adata.raw.X[:,adata.var_names.isin(deg_genes)]
+    else:
+        prod_df = adata.X[:,adata.var_names.isin(prod_genes)]
+        deg_df = adata.X[:,adata.var_names.isin(deg_genes)]
 
     p = adata.var_names[adata.var_names.isin(prod_genes)]
     deg = adata.var_names[adata.var_names.isin(deg_genes)]

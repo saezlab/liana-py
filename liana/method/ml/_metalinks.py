@@ -1,8 +1,5 @@
 from liana.method.ml._ml_Method import MetabMethod, MetabMethodMeta
 from liana.method.ml.scores import _product_score, _simple_prod
-#from liana.method.ml.estimations import mean_per_cell
-
-
 
 
 
@@ -18,7 +15,7 @@ _metalinks = MetabMethodMeta(score_method_name="product_score",
                             permute=True,
                             agg_fun=_simple_prod, #check again
                             score_reference='Saez-Lab',
-                            est_reference=None
+                            est_reference=None,
                             
                     )
 

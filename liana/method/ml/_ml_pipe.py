@@ -9,7 +9,6 @@ from .estimations import _metalinks_estimation
 from anndata import AnnData
 from pandas import DataFrame, Index, concat
 import numpy as np
-from scipy import sparse
 from tqdm import tqdm
 from statsmodels.stats.multitest import fdrcorrection
 from statsmodels.distributions.empirical_distribution import ECDF
@@ -32,9 +31,11 @@ def ml_pipe(adata: AnnData,
                layer: str | None,
                supp_columns: list | None = None,
                return_all_lrs: bool = False,
+               pass_mask: bool = False,
                _key_cols: list = None,
                _complex_cols: list = None,
-               _score = None
+               _score = None, 
+               **kwargs
                ):
     """
     Parameters
@@ -119,7 +120,9 @@ def ml_pipe(adata: AnnData,
     met_est_result = _metalinks_estimation(me_res=met_est_resource, 
                                             adata=adata, 
                                             est_fun = est_fun,
-                                            verbose=verbose)
+                                            verbose=verbose, 
+                                            pass_mask=pass_mask, 
+                                            **kwargs)
 
     # met_est_result = met_est_result.sort_index()
 
@@ -238,8 +241,8 @@ def _get_lr(adata, resource, expr_prop):
         'label': label
     }).sort_values('names') for label in labels}
 
-    # if list(adata.var_names) != list(dedict_gene[labels[0]]['names']):
-    #     raise AssertionError("Variable names did not match DE results!")
+    if list(adata.var_names) != list(dedict_gene[labels[0]]['names']):
+        raise AssertionError("Variable names did not match DE results!")
 
     for label in labels:
         dedict_gene[label]['means'] = adata[adata.obs.label == label].X.mean(axis=0).A.flatten()
@@ -282,7 +285,7 @@ def _run_method(lr_res: DataFrame,
     tqdm.pandas()
 
     if _score.permute:
-        perms, ligand_pos, receptor_pos, labels_pos, perms2 = \
+        perms_receptors, perms_ligands, ligand_pos, receptor_pos, labels_pos = \
             _get_means_perms(adata=adata,
                              lr_res=lr_res,
                              n_perms=n_perms,
@@ -296,8 +299,8 @@ def _run_method(lr_res: DataFrame,
 
         lr_res[[_score.magnitude, _score.specificity]] = \
             lr_res.progress_apply(_score.fun, axis=1, result_type="expand",
-                         perms=perms, ligand_pos=ligand_pos,
-                         receptor_pos=receptor_pos, labels_pos=labels_pos, perms2=perms2)
+                         perms_receptors=perms_receptors, perms_ligands=perms_ligands, ligand_pos=ligand_pos,
+                         receptor_pos=receptor_pos, labels_pos=labels_pos)
     else:  # non-perm funs
         lr_res[[_score.magnitude, _score.specificity]] = \
             lr_res.apply(_score.fun, axis=1, result_type="expand")
@@ -363,8 +366,8 @@ def _get_means_perms(adata: AnnData,
     idx = np.arange(adata.X.shape[0])
 
     # Perm should be a cube /w dims: n_perms x idents x n_genes
-    perms = np.zeros((n_perms, labels.shape[0], adata.shape[1]))
-    perms2 = np.zeros((n_perms, labels.shape[0], adata.obsm['metabolite_abundance'].shape[1]))
+    perms_receptors = np.zeros((n_perms, labels.shape[0], adata.shape[1]))
+    perms_ligands = np.zeros((n_perms, labels.shape[0], adata.obsm['metabolite_abundance'].shape[1]))
 
 
     # Assign permuted matrix
@@ -373,10 +376,12 @@ def _get_means_perms(adata: AnnData,
         perm_mat = adata.X[perm_idx]
         perm_mat2 = adata.obsm['metabolite_abundance'][perm_idx]
         # populate matrix /w permuted means
-        for cind in range(labels.shape[0]):
-            perms[perm, cind] = agg_fun(perm_mat[labels_dict[labels[cind]]], axis=0)
-            perms2[perm, cind] = agg_fun(perm_mat2[labels_dict[labels[cind]]], axis=0)
+        # for cind in range(labels.shape[0]):
+        #     perms_receptors[perm, cind] = agg_fun(perm_mat[labels_dict[labels[cind]]], axis=0)
+        #     perms_ligands[perm, cind] = agg_fun(perm_mat2[labels_dict[labels[cind]]], axis=0)
 
+        perms_receptors[perm] = np.squeeze(np.array([agg_fun(perm_mat[labels_dict[label]], axis=0) for label in labels]))
+        perms_ligands[perm] = np.squeeze(np.array([agg_fun(perm_mat2[labels_dict[label]], axis=0) for label in labels]))
 
 
     # Get indexes for each gene and label in the permutations
@@ -386,11 +391,11 @@ def _get_means_perms(adata: AnnData,
                     in lr_res['receptor']}
     labels_pos = {labels[pos]: pos for pos in range(labels.shape[0])}
 
-    return perms, ligand_pos, receptor_pos, labels_pos, perms2
+    return perms_receptors, perms_ligands, ligand_pos, receptor_pos, labels_pos
 
 
 
-def _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, perms2, agg_fun,
+def _get_lr_pvals(x, perms_receptors, perms_ligands, ligand_pos, receptor_pos, labels_pos,  agg_fun,
                   ligand_col='ligand_means', receptor_col='receptor_means'):
     """
     Calculate Permutation means and p-values
@@ -422,8 +427,8 @@ def _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, perms2, agg_fu
         return 0, 1
 
     # Permutations lr mean
-    ligand_perm_means = perms2[:, labels_pos[x.source], ligand_pos[x.ligand]]
-    receptor_perm_means = perms[:, labels_pos[x.target], receptor_pos[x.receptor]]
+    ligand_perm_means = perms_ligands[:, labels_pos[x.source], ligand_pos[x.ligand]]
+    receptor_perm_means = perms_receptors[:, labels_pos[x.target], receptor_pos[x.receptor]]
     lr_perm_score = agg_fun(ligand_perm_means, receptor_perm_means)
 
     p_value = (1 - ECDF(lr_perm_score)(lr_score))
@@ -431,25 +436,6 @@ def _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, perms2, agg_fu
     return lr_score, p_value
 
 
-
-# # write a function that creates an array with the corresponding gene names in the resource for the metabolite names in the index
-# def _save_PD_names(index, resource):
-#     # create array with three columns: metabolite name, producing genes, degrading genes
-#     df = DataFrame(index, columns=['metabolite'])
-#     df['producing_genes'] = 'no values'
-#     df['degrading_genes'] = 'no values'
-#     # for every metabolite in index, find the row in the resource that match the metabolite name and store the gene names of producing and degrading genes
-#     for i in range(len(index)):
-#         a = resource[resource['HMDB'] == index[i]]
-#         # df['producing_genes'][i] = a['GENE'][a['direction'] == 'producing'].values.copy()
-#         # df['degrading_genes'][i] = a['GENE'][a['direction'] == 'degrading'].values.copy()
-
-#         df.at[i, 'producing_genes'] = a['GENE'][a['direction'] == 'producing'].values
-#         df.at[i, 'degrading_genes'] = a['GENE'][a['direction'] == 'degrading'].values
-
-
-
-#     return df
 
 
 

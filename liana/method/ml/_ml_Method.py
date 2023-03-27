@@ -29,6 +29,7 @@ class MetabMethodMeta:
                  specificity_ascending: bool | None,
                  permute: bool,
                  agg_fun,
+                 **kwargs
                  ):
         """
         Parameters
@@ -113,7 +114,7 @@ class MetabMethod(MetabMethodMeta):
     """
     liana's Method Class
     """
-    def __init__(self, _SCORE):
+    def __init__(self, _SCORE, **kwargs):
         super().__init__(score_method_name=_SCORE.score_method_name,
                          est_reference=_SCORE.est_reference,
                          score_reference=_SCORE.score_reference,
@@ -149,7 +150,9 @@ class MetabMethod(MetabMethodMeta):
                  verbose: Optional[bool] = False,
                  n_perms: int = 1000,
                  seed: int = 1337,
-                 inplace=True):
+                 inplace: bool = True,
+                 pass_mask: bool = False,
+                 **kwargs):
         """
         Parameters
         ----------
@@ -224,7 +227,10 @@ class MetabMethod(MetabMethodMeta):
                         n_perms=n_perms,
                         seed=seed,
                         layer=layer,
-                        _score = self._SCORE,)
+                        _score = self._SCORE, 
+                        pass_mask=pass_mask,
+                        **kwargs
+                        )
         if inplace:
             adata.uns['CCC_res'] = ml_res[0]
             adata.obsm['metabolite_abundance'] = ml_res[1]

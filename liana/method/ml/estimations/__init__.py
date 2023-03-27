@@ -1,1 +1,1 @@
-from ._estimations import _metalinks_estimation, mean_per_cell
+from ._estimations import _metalinks_estimation
