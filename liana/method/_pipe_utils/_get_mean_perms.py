@@ -65,7 +65,6 @@ def _get_means_perms(adata: anndata.AnnData,
 
     return perms
 
-
 def _get_positions(adata, lr_res):
     labels = adata.obs['label'].cat.categories
     
@@ -79,7 +78,6 @@ def _get_positions(adata, lr_res):
     return ligand_pos, receptor_pos, labels_pos
 
 
-
 def _get_mat_idx(adata, lr_res):
     # convert to indexes
     ligand_pos, receptor_pos, labels_pos = _get_positions(adata, lr_res)
@@ -91,48 +89,3 @@ def _get_mat_idx(adata, lr_res):
     target_idx = lr_res['target'].map(labels_pos)
     
     return ligand_idx, receptor_idx, source_idx, target_idx
-
-
-def _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, score_fun,
-                  ligand_col='ligand_means', receptor_col='receptor_means'):
-    """
-    Calculate Permutation means and p-values
-
-    Parameters
-    ----------
-    x
-        DataFrame row
-    perms
-        3D tensor with permuted averages per cluster
-    ligand_idx
-        Index of the ligand in the tensor
-    receptor_idx
-        Index of the receptor in the perms tensor
-    labels_idx
-        Index of cell identities in the perms tensor
-    score_fun
-        function to aggregate the ligand and receptor into score
-
-    Returns
-    -------
-    A tuple with lr_score (aggregated according to `agg_fun`) and p-value for x
-
-    """
-    # TODO change to be done on full columns
-    # actual lr_scores
-    lr_score = score_fun(x[ligand_col], x[receptor_col])
-
-    # # TODO change into mask
-    # if lr_score == 0:
-    #     return 0, 1
-
-    # TODO get all indices at once
-    # Permutations lr mean
-    ligand_perm_means = perms[:, labels_pos[x.source], ligand_pos[x.ligand]]
-    receptor_perm_means = perms[:, labels_pos[x.target], receptor_pos[x.receptor]]
-    lr_perm_score = score_fun(ligand_perm_means, receptor_perm_means)
-    
-    # TODO sum across axis
-    p_value = np.sum(lr_perm_score >= lr_score) / perms.shape[0] # n_perms
-
-    return lr_score, p_value
