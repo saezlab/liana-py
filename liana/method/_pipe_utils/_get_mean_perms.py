@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import anndata
 import numpy as np
-import pandas
 from tqdm import tqdm
 
 def _get_means_perms(adata: anndata.AnnData,

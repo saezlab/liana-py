@@ -17,15 +17,9 @@ def _cellchat_score(x, perm_stats) -> tuple:
     Parameters
     ----------
     x
-        DataFrame row
-    perms
-        3D tensor with permuted averages per cluster
-    ligand_pos
-        Index of the ligand in the tensor
-    receptor_pos
-        Index of the receptor in the perms tensor
-    labels_pos
-        Index of cell identities in the perms tensor
+        DataFrame with LIANA results
+    perm_stats
+        Permutation statistics (2 (ligand-receptor), n_perms (number of permutations, n_rows in lr_res)
 
     Returns
     -------

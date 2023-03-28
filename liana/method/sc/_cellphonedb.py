@@ -10,16 +10,8 @@ def _cpdb_score(x, perm_stats) -> tuple:
     ----------
     x
         DataFrame with LIANA results
-    perms
-        3D tensor with permuted averages per cluster
-    ligand_idx
-        Index of the ligand in the perms tensor
-    receptor_idx
-        Index of the receptor in the perms tensor
-    source_idx
-        Index of the source cell identity in the perms tensor
-    target_idx
-        Index of the target cell identity in the perms tensor
+    perm_stats
+        Permutation statistics (2 (ligand-receptor), n_perms (number of permutations, n_rows in lr_res)
 
     Returns
     -------
