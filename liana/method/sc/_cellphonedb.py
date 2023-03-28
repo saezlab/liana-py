@@ -25,7 +25,7 @@ def _cpdb_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
 
     Returns
     -------
-    A tuple with lr_mean and pvalue for x
+    A tuple with lr_mean and p-value for x
 
     """
     if (x.ligand_means == 0) | (x.receptor_means == 0):

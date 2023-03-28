@@ -4,8 +4,6 @@ import anndata
 import numpy as np
 import pandas
 from tqdm import tqdm
-from statsmodels.distributions.empirical_distribution import ECDF
-
 
 def _get_means_perms(adata: anndata.AnnData,
                      lr_res: pandas.DataFrame,
@@ -112,7 +110,7 @@ def _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, agg_fun,
     ligand_perm_means = perms[:, labels_pos[x.source], ligand_pos[x.ligand]]
     receptor_perm_means = perms[:, labels_pos[x.target], receptor_pos[x.receptor]]
     lr_perm_score = agg_fun(ligand_perm_means, receptor_perm_means)
-
-    p_value = (1 - ECDF(lr_perm_score)(lr_score))
+    
+    p_value = np.sum(lr_perm_score >= lr_score) / perms.shape[0] # n_perms
 
     return lr_score, p_value
