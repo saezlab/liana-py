@@ -1,5 +1,5 @@
 from liana.method._Method import Method, MethodMeta
-from ._cellphonedb import _simple_mean
+from numpy import mean
 
 
 def _connectome_score(x) -> tuple:
@@ -9,7 +9,7 @@ def _connectome_score(x) -> tuple:
     Parameters
     ----------
     x
-        DataFrame row
+        DataFrame
 
     Returns
     -------
@@ -17,9 +17,10 @@ def _connectome_score(x) -> tuple:
 
     """
     # magnitude
-    expr_prod = x.ligand_means * x.receptor_means
+    expr_prod = x['ligand_means'].values * x['receptor_means'].values
+    
     # specificity
-    scaled_weight = _simple_mean(x.ligand_zscores, x.receptor_zscores)
+    scaled_weight = mean((x['ligand_zscores'].values, x['receptor_zscores'].values), axis=0)
     return expr_prod, scaled_weight
 
 

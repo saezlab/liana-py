@@ -1,5 +1,5 @@
 from liana.method._Method import Method, MethodMeta
-from .._pipe_utils._get_mean_perms import _get_lr_pvals
+from liana.method._pipe_utils._get_mean_perms import _get_lr_pvals
 
 
 # simplified/resource-generalizable cellchat probability score

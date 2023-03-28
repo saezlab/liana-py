@@ -1,5 +1,6 @@
 import pandas
 from numpy import max, min
+from numpy.testing import assert_almost_equal
 
 from liana.method import cellphonedb, singlecellsignalr as sca, \
     natmi, connectome, logfc, geometric_mean, cellchat
@@ -67,10 +68,10 @@ def test_natmi():
 
     assert 'expr_prod' in liana_res.columns
     assert 'spec_weight' in liana_res.columns
-    assert max(liana_res[(liana_res.ligand == "TIMP1")].spec_weight) == 0.0604750001773605
-    assert max(liana_res[(liana_res.ligand == "TIMP1")].expr_prod) == 4.521420922884062
-    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['spec_weight'].max() == 0.03480120361979308
-    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['expr_prod'].max() == 1.9646283122925752
+    assert_almost_equal(max(liana_res[(liana_res.ligand == "TIMP1")].spec_weight), 0.0604750001773605, decimal=6)
+    assert_almost_equal(max(liana_res[(liana_res.ligand == "TIMP1")].expr_prod), 4.521420922884062, decimal=6)
+    assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['spec_weight'].max(), 0.03480120361979308, decimal=6)
+    assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['expr_prod'].max(), 1.9646283122925752, decimal=6)
 
 
 def test_sca():
@@ -83,8 +84,8 @@ def test_sca():
     assert isinstance(liana_res, pandas.DataFrame)
 
     assert 'lrscore' in liana_res.columns
-    assert max(liana_res[(liana_res.ligand == "TIMP1")].lrscore) == 0.781133536891427
-    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['lrscore'].max() == 0.7017243729003677
+    assert_almost_equal(max(liana_res[(liana_res.ligand == "TIMP1")].lrscore), 0.781133536891427, decimal=6)
+    assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['lrscore'].max(), 0.7017243729003677, decimal=6)
 
 
 def test_logfc():
@@ -97,8 +98,8 @@ def test_logfc():
     assert isinstance(liana_res, pandas.DataFrame)
 
     assert 'lr_logfc' in liana_res.columns
-    assert max(liana_res[(liana_res.ligand == "TIMP1")].lr_logfc) == 1.4352725744247437
-    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['lr_logfc'].max() == 1.0422011613845825
+    assert_almost_equal(max(liana_res[(liana_res.ligand == "TIMP1")].lr_logfc), 1.4352725744247437, decimal=6)
+    assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['lr_logfc'].max(), 1.0422011613845825, decimal=6)
 
 
 def test_connectome():
@@ -111,10 +112,10 @@ def test_connectome():
 
     assert 'expr_prod' in liana_res.columns
     assert 'scaled_weight' in liana_res.columns
-    assert max(liana_res[(liana_res.ligand == "TIMP1")].scaled_weight) == 0.9669451713562012
-    assert max(liana_res[(liana_res.ligand == "TIMP1")].expr_prod) == 4.521420922884062
-    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['scaled_weight'].max() == 0.9002860486507416
-    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['expr_prod'].max() == 1.9646283122925752
+    assert_almost_equal(max(liana_res[(liana_res.ligand == "TIMP1")].scaled_weight), 0.9669451713562012, decimal=6)
+    assert_almost_equal(max(liana_res[(liana_res.ligand == "TIMP1")].expr_prod), 4.521420922884062, decimal=6)
+    assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['scaled_weight'].max(), 0.9002860486507416, decimal=6)
+    assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['expr_prod'].max(), 1.9646283122925752, decimal=6)
     
 
 
