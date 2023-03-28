@@ -6,7 +6,7 @@ import pandas
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
 from ..resource import select_resource, explode_complexes
-from liana.method._pipe_utils._get_mean_perms import _get_means_perms
+from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_positions
 from liana.method._pipe_utils._aggregate import _aggregate
 
 import scanpy as sc
@@ -458,14 +458,15 @@ def _run_method(lr_res: pandas.DataFrame,
         agg_fun = np.mean
 
     if _score.permute:
-        perms, ligand_pos, receptor_pos, labels_pos = \
-            _get_means_perms(adata=adata,
-                             lr_res=lr_res,
-                             n_perms=n_perms,
-                             seed=seed,
-                             agg_fun=agg_fun,
-                             norm_factor=norm_factor,
-                             verbose=verbose)
+        perms = _get_means_perms(adata=adata,
+                                 n_perms=n_perms,
+                                 seed=seed,
+                                 agg_fun=agg_fun,
+                                 norm_factor=norm_factor,
+                                 verbose=verbose)
+        ligand_pos, receptor_pos, labels_pos = _get_positions(adata, lr_res)
+        
+        
         lr_res[[_score.magnitude, _score.specificity]] = \
             lr_res.apply(_score.fun, axis=1, result_type="expand",
                          perms=perms, ligand_pos=ligand_pos,
