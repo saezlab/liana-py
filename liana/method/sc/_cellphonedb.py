@@ -1,5 +1,7 @@
+import numpy as np
+
 from liana.method._Method import Method, MethodMeta
-from .._pipe_utils._get_mean_perms import _get_lr_pvals
+from liana.method._pipe_utils._get_mean_perms import _get_lr_pvals
 
 
 def _simple_mean(x, y): return (x + y) / 2
@@ -13,7 +15,7 @@ def _cpdb_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
     Parameters
     ----------
     x
-        DataFrame row
+        DataFrame with LIANA results
     perms
         3D tensor with permuted averages per cluster
     ligand_pos
@@ -28,10 +30,28 @@ def _cpdb_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
     A tuple with lr_mean and p-value for x
 
     """
-    if (x.ligand_means == 0) | (x.receptor_means == 0):
-        return 0, 1
+    zero_msk = ((x['ligand_means'] == 0) | (x['receptor_means'] == 0))
+    lr_means = np.mean((x['ligand_means'].values, x['receptor_means'].values), axis=0)
+    lr_means[zero_msk] = 0
+    
+    # we have lr_scores
+    
+    # we want to now get permutated lr_scores
+    # all at the same time
+    ligand_idx = x['ligand'].map(ligand_pos)
+    receptor_idx = x['receptor'].map(receptor_pos)
+    source_idx = x['source'].map(labels_pos)
+    target_idx = x['target'].map(labels_pos)
+    
+    ligand_perm_means = perms[:, source_idx, ligand_idx]
+    receptor_perm_means = perms[:, target_idx, receptor_idx]
+    lr_perm_means = (ligand_perm_means + receptor_perm_means) / 2
+    
+    # calculate p-values
+    n_perms = perms.shape[0]
+    p_values = np.sum(np.greater_equal(lr_perm_means, lr_means), axis=0) / n_perms
 
-    return _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, _simple_mean)
+    return lr_means, p_values
 
 
 # Initialize CPDB Meta

@@ -467,14 +467,17 @@ def _run_method(lr_res: pandas.DataFrame,
         ligand_pos, receptor_pos, labels_pos = _get_positions(adata, lr_res)
         
         
-        lr_res[[_score.magnitude, _score.specificity]] = \
-            lr_res.apply(_score.fun, axis=1, result_type="expand",
-                         perms=perms, ligand_pos=ligand_pos,
-                         receptor_pos=receptor_pos, labels_pos=labels_pos)
+        scores = _score.fun(lr_res, 
+                             perms=perms,
+                             ligand_pos=ligand_pos,
+                             receptor_pos=receptor_pos,
+                             labels_pos=labels_pos
+                             )
     else:  # non-perm funs
         scores = _score.fun(lr_res)
-        lr_res.loc[:,_score.magnitude] = scores[0]
-        lr_res.loc[:,_score.specificity] = scores[1]
+        
+    lr_res.loc[:,_score.magnitude] = scores[0]
+    lr_res.loc[:,_score.specificity] = scores[1]
         
 
     if return_all_lrs:

@@ -88,11 +88,11 @@ def _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, score_fun,
         DataFrame row
     perms
         3D tensor with permuted averages per cluster
-    ligand_pos
+    ligand_idx
         Index of the ligand in the tensor
-    receptor_pos
+    receptor_idx
         Index of the receptor in the perms tensor
-    labels_pos
+    labels_idx
         Index of cell identities in the perms tensor
     score_fun
         function to aggregate the ligand and receptor into score
@@ -102,11 +102,13 @@ def _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, score_fun,
     A tuple with lr_score (aggregated according to `agg_fun`) and p-value for x
 
     """
-    # actual lr_score
+    # TODO change to be done on full columns
+    # actual lr_scores
     lr_score = score_fun(x[ligand_col], x[receptor_col])
 
-    if lr_score == 0:
-        return 0, 1
+    # # TODO change into mask
+    # if lr_score == 0:
+    #     return 0, 1
 
     # TODO get all indices at once
     # Permutations lr mean

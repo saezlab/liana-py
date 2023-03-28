@@ -39,8 +39,8 @@ def test_cellphonedb():
 
     assert 'lr_means' in liana_res.columns
     assert 'cellphone_pvals' in liana_res.columns
-    assert max(liana_res[(liana_res.ligand == "TIMP1")].lr_means) == 2.134743630886078
-    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['lr_means'].max() == 1.4035000205039978
+    assert_almost_equal(max(liana_res[(liana_res.ligand == "TIMP1")].lr_means), 2.134743630886078, decimal=6)
+    assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['lr_means'].max(), 1.4035000205039978, decimal=6)
     assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['cellphone_pvals'].mean() == 0.4
 
 
