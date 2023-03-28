@@ -1,14 +1,8 @@
 import numpy as np
-
 from liana.method._Method import Method, MethodMeta
-from liana.method._pipe_utils._get_mean_perms import _get_lr_pvals
-
-
-def _simple_mean(x, y): return (x + y) / 2
-
 
 # Internal Function to calculate CellPhoneDB LR_mean and p-values
-def _cpdb_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
+def _cpdb_score(x, perm_stats) -> tuple:
     """
     Calculate CellPhoneDB-like LR means and p-values
     
@@ -18,12 +12,14 @@ def _cpdb_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
         DataFrame with LIANA results
     perms
         3D tensor with permuted averages per cluster
-    ligand_pos
-        Index of the ligand in the tensor
-    receptor_pos
+    ligand_idx
+        Index of the ligand in the perms tensor
+    receptor_idx
         Index of the receptor in the perms tensor
-    labels_pos
-        Index of cell identities in the perms tensor
+    source_idx
+        Index of the source cell identity in the perms tensor
+    target_idx
+        Index of the target cell identity in the perms tensor
 
     Returns
     -------
@@ -33,22 +29,10 @@ def _cpdb_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
     zero_msk = ((x['ligand_means'] == 0) | (x['receptor_means'] == 0))
     lr_means = np.mean((x['ligand_means'].values, x['receptor_means'].values), axis=0)
     lr_means[zero_msk] = 0
-    
-    # we have lr_scores
-    
-    # we want to now get permutated lr_scores
-    # all at the same time
-    ligand_idx = x['ligand'].map(ligand_pos)
-    receptor_idx = x['receptor'].map(receptor_pos)
-    source_idx = x['source'].map(labels_pos)
-    target_idx = x['target'].map(labels_pos)
-    
-    ligand_perm_means = perms[:, source_idx, ligand_idx]
-    receptor_perm_means = perms[:, target_idx, receptor_idx]
-    lr_perm_means = (ligand_perm_means + receptor_perm_means) / 2
+    lr_perm_means = np.mean(perm_stats, axis=0)
     
     # calculate p-values
-    n_perms = perms.shape[0]
+    n_perms = perm_stats.shape[1]
     p_values = np.sum(np.greater_equal(lr_perm_means, lr_means), axis=0) / n_perms
 
     return lr_means, p_values

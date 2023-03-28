@@ -13,7 +13,7 @@ expected_shape = adata.shape
 
 
 def test_cellchat():
-    cellchat(adata, groupby='bulk_labels', use_raw=True, n_perms=2)
+    cellchat(adata, groupby='bulk_labels', use_raw=True, n_perms=4)
 
     assert adata.shape == expected_shape
     assert 'liana_res' in adata.uns.keys()
@@ -25,11 +25,11 @@ def test_cellchat():
     assert 'cellchat_pvals' in liana_res.columns
     assert max(liana_res[(liana_res.ligand == "TIMP1")].lr_probs) == 0.20561589810421071
     assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['lr_probs'].max() == 0.10198416583005679
-    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['cellchat_pvals'].mean() == 0.47
+    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['cellchat_pvals'].mean() == 0.5125
 
 
 def test_cellphonedb():
-    cellphonedb(adata, groupby='bulk_labels', use_raw=True, n_perms=2)
+    cellphonedb(adata, groupby='bulk_labels', use_raw=True, n_perms=4)
 
     assert adata.shape == expected_shape
     assert 'liana_res' in adata.uns.keys()
@@ -41,11 +41,11 @@ def test_cellphonedb():
     assert 'cellphone_pvals' in liana_res.columns
     assert_almost_equal(max(liana_res[(liana_res.ligand == "TIMP1")].lr_means), 2.134743630886078, decimal=6)
     assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['lr_means'].max(), 1.4035000205039978, decimal=6)
-    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['cellphone_pvals'].mean() == 0.4
+    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['cellphone_pvals'].mean() == 0.415
 
 
 def test_geometric_mean():
-    geometric_mean(adata, groupby='bulk_labels', use_raw=True, n_perms=2)
+    geometric_mean(adata, groupby='bulk_labels', use_raw=True, n_perms=4)
 
     assert adata.shape == expected_shape
     assert 'liana_res' in adata.uns.keys()
@@ -55,9 +55,9 @@ def test_geometric_mean():
 
     assert 'lr_gmeans' in liana_res.columns
     assert 'gmean_pvals' in liana_res.columns
-    assert max(liana_res[(liana_res.ligand == "TIMP1")].lr_gmeans) == 2.126363309240465
-    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['lr_gmeans'].max() == 1.4016519940029961
-    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['gmean_pvals'].mean() == 0.5
+    assert_almost_equal(max(liana_res[(liana_res.ligand == "TIMP1")].lr_gmeans), 2.126363309240465, decimal=6)
+    assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['lr_gmeans'].max(), 1.4016519940029961, decimal=6)
+    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['gmean_pvals'].mean() == 0.5125
 
 
 def test_natmi():

@@ -6,7 +6,7 @@ import pandas
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
 from ..resource import select_resource, explode_complexes
-from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_positions
+from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
 from liana.method._pipe_utils._aggregate import _aggregate
 
 import scanpy as sc
@@ -458,23 +458,26 @@ def _run_method(lr_res: pandas.DataFrame,
         agg_fun = np.mean
 
     if _score.permute:
+        # get permutations
         perms = _get_means_perms(adata=adata,
                                  n_perms=n_perms,
                                  seed=seed,
                                  agg_fun=agg_fun,
                                  norm_factor=norm_factor,
                                  verbose=verbose)
-        ligand_pos, receptor_pos, labels_pos = _get_positions(adata, lr_res)
+        # get tensor indexes for ligand, receptor, source, target
+        ligand_idx, receptor_idx, source_idx, target_idx = _get_mat_idx(adata, lr_res)
         
+        # ligand and receptor perms
+        ligand_stat_perms = perms[:, source_idx, ligand_idx]
+        receptor_stat_perms = perms[:, target_idx, receptor_idx]
+        # stack them together
+        perm_stats = np.stack((ligand_stat_perms, receptor_stat_perms), axis=0)
         
-        scores = _score.fun(lr_res, 
-                             perms=perms,
-                             ligand_pos=ligand_pos,
-                             receptor_pos=receptor_pos,
-                             labels_pos=labels_pos
-                             )
+        scores = _score.fun(x=lr_res,
+                            perm_stats=perm_stats)
     else:  # non-perm funs
-        scores = _score.fun(lr_res)
+        scores = _score.fun(x=lr_res)
         
     lr_res.loc[:,_score.magnitude] = scores[0]
     lr_res.loc[:,_score.specificity] = scores[1]

@@ -1,15 +1,16 @@
+import numpy as np
 from liana.method._Method import Method, MethodMeta
-from liana.method._pipe_utils._get_mean_perms import _get_lr_pvals
 
 
 # simplified/resource-generalizable cellchat probability score
-def _lr_probability(ligand_trimean, receptor_trimean):
-    lr_prob = ligand_trimean * receptor_trimean
+def _lr_probability(perm_stats, axis=0):
+    lr_prob = np.product(perm_stats, axis=axis)
+    
     return lr_prob / (0.5 + lr_prob)  # Kh=0.5
 
 
 # Internal Function to calculate CellPhoneDB LR_mean and p-values
-def _cellchat_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
+def _cellchat_score(x, perm_stats) -> tuple:
     """
     Calculate CellChat-like LR means and p-values
 
@@ -31,14 +32,14 @@ def _cellchat_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
     A tuple with lr_mean and pvalue for x
 
     """
-    return _get_lr_pvals(x=x,
-                         perms=perms,
-                         ligand_pos=ligand_pos,
-                         receptor_pos=receptor_pos,
-                         labels_pos=labels_pos,
-                         agg_fun=_lr_probability,
-                         ligand_col='ligand_trimean',
-                         receptor_col='receptor_trimean')
+    lr_prob = _lr_probability((x['ligand_trimean'].values, x['receptor_trimean'].values))
+    lr_perm_means = _lr_probability(perm_stats)
+    
+    # calculate p-values
+    n_perms = perm_stats.shape[1]
+    cellchat_pvals = np.sum(np.greater_equal(lr_perm_means, lr_prob), axis=0) / n_perms
+    
+    return lr_prob, cellchat_pvals
 
 
 # Initialize CellChat Meta
