@@ -14,7 +14,7 @@ def _gmean_score(x, perm_stats) -> tuple:
     x
         DataFrame with LIANA results
     perm_stats
-        Permutation statistics (2 (ligand-receptor), n_perms (number of permutations, n_rows in lr_res)
+        Permutation statistics with shape (2 (ligand-receptor), n_perms (number of permutations), n_rows (in lr_res)
 
     Returns
     -------
