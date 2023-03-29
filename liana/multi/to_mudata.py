@@ -389,5 +389,10 @@ def _process_meta(adata, mdata, sample_key, obs_keys):
         if metadata.shape[0] != sample_n:
             raise ValueError('`obs_keys` must be unique per sample in `adata.obs`')
         
-        mdata.obs.index.name = sample_key
-        mdata.obs = mdata.obs.reset_index().merge(metadata).set_index(sample_key)
+        mdata.obs.index.name = None
+        mdata.obs = (mdata.obs.
+                     reset_index().
+                     rename(columns={"index":sample_key}).
+                     merge(metadata).
+                     set_index(sample_key)
+                     )
