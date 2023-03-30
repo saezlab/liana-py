@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 from liana.method._Method import MethodMeta
 from liana.method._liana_pipe import liana_pipe
 
 from anndata import AnnData
-from pandas import DataFrame, concat
+from pandas import DataFrame
 from typing import Optional
 
 
@@ -62,7 +64,7 @@ class AggregateClass(MethodMeta):
                  layer: Optional[str] = None,
                  de_method='t-test',
                  verbose: Optional[bool] = False,
-                 n_perms: int = 1000,
+                 n_perms: int | None = 1000 ,
                  seed: int = 1337,
                  resource: Optional[DataFrame] = None,
                  inplace=True
@@ -105,7 +107,8 @@ class AggregateClass(MethodMeta):
             Verbosity flag
         n_perms
             Number of permutations for the permutation test. Note that this is relevant
-            only for permutation-based methods - e.g. `CellPhoneDB`
+            only for permutation-based methods - e.g. `CellPhoneDB`. If `None` is passed, 
+            no permutation testing is performed. Thus, specificity_rank is not returned. 
         seed
             Random seed for reproducibility.
         resource

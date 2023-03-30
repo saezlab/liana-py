@@ -224,7 +224,8 @@ class Method(MethodMeta):
             Verbosity flag
         n_perms
             Number of permutations for the permutation test. Note that this is relevant
-            only for permutation-based methods - e.g. `CellPhoneDB`
+            only for permutation-based methods - e.g. `CellPhoneDB`. If `None` is passed, 
+            no permutation testing is performed.
         seed
             Random seed for reproducibility.
         resource
