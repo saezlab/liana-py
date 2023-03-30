@@ -4,6 +4,9 @@ import anndata
 import numpy as np
 from tqdm import tqdm
 
+import numba as nb
+
+
 def _get_means_perms(adata: anndata.AnnData,
                      n_perms: int,
                      seed: int,
@@ -37,32 +40,45 @@ def _get_means_perms(adata: anndata.AnnData,
         - labels_pos: Index of cell identities in the perms tensor
     """
 
-    # initialize rng
-    rng = np.random.default_rng(seed=seed)
-
     if isinstance(norm_factor, np.float):
         adata.X /= norm_factor
 
-    # define labels and dict
+    # define labels and masks
     labels = adata.obs.label.cat.categories
-    labels_dict = {label: adata.obs.label.isin([label]) for label in labels}
-
-    # indexes to be shuffled
-    idx = np.arange(adata.X.shape[0])
+    labels_mask = np.zeros((adata.shape[0], labels.shape[0]), dtype=bool)
+    
+    # populate masks shape(genes, labels)
+    for ct_idx, label in enumerate(labels):
+        labels_mask[:, ct_idx] = adata.obs.label == label
 
     # Perm should be a cube /w dims: n_perms x idents x n_genes
-    perms = np.zeros((n_perms, labels.shape[0], adata.shape[1]))
+    perms = _generate_perms_cube(adata.X, n_perms, labels_mask, seed, agg_fun, verbose)
+
+    return perms
+
+
+# @nb.njit(nb.float32[:,:,:](nb.float32[:,:], nb.int32[:,:], nb.float32[:]), cache=True)
+def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fun, verbose):
+    # initialize rng
+    rng = np.random.default_rng(seed=seed)
+    
+    # indexes to be shuffled
+    idx = np.arange(X.shape[0])
+
+    # Perm should be a cube /w dims: n_perms x idents x n_genes
+    perms = np.zeros((n_perms, labels_mask.shape[1], X.shape[1])) # , dtype=np.float32
 
     # Assign permuted matrix
     for perm in tqdm(range(n_perms), disable=not verbose):
         perm_idx = rng.permutation(idx)
-        perm_mat = adata.X[perm_idx]
+        perm_mat = X[perm_idx]
         # populate matrix /w permuted means
-        for cind in range(labels.shape[0]):
-            ct_mask = labels_dict[labels[cind]]
-            perms[perm, cind] = agg_fun(perm_mat[ct_mask], axis=0)
-
+        for ct_idx in range(labels_mask.shape[1]):
+            ct_mask = labels_mask[:, ct_idx]
+            perms[perm, ct_idx] = agg_fun(perm_mat[ct_mask], axis=0)
+    
     return perms
+
 
 def _get_positions(adata, lr_res):
     labels = adata.obs['label'].cat.categories
