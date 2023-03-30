@@ -19,7 +19,7 @@ def _get_means_perms(adata: anndata.AnnData,
     Parameters
     ----------
     adata
-        Annotated data matrix.
+        Annotated data matrix
     n_perms
         Number of permutations to be calculated
     seed
@@ -104,3 +104,32 @@ def _get_mat_idx(adata, lr_res):
     target_idx = lr_res['target'].map(labels_pos)
     
     return ligand_idx, receptor_idx, source_idx, target_idx
+
+
+
+def _calculate_pvals(lr_truth, perm_stats, _score_fun):
+    """
+    Calculate p-values for a given DataFrame x and permutation statistics
+
+    Parameters
+    ----------
+    x
+        DataFrame with LIANA results
+    perm_stats
+        Permutation statistics (2 (ligand-receptor), n_perms (number of permutations, n_rows in lr_res)
+
+    Returns
+    -------
+    A tuple with lr_mean and pvalue for x
+
+    """
+    # calculate p-values
+    if perm_stats is not None:
+        lr_perm_means = _score_fun(perm_stats, axis=0)
+        n_perms = perm_stats.shape[1]
+        pvals = np.sum(np.greater_equal(lr_perm_means, lr_truth), axis=0) / n_perms
+    else:
+        pvals = None
+
+    
+    return pvals

@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import gmean
 
 from liana.method._Method import Method, MethodMeta
+from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
 
 
 # Internal Function to calculate Geometric LR_mean and p-values
@@ -21,14 +22,10 @@ def _gmean_score(x, perm_stats) -> tuple:
     A tuple with lr_mean and p-value for x
 
     """
-    lr_gmean = gmean((x['ligand_means'].values, x['receptor_means'].values), axis=0)
-    lr_perm_means = gmean(perm_stats, axis=0)
+    lr_gmeans = gmean((x['ligand_means'].values, x['receptor_means'].values), axis=0)
+    gmean_pvals = _calculate_pvals(lr_gmeans, perm_stats, gmean)
     
-    # calculate p-values
-    n_perms = perm_stats.shape[1]
-    gmean_pvals = np.sum(np.greater_equal(lr_perm_means, lr_gmean), axis=0) / n_perms
-    
-    return lr_gmean, gmean_pvals
+    return lr_gmeans, gmean_pvals
 
 
 # Initialize Meta

@@ -1,5 +1,6 @@
 import numpy as np
 from liana.method._Method import Method, MethodMeta
+from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
 
 # Internal Function to calculate CellPhoneDB LR_mean and p-values
 def _cpdb_score(x, perm_stats) -> tuple:
@@ -21,13 +22,10 @@ def _cpdb_score(x, perm_stats) -> tuple:
     zero_msk = ((x['ligand_means'] == 0) | (x['receptor_means'] == 0))
     lr_means = np.mean((x['ligand_means'].values, x['receptor_means'].values), axis=0)
     lr_means[zero_msk] = 0
-    lr_perm_means = np.mean(perm_stats, axis=0)
     
-    # calculate p-values
-    n_perms = perm_stats.shape[1]
-    p_values = np.sum(np.greater_equal(lr_perm_means, lr_means), axis=0) / n_perms
+    cpdb_pvals = _calculate_pvals(lr_means, perm_stats, np.mean)
 
-    return lr_means, p_values
+    return lr_means, cpdb_pvals
 
 
 # Initialize CPDB Meta

@@ -1,5 +1,6 @@
 import numpy as np
 from liana.method._Method import Method, MethodMeta
+from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
 
 
 # simplified/resource-generalizable cellchat probability score
@@ -27,11 +28,7 @@ def _cellchat_score(x, perm_stats) -> tuple:
 
     """
     lr_prob = _lr_probability((x['ligand_trimean'].values, x['receptor_trimean'].values))
-    lr_perm_means = _lr_probability(perm_stats)
-    
-    # calculate p-values
-    n_perms = perm_stats.shape[1]
-    cellchat_pvals = np.sum(np.greater_equal(lr_perm_means, lr_prob), axis=0) / n_perms
+    cellchat_pvals = _calculate_pvals(lr_prob, perm_stats, _lr_probability)
     
     return lr_prob, cellchat_pvals
 
@@ -54,3 +51,5 @@ _cellchat = MethodMeta(method_name="CellChat",
 
 # Initialize callable Method instance
 cellchat = Method(_SCORE=_cellchat)
+
+
