@@ -22,8 +22,6 @@ class AggregateClass(MethodMeta):
                          )
         self._SCORE = _SCORE
         self.methods = methods
-        self.steady = 'steady_rank'
-        self.steady_ascending = True
 
         # Define sc to aggregate
         self.specificity_specs = {method.method_name: (
@@ -32,14 +30,6 @@ class AggregateClass(MethodMeta):
         self.magnitude_specs = {method.method_name: (
             method.magnitude, method.magnitude_ascending) for method in methods
             if method.magnitude is not None}
-
-        # If SingleCellSignalR is in there also add it to calculate method; TODO just remove this
-        methods_by_name = {method.method_name: method for method in methods}
-        if 'SingleCellSignalR' in methods_by_name.keys():
-            self.steady_specs = self.specificity_specs.copy()
-            self.steady_specs['SingleCellSignalR'] = \
-                (methods_by_name['SingleCellSignalR'].magnitude,
-                 methods_by_name['SingleCellSignalR'].magnitude_ascending)
 
         # Define additional columns needed depending on the methods to be run
         self.add_cols = list(
@@ -52,13 +42,9 @@ class AggregateClass(MethodMeta):
     def describe(self):
         """Briefly described the method"""
         print(
-            f"{self.method_name} returns `{self.magnitude}`, `{self.specificity}`,"
-            f" and `{self.steady}`. "
-            f"{self.magnitude} and {self.specificity} represent an aggregate of the "
+            f"{self.method_name} returns `{self.magnitude}`, `{self.specificity}`."
+            f"{self.magnitude} and {self.specificity} respectively represent an aggregate of the "
             f"`magnitude`- and `specificity`-related scoring functions from the different methods."
-            f"{self.steady} (DEPRECATED) represents one scoring function from each method intended"
-            f" to prioritize ligand-receptor interactions in steady-state data, "
-            f"regardless if they represent `specificity` or `magnitude`."
         )
 
     def __call__(self,

@@ -44,6 +44,14 @@ def test_cellphonedb():
     assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['cellphone_pvals'].mean() == 0.415
 
 
+def test_cellphonedb_none():
+    cellphonedb(adata, groupby='bulk_labels', use_raw=True, n_perms=None)
+    assert adata.shape == expected_shape
+    liana_res = adata.uns['liana_res']
+    assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['lr_means'].max(), 1.4035000205039978, decimal=6)
+    assert 'cellphone_pvals' not in liana_res.columns 
+
+
 def test_geometric_mean():
     geometric_mean(adata, groupby='bulk_labels', use_raw=True, n_perms=4)
 

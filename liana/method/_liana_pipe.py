@@ -34,7 +34,7 @@ def liana_pipe(adata: anndata.AnnData,
                _score=None,
                _methods: list = None,
                _consensus_opts: list = None,
-               _aggregate_method: str = None
+               _aggregate_method: str | None = None
                ):
     """
     Parameters
@@ -106,6 +106,9 @@ def liana_pipe(adata: anndata.AnnData,
                      'ligand_trimean', 'receptor_trimean',
                      'mat_mean', 'mat_max',
                      ]
+        
+    if n_perms is None:
+        _consensus_opts = 'Magnitude'
 
     if supp_columns is None:
         supp_columns = []
@@ -157,10 +160,15 @@ def liana_pipe(adata: anndata.AnnData,
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
 
     # Get lr results
-    lr_res = _get_lr(adata=adata, resource=resource,
-                     mat_mean=mat_mean, mat_max=mat_max,
+    lr_res = _get_lr(adata=adata,
+                     resource=resource,
+                     mat_mean=mat_mean,
+                     mat_max=mat_max,
                      relevant_cols=_key_cols + _add_cols + _complex_cols,
-                     de_method=de_method, base=base, verbose=verbose)
+                     de_method=de_method,
+                     base=base,
+                     verbose=verbose
+                     )
 
     # Mean Sums required for NATMI (note done on subunits also)
     if 'ligand_means_sums' in _add_cols:
@@ -199,7 +207,9 @@ def liana_pipe(adata: anndata.AnnData,
                 lr_res = _aggregate(lrs,
                                     consensus=_score,
                                     aggregate_method=_aggregate_method,
-                                    _key_cols=_key_cols)
+                                    _key_cols=_key_cols,
+                                    _consensus_opts=_consensus_opts,
+                                    )
             else:  # Return by method results as they are
                 return lrs
         else:  # Run the specific method in mind
@@ -459,28 +469,32 @@ def _run_method(lr_res: pandas.DataFrame,
 
     if _score.permute:
         # get permutations
-        perms = _get_means_perms(adata=adata,
-                                 n_perms=n_perms,
-                                 seed=seed,
-                                 agg_fun=agg_fun,
-                                 norm_factor=norm_factor,
-                                 verbose=verbose)
-        # get tensor indexes for ligand, receptor, source, target
-        ligand_idx, receptor_idx, source_idx, target_idx = _get_mat_idx(adata, lr_res)
-        
-        # ligand and receptor perms
-        ligand_stat_perms = perms[:, source_idx, ligand_idx]
-        receptor_stat_perms = perms[:, target_idx, receptor_idx]
-        # stack them together
-        perm_stats = np.stack((ligand_stat_perms, receptor_stat_perms), axis=0)
+        if n_perms is not None:
+            perms = _get_means_perms(adata=adata,
+                                     n_perms=n_perms,
+                                     seed=seed,
+                                     agg_fun=agg_fun,
+                                     norm_factor=norm_factor,
+                                     verbose=verbose)
+            # get tensor indexes for ligand, receptor, source, target
+            ligand_idx, receptor_idx, source_idx, target_idx = _get_mat_idx(adata, lr_res)
+            
+            # ligand and receptor perms
+            ligand_stat_perms = perms[:, source_idx, ligand_idx]
+            receptor_stat_perms = perms[:, target_idx, receptor_idx]
+            # stack them together
+            perm_stats = np.stack((ligand_stat_perms, receptor_stat_perms), axis=0)
+        else:
+            perm_stats = None
+            _score.specificity = None
         
         scores = _score.fun(x=lr_res,
                             perm_stats=perm_stats)
     else:  # non-perm funs
         scores = _score.fun(x=lr_res)
         
-    lr_res.loc[:,_score.magnitude] = scores[0]
-    lr_res.loc[:,_score.specificity] = scores[1]
+    lr_res.loc[:, _score.magnitude] = scores[0]
+    lr_res.loc[:, _score.specificity] = scores[1]
         
 
     if return_all_lrs:
