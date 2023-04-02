@@ -18,8 +18,9 @@ def _sca_score(x):
 
     """
 
-    lr_sqrt = np.sqrt(x.ligand_means) * np.sqrt(x.receptor_means)
-    return lr_sqrt / (lr_sqrt + x.mat_mean), None
+    lr_sqrt = np.sqrt(x['ligand_means']) * np.sqrt(x['receptor_means'])
+    denominator = (lr_sqrt + x.mat_mean)
+    return lr_sqrt / denominator, None
 
 
 # Initialize CPDB Meta

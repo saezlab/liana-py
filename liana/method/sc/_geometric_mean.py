@@ -1,37 +1,31 @@
+import numpy as np
 from scipy.stats import gmean
 
 from liana.method._Method import Method, MethodMeta
-from .._pipe_utils._get_mean_perms import _get_lr_pvals
-
-
-def _gmean(x, y):
-    return gmean([x, y], axis=0)
+from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
 
 
 # Internal Function to calculate Geometric LR_mean and p-values
-def _gmean_score(x, perms, ligand_pos, receptor_pos, labels_pos) -> tuple:
+def _gmean_score(x, perm_stats) -> tuple:
     """
     Calculate CellPhoneDB-like LR means and p-values
 
     Parameters
     ----------
     x
-        DataFrame row
-    perms
-        3D tensor with permuted averages per cluster
-    ligand_pos
-        Index of the ligand in the tensor
-    receptor_pos
-        Index of the receptor in the perms tensor
-    labels_pos
-        Index of cell identities in the perms tensor
+        DataFrame with LIANA results
+    perm_stats
+        Permutation statistics with shape (2 (ligand-receptor), n_perms (number of permutations), n_rows (in lr_res)
 
     Returns
     -------
-    A tuple with lr_mean and pvalue for x
+    A tuple with lr_mean and p-value for x
 
     """
-    return _get_lr_pvals(x, perms, ligand_pos, receptor_pos, labels_pos, _gmean)
+    lr_gmeans = gmean((x['ligand_means'].values, x['receptor_means'].values), axis=0)
+    gmean_pvals = _calculate_pvals(lr_gmeans, perm_stats, gmean)
+    
+    return lr_gmeans, gmean_pvals
 
 
 # Initialize Meta
