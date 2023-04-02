@@ -55,23 +55,27 @@ def _wcorr(x, y, w, wsum, rank):
 
 @nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:], nb.float32, nb.int8), cache=True)
 def _wcoex(x, y, w, wsum, method):
-        if method == 0: # pearson
-            c = _wcorr(x, y, w, wsum, False)
-        elif method == 1: # spearman
-            c = _wcorr(x, y, w, wsum, True)
-            ## Any other method
-        elif method == 2: # cosine
-            c = _wcossim(x, y, w)
-        elif method == 3: # jaccard
-            c = _wjaccard(x, y, w)
-        else: 
-            raise ValueError("method not supported")
-        return c
+    if method == 0: # pearson
+        c = _wcorr(x, y, w, wsum, False)
+    elif method == 1: # spearman
+        c = _wcorr(x, y, w, wsum, True)
+        ## Any other method
+    elif method == 2: # cosine
+        c = _wcossim(x, y, w)
+    elif method == 3: # jaccard
+        c = _wjaccard(x, y, w)
+    else: 
+        raise ValueError("method not supported")
+    return c
 
 
 # 0 = pearson, 1 = spearman 
 @nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:], nb.int8), parallel=True, cache=True)
 def _masked_coexpressions(x_mat, y_mat, weight, method):
+    x_mat = np.ascontiguousarray(x_mat)
+    y_mat = np.ascontiguousarray(y_mat)
+    weight = np.ascontiguousarray(weight)
+    
     spot_n = x_mat.shape[0]
     xy_n = x_mat.shape[1]
     
