@@ -2,7 +2,7 @@ import numpy as np
 
 def generate_toy_spatial():
     from scanpy.datasets import pbmc68k_reduced
-    from liana.method.sp._spatial_utils import get_spatial_proximity
+    from liana.method.sp._spatial_pipe import get_spatial_proximity
     
     adata = pbmc68k_reduced()
     

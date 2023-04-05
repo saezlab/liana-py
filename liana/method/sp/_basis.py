@@ -9,7 +9,7 @@ from liana.method._pipe_utils._pre import _choose_mtx_rep, _get_props
 
 from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
 
-from liana.method.sp._spatial_utils import _local_to_dataframe, _categorize, \
+from liana.method.sp._spatial_pipe import _local_to_dataframe, _categorize, \
     _simplify_cats, _encode_as_char, _get_ordered_matrix, _rename_means, _run_scores_pipeline, \
     _proximity_to_weight, _handle_proximity
     
@@ -27,21 +27,23 @@ class SpatialBivariate(_SpatialMeta):
         self._method = _method
 
     def __call__(self,
-                 mdata, 
+                 mdata,
                  function_name,
                  x_mod,
-                 y_mod, 
+                 y_mod,
+                 interactions = None,
+                 xy_separator = '^',
                  proximity_key = 'proximity',
                  mod_added = "local_scores",
                  add_categories = False, ## TODO currently very experimental
                  pvalue_method: (str | None) = None,
                  positive_only=False, ## TODO change to categorical
-                 n_perms: int = 50,
+                 n_perms: int = 100,
                  seed = 1337,
-                 nz_threshold=0,
+                 nz_threshold = 0,
                  remove_self_interactions=True,
                  proximity = None,
-                 x_use_raw=False,
+                 x_use_raw = False,
                  x_layer = None,
                  y_use_raw=False,
                  y_layer = None,
@@ -60,6 +62,9 @@ class SpatialBivariate(_SpatialMeta):
             Name of the modality to use as x
         y_mod : str
             Name of the modality to use as y
+        interactions : list of tuples
+            Interactions to use for the local analysis. If None, all pairwise combinations of all variables in x and y will be used.
+            Note that this may be very computationally expensive when working with modalities with many variables.
         proximity_key : str
             Key to use to retrieve the proximity matrix from adata.obsp.
         mod_added : str
@@ -113,6 +118,12 @@ class SpatialBivariate(_SpatialMeta):
         ydata = mdata[y_mod]
         ydata.X = _choose_mtx_rep(ydata, use_raw = y_use_raw, layer = y_layer)
         
+        if interactions is None:
+            interactions = list(product(xdata.var_names, ydata.var_names))
+        
+        interactions = pd.DataFrame(interactions, columns=['x_entity', 'y_entity'])
+        
+        
         proximity = _handle_proximity(mdata, proximity, proximity_key)
         local_fun = _handle_functions(function_name)
         weight = _proximity_to_weight(proximity, local_fun)
@@ -124,15 +135,11 @@ class SpatialBivariate(_SpatialMeta):
         x_stats = _rename_means(_anndata_to_stats(xdata, nz_threshold), entity='x')
         y_stats = _rename_means(_anndata_to_stats(ydata, nz_threshold), entity='y')
         
-        xy_stats = pd.DataFrame(list(product(x_stats['x_entity'], 
-                                            y_stats['y_entity'])
-                                    ),
-                                columns=['x_entity', 'y_entity'])
         
         # join global stats to LRs from resource
-        xy_stats = xy_stats.merge(x_stats).merge(y_stats)
+        xy_stats = interactions.merge(x_stats).merge(y_stats)
         
-        xy_stats['interaction'] = xy_stats['x_entity'] + '&' + xy_stats['y_entity']
+        xy_stats['interaction'] = xy_stats['x_entity'] + xy_separator + xy_stats['y_entity']
         
         if remove_self_interactions:
             xy_stats = xy_stats[xy_stats['x_entity'] != xy_stats['y_entity']]
@@ -197,12 +204,14 @@ basis = SpatialBivariate(_basis_meta)
 
 
 def _anndata_to_stats(adata, nz_thr=0.1):
-    adata.X = csr_matrix(adata.X) ## TODO change to ~prep_check_adata (but not for gene expression alone)
+    adata.X = csr_matrix(adata.X, dtype=np.float32) ## TODO change to ~prep_check_adata (but not for gene expression alone)
     
     global_stats = pd.DataFrame({'means': adata.X.mean(axis=0).A.flatten(),
                                  'non_zero': _get_props(adata.X)},
                                 index=adata.var_names)
-    global_stats = global_stats.reset_index().rename(columns={'index': 'entity'}).rename(columns={'interaction': 'entity'})
+    
+    global_stats.index.name = None
+    global_stats = global_stats.reset_index().rename(columns={'index': 'entity'})
     global_stats = global_stats[global_stats['non_zero'] >= nz_thr]
 
     return global_stats
