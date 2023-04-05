@@ -1,7 +1,7 @@
 import numpy as np
 from liana.testing._sample_anndata import generate_toy_mdata
 
-from liana.method.sp._spatial_pipe import basis
+from liana.method.sp._basis import basis
 
 def test_morans():
     mdata = generate_toy_mdata()    
