@@ -47,10 +47,11 @@ def _sign_coherent_mean(x):
     
 def generate_lr_geneset(resource,
                         net, 
-                        ligand='ligand',
-                        receptor='receptor',
-                        lr_separator='&',
-                        source='source', 
+                        ligand_key='ligand',
+                        receptor_key='receptor',
+                        lr_separator='^',
+                        source='source',
+                        target='target',
                         weight='weight'):
     """
     Generate a ligand-receptor gene set from a resource and a network.
@@ -75,6 +76,7 @@ def generate_lr_geneset(resource,
     source : str, optional
         Name of the source column in the network, by default 'source'
     weight : str, optional
+        Name of the weight column in the network, by default 'weight'. If None, all weights are set to 1.
     
     Returns
     -------
@@ -83,23 +85,25 @@ def generate_lr_geneset(resource,
     - weight: mean weight of the interaction
     - source: source of the interaction
     """
+    if weight is None:
+        weight = 'weight'
+        net[weight] = 1
     
     # supp keys
-    ligand_weight = ligand + '_' + weight
-    receptor_weight = receptor + '_' + weight
-    ligand_source = ligand + '_' + source
-    receptor_source = receptor + '_' + source
-    
+    ligand_weight = ligand_key + '_' + weight
+    receptor_weight = receptor_key + '_' + weight
+    ligand_source = ligand_key + '_' + source
+    receptor_source = receptor_key + '_' + source
     
     # assign weights to each entity
-    ligand_weights = _assign_entity_weights(resource, net, entity_key=ligand)
+    ligand_weights = _assign_entity_weights(resource, net, source=source, target=target, entity_key=ligand_key)
     ligand_weights.rename(columns={weight: ligand_weight, source:ligand_source}, inplace=True)
-    receptor_weights = _assign_entity_weights(resource, net, entity_key=receptor)
+    receptor_weights = _assign_entity_weights(resource, net, source=source, target=target, entity_key=receptor_key)
     receptor_weights.rename(columns={weight: receptor_weight, source: receptor_source}, inplace=True)
     
     # join weights to the the ligand-receptor resource
-    resource = resource.merge(ligand_weights, on=ligand, how='inner')
-    resource = resource.merge(receptor_weights, on=receptor, how='inner')
+    resource = resource.merge(ligand_weights, on=ligand_key, how='inner')
+    resource = resource.merge(receptor_weights, on=receptor_key, how='inner')
     
     # keep only coherent ligand and receptor sources
     resource = resource[resource[ligand_source] == resource[receptor_source]]
@@ -107,7 +111,7 @@ def generate_lr_geneset(resource,
     resource.loc[:, weight] = resource.apply(lambda x: _sign_coherent_mean(np.array([x[ligand_weight], x[receptor_weight]])), axis=1)
     
     # unite ligand-receptor columns
-    resource = resource.assign(interaction = lambda x: x[ligand] + lr_separator + x[receptor])
+    resource = resource.assign(interaction = lambda x: x[ligand_key] + lr_separator + x[receptor_key])
     
     # keep only relevant columns
     resource = resource[[ligand_source, 'interaction', weight]].rename(columns={ligand_source: source})
