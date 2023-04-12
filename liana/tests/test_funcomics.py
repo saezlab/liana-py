@@ -25,4 +25,18 @@ def test_generate_lr_resource():
     assert lr_net['source'].nunique() == 14
     
     # check the weight of a specific interaction
-    assert lr_net[lr_net['interaction'] == 'LAMB3&ITGAV_ITGB8']['weight'].values[0] == 3.6229854822158813
+    assert lr_net[lr_net['interaction'] == 'LAMB3^ITGAV_ITGB8']['weight'].values[0] == 3.6229854822158813
+    
+    
+def test_generate_nondefault_lr_resource():
+    """Test generate_lr_resource."""
+    # load data
+    net = dc.get_progeny(top=1000, organism='human')
+    net.drop(columns=['weight'], inplace=True)
+    net.rename(columns={'source': 'tf', 'target': 'genesymbol'}, inplace=True)
+    
+    resource = select_resource('consensus')
+    
+    lr_net = generate_lr_geneset(resource, net, source='tf', weight=None, target='genesymbol')
+    assert lr_net.shape[0] == 295
+    assert max(lr_net['weight']) == 1
