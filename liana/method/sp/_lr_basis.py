@@ -33,6 +33,8 @@ class SpatialLR(_SpatialMeta):
                  adata: AnnData,
                  function_name: str,
                  proximity_key = 'proximity',
+                 key_added='global_res',
+                 obsm_added='local_scores',
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.05,
                  pvalue_method: (str | None) = None,
@@ -55,6 +57,10 @@ class SpatialLR(_SpatialMeta):
             Name of the resource to be loaded and use for ligand-receptor inference.
         proximity_key: str
             Key to use to retrieve the proximity matrix from adata.obsp.
+        key_added : str
+            Key to use to store the results in adata.uns.
+        obsm_added : str
+            Key to use to store the results in adata.obsm.
         expr_prop
             Minimum expression proportion for the ligands/receptors (and their subunits).
              Set to `0` to return unfiltered results.
@@ -176,8 +182,8 @@ class SpatialLR(_SpatialMeta):
                                  )
             
         if inplace:
-            adata.uns['global_res'] = lr_res
-            adata.obsm['local_scores'] = local_scores
+            adata.uns[key_added] = lr_res
+            adata.obsm[obsm_added] = local_scores
             if pvalue_method is not None:
                 adata.obsm['local_pvals'] = local_pvals
 

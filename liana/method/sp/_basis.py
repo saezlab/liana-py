@@ -35,6 +35,7 @@ class SpatialBivariate(_SpatialMeta):
                  xy_separator = '^',
                  proximity_key = 'proximity',
                  mod_added = "local_scores",
+                 key_added = 'global_res',
                  add_categories = False, ## TODO currently very experimental
                  pvalue_method: (str | None) = None,
                  positive_only=False, ## TODO change to categorical
@@ -176,7 +177,7 @@ class SpatialBivariate(_SpatialMeta):
             return xy_stats, local_scores, local_pvals
             
         # save to uns
-        mdata.uns['global_res'] = xy_stats
+        mdata.uns[key_added] = xy_stats
         
         # save as a modality
         mdata.mod[mod_added] = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
