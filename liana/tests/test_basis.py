@@ -16,18 +16,23 @@ def test_morans():
     # with perms
     basis(mdata, x_mod='adata_x', y_mod='adata_y', 
           function_name='morans', pvalue_method="permutation", n_perms=2)
-    np.testing.assert_almost_equal(np.mean(mdata.mod['local_pvals'].X), 0.7872857, decimal=2)
+    np.testing.assert_almost_equal(np.mean(mdata.obsm['local_pvals'].values), 0.7872857, decimal=6)
 
 
 def test_basis_nondefault():
     mdata = generate_toy_mdata()   
     # test different params, inplace = False
-    mdata.obsp['ones'] = np.ones((mdata.shape[0], mdata.shape[0]))
+    proximity = np.ones((mdata.shape[0], mdata.shape[0]))
+    # proximity = np.zeros((mdata.shape[0], mdata.shape[0]))
+    # np.fill_diagonal(proximity, 1)
+    mdata.obsp['ones'] = proximity
+    
     global_stats, local_scores, local_pvals = \
           basis(mdata, x_mod='adata_x', y_mod='adata_y', 
                 function_name='morans', pvalue_method="analytical", 
                 proximity_key='ones', remove_self_interactions=False,
-                x_layer = "scaled", y_layer = "scaled", inplace=False,
+                x_layer = "scaled", y_layer = "scaled", inplace=False, 
+                add_categories=True
                 )
     
     # if all are the same weights, then everything is close to 0?
@@ -35,6 +40,9 @@ def test_basis_nondefault():
     local_scores.shape == (700, 100)
     local_pvals.shape == (700, 100)
     np.testing.assert_almost_equal(np.min(np.min(local_pvals)), 0.5, decimal=2)
+    
+    categories = mdata.obsm['local_categories']
+    assert categories.values.sum() == -22400
     
     
 

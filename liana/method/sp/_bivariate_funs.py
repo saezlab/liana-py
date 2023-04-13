@@ -240,4 +240,4 @@ def _handle_functions(function_name): # TODO improve this, maybe use a dict, or 
     elif function_name == "masked_jaccard":
         return _masked_jaccard
     else:
-        raise ValueError("Function not implemented")
+        raise ValueError("The function is not implemented")

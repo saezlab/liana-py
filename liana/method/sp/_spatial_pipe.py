@@ -185,21 +185,35 @@ def _standardize_matrix(mat, local=True, axis=0):
     return mat
 
 
-def _encode_as_char(a):
+def _encode_as_char(a, weight):
     # if only positive
     if np.all(a >= 0):
-        # TODO check if axis is correct
         a = _standardize_matrix(a, local=True, axis=0)
+    
+    # to get a sign for each spot, we multiply by proximities 
+    a = a @ weight
+    
     a = np.where(a > 0, 'P', np.where(a < 0, 'N', 'Z'))
     return a
 
 
-def _categorize(x, y):
-    cat = np.core.defchararray.add(x, y)
-    return cat
+def _categorize(x_mat, y_mat, weight, idx, columns):
+    x_cats = _encode_as_char(x_mat.A, weight)
+    y_cats = _encode_as_char(y_mat.A, weight)
+    
+    # add the two categories, and simplify them to ints
+    cats = np.core.defchararray.add(x_cats, y_cats)
+    cats = _simplify_cats(cats)
+    
+    cats = _local_to_dataframe(array=cats,
+                               idx=idx,
+                               columns=columns
+                               )
+    
+    return cats
 
 
-def _simplify_cats(df):
+def _simplify_cats(cats):
     """
     This function simplifies the categories of the co-expression matrix.
     
@@ -210,8 +224,35 @@ def _simplify_cats(df):
     Note that  absence-absence is not definitive, but rather indicates that the 
     co-expression is between two genes expressed lower than their means
     """
+    cats = np.char.replace(cats, 'PP', '1')
+    cats = np.char.replace(cats, 'PN', '-1')
+    cats = np.char.replace(cats, 'NP', '-1')
+    msk = (cats!='1') * (cats!='-1')
+    cats[msk] = '0'
+    
+    return cats.astype(int)
+    
+    
+    
+    
 
-    return df.replace({r'(^*Z*$)': 0, 'NN': 0, 'PP': 1, 'PN': -1, "NP": -1})
+
+# def _simplify_cats(cats):
+#     """
+#     This function simplifies the categories of the co-expression matrix.
+    
+#     Any combination of 'P' and 'N' is replaced by '-1' (negative co-expression).
+#     Any string containing 'Z' or 'NN' is replace by 0 (undefined or absence-absence)
+#     A 'PP' is replaced by 1 (positive co-expression)
+    
+#     Note that  absence-absence is not definitive, but rather indicates that the 
+#     co-expression is between two genes expressed lower than their means
+#     """
+    
+#     cats
+    
+
+#     return cats
 
 
 def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, positive_only, seed):

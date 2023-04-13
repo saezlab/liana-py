@@ -10,7 +10,7 @@ from liana.method._pipe_utils._pre import _choose_mtx_rep, _get_props
 from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
 
 from liana.method.sp._spatial_pipe import _local_to_dataframe, _categorize, \
-    _simplify_cats, _encode_as_char, _get_ordered_matrix, _rename_means, _run_scores_pipeline, \
+    _get_ordered_matrix, _rename_means, _run_scores_pipeline, \
     _proximity_to_weight, _handle_proximity
     
 from liana.funcomics.obsm_to_adata import obsm_to_adata
@@ -75,7 +75,7 @@ class SpatialBivariate(_SpatialMeta):
         pvalue_method : str
             Method to obtain P-values: One out of ['permutation', 'analytical', None];
         positive_only : bool
-            Whether to only consider positive local scores
+            Whether to calculate p-values only for positive correlations. `True` by default.
         n_perms : int
             Number of permutations to use for the p-value calculation (when set to permutation)
         seed : int
@@ -172,6 +172,16 @@ class SpatialBivariate(_SpatialMeta):
                                  pvalue_method=pvalue_method,
                                  positive_only=positive_only,
                                  )
+            
+            
+        if add_categories:
+            local_categories = _categorize(x_mat=x_mat,
+                                           y_mat=y_mat,
+                                           weight=weight,
+                                           idx=mdata.obs.index,
+                                           columns=xy_stats.interaction,
+                                           )
+            mdata.obsm['local_categories'] = local_categories
         
         if not inplace:
             return xy_stats, local_scores, local_pvals
@@ -182,22 +192,8 @@ class SpatialBivariate(_SpatialMeta):
         # save as a modality
         mdata.mod[mod_added] = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
         
-        if local_pvals is not None: # TODO maybe categories and pvals should be saved to obsm of the modality assigned to scores?
-            mdata.mod['local_pvals'] = obsm_to_adata(adata=mdata, df=local_pvals, obsm_key=None, _uns=mdata.uns)
-
-        if add_categories: # TODO move to a pipeline
-            # TODO categorizing is currently done following standardization of the matrix
-            # i.e. each variable is standardized independently, and then a category is
-            # defined based on the values within each stop.
-            # (taking into consideration when the input is signed, but not weight or surrounding spots).
-            local_categories = _categorize(_encode_as_char(x_mat.A), _encode_as_char(y_mat.A))
-            ## TODO these to helper function that can extract multiple of these
-            # and these all saved as arrays, or alternatively saved a modalities in mudata
-            local_categories = _local_to_dataframe(array=local_categories,
-                                                   idx=mdata.obs.index,
-                                                   columns=xy_stats.interaction)
-            local_categories = _simplify_cats(local_categories)
-            mdata.mod['local_categories'] = obsm_to_adata(adata=mdata, df=local_categories, obsm_key=None, _uns=mdata.uns)
+        if local_pvals is not None: 
+            mdata.obsm['local_pvals'] = local_pvals
             
 
 
