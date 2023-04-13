@@ -40,10 +40,14 @@ def test_morans_permutation():
     np.testing.assert_almost_equal(np.mean(adata.obsm['local_pvals']['TNFSF13B&TNFRSF13B']), 0.9611128571428571, decimal=6)
 
 
-def test_morans_pval_none():
+def test_morans_pval_none_cats():
     adata = generate_toy_spatial()
-    lr_basis(adata, function_name='morans', pvalue_method=None, use_raw=True)
+    lr_basis(adata, function_name='morans', pvalue_method=None, use_raw=True, add_categories=True)
     assert 'global_res' in adata.uns_keys()
     assert 'local_scores' in adata.obsm_keys()
     # NOT IN
     assert 'local_pvals' not in adata.obsm_keys()
+    
+    assert 'local_categories' in adata.obsm_keys()
+    assert adata.obsm['local_categories'].values.sum() == -10600
+    

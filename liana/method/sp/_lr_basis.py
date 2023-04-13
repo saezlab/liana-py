@@ -14,7 +14,7 @@ from liana.method._pipe_utils._pre import _get_props
 
 from liana.method.sp._SpatialMethod import _SpatialMeta
 from liana.method.sp._spatial_pipe import _get_ordered_matrix, _rename_means, \
-    _run_scores_pipeline, _proximity_to_weight, _handle_proximity
+    _run_scores_pipeline, _proximity_to_weight, _handle_proximity, _categorize
 from liana.method.sp._bivariate_funs import _handle_functions
 
 
@@ -40,6 +40,7 @@ class SpatialLR(_SpatialMeta):
                  pvalue_method: (str | None) = None,
                  n_perms: int = 1000,
                  positive_only: bool = True, ## TODO change to categorical
+                 add_categories: bool = False,
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
                  verbose: Optional[bool] = False,
@@ -167,6 +168,16 @@ class SpatialLR(_SpatialMeta):
                                     pos=receptor_pos,
                                     order=lr_res['receptor'])
         
+        # add categories
+        if add_categories:
+            local_categories = _categorize(x_mat=x_mat,
+                                           y_mat=y_mat,
+                                           weight=weight,
+                                           idx=adata.obs.index,
+                                           columns=lr_res.interaction,
+                                           )
+            adata.obsm['local_categories'] = local_categories
+        
         # get local scores
         lr_res, local_scores, local_pvals = \
             _run_scores_pipeline(xy_stats=lr_res,
@@ -180,7 +191,7 @@ class SpatialLR(_SpatialMeta):
                                  pvalue_method=pvalue_method,
                                  positive_only=positive_only,
                                  )
-            
+        
         if inplace:
             adata.uns[key_added] = lr_res
             adata.obsm[obsm_added] = local_scores
