@@ -232,7 +232,7 @@ def _add_complexes_to_var(adata, resource):
         
         # keep only complexes, the subunits of which are in var
         if all([subunit in adata.var.index for subunit in subunits]):
-            adata.var.loc[comp,:] = None
+            adata.var.loc[comp, :] = None
 
             # create matrix for this complex
             new_array = csr_matrix(adata[:, subunits].X.min(axis=1))

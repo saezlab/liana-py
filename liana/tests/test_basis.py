@@ -55,3 +55,32 @@ def test_basis_external():
     interactions = list(product(x_vars, y_vars))
     
     basis(mdata, x_mod='adata_x', y_mod='adata_y', function_name='morans', proximity=ones, interactions=interactions)
+    
+    
+def test_masked_pearson():
+    mdata = generate_toy_mdata()
+    basis(mdata, x_mod='adata_x', y_mod='adata_y', function_name='masked_pearson')
+    
+    # check local
+    assert 'local_scores' in mdata.mod.keys()
+    mdata.mod['local_scores'].X[np.isnan(mdata.mod['local_scores'].X)]=0 # TODO fix this
+    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.mean(), 0.010296326, decimal=5)
+    
+    # check global
+    assert 'global_res' in mdata.uns.keys()
+    assert set(['global_mean','global_sd']).issubset(mdata.uns['global_res'].columns)
+    # check specific values are what we expect
+    
+
+def test_vectorized_pearson():
+    mdata = generate_toy_mdata()
+    basis(mdata, x_mod='adata_x', y_mod='adata_y', function_name='pearson')
+    
+    # check local
+    assert 'local_scores' in mdata.mod.keys()
+    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.mean(), 0.009908355, decimal=5)
+    
+    # check global
+    assert 'global_res' in mdata.uns.keys()
+    assert set(['global_mean','global_sd']).issubset(mdata.uns['global_res'].columns)
+    # check specific values are what we expect

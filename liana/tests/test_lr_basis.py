@@ -50,4 +50,3 @@ def test_morans_pval_none_cats():
     
     assert 'local_categories' in adata.obsm_keys()
     assert adata.obsm['local_categories'].values.sum() == -10600
-    

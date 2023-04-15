@@ -1,5 +1,6 @@
 import numba as nb
 import numpy as np
+import scipy.stats
 from scipy.stats import rankdata
 
 
@@ -69,7 +70,7 @@ def _wcoex(x, y, w, wsum, method):
     return c
 
 
-# 0 = pearson, 1 = spearman 
+# 0 = pearson, 1 = spearman, 2 = cosine, 3 = jaccard
 @nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:], nb.int8), parallel=True, cache=True)
 def _masked_coexpressions(x_mat, y_mat, weight, method):
     x_mat = np.ascontiguousarray(x_mat)
@@ -92,21 +93,20 @@ def _masked_coexpressions(x_mat, y_mat, weight, method):
             
             local_corrs[i, j] = _wcoex(x, y, w[msk], wsum, method)
     
-    # fix numpy/numba sum imprecision, https://github.com/numba/numba/issues/8749
-    ## TODO make sure this doesn't mask errors
+    # NOTE done due to numpy/numba sum imprecision, https://github.com/numba/numba/issues/8749
     local_corrs = np.clip(a=local_corrs, a_min=-1.0, a_max=1.0, out=local_corrs)
     
     return local_corrs.T
 
 
 @nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), cache=True)
-def _masked_pearson(x_mat, y_mat, weight):
-    return _masked_coexpressions(x_mat, y_mat, weight, method=0)
+def _masked_spearman(x_mat, y_mat, weight):
+    return _masked_coexpressions(x_mat, y_mat, weight, method=1)
 
 
 @nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), cache=True)
-def _masked_spearman(x_mat, y_mat, weight):
-    return _masked_coexpressions(x_mat, y_mat, weight, method=1)
+def _masked_pearson(x_mat, y_mat, weight):
+    return _masked_coexpressions(x_mat, y_mat, weight, method=0)
 
 
 @nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), cache=True)
@@ -133,31 +133,29 @@ def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
     # transpose
     x_mat, y_mat = x_mat.T, y_mat.T
     
-
-    weight_sums = np.sum(weight, axis = 0).flatten()
-        
+    weight_sums = np.array(np.sum(weight, axis = 0)).flatten()
+            
     if method=="spearman":
         x_mat = rankdata(x_mat, axis=1)
         y_mat = rankdata(y_mat, axis=1)
-    
+        
     # standard pearson
-    n1 = (((x_mat * y_mat).dot(weight)) * weight_sums)
-    n2 = (x_mat.dot(weight)) * (y_mat.dot(weight))
+    n1 = ((x_mat * y_mat) @ weight) * weight_sums
+    n2 = (x_mat @ weight) * (y_mat @ weight)
     numerator = n1 - n2
-    
-    denominator_x = (weight_sums * (x_mat ** 2).dot(weight)) - (x_mat.dot(weight))**2
-    denominator_y = (weight_sums * (y_mat ** 2).dot(weight)) - (y_mat.dot(weight))**2
+
+    denominator_x = (weight_sums * (x_mat ** 2 @ weight)) - (x_mat @ weight)**2
+    denominator_y = (weight_sums * (y_mat ** 2 @ weight)) - (y_mat @ weight)**2
     denominator = (denominator_x * denominator_y)
-    
+
     # numpy sum is unstable below 1e-6... 
-    # results in the denominator being smaller than the numerator
     denominator[denominator < 1e-6] = 0
     denominator = denominator ** 0.5
-    
+
     zeros = np.zeros(numerator.shape)
     local_corrs = np.divide(numerator, denominator, out=zeros, where=denominator!=0)
-    
-    # fix numpy/numba sum imprecision, https://github.com/numba/numba/issues/8749
+
+    # NOTE done due to numpy/numba sum imprecision, https://github.com/numba/numba/issues/8749
     local_corrs = np.clip(local_corrs, -1, 1, out=local_corrs, dtype=np.float32)
     
     return local_corrs
@@ -174,9 +172,9 @@ def _vectorized_spearman(x_mat, y_mat, weight):
 def _vectorized_cosine(x_mat, y_mat, weight):
     x_mat, y_mat = x_mat.T, y_mat.T    
     
-    xy_dot = (x_mat * y_mat).dot(weight)
-    x_dot = (x_mat ** 2).dot(weight.T)
-    y_dot = (y_mat ** 2).dot(weight.T)
+    xy_dot = (x_mat * y_mat) @ weight
+    x_dot = (x_mat ** 2) @ weight.T
+    y_dot = (y_mat ** 2) @ weight.T
     denominator = (x_dot * y_dot) + np.finfo(np.float32).eps
     
     return xy_dot / (denominator**0.5)
@@ -186,11 +184,11 @@ def _vectorized_jaccard(x_mat, y_mat, weight):
     # binarize
     x_mat, y_mat = x_mat > 0, y_mat > 0 ## TODO, only positive?
     # transpose
-    x_mat, y_mat = x_mat.T, y_mat.T    
+    x_mat, y_mat = x_mat.T, y_mat.T
     
     # intersect and union
-    numerator = np.dot(np.minimum(x_mat, y_mat), weight)
-    denominator = np.dot(np.maximum(x_mat, y_mat), weight) + np.finfo(np.float32).eps
+    numerator = np.minimum(x_mat, y_mat) @ weight
+    denominator = np.maximum(x_mat, y_mat) @ weight + np.finfo(np.float32).eps
     
     return numerator / denominator
 

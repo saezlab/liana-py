@@ -232,28 +232,6 @@ def _simplify_cats(cats):
     
     return cats.astype(int)
     
-    
-    
-    
-
-
-# def _simplify_cats(cats):
-#     """
-#     This function simplifies the categories of the co-expression matrix.
-    
-#     Any combination of 'P' and 'N' is replaced by '-1' (negative co-expression).
-#     Any string containing 'Z' or 'NN' is replace by 0 (undefined or absence-absence)
-#     A 'PP' is replaced by 1 (positive co-expression)
-    
-#     Note that  absence-absence is not definitive, but rather indicates that the 
-#     co-expression is between two genes expressed lower than their means
-#     """
-    
-#     cats
-    
-
-#     return cats
-
 
 def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, positive_only, seed):
     """
@@ -651,13 +629,20 @@ def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, pvalue_method,
 
 
 def _proximity_to_weight(proximity, local_fun):
-    # Format the weight matrix accordingly
+    ## TODO add tests for this
+    proximity = csr_matrix(proximity, dtype=np.float32)
+    
     if local_fun.__name__ == "_local_morans":
         norm_factor = proximity.shape[0] / proximity.sum()
-        weight = csr_matrix(norm_factor * proximity)
+        proximity = norm_factor * proximity
+        
+        return csr_matrix(proximity)
+    
+    elif (proximity.shape[0] < 5000) | local_fun.__name__ .__contains__("masked"):
+    # NOTE vectorized is facter with non-sparse, masked does not work with sparse
+            return proximity.A
     else:
-        weight = proximity.A
-    return weight
+        return csr_matrix(proximity)
 
 
 def _handle_proximity(adata, proximity, proximity_key):
