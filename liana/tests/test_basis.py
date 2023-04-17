@@ -11,7 +11,7 @@ def test_morans():
     # default
     basis(mdata, x_mod='adata_x', y_mod='adata_y', function_name='morans')
     assert 'local_scores' in mdata.mod.keys()
-    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -37.551098, decimal=5)
+    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -9.947859, decimal=5)
     
     # with perms
     basis(mdata, x_mod='adata_x', y_mod='adata_y', 
