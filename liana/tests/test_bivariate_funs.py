@@ -60,7 +60,7 @@ def test_masked_jaccard():
     _assert_bivariate(_masked_jaccard, jac_masked_truth, xmat, ymat, weight.A) # NOTE the .A is to convert to dense
 
 
-# TODO double check this with SpatialDM.... (I made a mistake in local only?)
+# NOTE: spatialdm uses raw counts
 def test_morans():
-    sp_morans_truth = np.array([-0.5419496 ,  0.45341554,  3.5817103 , -0.18734339, -2.5889277 ])
+    sp_morans_truth = np.array([-1.54256,  0.64591,  1.30025,  0.55437, -0.77182])
     _assert_bivariate(_local_morans, sp_morans_truth, xmat, ymat, weight)

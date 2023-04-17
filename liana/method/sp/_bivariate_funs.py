@@ -1,6 +1,5 @@
 import numba as nb
 import numpy as np
-import scipy.stats
 from scipy.stats import rankdata
 
 
@@ -210,7 +209,7 @@ def _local_morans(x_mat, y_mat, weight):
     """
     
     local_x = x_mat * (weight @ y_mat)
-    local_y = x_mat * (weight @ y_mat)
+    local_y = y_mat * (weight @ x_mat)
     local_r = (local_x + local_y).T
 
     return local_r

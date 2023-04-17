@@ -11,12 +11,12 @@ def test_morans():
     # default
     basis(mdata, x_mod='adata_x', y_mod='adata_y', function_name='morans')
     assert 'local_scores' in mdata.mod.keys()
-    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -124.05389, decimal=5)
+    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -37.551098, decimal=5)
     
     # with perms
     basis(mdata, x_mod='adata_x', y_mod='adata_y', 
           function_name='morans', pvalue_method="permutation", n_perms=2)
-    np.testing.assert_almost_equal(np.mean(mdata.obsm['local_pvals'].values), 0.7872857, decimal=6)
+    np.testing.assert_almost_equal(np.mean(mdata.obsm['local_pvals'].values), 0.604936507, decimal=6)
 
 
 def test_basis_nondefault():

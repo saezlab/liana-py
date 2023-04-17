@@ -178,10 +178,22 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_per
     return local_pvals
 
 
+# def _standardize_matrix(mat, local=True, axis=0):
+#     mat = np.array(mat - np.array(mat.mean(axis=axis)))
+#     if not local:
+#         mat = mat / np.sqrt(np.sum(mat ** 2, axis=axis, keepdims=True))
+#     return mat
+
+
 def _standardize_matrix(mat, local=True, axis=0):
-    mat = np.array(mat - np.array(mat.mean(axis=axis)))
+    spot_n = mat.shape[1]
+    
     if not local:
-        mat = mat / np.sqrt(np.sum(mat ** 2, axis=axis, keepdims=True))
+        spot_n = 1
+    
+    mat = np.array(mat - np.array(mat.mean(axis=axis)))
+    mat = mat / np.sqrt(np.sum(mat ** 2, axis=axis, keepdims=True) / spot_n)
+    
     return mat
 
 
@@ -578,6 +590,11 @@ def _get_local_scores(x_mat,
     if local_fun.__name__ == '_local_morans':
         x_mat = _standardize_matrix(x_mat, local=True, axis=0)
         y_mat = _standardize_matrix(y_mat, local=True, axis=0)
+        
+        # NOTE: spatialdm do this, and also use .raw by default
+        # x_mat = x_mat / np.max(x_mat, axis=0)
+        # y_mat = y_mat / np.max(y_mat, axis=0)
+        
     else:
         x_mat = x_mat.A
         y_mat = y_mat.A
@@ -638,8 +655,8 @@ def _proximity_to_weight(proximity, local_fun):
         
         return csr_matrix(proximity)
     
-    elif (proximity.shape[0] < 5000) | local_fun.__name__ .__contains__("masked"):
-    # NOTE vectorized is facter with non-sparse, masked does not work with sparse
+    elif (proximity.shape[0] < 5000) | local_fun.__name__.__contains__("masked"):
+    # NOTE vectorized is faster with non-sparse, masked_scores don't work with sparse
             return proximity.A
     else:
         return csr_matrix(proximity)
