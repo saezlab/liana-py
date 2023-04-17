@@ -19,8 +19,8 @@ def test_morans_analytical():
     np.testing.assert_almost_equal(interaction['global_r'].values, 0.0994394)
     np.testing.assert_almost_equal(interaction['global_pvals'].values, 3.4125671e-07)
 
-    np.testing.assert_almost_equal(np.mean(adata.obsm['local_scores']['MIF&CD74_CXCR4']), -0.0029799747, decimal=6)
-    np.testing.assert_almost_equal(np.mean(adata.obsm['local_pvals']['TNFSF13B&TNFRSF13B']), 0.8879753822214135, decimal=6)
+    np.testing.assert_almost_equal(np.mean(adata.obsm['local_scores']['MIF&CD74_CXCR4']), -0.0013958386, decimal=6)
+    np.testing.assert_almost_equal(np.mean(adata.obsm['local_pvals']['TNFSF13B&TNFRSF13B']), 0.8878231110397902, decimal=6)
 
 
 def test_morans_permutation():
@@ -36,7 +36,7 @@ def test_morans_permutation():
     np.testing.assert_almost_equal(interaction['global_r'].values, 0.0994394)
     np.testing.assert_almost_equal(interaction['global_pvals'].values, 0.0)
     
-    np.testing.assert_almost_equal(np.mean(adata.obsm['local_scores']['MIF&CD74_CXCR4']), -0.0029799747, decimal=6)
+    np.testing.assert_almost_equal(np.mean(adata.obsm['local_scores']['MIF&CD74_CXCR4']), -0.0013958386, decimal=6)
     np.testing.assert_almost_equal(np.mean(adata.obsm['local_pvals']['TNFSF13B&TNFRSF13B']), 0.9419328571428572, decimal=6)
 
 

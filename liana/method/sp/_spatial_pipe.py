@@ -591,7 +591,7 @@ def _get_local_scores(x_mat,
         x_mat = _standardize_matrix(x_mat, local=True, axis=0)
         y_mat = _standardize_matrix(y_mat, local=True, axis=0)
         
-        # NOTE: spatialdm do this, and also use .raw by default
+        # # NOTE: spatialdm do this, and also use .raw by default
         # x_mat = x_mat / np.max(x_mat, axis=0)
         # y_mat = y_mat / np.max(y_mat, axis=0)
         
