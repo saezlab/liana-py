@@ -176,7 +176,6 @@ class SpatialLR(_SpatialMeta):
                                            idx=adata.obs.index,
                                            columns=lr_res.interaction,
                                            )
-            adata.obsm['local_categories'] = local_categories
         
         # get local scores
         lr_res, local_scores, local_pvals = \
@@ -197,17 +196,17 @@ class SpatialLR(_SpatialMeta):
             adata.obsm[obsm_added] = local_scores
             if pvalue_method is not None:
                 adata.obsm['local_pvals'] = local_pvals
+            if add_categories:
+                adata.obsm['local_categories'] = local_categories
 
-        return None if inplace else (lr_res, local_scores, local_pvals)
+        return None if inplace else (lr_res, local_scores, local_pvals, local_categories)
 
 
 # initialize instance
 _spatial_lr = _SpatialMeta(
     method_name="SpatialDM",
     key_cols=['ligand_complex', 'receptor_complex'],
-    reference="Zhuoxuan, L.I., Wang, T., Liu, P. and Huang, Y., 2022. SpatialDM: Rapid "
-              "identification of spatially co-expressed ligand-receptor reveals cell-cell "
-              "communication patterns. bioRxiv. "
+    reference=""
 )
 
 lr_basis = SpatialLR(_method=_spatial_lr,

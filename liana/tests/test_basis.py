@@ -27,7 +27,7 @@ def test_basis_nondefault():
     # np.fill_diagonal(proximity, 1)
     mdata.obsp['ones'] = proximity
     
-    global_stats, local_scores, local_pvals = \
+    global_stats, local_scores, local_pvals, local_categories = \
           basis(mdata, x_mod='adata_x', y_mod='adata_y', 
                 function_name='morans', pvalue_method="analytical", 
                 proximity_key='ones', remove_self_interactions=False,
@@ -41,8 +41,7 @@ def test_basis_nondefault():
     local_pvals.shape == (700, 100)
     np.testing.assert_almost_equal(np.min(np.min(local_pvals)), 0.5, decimal=2)
     
-    categories = mdata.obsm['local_categories']
-    assert categories.values.sum() == -22400
+    assert local_categories.values.sum() == -22400
     
     
 
@@ -83,4 +82,3 @@ def test_vectorized_pearson():
     # check global
     assert 'global_res' in mdata.uns.keys()
     assert set(['global_mean','global_sd']).issubset(mdata.uns['global_res'].columns)
-    # check specific values are what we expect

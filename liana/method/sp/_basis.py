@@ -181,10 +181,11 @@ class SpatialBivariate(_SpatialMeta):
                                            idx=mdata.obs.index,
                                            columns=xy_stats.interaction,
                                            )
-            mdata.obsm['local_categories'] = local_categories
+        else:
+            local_categories = None
         
         if not inplace:
-            return xy_stats, local_scores, local_pvals
+            return xy_stats, local_scores, local_pvals, local_categories
             
         # save to uns
         mdata.uns[key_added] = xy_stats
@@ -192,9 +193,13 @@ class SpatialBivariate(_SpatialMeta):
         # save as a modality
         mdata.mod[mod_added] = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
         
+        # save to obsm
+        if local_categories is not None:
+            mdata.obsm['local_categories'] = local_categories
+        
         if local_pvals is not None: 
             mdata.obsm['local_pvals'] = local_pvals
-            
+    
 
 
 basis = SpatialBivariate(_basis_meta)
