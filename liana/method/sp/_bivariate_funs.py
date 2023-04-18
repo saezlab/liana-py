@@ -1,5 +1,6 @@
 import numba as nb
 import numpy as np
+import pandas as pd
 from scipy.stats import rankdata
 
 
@@ -215,26 +216,96 @@ def _local_morans(x_mat, y_mat, weight):
     return local_r
 
 
-def _handle_functions(function_name): # TODO improve this, maybe use a dict, or a class
-    function_name = function_name.lower()
-    
-    if function_name == "pearson":
-        return _vectorized_pearson
-    elif function_name == "spearman":
-        return _vectorized_spearman
-    elif function_name == "cosine":
-        return _vectorized_cosine
-    elif function_name == "jaccard":
-        return _vectorized_jaccard
-    elif function_name == "morans":
-        return _local_morans
-    elif function_name == "masked_spearman":
-        return _masked_spearman
-    elif function_name == "masked_pearson":
-        return _masked_pearson
-    elif function_name == "masked_cosine":
-        return _masked_cosine
-    elif function_name == "masked_jaccard":
-        return _masked_jaccard
-    else:
-        raise ValueError("The function is not implemented")
+class SpatialFunction:
+    """
+    Class representing information about bivariate spatial functions.
+    """
+    def __init__(self, name, metadata, local_function, reference=None):
+        self.name = name
+        self.metadata = metadata
+        self.local_function = local_function
+        self.reference = reference
+        
+    def __repr__(self):
+        return f"{self.name}: {self.metadata}"
+
+
+_bivariate_functions = [
+        SpatialFunction(
+            name="pearson",
+            metadata="weighted Pearson correlation coefficient",
+            local_function = _vectorized_pearson,
+        ),
+        SpatialFunction(
+            name="spearman",
+            metadata="weighted Spearman correlation coefficient",
+            local_function = _vectorized_spearman,
+        ),
+        SpatialFunction(
+            name="cosine",
+            metadata="weighted cosine similarity",
+            local_function = _vectorized_cosine,
+        ),
+        SpatialFunction(
+            name="jaccard",
+            metadata="weighted Jaccard similarity",
+            local_function = _vectorized_jaccard,
+        ),
+        SpatialFunction(
+            name="morans",
+            metadata="Moran's R",
+            local_function=_local_morans,
+            reference="Li, Z., Wang, T., Liu, P. and Huang, Y., 2022. SpatialDM:"
+            "Rapid identification of spatially co-expressed ligand-receptor"
+            "reveals cell-cell, communication patterns. bioRxiv, pp.2022-08."
+        ),
+        SpatialFunction(
+            name="masked_pearson",
+            metadata="Calculates masked & weighted Pearson correlation",
+            local_function=_masked_pearson,
+        ),
+        SpatialFunction(
+            name= "masked_spearman",
+            metadata="masked & weighted Spearman correlation",
+            local_function=_masked_spearman,
+            reference="Ghazanfar, S., Lin, Y., Su, X., Lin, D.M., Patrick, E., Han, Z.G., Marioni, J.C. and Yang, J.Y.H., 2020."
+            "Investigating higher-order interactions in single-cell data with scHOT. Nature methods, 17(8), pp.799-806."
+        ),
+        SpatialFunction(
+            name="masked_cosine",
+            metadata="masked & weighted cosine similarity",
+            local_function=_masked_cosine,
+        ),
+        SpatialFunction(
+            name="masked_jaccard",
+            metadata="masked & weighted Jaccard similarity",
+            local_function=_masked_jaccard,
+        ),
+    ]
+
+def show_functions():
+    """
+    Print information about all available functions in this package.
+    """
+    funs = dict()
+    for function in _bivariate_functions:
+        funs[function.name] = {
+            "metadata":function.metadata,
+            "reference":function.reference,
+            }
+        
+    return pd.DataFrame(funs).T.reset_index().rename(columns={"index":"name"})
+
+
+def _get_method_names():
+    return [function.name for function in _bivariate_functions]
+
+
+
+def _handle_functions(method_name):
+    method_name = method_name.lower()
+    for function in _bivariate_functions:
+        if function.name == method_name:
+            return function.local_function
+    raise ValueError("The function is not implemented."
+                     "Implemented functions are: {}".format(_get_method_names()))

@@ -1,7 +1,6 @@
 from ._Method import Method, MethodMeta, _show_methods
 from .sc._rank_aggregate import AggregateClass, _rank_aggregate_meta as aggregate_meta
 from .sc import cellphonedb, connectome, logfc, natmi, singlecellsignalr, geometric_mean, cellchat
-from .sp import get_spatial_proximity
 
 import numpy as np
 
