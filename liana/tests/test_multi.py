@@ -74,7 +74,7 @@ def test_adata_to_views():
                            groupby='bulk_labels',
                            sample_key='sample',
                            obs_keys=None,
-                           args={'filter_by_expr':{}, 'filter_by_prop':{}}
+                           args={'filter_by_expr':{}, 'filter_by_prop':{}},
                            min_cells=5,
                            min_counts=10,
                            mode='sum',
@@ -88,7 +88,7 @@ def test_adata_to_views():
                            groupby='bulk_labels',
                            sample_key='sample',
                            obs_keys=None,
-                           args={'filter_by_expr':{'min_count': 10}, 'filter_by_prop':{ 'min_prop':0.2, 'min_smpls':2}}
+                           args={'filter_by_expr':{'min_count': 10}, 'filter_by_prop':{ 'min_prop':0.2, 'min_smpls':2}},
                            min_cells=5,
                            min_counts=10,
                            mode='sum',
