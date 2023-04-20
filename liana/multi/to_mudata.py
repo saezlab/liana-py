@@ -40,7 +40,7 @@ def _check_if_decoupler() -> ModuleType:
     return dc
 
 
-def adata_to_views(adata, groupby, sample_key, obs_keys, view_separator=':', verbose=False, **kwargs):
+def adata_to_views(adata, groupby, sample_key, obs_keys, view_separator=':', verbose=False, args={}, **kwargs):
     """
     Converts an AnnData object to a MuData object with views that represent an aggregate for each entity in `adata.obs[groupby]`.
     
@@ -58,6 +58,8 @@ def adata_to_views(adata, groupby, sample_key, obs_keys, view_separator=':', ver
         Separator to use when assigning `adata.var_names` to views
     verbose
         If True, show progress bar.
+    args
+        A dict of argument-dicts to pass on to `dc.filter_by_expr` and `dc.filter_by_prop` to do feature-level filtering.
     **kwargs
         Keyword arguments used to aggregate the values per cell into views. See `dc.get_pseudobulk` for more details.
     
@@ -77,21 +79,33 @@ def adata_to_views(adata, groupby, sample_key, obs_keys, view_separator=':', ver
     padatas = {}
     for view in (views):
         # filter AnnData to view
-        temp = adata[adata.obs[groupby] == view]
+        temp = adata[adata.obs[groupby] == view].copy()
         # assign view to var_names
         temp.var_names = view + view_separator + temp.var_names
-        
+
         padata = dc.get_pseudobulk(temp,
                                    sample_col=sample_key,
                                    groups_col=None, 
                                    **kwargs
                                    )
         
+        # only filter genes for views that pass QC
+        if 0 in padata.shape:
+            continue
+
+        # edgeR filtering
+        if args.get('filter_by_expr') is not None:
+            padata = padata[:, dc.filter_by_expr(padata, **args['filter_by_expr'])]
+        
+        # proportion filtering
+        if args.get('filter_by_prop') is not None:
+            padata = padata[:, dc.filter_by_prop(padata, **args['filter_by_prop'])]
+
         # only append views that pass QC
         if 0 not in padata.shape:
             del padata.obs
             padatas[view] = padata
-            
+
     # Convert to MuData
     mdata = MuData(padatas)
     
