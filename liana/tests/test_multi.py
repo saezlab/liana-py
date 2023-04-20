@@ -57,8 +57,6 @@ def test_adata_to_views():
                            groupby='bulk_labels',
                            sample_key='sample',
                            obs_keys=None,
-                           min_prop=0.05,
-                           min_smpls=1,
                            min_cells=5,
                            min_counts=10,
                            mode='sum',
@@ -70,6 +68,35 @@ def test_adata_to_views():
     assert len(mdata.varm_keys())==8
     assert 'case' not in mdata.obs.columns
     assert mdata.shape == (4, 5403)
+    
+    #test feature level filtering (with default values)
+    mdata = adata_to_views(adata,
+                           groupby='bulk_labels',
+                           sample_key='sample',
+                           obs_keys=None,
+                           args={'filter_by_expr':{}, 'filter_by_prop':{}}
+                           min_cells=5,
+                           min_counts=10,
+                           mode='sum',
+                           verbose=True,
+                           use_raw=True,
+                           skip_checks=True # skip because it's log-normalized (it's OK because toydata)
+                           )
+
+    #test feature level filtering (passing arguments)
+    mdata = adata_to_views(adata,
+                           groupby='bulk_labels',
+                           sample_key='sample',
+                           obs_keys=None,
+                           args={'filter_by_expr':{'min_count': 10}, 'filter_by_prop':{ 'min_prop':0.2, 'min_smpls':2}}
+                           min_cells=5,
+                           min_counts=10,
+                           mode='sum',
+                           verbose=True,
+                           use_raw=True,
+                           skip_checks=True # skip because it's log-normalized (it's OK because toydata)
+                           )
+
     
     
     
