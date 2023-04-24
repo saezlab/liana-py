@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 from itertools import product
 from scipy.sparse import csr_matrix
+from mudata import MuData
+from anndata import AnnData
 
 from liana.method._pipe_utils._pre import _choose_mtx_rep, _get_props
 
@@ -83,7 +85,8 @@ class SpatialBivariate(_SpatialMeta):
         nz_threshold : int
             Threshold to use to remove zero-inflated features from the data
         remove_self_interactions : bool
-            Whether to remove self-interactions from the data (i.e. x & y have the same name)
+            Whether to remove self-interactions from the data (i.e. x & y have the same name).
+            Current metrics implemented here do not make sense for self-interactions.
         proximity : np.ndarray
             Proximity matrix to use for the local analysis. If None, will use the one stored in adata.obsp[proximity_key].
         x_use_raw : bool
@@ -113,21 +116,21 @@ class SpatialBivariate(_SpatialMeta):
         if pvalue_method not in ['analytical', 'permutation', None]:
             raise ValueError("`pvalue_method` must be one of ['analytical', 'permutation', None]")
         
-        xdata = mdata[x_mod]
-        xdata.X = _choose_mtx_rep(xdata, use_raw = x_use_raw, layer = x_layer)
+        proximity = _handle_proximity(mdata, proximity, proximity_key)
+        local_fun = _handle_functions(function_name)
+        weight = _proximity_to_weight(proximity, local_fun)
         
-        ydata = mdata[y_mod]
-        ydata.X = _choose_mtx_rep(ydata, use_raw = y_use_raw, layer = y_layer)
+        if isinstance(mdata, MuData):
+            xdata = mdata[x_mod]
+            xdata.X = _choose_mtx_rep(xdata, use_raw = x_use_raw, layer = x_layer)
+            
+            ydata = mdata[y_mod]
+            ydata.X = _choose_mtx_rep(ydata, use_raw = y_use_raw, layer = y_layer)
         
         if interactions is None:
             interactions = list(product(xdata.var_names, ydata.var_names))
         
         interactions = pd.DataFrame(interactions, columns=['x_entity', 'y_entity'])
-        
-        
-        proximity = _handle_proximity(mdata, proximity, proximity_key)
-        local_fun = _handle_functions(function_name)
-        weight = _proximity_to_weight(proximity, local_fun)
         
         # change index names to entity
         xdata.var_names.rename('entity', inplace=True)

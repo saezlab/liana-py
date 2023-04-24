@@ -1,10 +1,9 @@
 import numpy as np
 from  scipy.sparse import csr_matrix
 
-from liana.method import get_spatial_proximity
-
 from liana.method.sp._spatial_pipe import _global_zscore_pvals, _global_permutation_pvals, _local_permutation_pvals, _local_zscore_pvals
 from liana.method.sp._bivariate_funs import _local_morans
+from liana.method.sp import get_spatial_proximity
 
 from liana.testing._sample_anndata import generate_toy_spatial
 
