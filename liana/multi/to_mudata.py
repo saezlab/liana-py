@@ -324,20 +324,20 @@ def get_variable_loadings(mdata,
     df = df.reset_index().rename(columns={'index':'view:variable'})
     
     if view_separator is not None:
-        df[['view', 'variable']] = df['view:variable'].str.split(view_separator, 1, expand=True)
+        df[['view', 'variable']] = df['view:variable'].str.split(view_separator, expand=True)
         
         if drop_columns:
             df.drop(columns='view:variable', inplace=True)
     
     if variable_separator is not None:
-        df[var_names] = df['variable'].str.split(variable_separator, 1, expand=True)
+        df[var_names] = df['variable'].str.split(variable_separator, expand=True)
         
         if drop_columns:
             df.drop(columns='variable', inplace=True)
         
     
     if pair_separator is not None:
-        df[pair_names] = df['view'].str.split(pair_separator, 1, expand=True)
+        df[pair_names] = df['view'].str.split(pair_separator, expand=True)
         
         if drop_columns:
             df.drop(columns='view', inplace=True)
