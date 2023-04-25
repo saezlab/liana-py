@@ -1,5 +1,5 @@
-from ..multi import to_tensor_c2c, adata_to_views, lrs_to_views, get_variable_loadings, get_factor_scores
-from ..testing import sample_lrs, get_toy_adata
+from liana.multi import to_tensor_c2c, adata_to_views, lrs_to_views, get_variable_loadings, get_factor_scores
+from liana.testing import sample_lrs, get_toy_adata
 
 import numpy as np
 import pandas as pd
@@ -92,14 +92,14 @@ def test_get_funs():
     # generate random loadings
     mdata.varm['LFs'] = np.random.rand(mdata.shape[1], 5)
     
-    loadings = get_variable_loadings(mdata, 0, view_separator=':', variable_separator='^', pair_separator='&')
+    loadings = get_variable_loadings(mdata, view_separator=':', variable_separator='^', pair_separator='&')
     assert isinstance(loadings, pd.DataFrame)
-    assert loadings.shape == (16, 5)
+    assert loadings.shape == (16, 9)
     
     # dont drop columns & and don't separate
-    loadings = get_variable_loadings(mdata, 1, drop_columns=False)
+    loadings = get_variable_loadings(mdata, drop_columns=False)
     assert isinstance(loadings, pd.DataFrame)
-    assert loadings.shape == (16, 2)
+    assert loadings.shape == (16, 6)
     
     
     # generate random factor scores
