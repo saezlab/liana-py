@@ -48,6 +48,6 @@ Türei, D., Valdeolivas, A., Gul, L., Palacio‐Escat, N., Klein, M., Ivanova, O
 
    notebooks/liana_c2c
 
-   notebooks/mofacell
+   notebooks/mofacellular
 
    notebooks/mofatalk
