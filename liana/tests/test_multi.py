@@ -97,7 +97,7 @@ def test_get_funs():
     assert loadings.shape == (16, 5)
     
     # dont drop columns & and don't separate
-    loadings = get_variable_loadings(mdata, 0, drop_columns=False)
+    loadings = get_variable_loadings(mdata, 1, drop_columns=False)
     assert isinstance(loadings, pd.DataFrame)
     assert loadings.shape == (16, 2)
     
