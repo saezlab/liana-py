@@ -144,4 +144,3 @@ def test_methods_by_sample():
     
     assert 'sample' in lr_by_sample.columns
     assert lr_by_sample.shape == (10836, 15)
-    

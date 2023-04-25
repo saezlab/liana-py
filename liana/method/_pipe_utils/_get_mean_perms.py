@@ -4,8 +4,6 @@ import anndata
 import numpy as np
 from tqdm import tqdm
 
-import numba as nb
-
 
 def _get_means_perms(adata: anndata.AnnData,
                      n_perms: int,

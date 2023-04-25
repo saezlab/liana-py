@@ -283,7 +283,6 @@ def _dataframe_to_anndata(df):
 
 
 def get_variable_loadings(mdata,
-                          idx,
                           varm_key = 'LFs',
                           view_separator = None,
                           variable_separator = None,
@@ -300,8 +299,6 @@ def get_variable_loadings(mdata,
     
     mdata: :class:`~mudata.MuData`
         MuData object
-    idx: int
-        Index of the variable to extract. Pass index 0 to extract the first Factor.
     varm_key: str
         Key to use when extracting variable loadings from `mdata.varm`
     view_separator: str
@@ -318,7 +315,12 @@ def get_variable_loadings(mdata,
     Returns a pandas DataFrame with the variable loadings for the specified index.
     
     """
-    df = sc.get.var_df(mdata, varm_keys=[(varm_key, idx)])
+    # columns are Factor up to idx
+    n_factors = mdata.varm[varm_key].shape[1]
+    columns = [f'Factor_{i+1}' for i in range(n_factors)]
+    
+    df = pd.DataFrame(index=mdata.var.index, data=mdata.varm[varm_key], columns=columns)
+    
     df.index.name = None
     df = df.reset_index().rename(columns={'index':'view:variable'})
     
@@ -341,10 +343,11 @@ def get_variable_loadings(mdata,
         if drop_columns:
             df.drop(columns='view', inplace=True)
     
-    df = df.rename(columns={"LFs-{0}".format(idx):'loadings'})
+    # Re-order columns so that factors are last
+    df = df.reindex(sorted(df.columns, key=lambda x: x.startswith('Factor')), axis=1)
     
     # re-order to absolute values
-    df = (df.reindex(df['loadings'].abs().sort_values(ascending=False).index))
+    df = (df.reindex(df['Factor_1'].abs().sort_values(ascending=False).index))
     
     return df
 
