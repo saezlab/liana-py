@@ -318,7 +318,6 @@ def get_variable_loadings(mdata,
     Returns a pandas DataFrame with the variable loadings for the specified index.
     
     """
-    
     df = sc.get.var_df(mdata, varm_keys=[(varm_key, idx)])
     df.index.name = None
     df = df.reset_index().rename(columns={'index':'view:variable'})
@@ -342,7 +341,7 @@ def get_variable_loadings(mdata,
         if drop_columns:
             df.drop(columns='view', inplace=True)
     
-    df = df.rename(columns={"LFs-{0}".format(0):'loadings'})
+    df = df.rename(columns={"LFs-{0}".format(idx):'loadings'})
     
     # re-order to absolute values
     df = (df.reindex(df['loadings'].abs().sort_values(ascending=False).index))
