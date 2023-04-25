@@ -20,7 +20,7 @@ This is its faster and memory efficient Python implementation, an R version is a
 
 - [LIANA with MOFA](https://liana-py.readthedocs.io/en/latest/notebooks/mofatalk.html). Using MOFA to infer intercellular communication programmes across samples and conditions, as initially proposed by cell2cell-Tensor
 
-- [Multicellular programmes with MOFA](https://liana-py.readthedocs.io/en/latest/notebooks/mofacell.html). Using MOFA to obtain coordinates
+- [Multicellular programmes with MOFA](https://liana-py.readthedocs.io/en/latest/notebooks/mofacellular.html). Using MOFA to obtain coordinates
 gene expression programmes across samples and conditions, as done in [Ramirez et al., 2023](https://europepmc.org/article/ppr/ppr620471)
 
 

@@ -1,6 +1,24 @@
 Release notes
 =============
 
+0.1.9 (25.04.2023)
+------------------
+
+- Fixed issues with deprecated params of pandas.DataFrame.to_csv & .assert_frame_equal in tests
+
+- `multi.get_variable_loadings` will now return all factors
+
+- Added source & target params to `fun.generate_lr_geneset`
+
+- Refactored `sc._Method._get_means_perms` & related scoring functions to be more efficient.
+ `None` can now be passed to n_perms to avoid permutations - these are only relevant if specificity is assumed to be relevant.
+
+- LIANA's aggregate method can now be customized to include any method of choice (added an example to basic_usage).
+
+- Removed 'Steady' aggregation from rank_aggregate
+
+
+
 0.1.8 (24.03.2023)
 ------------------
 

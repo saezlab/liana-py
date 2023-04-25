@@ -1,5 +1,5 @@
 from liana.method._Method import Method, MethodMeta
-from ._cellphonedb import _simple_mean
+from numpy import mean
 
 
 def _logfc_score(x):
@@ -17,7 +17,7 @@ def _logfc_score(x):
 
     """
     # specificity
-    mean_logfc = _simple_mean(x.ligand_logfc, x.receptor_logfc)
+    mean_logfc = mean((x['ligand_logfc'], x['receptor_logfc']), axis=0)
     return None, mean_logfc
 
 
