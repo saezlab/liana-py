@@ -40,7 +40,17 @@ def _check_if_decoupler() -> ModuleType:
     return dc
 
 
-def adata_to_views(adata, groupby, sample_key, obs_keys, view_separator=':', verbose=False, args={}, **kwargs):
+def adata_to_views(adata,
+                   groupby,
+                   sample_key,
+                   obs_keys,
+                   view_separator=':',
+                   min_count=10,
+                   min_total_count=15,
+                   large_n=10, 
+                   min_prop=0.1,
+                   verbose=False,
+                   **kwargs):
     """
     Converts an AnnData object to a MuData object with views that represent an aggregate for each entity in `adata.obs[groupby]`.
     
@@ -54,12 +64,18 @@ def adata_to_views(adata, groupby, sample_key, obs_keys, view_separator=':', ver
         Column name in `adata.obs` to use as sample key
     obs_keys:
         Column names in `adata.obs` to merge with the MuData object
-    view_separator
+    view_separator:
         Separator to use when assigning `adata.var_names` to views
-    verbose
+    min_count:
+        Minimum number of counts per gene per sample to be included in the pseudobulk.
+    min_total_count:
+        Minimum number of counts per sample to be included in the pseudobulk.
+    large_n:
+        Number of samples per group that is considered to be "large".
+    min_prop:
+        Minimum proportion of samples that must have a count for a gene to be included in the pseudobulk.
+    verbose:
         If True, show progress bar.
-    args
-        A dict of argument-dicts to pass on to `dc.filter_by_expr` and `dc.filter_by_prop` to do feature-level filtering.
     **kwargs
         Keyword arguments used to aggregate the values per cell into views. See `dc.get_pseudobulk` for more details.
     
@@ -85,7 +101,7 @@ def adata_to_views(adata, groupby, sample_key, obs_keys, view_separator=':', ver
 
         padata = dc.get_pseudobulk(temp,
                                    sample_col=sample_key,
-                                   groups_col=None, 
+                                   groups_col=None,
                                    **kwargs
                                    )
         
@@ -94,12 +110,13 @@ def adata_to_views(adata, groupby, sample_key, obs_keys, view_separator=':', ver
             continue
 
         # edgeR filtering
-        if args.get('filter_by_expr') is not None:
-            padata = padata[:, dc.filter_by_expr(padata, **args['filter_by_expr'])]
-        
-        # proportion filtering
-        if args.get('filter_by_prop') is not None:
-            padata = padata[:, dc.filter_by_prop(padata, **args['filter_by_prop'])]
+        feature_mask = dc.filter_by_expr(padata,
+                                         min_count=min_count,
+                                         min_total_count=min_total_count,
+                                         large_n=large_n,
+                                         min_prop=min_prop,
+                                         )
+        padata = padata[:, feature_mask]
 
         # only append views that pass QC
         if 0 not in padata.shape:

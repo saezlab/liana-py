@@ -62,41 +62,33 @@ def test_adata_to_views():
                            mode='sum',
                            verbose=True,
                            use_raw=True,
-                           skip_checks=True # skip because it's log-normalized (it's OK because toydata)
+                           min_smpls=2,
+                           # filter features
+                           min_count=0,
+                           min_total_count=0,
+                           large_n=0, 
+                           min_prop=0,
+                           skip_checks=True # skip because it's log-normalized
                            )
     
-    assert len(mdata.varm_keys())==8
+    assert len(mdata.varm_keys())==9
     assert 'case' not in mdata.obs.columns
-    assert mdata.shape == (4, 5403)
+    assert mdata.shape == (4, 6201)
     
     #test feature level filtering (with default values)
     mdata = adata_to_views(adata,
                            groupby='bulk_labels',
                            sample_key='sample',
-                           obs_keys=None,
-                           args={'filter_by_expr':{}, 'filter_by_prop':{}},
-                           min_cells=5,
-                           min_counts=10,
+                           obs_keys = ['case'],
                            mode='sum',
                            verbose=True,
                            use_raw=True,
-                           skip_checks=True # skip because it's log-normalized (it's OK because toydata)
+                           skip_checks=True
                            )
-
-    #test feature level filtering (passing arguments)
-    mdata = adata_to_views(adata,
-                           groupby='bulk_labels',
-                           sample_key='sample',
-                           obs_keys=None,
-                           args={'filter_by_expr':{'min_count': 10}, 'filter_by_prop':{ 'min_prop':0.2, 'min_smpls':2}},
-                           min_cells=5,
-                           min_counts=10,
-                           mode='sum',
-                           verbose=True,
-                           use_raw=True,
-                           skip_checks=True # skip because it's log-normalized (it's OK because toydata)
-                           )
-
+    
+    assert len(mdata.varm_keys())==7
+    assert 'case' in mdata.obs.columns
+    assert mdata.shape == (4, 1598)
     
     
     
