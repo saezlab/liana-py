@@ -195,9 +195,9 @@ def misty(mdata,
           y_mod = None,
           targets = None,
           predictors = None,
+          keep_same_predictor = False,  # TODO: maybe rename this variable
           bandwidth = None, 
           juxta_cutoff = np.inf, 
-          keep_same_predictor = False,  # TODO: maybe rename this variable
           zoi = 0, 
           kernel = "gaussian", 
           add_self = False, 
@@ -231,6 +231,9 @@ def misty(mdata,
     predictors : `list`, optional (default: None)
         List of predictors to be used, must be features of x_mod
         If None all feature of x_mod will be used.
+    keep_same_predictor: `bool`, optional (default: False)
+        Whether to keep a feature as predictor if it is the target
+        (only applicable for juxta/paraview)
     bandwidth : `float`, optional (default: None)
         Bandwidth for the Gaussian kernel.
     juxta_cutoff : `float`, optional (default: np.inf)
