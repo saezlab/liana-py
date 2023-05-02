@@ -34,7 +34,7 @@ def _get_distance_weights(adata, bandwidth, kernel="gaussian", add_self=True, sp
         sdm.data = _exponential_weight(sdm.data, bandwidth)
     if not add_self:
         sdm -= identity(n=sdm.shape[0], format="csr", dtype=sdm.dtype)
-    return(sdm)
+    return sdm
 
 
 def _get_neighbors(adata, juxta_cutoff=np.inf, add_self=True, spatial_key="spatial"):
@@ -43,29 +43,18 @@ def _get_neighbors(adata, juxta_cutoff=np.inf, add_self=True, spatial_key="spati
     neighbors[dists > juxta_cutoff] = 0
     if add_self:
         neighbors += identity(neighbors.shape[0]) # add self for visium (not for the other assay though)
-    return(neighbors)
+    return neighbors
 
 
-def _check_targets(adata_target, targets):
-    if targets is not None:
-        missing_targets = set(targets).difference(set(adata_target.var_names))
-        if len(missing_targets) > 0:
-            logging.warning(f"Missing target features: {missing_targets}.")
-        targets = list(set(targets).difference(missing_targets))
+def _check_features(adata, features, type_str):
+    if features is not None:
+        missing_features = set(features).difference(set(adata.var_names))
+        if len(missing_features) > 0:
+            logging.warning(f"Missing {type_str} features: {missing_features}.")
+        features = list(set(features).difference(missing_features))
     else:
-        targets = adata_target.var_names.tolist()
-    return(targets)
-
-
-def _check_predictors(adata_source, predictors):
-    if predictors is not None:
-        missing_predictors = set(predictors).difference(set(adata_source.var_names))
-        if len(missing_predictors) > 0:
-            logging.warning(f"Missing predictor features: {missing_predictors}.")
-        predictors = list(set(predictors).difference(missing_predictors))
-    else:
-        predictors = adata_source.var_names.tolist()
-    return(predictors)
+        features = adata.var_names.tolist()
+    return features
 
 
 def _get_paraview_groups(adata, predictors, bandwidth, group_env_by, kernel="gaussian", add_self=True, spatial_key="spatial", zoi=0):
@@ -82,7 +71,7 @@ def _get_paraview_groups(adata, predictors, bandwidth, group_env_by, kernel="gau
             paraviews[group] = ad.AnnData(X=distance_weights_csr@adata[:, predictors].X, obs=adata.obs, var=pd.DataFrame(index=predictors))
     else:
         paraviews["all"] = ad.AnnData(X=distance_weights@adata[:, predictors].X, obs=adata.obs, var=pd.DataFrame(index=predictors))
-    return(paraviews)
+    return paraviews
 
 
 def _get_juxtaview_groups(adata, predictors, group_env_by, juxta_cutoff=np.inf, add_self=True, spatial_key="spatial"):
@@ -97,7 +86,7 @@ def _get_juxtaview_groups(adata, predictors, group_env_by, juxta_cutoff=np.inf, 
             juxtaviews[group] = ad.AnnData(X=neighbors_csr@adata[:, predictors].X, obs=adata.obs, var=pd.DataFrame(index=predictors))
     else:
         juxtaviews["all"] = ad.AnnData(X=neighbors@adata[:, predictors].X, obs=adata.obs, var=pd.DataFrame(index=predictors))
-    return(juxtaviews)
+    return juxtaviews
 
 
 def _compose_views_groups(xdata, predictors, bypass_intra, add_juxta, add_para, group_env_by, juxta_cutoff, bandwidth, kernel, zoi, add_self, spatial_key):
@@ -110,7 +99,7 @@ def _compose_views_groups(xdata, predictors, bypass_intra, add_juxta, add_para, 
     if add_para:
         views["para"] = _get_paraview_groups(xdata, predictors, bandwidth=bandwidth, group_env_by=group_env_by, kernel=kernel, 
                                              add_self=add_self, spatial_key=spatial_key, zoi=zoi)
-    return(views)
+    return views
 
 
 def _check_anndata_objects_groups(xdata, ydata, spatial_key, group_intra_by, group_env_by):
@@ -128,21 +117,21 @@ def _check_anndata_objects_groups(xdata, ydata, spatial_key, group_intra_by, gro
 
 
 def _check_target_in_predictors(target, predictors):
-    # TODO: this is only necessary for the intra view, for the other views we could make it optional
     if target in predictors:
         insert_idx = np.where(np.array(predictors) == target)[0][0]
         predictors_subset = predictors.copy()
         predictors_subset.pop(insert_idx)
     else:
         predictors_subset = predictors
-    return predictors_subset
+        insert_idx = None
+    return predictors_subset, insert_idx
 
 
-def _single_view_model(y, view, target_group_bool, predictors_subset, n_estimators=100, n_jobs=-1, seed=1337):
-    if issparse(view[target_group_bool, predictors_subset].X):
-        X = np.asarray(view[target_group_bool, predictors_subset].X.todense())
+def _single_view_model(y, view, target_group_bool, predictors, n_estimators=100, n_jobs=-1, seed=1337):
+    if issparse(view[target_group_bool, predictors].X):
+        X = np.asarray(view[target_group_bool, predictors].X.todense())
     else:
-        X = view[target_group_bool, predictors_subset].X
+        X = view[target_group_bool, predictors].X
     rf_model = RandomForestRegressor(n_estimators=n_estimators, oob_score=True, n_jobs=n_jobs, random_state=seed).fit(X=X, y=y)
     return rf_model.oob_prediction_, rf_model.feature_importances_
 
@@ -176,15 +165,14 @@ def _multi_model(y, oob_predictions, intra_group, bypass_intra, view_str, k_cv, 
     return intra_r2, R2_vec_multi.mean(), coef_mtx.mean(axis=0)
 
 
-def _make_dataframes(target, predictors_subset, intra_group, env_group, view_str, intra_r2, multi_r2, coefs, importance_dict):
-    
+def _make_dataframes(target, predictors, intra_group, env_group, view_str, intra_r2, multi_r2, coefs, importance_dict):
     performance_df = pd.DataFrame({"target": target, "intra_group": intra_group, "env_group": env_group, 
                                    "intra.R2": intra_r2, "multi.R2": multi_r2}, index=[0])
     coef_df = pd.DataFrame([coefs], columns=view_str, index=[0])
     coef_df = pd.DataFrame({"target": target, "intra_group": intra_group, "env_group": env_group}, index=[0]).join(coef_df)
-    importance_df = pd.DataFrame({"target": np.repeat([target], len(predictors_subset)), "predictor": predictors_subset, 
-                                    "intra_group": np.repeat([intra_group], len(predictors_subset)),
-                                    "env_group": np.repeat([env_group], len(predictors_subset))})
+    importance_df = pd.DataFrame({"target": np.repeat([target], len(predictors)), "predictor": predictors, 
+                                    "intra_group": np.repeat([intra_group], len(predictors)),
+                                    "env_group": np.repeat([env_group], len(predictors))})
     for view_name, importance_score in importance_dict.items():
         importance_df[view_name] = importance_score
     return performance_df, coef_df, importance_df
@@ -209,6 +197,7 @@ def misty(mdata,
           predictors = None,
           bandwidth = None, 
           juxta_cutoff = np.inf, 
+          keep_same_predictor = False,  # TODO: maybe rename this variable
           zoi = 0, 
           kernel = "gaussian", 
           add_self = False, 
@@ -304,8 +293,8 @@ def misty(mdata,
                                   group_intra_by=group_intra_by, 
                                   group_env_by=group_env_by)
     
-    predictors = _check_predictors(xdata, predictors)
-    targets = _check_targets(ydata, targets)
+    predictors = _check_features(xdata, predictors, type_str="predictors")
+    targets = _check_features(ydata, targets, type_str="targets")
 
     intra_groups = np.unique(ydata.obs[group_intra_by]) if group_intra_by else [None]
     env_groups = np.unique(xdata.obs[group_env_by]) if group_env_by else [None]
@@ -341,7 +330,7 @@ def misty(mdata,
                 y = ydata[intra_group_bool, target].X.reshape(-1)
 
             # remove target feature from predictors if it is in predictors
-            predictor_subset = _check_target_in_predictors(target, predictors)
+            predictor_subset, insert_index = _check_target_in_predictors(target, predictors)
 
             importance_dict = {}
             
@@ -354,6 +343,8 @@ def misty(mdata,
                                                                                      n_estimators, 
                                                                                      n_jobs, 
                                                                                      seed)
+                if insert_index is not None and keep_same_predictor:
+                    importance_dict["intra"] = np.insert(importance_dict["intra"], insert_index, np.nan)
 
             # loop over the group_views_by
             for env_group in env_groups:
@@ -370,7 +361,7 @@ def misty(mdata,
                     oob_predictions, importance_dict[view_name] = _single_view_model(y, 
                                                                                      view, 
                                                                                      intra_group_bool, 
-                                                                                     predictor_subset, 
+                                                                                     predictors if keep_same_predictor else predictor_subset, 
                                                                                      n_estimators,
                                                                                      n_jobs, 
                                                                                      seed)
@@ -388,7 +379,7 @@ def misty(mdata,
 
                 # store the results
                 performance_df, coef_df, importance_df = _make_dataframes(target, 
-                                                                          predictor_subset, 
+                                                                          predictors if keep_same_predictor else predictor_subset, 
                                                                           intra_group, 
                                                                           env_group, 
                                                                           view_str,
@@ -460,6 +451,8 @@ def plot_contribution(contribution_df):
 
 
 def plot_importance(importance_df, view, cutoff=0, intra_group=None, env_group=None):
+    numeric_columns = importance_df.select_dtypes(include = ['int64', 'float64']).columns.tolist()
+    importance_df[numeric_columns] += 1e-8
     mask = (importance_df["value"] > cutoff) 
     if intra_group:
         mask = mask & (importance_df["intra_group"] == intra_group)
