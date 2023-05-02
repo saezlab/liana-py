@@ -11,3 +11,5 @@ pytest
 setuptools
 cell2cell
 decoupler
+mofax
+mudata

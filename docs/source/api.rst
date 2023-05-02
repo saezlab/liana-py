@@ -8,6 +8,28 @@ Methods:
 ------------------------------------------------------------
 
 
+Instances of Method Class
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Methods are implemented as instances of the same Method class.
+Each instance provides helper functions and consistent attributes,
+to describe each method instance.
+
+.. module:: liana
+.. currentmodule:: liana
+
+.. autosummary::
+   :toctree: api
+
+   method.cellchat
+   method.cellphonedb
+   method.connectome
+   method.logfc
+   method.natmi
+   method.singlecellsignalr
+   method.geometric_mean
+   method.rank_aggregate
+
+
 Callable Method instances
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -82,12 +104,34 @@ such as running any method by sample using the `by_sample` function:
    method.Method.by_sample
 
 
-and converting the output of this function to Tensor-cell2cell format.
+and converting the output of this function to Tensor-cell2cell format:
 
 .. autosummary::
    :toctree: api
 
    multi.to_tensor_c2c
+
+as well as to a MuData for the application of MOFA on ligand-receptors across contexts:
+
+.. autosummary::
+   :toctree: api
+
+   multi.lrs_to_views
+
+liana also enables the conversion of adata objects to mdata objects with cell types as views via:
+
+.. autosummary::
+   :toctree: api
+
+   multi.adata_to_views
+
+and provides simple helper functions to extract the factor scores and variable loadings:
+
+.. autosummary::
+   :toctree: api
+
+   multi.get_factor_scores
+   multi.get_variable_loadings
 
 
 
@@ -105,6 +149,15 @@ the ligand-receptor space.
    :toctree: api
 
    funcomics.generate_lr_geneset
+
+
+Spatial utils:
+---------------------------------------------------------------
+
+.. autosummary::
+   :toctree: api
+
+   liana.method.get_spatial_proximity
 
 
 

@@ -7,7 +7,7 @@ from scipy.stats import rankdata, beta
 def _aggregate(lrs: dict,
                consensus,
                aggregate_method: str = 'rra',
-               consensus_opts: list = None,
+               _consensus_opts: list = None,
                _key_cols: list = None
                ) -> pd.DataFrame:
     """
@@ -23,7 +23,7 @@ def _aggregate(lrs: dict,
     aggregate_method
         method by which we aggregate the ranks. Options are ['rra', 'mean'],
         where 'rra' corresponds to the RRA method, 'mean' is just the mean of the ranks.
-    consensus_opts
+    _consensus_opts
         consensus ranks to be obtained
 
     Returns
@@ -34,8 +34,8 @@ def _aggregate(lrs: dict,
     # join the sc to the whole universe between the methods
     if _key_cols is None:
         _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
-    if consensus_opts is None:
-        consensus_opts = ['Steady', 'Magnitude', 'Specificity']
+    if _consensus_opts is None:
+        _consensus_opts = ['Magnitude', 'Specificity']
 
     lrs = [lrs[method].drop_duplicates(keep='first') for method in lrs]
     # reduce to a df with the shared keys + all relevant sc
@@ -48,23 +48,17 @@ def _aggregate(lrs: dict,
     lr_res = lr_res.loc[:, ~lr_res.columns.str.endswith('_duplicated')]
 
     order_col = ''
-    if 'Steady' in consensus_opts:
-        lr_res[consensus.steady] = _rank_aggregate(lr_res.copy(),
-                                                   consensus.steady_specs,
-                                                   _key_cols,
-                                                   aggregate_method=aggregate_method)
-        order_col = consensus.steady
-    if 'Specificity' in consensus_opts:
+    if 'Specificity' in _consensus_opts:
         lr_res[consensus.specificity] = _rank_aggregate(lr_res.copy(),
                                                         consensus.specificity_specs,
-                                                        _key_cols,
-                                                        aggregate_method=aggregate_method)
+                                                        aggregate_method=aggregate_method
+                                                        )
         order_col = consensus.specificity
-    if 'Magnitude' in consensus_opts:
+    if 'Magnitude' in _consensus_opts:
         lr_res[consensus.magnitude] = _rank_aggregate(lr_res.copy(),
                                                       consensus.magnitude_specs,
-                                                      _key_cols,
-                                                      aggregate_method=aggregate_method)
+                                                      aggregate_method=aggregate_method
+                                                      )
         order_col = consensus.magnitude
 
     lr_res = lr_res.sort_values(order_col)
@@ -72,7 +66,7 @@ def _aggregate(lrs: dict,
     return lr_res
 
 
-def _rank_aggregate(lr_res, specs, _key_cols, aggregate_method) -> np.array:
+def _rank_aggregate(lr_res, specs, aggregate_method) -> np.array:
     """
     Aggregate method ranks
 
@@ -82,8 +76,6 @@ def _rank_aggregate(lr_res, specs, _key_cols, aggregate_method) -> np.array:
         joined results from all methods
     specs
         specs dictionary where method_name:(score_name, score_desc)
-    _key_cols
-        columns by which we join
     aggregate_method
         method by which to aggregate the ranks
 
@@ -102,8 +94,7 @@ def _rank_aggregate(lr_res, specs, _key_cols, aggregate_method) -> np.array:
         if ascending:
             lr_res[score_name] = rankdata(lr_res[score_name], method='average')
         else:
-            lr_res[score_name] = rankdata(lr_res[score_name] * -1,
-                                          method='average')
+            lr_res[score_name] = rankdata(lr_res[score_name] * -1, method='average')
 
     # get only the relevant ranks as a mat (joins order the keys)
     scores = list({specs[s][0] for s in specs})

@@ -1,5 +1,5 @@
 from liana.method._Method import Method, MethodMeta
-from ._cellphonedb import _simple_mean
+from numpy import mean
 
 
 def _logfc_score(x):
@@ -17,15 +17,14 @@ def _logfc_score(x):
 
     """
     # specificity
-    mean_logfc = _simple_mean(x.ligand_logfc, x.receptor_logfc)
+    mean_logfc = mean((x['ligand_logfc'], x['receptor_logfc']), axis=0)
     return None, mean_logfc
 
 
 # Initialize CPDB Meta
 _logfc = MethodMeta(method_name="log2FC",
-                    complex_cols=['ligand_means', 'receptor_means',
-                                  'ligand_logfc', 'receptor_logfc'],
-                    add_cols=[],
+                    complex_cols=['ligand_means', 'receptor_means'],
+                    add_cols=['ligand_logfc', 'receptor_logfc'],
                     fun=_logfc_score,
                     magnitude=None,
                     magnitude_ascending=None,
@@ -40,4 +39,4 @@ _logfc = MethodMeta(method_name="log2FC",
                     )
 
 # Initialize callable Method instance
-logfc = Method(_SCORE=_logfc)
+logfc = Method(_method=_logfc)

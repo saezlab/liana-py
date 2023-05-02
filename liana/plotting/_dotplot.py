@@ -9,6 +9,7 @@ from plotnine import ggplot, geom_point, aes, \
 
 
 def dotplot(adata: anndata.AnnData = None,
+            uns_key = 'liana_res',
             liana_res: pandas.DataFrame = None,
             colour: str = None,
             size: str = None,
@@ -30,7 +31,9 @@ def dotplot(adata: anndata.AnnData = None,
     Parameters
     ----------
     adata
-        `AnnData` object with `liana_res` in `adata.uns`. Default is `None`.
+        `AnnData` object with `uns_key` in `adata.uns`. Default is `None`.
+    uns_key
+        key in adata.uns where liana_res is stored. Defaults to 'liana_res'.
     liana_res
         `liana_res` a `DataFrame` in liana's format
     colour
@@ -73,7 +76,8 @@ def dotplot(adata: anndata.AnnData = None,
                                 source_labels=source_labels,
                                 target_labels=target_labels,
                                 size=size,
-                                colour=colour)
+                                colour=colour,
+                                uns_key=uns_key)
 
     if filterby is not None:
         msk = liana_res[filterby].apply(filter_lambda)
@@ -135,8 +139,9 @@ def dotplot(adata: anndata.AnnData = None,
 
     
 def dotplot_by_sample(adata: anndata.AnnData  = None,
+                      uns_key: str = 'liana_res',
                       liana_res: pandas.DataFrame =None,
-                      sample_key: str ='sample',
+                      sample_key: str = 'sample',
                       colour: str  = None,
                       size: str = None,
                       inverse_colour: bool = False,
@@ -156,6 +161,8 @@ def dotplot_by_sample(adata: anndata.AnnData  = None,
     ----------
         adata
             adata object with liana_res and  in adata.uns. Defaults to None.
+        uns_key
+            key in adata.uns where liana_res is stored. Defaults to 'liana_res'.
         liana_res
             liana_res a DataFrame in liana's format. Defaults to None.
         sample_key
@@ -189,13 +196,13 @@ def dotplot_by_sample(adata: anndata.AnnData  = None,
     
     """
     
-    
     liana_res = _prep_liana_res(adata=adata,
                                 liana_res=liana_res, 
                                 source_labels=source_labels,
                                 target_labels=target_labels,
                                 size=size,
-                                colour=colour)
+                                colour=colour,
+                                uns_key=uns_key)
     
     if ligand_complex is not None:
         liana_res = liana_res[np.isin(liana_res['ligand_complex'], ligand_complex)]
@@ -241,17 +248,18 @@ def _prep_liana_res(adata=None,
                     source_labels=None,
                     target_labels=None,
                     colour=None,
-                    size=None):
+                    size=None,
+                    uns_key='liana_res'):
     if colour is None:
         raise ValueError('`colour` must be provided!')
     if size is None:
         raise ValueError('`size` must be provided!')
     
     if (liana_res is None) & (adata is None):
-        raise AttributeError('Ambiguous! One of `liana_res` or `adata` should be provided.')
+        raise AttributeError(f'Ambiguous! One of `liana_res` or `adata.uns[{uns_key}]` should be provided.')
     if adata is not None:
-        assert 'liana_res' in adata.uns_keys()
-        liana_res = adata.uns['liana_res'].copy()
+        assert uns_key in adata.uns_keys()
+        liana_res = adata.uns[uns_key].copy()
     if liana_res is not None:
         liana_res = liana_res.copy()
     if (liana_res is None) & (adata is None):

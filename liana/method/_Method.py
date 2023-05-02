@@ -5,6 +5,7 @@ from ._liana_pipe import liana_pipe
 from anndata import AnnData
 from pandas import DataFrame, concat
 from typing import Optional
+from tqdm import tqdm
 import weakref
 
 
@@ -14,7 +15,7 @@ class MethodMeta:
     """
     
     # initiate a list to store weak references to all instances
-    instances = [] ## TODO separate instances for each subclass
+    instances = [] ## TODO separate instances for each child class
     
     def __init__(self,
                  method_name: str,
@@ -64,7 +65,6 @@ class MethodMeta:
         self.permute = permute
         self.reference = reference
 
-    # describe self
     def describe(self):
         """Briefly described the method"""
         print(
@@ -85,7 +85,7 @@ class MethodMeta:
                            }])
         return meta
     
-    def by_sample(self, adata, sample_key, inplace=True, verbose=False, **kwargs):
+    def by_sample(self, adata, sample_key, key_added='liana_res', inplace=True, verbose=False, **kwargs):
         """
         Run a method by sample.
         
@@ -93,16 +93,15 @@ class MethodMeta:
         ----------
             adata 
                 AnnData object to run the method on
-            
             sample_key
                 key in `adata.obs` to use for grouping by sample/context
-                
+            key_added
+                key to store the results in `adata.uns` if `inplace` is True
             inplace
                 whether to store the results in `adata.uns['liana_res']` or return a dataframe
-            
             verbose
-                whether to print verbose output
-            
+                Possible values: False, True, 'full', where 'full' will print the results for each sample,
+                and True will only print the sample progress bar. Default is False.
             **kwargs
                 keyword arguments to pass to the method
         
@@ -119,25 +118,32 @@ class MethodMeta:
             (f"`{sample_key}` was assigned as a categorical.")
             adata.obs[sample_key] = adata.obs[sample_key].astype("category")
             
+        if verbose == 'full':
+            verbose = True
+            full_verbose = True
+        else:
+            full_verbose = False
+            
         samples = adata.obs[sample_key].cat.categories 
             
-        adata.uns['liana_res'] = {}
-
-        for sample in samples:
+        adata.uns[key_added] = {}
+        
+        progress_bar = tqdm(samples, disable=not verbose)
+        for sample in (progress_bar):
             if verbose:
-                print("Now running {}".format(sample))
+                progress_bar.set_description(f"Now running: {sample}")
 
             temp = adata[adata.obs[sample_key]==sample].copy()
 
-            sample_res = self.__call__(temp, inplace=False, verbose=verbose, **kwargs)
+            sample_res = self.__call__(temp, inplace=False, verbose=full_verbose, **kwargs)
 
-            adata.uns['liana_res'][sample] = sample_res
+            adata.uns[key_added][sample] = sample_res
 
-        liana_res = concat(adata.uns['liana_res']).reset_index(level=1, drop=True).reset_index()
+        liana_res = concat(adata.uns[key_added]).reset_index(level=1, drop=True).reset_index()
         liana_res = liana_res.rename({"index":sample_key}, axis=1)
         
         if inplace:
-            adata.uns['liana_res'] = liana_res
+            adata.uns[key_added] = liana_res
         return None if inplace else liana_res
 
 
@@ -145,19 +151,19 @@ class Method(MethodMeta):
     """
     liana's Method Class
     """
-    def __init__(self, _SCORE):
-        super().__init__(method_name=_SCORE.method_name,
-                         complex_cols=_SCORE.complex_cols,
-                         add_cols=_SCORE.add_cols,
-                         fun=_SCORE.fun,
-                         magnitude=_SCORE.magnitude,
-                         magnitude_ascending=_SCORE.magnitude_ascending,
-                         specificity=_SCORE.specificity,
-                         specificity_ascending=_SCORE.specificity_ascending,
-                         permute=_SCORE.permute,
-                         reference=_SCORE.reference
+    def __init__(self, _method):
+        super().__init__(method_name=_method.method_name,
+                         complex_cols=_method.complex_cols,
+                         add_cols=_method.add_cols,
+                         fun=_method.fun,
+                         magnitude=_method.magnitude,
+                         magnitude_ascending=_method.magnitude_ascending,
+                         specificity=_method.specificity,
+                         specificity_ascending=_method.specificity_ascending,
+                         permute=_method.permute,
+                         reference=_method.reference
                          )
-        self._SCORE = _SCORE
+        self._method = _method
 
     def __call__(self,
                  adata: AnnData,
@@ -168,6 +174,7 @@ class Method(MethodMeta):
                  base: float = 2.718281828459045,
                  supp_columns: list = None,
                  return_all_lrs: bool = False,
+                 key_added: str = 'liana_res',
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
                  de_method='t-test',
@@ -202,6 +209,8 @@ class Method(MethodMeta):
             Bool whether to return all LRs, or only those that surpass the `expr_prop`
             threshold. Those interactions that do not pass the `expr_prop` threshold will
             be assigned to the *worst* score of the ones that do. `False` by default.
+        key_added
+            Key under which the results will be stored in `adata.uns` if `inplace` is True.
         use_raw
             Use raw attribute of adata if present.
         layer
@@ -214,7 +223,8 @@ class Method(MethodMeta):
             Verbosity flag
         n_perms
             Number of permutations for the permutation test. Note that this is relevant
-            only for permutation-based methods - e.g. `CellPhoneDB`
+            only for permutation-based methods - e.g. `CellPhoneDB`. If `None` is passed, 
+            no permutation testing is performed.
         seed
             Random seed for reproducibility.
         resource
@@ -228,7 +238,7 @@ class Method(MethodMeta):
         -------
             If ``inplace = False``, returns a `DataFrame` with ligand-receptor results
             Otherwise, modifies the ``adata`` object with the following key:
-            - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
+            - :attr:`anndata.AnnData.uns` ``[`key_added`]`` with the aforementioned DataFrame
         """
         if supp_columns is None:
             supp_columns = []
@@ -244,21 +254,16 @@ class Method(MethodMeta):
                                base=base,
                                de_method=de_method,
                                verbose=verbose,
-                               _score=self._SCORE,
+                               _score=self._method,
                                n_perms=n_perms,
                                seed=seed,
                                use_raw=use_raw,
                                layer=layer,
                                )
         if inplace:
-            adata.uns['liana_res'] = liana_res
+            adata.uns[key_added] = liana_res
         return None if inplace else liana_res
         
-    
-
 
 def _show_methods(methods):
     return concat([method.get_meta() for method in methods])
-
-
-

@@ -1,6 +1,12 @@
 from liana.method._Method import Method, MethodMeta
 
 
+def _spec_weight(ligand_means, ligand_means_sums, receptor_means, receptor_means_sums):
+    s_lig = (ligand_means / ligand_means_sums)
+    s_rec = (receptor_means / receptor_means_sums)
+    return s_lig * s_rec
+
+
 def _natmi_score(x) -> tuple:
     """
     Calculate NATMI-like expression product and specificity weights
@@ -8,21 +14,19 @@ def _natmi_score(x) -> tuple:
     Parameters
     ----------
     x
-        DataFrame row
+        DataFrame
 
     Returns
     -------
     tuple(expr_prod, spec_weight)
 
     """
-
     # magnitude
-    expr_prod = x.ligand_means * x.receptor_means
+    expr_prod = x['ligand_means'] * x['receptor_means']
 
     # specificity
-    s_lig = (x.ligand_means / x.ligand_means_sums)
-    s_rec = (x.receptor_means / x.receptor_means_sums)
-    spec_weight = s_lig * s_rec
+    spec_weight = _spec_weight(x['ligand_means'], x['ligand_means_sums'],
+                               x['receptor_means'], x['receptor_means_sums'])
 
     return expr_prod, spec_weight
 
@@ -43,5 +47,5 @@ _natmi = MethodMeta(method_name="NATMI",
                     )
 
 # Initialize callable Method instance
-natmi = Method(_SCORE=_natmi)
+natmi = Method(_method=_natmi)
 
