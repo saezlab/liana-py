@@ -4,7 +4,7 @@ import pathlib
 from pandas import DataFrame
 
 
-def select_resource(resource_name: str = 'metalinksdb') -> DataFrame:
+def select_resource(resource_name: str) -> DataFrame:
     """
     Read resource of choice from the pre-generated resources in LIANA.
 
@@ -27,6 +27,33 @@ def select_resource(resource_name: str = 'metalinksdb') -> DataFrame:
         resource = resource.rename(columns={'hmdb_id': 'ligand',
                                             'symbol': 'receptor', 
                                             'name': 'ligand_name'})
+        
+    elif resource_name == 'NCI60':
+
+        resource_path = '/home/efarr/Documents/GitHub/metalinks/metalinksDB/MR_NCI60.csv'
+        resource = read_csv(resource_path, sep='\t')
+
+        resource = resource[['hmdb_id', 'symbol']]
+        resource = resource.rename(columns={'hmdb_id': 'ligand',
+                                            'symbol': 'receptor'})
+        
+    elif resource_name == 'CCLE':
+
+        resource_path = '/home/efarr/Documents/GitHub/metalinks/metalinksDB/MR_CCLE.csv'
+        resource = read_csv(resource_path, sep='\t')
+
+        resource = resource[['hmdb_id', 'symbol']]
+        resource = resource.rename(columns={'hmdb_id': 'ligand',
+                                            'symbol': 'receptor'})
+        
+    elif resource_name == 'kidney':
+
+        resource_path = '/home/efarr/Documents/GitHub/metalinks/metalinksDB/MR_Kidney.csv'
+        resource = read_csv(resource_path, sep=',')
+
+        resource = resource[['hmdb_id', 'symbol']]
+        resource = resource.rename(columns={'hmdb_id': 'ligand',
+                                            'symbol': 'receptor'})
 
     else:
 

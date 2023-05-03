@@ -3,11 +3,11 @@ from __future__ import annotations
 import anndata
 import pandas
 
-from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
+from ._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
 from ..resource import select_resource, explode_complexes
-from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
-from liana.method._pipe_utils._aggregate import _aggregate
+from ._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
+from ._pipe_utils._aggregate import _aggregate
 from ._pipe_utils._pre import _get_props
 
 import scanpy as sc
@@ -230,7 +230,7 @@ def liana_pipe(adata: anndata.AnnData,
     return lr_res
 
 
-def _join_stats(source, target, dedict, resource):
+def _join_stats(source, target, resource, dedict_gene, dedict_met = None) :
     """
     Joins and renames source-ligand and target-receptor stats to the ligand-receptor resource
 
@@ -250,13 +250,18 @@ def _join_stats(source, target, dedict, resource):
     Ligand-Receptor stats
 
     """
-    source_stats = dedict[source].copy()
+
+    if dedict_met:
+        source_stats = dedict_met[source].copy()
+    else: 
+        source_stats = dedict_gene[source].copy()
+
     source_stats.columns = source_stats.columns.map(
         lambda x: 'ligand_' + str(x))
     source_stats = source_stats.rename(
         columns={'ligand_names': 'ligand', 'ligand_label': 'source'})
 
-    target_stats = dedict[target].copy()
+    target_stats = dedict_gene[target].copy()
     target_stats.columns = target_stats.columns.map(
         lambda x: 'receptor_' + str(x))
     target_stats = target_stats.rename(
@@ -355,7 +360,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
 
     # Join Stats
     lr_res = pd.concat(
-        [_join_stats(source, target, dedict, resource) for source, target in
+        [_join_stats(source, target, resource, dedict) for source, target in
          zip(pairs['source'], pairs['target'])]
     )
 
@@ -409,7 +414,7 @@ def _calc_log2fc(adata, label) -> np.ndarray:
     An array with logFC changes
 
     """
-    # Get subject vs rest cells
+        # Get subject vs rest cells
     subject = adata[adata.obs.label.isin([label])]
     rest = adata[~adata.obs.label.isin([label])]
 

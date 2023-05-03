@@ -28,8 +28,29 @@ def select_ml_resource(met_est_resource_name: str = 'metalinksdb') -> DataFrame:
         
     elif met_est_resource_name == 'metalinksdb':    
 
-        resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_hmdb_recon.csv'
+        resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_hmdb_recon_cut.csv'
         met_est_resource = read_csv(resource_path, sep=',')
+
+    elif met_est_resource_name == 'nci60':
+
+        resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_NCI60.csv'
+        met_est_resource = read_csv(resource_path, sep='\t')
+
+    elif met_est_resource_name == 'ccle':
+
+        resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_CCLE.csv'
+        met_est_resource = read_csv(resource_path, sep='\t')
+
+    elif met_est_resource_name == 'ocean':
+
+        resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_OCEAN.csv'
+        met_est_resource = read_csv(resource_path, sep='\t')
+
+    elif met_est_resource_name == 'kidney':
+
+        resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_Kidney.csv'
+        met_est_resource = read_csv(resource_path, sep=',')
+        
     
     #resource_path = pathlib.Path(__file__).parent.joinpath("omni_resource.csv")
 

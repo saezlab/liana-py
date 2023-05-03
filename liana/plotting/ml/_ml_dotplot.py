@@ -314,6 +314,13 @@ def get_gene_dfs(id, adata, groupby, use_raw=True):
     prod_genes = adata.uns['mask'].index[adata.uns['mask'][id] == 1]
     deg_genes = adata.uns['mask'].index[adata.uns['mask'][id] == -1]
 
+
+
+
+
+    if len(list(prod_genes) + list(deg_genes)) == 0:
+        raise ValueError(f'No gene found for {id}!  Check if mask was passed correctly')
+
     # prod_genes = adata.uns['met_meta']['producing_genes'][adata.uns['met_meta']['metabolite'] == id]
     # prod_genes = list(prod_genes)
     # prod_genes = str(prod_genes[0]).split("'")

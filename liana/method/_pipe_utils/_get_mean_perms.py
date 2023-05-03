@@ -10,7 +10,8 @@ def _get_means_perms(adata: anndata.AnnData,
                      seed: int,
                      agg_fun,
                      norm_factor: float | None,
-                     verbose: bool):
+                     verbose: bool,
+                     met: bool = False,):
     """
     Generate permutations and indices required for permutation-based methods
 
@@ -49,51 +50,80 @@ def _get_means_perms(adata: anndata.AnnData,
     for ct_idx, label in enumerate(labels):
         labels_mask[:, ct_idx] = adata.obs.label == label
 
-    # Perm should be a cube /w dims: n_perms x idents x n_genes
-    perms = _generate_perms_cube(adata.X, n_perms, labels_mask, seed, agg_fun, verbose)
+    # generate two cube for metabolites and genes
+    if met:
+        perms = _generate_perms_cube(adata.X, n_perms, labels_mask, seed, agg_fun, verbose, met=met, Y=adata.obsm['metabolite_abundance'])
+        perms_ligand = perms[0]
+        perms_receptor = perms[1]
 
-    return perms
+        return perms_ligand, perms_receptor
+    
+    else:
+        # Perm should be a cube /w dims: n_perms x idents x n_genes
+        perms = _generate_perms_cube(adata.X, n_perms, labels_mask, seed, agg_fun, verbose)
+
+        return perms
 
 
 # @nb.njit(nb.float32[:,:,:](nb.float32[:,:], nb.int32[:,:], nb.float32[:]), cache=True)
-def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fun, verbose):
+def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fun, verbose, met=False, Y=None):
     # initialize rng
     rng = np.random.default_rng(seed=seed)
     
     # indexes to be shuffled
     idx = np.arange(X.shape[0])
 
-    # Perm should be a cube /w dims: n_perms x idents x n_genes
-    perms = np.zeros((n_perms, labels_mask.shape[1], X.shape[1])) # , dtype=np.float32
+    if met:
+        perms_receptors = np.zeros((n_perms, labels_mask.shape[0], X.shape[1]))
+        perms_ligands = np.zeros((n_perms, labels_mask.shape[0], Y.shape[1]))
+    else:
+        # Perm should be a cube /w dims: n_perms x idents x n_genes
+        perms = np.zeros((n_perms, labels_mask.shape[1], X.shape[1])) # , dtype=np.float32
 
     # Assign permuted matrix
     for perm in tqdm(range(n_perms), disable=not verbose):
         perm_idx = rng.permutation(idx)
         perm_mat = X[perm_idx]
+        if met:
+            perm_mat2 = Y[perm_idx]
+            # perms_receptors[perm] = np.squeeze(np.array([agg_fun(perm_mat[labels_mask[label]], axis=0) for label in labels_mask]))
+            # perms_ligands[perm] = np.squeeze(np.array([agg_fun(perm_mat2[labels_mask[label]], axis=0) for label in labels_mask]))
+
+            # return perms_ligands, perms_receptors
         # populate matrix /w permuted means
         for ct_idx in range(labels_mask.shape[1]):
             ct_mask = labels_mask[:, ct_idx]
-            perms[perm, ct_idx] = agg_fun(perm_mat[ct_mask], axis=0)
-    
-    return perms
+            if met:
+                perms_receptors[perm, ct_idx] = agg_fun(perm_mat[ct_mask], axis=0)
+                perms_ligands[perm, ct_idx] = agg_fun(perm_mat2[ct_mask], axis=0)
+
+                return perms_ligands, perms_receptors
+            else:
+                perms[perm, ct_idx] = agg_fun(perm_mat[ct_mask], axis=0)
+                   
+                return perms
 
 
-def _get_positions(adata, lr_res):
+def _get_positions(adata, lr_res, met = False):
     labels = adata.obs['label'].cat.categories
     
     # get positions of each entity in the matrix
-    ligand_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity
+    if met:
+        ligand_pos = {entity: np.where(adata.uns['met_index'] == entity)[0][0] for \
+                      entity in lr_res['ligand']}
+    else:
+        ligand_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity \
                   in lr_res['ligand']}
-    receptor_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity
+    receptor_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity \
                     in lr_res['receptor']}
     labels_pos = {labels[pos]: pos for pos in range(labels.shape[0])}
     
     return ligand_pos, receptor_pos, labels_pos
 
 
-def _get_mat_idx(adata, lr_res):
+def _get_mat_idx(adata, lr_res, met = False):
     # convert to indexes
-    ligand_pos, receptor_pos, labels_pos = _get_positions(adata, lr_res)
+    ligand_pos, receptor_pos, labels_pos = _get_positions(adata, lr_res, met=met)
     
     ligand_idx = lr_res['ligand'].map(ligand_pos)
     receptor_idx = lr_res['receptor'].map(receptor_pos)

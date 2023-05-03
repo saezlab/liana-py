@@ -152,6 +152,8 @@ class MetabMethod(MetabMethodMeta):
                  seed: int = 1337,
                  inplace: bool = True,
                  pass_mask: bool = False,
+                 est_only: bool = False,
+                 correct_fdr: bool = False,
                  **kwargs):
         """
         Parameters
@@ -229,14 +231,21 @@ class MetabMethod(MetabMethodMeta):
                         layer=layer,
                         _score = self._SCORE, 
                         pass_mask=pass_mask,
+                        est_only=est_only,
+                        correct_fdr=correct_fdr,
                         **kwargs
                         )
+        
         if inplace:
-            adata.uns['CCC_res'] = ml_res[0]
-            adata.obsm['metabolite_abundance'] = ml_res[1]
-            adata.uns['mask'] = ml_res[2]
-            # adata.uns['met_meta'] = ml_res[3]
 
+            if est_only:
+                adata.obsm['metabolite_abundance'] = ml_res[0]
+                adata.uns['met_index'] = ml_res[1]
+
+            else:
+                adata.uns['CCC_res'] = ml_res[0]
+                adata.obsm['metabolite_abundance'] = ml_res[1]
+                adata.uns['mask'] = ml_res[2]
         
         return None if inplace else ml_res
         

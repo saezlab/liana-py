@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from liana.method._pipe_utils import prep_check_adata
-from liana.method.ml._ml_utils._filter import filter_ml_resource
+from .._pipe_utils import prep_check_adata
+from .._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
+from ._ml_utils._filter import filter_ml_resource
 from ...resource.ml import select_ml_resource
 from ...resource import select_resource
 from .estimations import _metalinks_estimation
+from .._liana_pipe import _join_stats
+from .._pipe_utils._pre import _get_props
 
 from anndata import AnnData
 from pandas import DataFrame, Index, concat
@@ -16,27 +19,29 @@ from statsmodels.distributions.empirical_distribution import ECDF
 
 
 def ml_pipe(adata: AnnData,
-               groupby: str,
-               resource_name: str,
-               resource: DataFrame | None,
-               met_est_resource_name: str,
-               met_est_resource: DataFrame | None,
-               est_fun: str,
-               min_cells: int,
-               expr_prop: float,
-               verbose: bool,
-               seed: int,
-               n_perms: int,
-               use_raw: bool,
-               layer: str | None,
-               supp_columns: list | None = None,
-               return_all_lrs: bool = False,
-               pass_mask: bool = False,
-               _key_cols: list = None,
-               _complex_cols: list = None,
-               _score = None, 
-               **kwargs
-               ):
+            groupby: str,
+            resource_name: str,
+            resource: DataFrame | None,
+            met_est_resource_name: str,
+            met_est_resource: DataFrame | None,
+            est_fun: str,
+            min_cells: int,
+            expr_prop: float,
+            verbose: bool,
+            seed: int,
+            n_perms: int,
+            use_raw: bool,
+            layer: str | None,
+            supp_columns: list | None = None,
+            return_all_lrs: bool = False,
+            est_only: bool = False,
+            pass_mask: bool = False,
+            correct_fdr: bool = False,
+            _key_cols: list = None,
+            _complex_cols: list = None,
+            _score = None, 
+            **kwargs
+            ):
     """
     Parameters
     ----------
@@ -55,6 +60,8 @@ def ml_pipe(adata: AnnData,
     met_est_resource
         Parameter to enable external resources to be passed. Expects a pandas dataframe 
         with ['HMDB_ID', 'Gene_name'] columns.
+    est_fun
+        Estimation function to be used
     min_cells
         Minimum cells per cell identity
     expr_prop
@@ -77,13 +84,21 @@ def ml_pipe(adata: AnnData,
     return_all_lrs
         Bool whether to return all LRs, or only those that surpass the expr_prop threshold.
         `False` by default.
+    est_only
+        Bool whether to return only the estimated metabolite abundances and not run the LR inference.
+        `False` by default.
+    pass_mask
+        Bool whether to pass the mask to the estimation function.
+        `False` by default.
+    correct_fdr
+        Bool whether to correct for multiple testing using FDR.
     _key_cols
         columns which make every interaction unique (i.e. PK).
     _score
         Instance of Method classes (None by default - returns LR stats - no methods used).
-    _consensus_opts
-        Ways to aggregate interactions across methods by default does all aggregations (['Steady',
-        'Specificity', 'Magnitude']).
+    _complex_cols
+        Columns to be used for complex aggregation (['ligand_means', 'receptor_means'] by default)
+
 
     Returns
     -------
@@ -98,7 +113,6 @@ def ml_pipe(adata: AnnData,
         _complex_cols, _add_cols = _score.complex_cols, _score.add_cols
     else:
         _complex_cols = ['ligand_means', 'receptor_means']
-        # change to full list and move to _var
         _add_cols = []
 
     if supp_columns is None:
@@ -124,15 +138,17 @@ def ml_pipe(adata: AnnData,
                                             pass_mask=pass_mask, 
                                             **kwargs)
 
-    # met_est_result = met_est_result.sort_index()
-
-    adata.obsm['metabolite_abundance'] = met_est_result[0] ################ attention
-    
+    #assign results to adata
+    adata.obsm['metabolite_abundance'] = met_est_result[0]
     adata.uns['met_index'] = met_est_result[1]
 
+    # allow early exit e.g. for metabolite estimation benchmarking
+    if est_only:
+        return adata.obsm['metabolite_abundance'], adata.uns['met_index']
+    
+    # # save mask for gene plots
+    # if pass_mask:
     mask = DataFrame(met_est_result[2].todense(), columns=adata.var_names, index=met_est_result[1])
-
-    # PD_genes = _save_PD_names(met_est_result[1], met_est_resource)
 
     # load metabolite-protein resource
     resource = select_resource(resource_name.lower())
@@ -154,50 +170,12 @@ def ml_pipe(adata: AnnData,
                                 _score=_score, _key_cols=_key_cols, _complex_cols=_complex_cols,
                                 _add_cols=_add_cols, n_perms=n_perms, seed=seed)
 
-    # correct pvalues for fdr 
-    #lr_res[_score.specificity] = fdrcorrection(lr_res[_score.specificity])[1]
+    # correct for multiple testing
+    if correct_fdr:
+        lr_res[_score.specificity] = fdrcorrection(lr_res[_score.specificity])[1]
 
     return lr_res, met_est_result[0], mask.T
 
-
-
-def _join_stats(source, target, dedict_gene, dedict_met, resource):
-    """
-    Joins and renames source-ligand and target-receptor stats to the ligand-receptor resource
-
-    Parameters
-    ----------
-    source
-        Source/Sender cell type
-    target
-        Target/Receiver cell type
-    dedict_gene
-        dictionary of gene stats
-    dedict_met
-        dictionary of metabolite stats
-    resource
-        Ligand-receptor Resource
-
-    Returns
-    -------
-    Ligand-Receptor stats
-
-    """
-    source_stats = dedict_met[source].copy()
-    source_stats.columns = source_stats.columns.map(
-        lambda x: 'ligand_' + str(x))
-    source_stats = source_stats.rename(
-        columns={'ligand_names': 'ligand', 'ligand_label': 'source'})
-
-    target_stats = dedict_gene[target].copy()
-    target_stats.columns = target_stats.columns.map(
-        lambda x: 'receptor_' + str(x))
-    target_stats = target_stats.rename(
-        columns={'receptor_names': 'receptor', 'receptor_label': 'target'})
-
-    bound = resource.merge(source_stats).merge(target_stats)
-
-    return bound
 
 
 def _get_lr(adata, resource, expr_prop):
@@ -220,7 +198,7 @@ def _get_lr(adata, resource, expr_prop):
 
     """
 
-
+    # get label cats    
     labels = adata.obs.label.cat.categories
 
     dedict_met = {label: DataFrame({
@@ -249,7 +227,7 @@ def _get_lr(adata, resource, expr_prop):
 
     pairs = DataFrame(np.array(np.meshgrid(labels, labels)).reshape(2, len(labels) ** 2).T, columns=["source", "target"])
 
-    lr_res = concat([_join_stats(source, target, dedict_gene, dedict_met, resource) for source, target in pairs.to_numpy()])
+    lr_res = concat([_join_stats(source, target, resource, dedict_gene, dedict_met) for source, target in pairs.to_numpy()])
 
     lr_res.drop_duplicates(inplace=True)
 
@@ -257,10 +235,6 @@ def _get_lr(adata, resource, expr_prop):
 
     return lr_res
 
-
-# Function to get gene expr proportions
-def _get_props(X_mask):
-    return X_mask.getnnz(axis=0) / X_mask.shape[0]
 
 
 def _run_method(lr_res: DataFrame,
@@ -285,25 +259,39 @@ def _run_method(lr_res: DataFrame,
     tqdm.pandas()
 
     if _score.permute:
-        perms_receptors, perms_ligands, ligand_pos, receptor_pos, labels_pos = \
-            _get_means_perms(adata=adata,
-                             lr_res=lr_res,
-                             n_perms=n_perms,
-                             seed=seed,
-                             agg_fun=agg_fun,
-                             norm_factor=norm_factor,
-                             verbose=verbose)
+    
+        perms = _get_means_perms(adata=adata,
+                            n_perms=n_perms,
+                            seed=seed,
+                            agg_fun=agg_fun,
+                            norm_factor=norm_factor,
+                            verbose=verbose, 
+                            met = True)
+        
+        perms_ligand = perms[0]
+        perms_receptor = perms[1]
+        
+        # get tensor indexes for ligand, receptor, source, target
+        ligand_idx, receptor_idx, source_idx, target_idx = _get_mat_idx(adata, lr_res, met = True)
+        
+        # ligand and receptor perms
+        ligand_stat_perms = perms_ligand[:, source_idx, ligand_idx]
+        receptor_stat_perms = perms_receptor[:, target_idx, receptor_idx]
+        # stack them together
+        perm_stats = np.stack((ligand_stat_perms, receptor_stat_perms), axis=0)
 
         if verbose:
             print("Permutations done, calculating scores...")
 
-        lr_res[[_score.magnitude, _score.specificity]] = \
-            lr_res.progress_apply(_score.fun, axis=1, result_type="expand",
-                         perms_receptors=perms_receptors, perms_ligands=perms_ligands, ligand_pos=ligand_pos,
-                         receptor_pos=receptor_pos, labels_pos=labels_pos)
+        scores = _score.fun(x=lr_res,
+                            perm_stats=perm_stats)
+        
     else:  # non-perm funs
-        lr_res[[_score.magnitude, _score.specificity]] = \
-            lr_res.apply(_score.fun, axis=1, result_type="expand")
+        
+        scores = _score.fun(x=lr_res)
+            
+    lr_res.loc[:, _score.magnitude] = scores[0]
+    lr_res.loc[:, _score.specificity] = scores[1]
 
 
     if _aggregate_flag:  # if consensus keep only the keys and the method scores
@@ -315,125 +303,6 @@ def _run_method(lr_res: DataFrame,
 
     return lr_res    
 
-
-def _get_means_perms(adata: AnnData,
-                     lr_res: DataFrame,
-                     n_perms: int,
-                     seed: int,
-                     agg_fun,
-                     norm_factor: float | None,
-                     verbose: bool):
-    """
-    Generate permutations and indices required for permutation-based methods
-
-    Parameters
-    ----------
-    adata
-        Annotated data matrix.
-    lr_res
-        Ligand-receptor stats DataFrame
-    n_perms
-        Number of permutations to be calculated
-    seed
-        Random seed for reproducibility.
-    agg_fun
-        function by which to aggregate the matrix, should take `axis` argument
-    norm_factor
-        additionally normalize the data by some factor (e.g. matrix max for CellChat)
-    verbose
-        Verbosity bool
-
-    Returns
-    -------
-    Tuple with:
-        - perms: 3D tensor with permuted averages per cluster
-        - ligand_pos: Index of the ligand in the tensor
-        - receptor_pos: Index of the receptor in the perms tensor
-        - labels_pos: Index of cell identities in the perms tensor
-    """
-
-    # initialize rng
-    rng = np.random.default_rng(seed=seed)
-
-    if isinstance(norm_factor, np.float):
-        adata.X /= norm_factor
-
-    # define labels and dict
-    labels = adata.obs.label.cat.categories
-    labels_dict = {label: adata.obs.label.isin([label]) for label in labels}
-
-    # indexes to be shuffled
-    idx = np.arange(adata.X.shape[0])
-
-    # Perm should be a cube /w dims: n_perms x idents x n_genes
-    perms_receptors = np.zeros((n_perms, labels.shape[0], adata.shape[1]))
-    perms_ligands = np.zeros((n_perms, labels.shape[0], adata.obsm['metabolite_abundance'].shape[1]))
-
-
-    # Assign permuted matrix
-    for perm in tqdm(range(n_perms), disable=not verbose):
-        perm_idx = rng.permutation(idx)
-        perm_mat = adata.X[perm_idx]
-        perm_mat2 = adata.obsm['metabolite_abundance'][perm_idx]
-        # populate matrix /w permuted means
-        # for cind in range(labels.shape[0]):
-        #     perms_receptors[perm, cind] = agg_fun(perm_mat[labels_dict[labels[cind]]], axis=0)
-        #     perms_ligands[perm, cind] = agg_fun(perm_mat2[labels_dict[labels[cind]]], axis=0)
-
-        perms_receptors[perm] = np.squeeze(np.array([agg_fun(perm_mat[labels_dict[label]], axis=0) for label in labels]))
-        perms_ligands[perm] = np.squeeze(np.array([agg_fun(perm_mat2[labels_dict[label]], axis=0) for label in labels]))
-
-
-    # Get indexes for each gene and label in the permutations
-    ligand_pos = {entity: np.where(adata.uns['met_index'] == entity)[0][0] for entity
-                  in lr_res['ligand']}
-    receptor_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity
-                    in lr_res['receptor']}
-    labels_pos = {labels[pos]: pos for pos in range(labels.shape[0])}
-
-    return perms_receptors, perms_ligands, ligand_pos, receptor_pos, labels_pos
-
-
-
-def _get_lr_pvals(x, perms_receptors, perms_ligands, ligand_pos, receptor_pos, labels_pos,  agg_fun,
-                  ligand_col='ligand_means', receptor_col='receptor_means'):
-    """
-    Calculate Permutation means and p-values
-
-    Parameters
-    ----------
-    x
-        DataFrame row
-    perms
-        3D tensor with permuted averages per cluster
-    ligand_pos
-        Index of the ligand in the tensor
-    receptor_pos
-        Index of the receptor in the perms tensor
-    labels_pos
-        Index of cell identities in the perms tensor
-    agg_fun
-        function to aggregate the ligand and receptor
-
-    Returns
-    -------
-    A tuple with lr_score (aggregated according to `agg_fun`) and ECDF p-value for x
-
-    """
-    # actual lr_score
-    lr_score = agg_fun(x[ligand_col], x[receptor_col])
-
-    if lr_score == 0:
-        return 0, 1
-
-    # Permutations lr mean
-    ligand_perm_means = perms_ligands[:, labels_pos[x.source], ligand_pos[x.ligand]]
-    receptor_perm_means = perms_receptors[:, labels_pos[x.target], receptor_pos[x.receptor]]
-    lr_perm_score = agg_fun(ligand_perm_means, receptor_perm_means)
-
-    p_value = (1 - ECDF(lr_perm_score)(lr_score))
-
-    return lr_score, p_value
 
 
 
