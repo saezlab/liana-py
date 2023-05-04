@@ -9,58 +9,57 @@ from scipy.sparse import csr_matrix
 
 rng = np.random.default_rng(seed=0)
 
-xmat = rng.normal(size=(20, 5)).astype(np.float32)
-ymat = rng.normal(size=(20, 5)).astype(np.float32)
+x_mat = rng.normal(size=(20, 5)).astype(np.float32)
+y_mat = rng.normal(size=(20, 5)).astype(np.float32)
 weight = csr_matrix(rng.uniform(size=(20, 20)).astype(np.float32))
 
 
-def _assert_bivariate(function, desired, xmat, ymat, weight):
-    actual = function(xmat, ymat, weight)
+def _assert_bivariate(function, desired, x_mat, y_mat, weight):
+    actual = function(x_mat, y_mat, weight)
     assert actual.shape == (5, 20)
     np.testing.assert_almost_equal(actual[:,0], desired, decimal=5)
     
 
 def test_pc_vectorized():
-    pc_vec_truth = np.array([ 0.45880201,  0.06379483, -0.08202948, -0.07459559, -0.10786078])
-    _assert_bivariate(_vectorized_pearson, pc_vec_truth, xmat, ymat, weight)
+    pc_vec_truth = np.array([ 0.25005114,  0.04262733, -0.00130362,  0.2903336 , -0.1236529])
+    _assert_bivariate(_vectorized_pearson, pc_vec_truth, x_mat, y_mat, weight)
 
 
 def test_pc_masked():
     pc_masked_truth = np.array([ 0.25005117,  0.04262732, -0.00130363,  0.2903336 , -0.12365292])
-    _assert_bivariate(_masked_pearson, pc_masked_truth, xmat, ymat, weight.A)  # NOTE the .A is to convert to dense
+    _assert_bivariate(_masked_pearson, pc_masked_truth, x_mat, y_mat, weight.A)  # NOTE the .A is to convert to dense
+
 
 def test_sp_vectorized():
-    sp_vec_truth = np.array([ 0.38851726,  0.15194362, -0.02620391, -0.11188834, -0.09263334])
-    _assert_bivariate(_vectorized_spearman, sp_vec_truth, xmat, ymat, weight)
-
-
+    sp_vec_truth = np.array([ 0.23636213,  0.16480759, -0.01487235,  0.22840601, -0.11492937])
+    _assert_bivariate(_vectorized_spearman, sp_vec_truth, x_mat, y_mat, weight)
 
 def test_sp_masked():
     sp_masked_truth = np.array([0.23636216, 0.16480756, -0.0148723, 0.22840606, -0.11492944])
-    _assert_bivariate(_masked_spearman, sp_masked_truth, xmat, ymat, weight.A)  # NOTE the .A is to convert to dense
+    _assert_bivariate(_masked_spearman, sp_masked_truth, x_mat, y_mat, weight.A)  # NOTE the .A is to convert to dense
 
 
 def test_costine_vectorized():
-    cosine_vec_truth = np.array([ 0.31625268,  0.02285767, -0.02824857, -0.01511965, -0.0337257 ])
-    _assert_bivariate(_vectorized_cosine, cosine_vec_truth, xmat, ymat, weight)
+    cosine_vec_truth = np.array([ 0.33806977,  0.03215113,  0.0950243 ,  0.2957758 , -0.10259595 ])
+    _assert_bivariate(_vectorized_cosine, cosine_vec_truth, x_mat, y_mat, weight)
 
 
 def test_cosine_masked():
     cosine_masked_truth = np.array([ 0.3380698 ,  0.03215112,  0.09502427,  0.29577583, -0.10259596])
-    _assert_bivariate(_masked_cosine, cosine_masked_truth, xmat, ymat, weight.A) # NOTE the .A is to convert to dense
+    _assert_bivariate(_masked_cosine, cosine_masked_truth, x_mat, y_mat, weight.A) # NOTE the .A is to convert to dense
 
 
 def test_vectorized_jaccard():
-    jaccard_vec_truth = np.array([0.4998738 , 0.4665028 , 0.27069882, 0.27474707, 0.35307598])
-    _assert_bivariate(_vectorized_jaccard, jaccard_vec_truth, xmat, ymat, weight)
+    jaccard_vec_truth = np.array([0.34295967, 0.35367563, 0.39685577, 0.41780996, 0.30527356])
+    _assert_bivariate(_vectorized_jaccard, jaccard_vec_truth, x_mat, y_mat, weight)
 
 
 def test_masked_jaccard():
     jac_masked_truth = np.array([0.34295967, 0.35367563, 0.39685577, 0.41780996, 0.30527356])
-    _assert_bivariate(_masked_jaccard, jac_masked_truth, xmat, ymat, weight.A) # NOTE the .A is to convert to dense
+    _assert_bivariate(_masked_jaccard, jac_masked_truth, x_mat, y_mat, weight.A) # NOTE the .A is to convert to dense
 
 
 # NOTE: spatialdm uses raw counts
 def test_morans():
     sp_morans_truth = np.array([-1.54256,  0.64591,  1.30025,  0.55437, -0.77182])
-    _assert_bivariate(_local_morans, sp_morans_truth, xmat, ymat, weight)
+    _assert_bivariate(_local_morans, sp_morans_truth, x_mat, y_mat, weight)
