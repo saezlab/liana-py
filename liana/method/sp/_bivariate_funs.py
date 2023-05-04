@@ -131,7 +131,7 @@ def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
         raise ValueError("method must be one of 'pearson', 'spearman'")
     
     # transpose
-    x_mat, y_mat = x_mat.T, y_mat.T
+    x_mat, y_mat, weight = x_mat.T, y_mat.T, weight.T
     
     weight_sums = np.array(np.sum(weight, axis = 0)).flatten()
             
@@ -170,21 +170,21 @@ def _vectorized_spearman(x_mat, y_mat, weight):
 
 
 def _vectorized_cosine(x_mat, y_mat, weight):
-    x_mat, y_mat = x_mat.T, y_mat.T    
+    x_mat, y_mat = x_mat.T, y_mat.T
     
-    xy_dot = (x_mat * y_mat) @ weight
-    x_dot = (x_mat ** 2) @ weight.T
-    y_dot = (y_mat ** 2) @ weight.T
+    xy_dot = (x_mat * y_mat) @ weight.T
+    x_dot = ((x_mat ** 2) @ weight.T)
+    y_dot = ((y_mat ** 2) @ weight.T)
     denominator = (x_dot * y_dot) + np.finfo(np.float32).eps
     
-    return xy_dot / (denominator**0.5)
+    return xy_dot / denominator**0.5
 
 
 def _vectorized_jaccard(x_mat, y_mat, weight):
     # binarize
     x_mat, y_mat = x_mat > 0, y_mat > 0 ## TODO, only positive?
     # transpose
-    x_mat, y_mat = x_mat.T, y_mat.T
+    x_mat, y_mat, weight = x_mat.T, y_mat.T, weight.T
     
     # intersect and union
     numerator = np.minimum(x_mat, y_mat) @ weight
