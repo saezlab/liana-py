@@ -1,6 +1,8 @@
 import numpy as np
 from pandas import DataFrame, Index
 
+# TODO merge
+
 def filter_ml_resource(resource: DataFrame, met_ids: Index, var_names: Index) -> DataFrame:
     """
     Filter interactions for which vars are not present.
