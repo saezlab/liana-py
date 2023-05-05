@@ -38,6 +38,7 @@ _geometric_mean = MethodMeta(method_name="Geometric Mean",
                              specificity="gmean_pvals",
                              specificity_ascending=True,
                              permute=True,
+                             met = False,
                              reference="CellPhoneDBv2's permutation approach applied to the "
                                        "geometric means of ligand-receptors' mean, as opposed to "
                                        "their arithmetic mean."

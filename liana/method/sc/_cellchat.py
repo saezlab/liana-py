@@ -43,6 +43,7 @@ _cellchat = MethodMeta(method_name="CellChat",
                        specificity="cellchat_pvals",
                        specificity_ascending=True,
                        permute=True,
+                       met=False,
                        reference="Jin, S., Guerrero-Juarez, C.F., Zhang, L., Chang, I., Ramos, "
                                  "R., Kuan, C.H., Myung, P., Plikus, M.V. and Nie, Q., "
                                  "2021. Inference and analysis of cell-cell communication using "

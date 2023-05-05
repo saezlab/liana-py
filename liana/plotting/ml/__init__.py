@@ -1,1 +1,1 @@
-from ._ml_dotplot import ml_dotplot, ml_dotplot_by_sample, gene_plot
+from ._ml_set_dotplot import set_dotplot

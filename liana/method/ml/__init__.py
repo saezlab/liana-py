@@ -1,4 +1,4 @@
-from ._metalinks import metalinks
+#from ..sc._metalinks import metalinks
 # from ._ml_Method import _show_met_est_methods
 # from .met_inf._mrank_aggregate import MetabAggregateClass, _mrank_aggregate_meta
 # from .scores import mebocost

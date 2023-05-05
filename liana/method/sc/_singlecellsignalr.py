@@ -33,6 +33,7 @@ _singlecellsignalr = MethodMeta(method_name="SingleCellSignalR",
                                 specificity=None,
                                 specificity_ascending=None,
                                 permute=False,
+                                met = False,
                                 reference='Cabello-Aguilar, S., Alame, M., Kon-Sun-Tack, F., Fau, '
                                           'C., Lacroix, M. and Colinge, J., '
                                           '2020. SingleCellSignalR: inference of intercellular '

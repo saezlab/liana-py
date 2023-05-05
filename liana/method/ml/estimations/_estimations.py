@@ -33,15 +33,14 @@ def _metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell', pas
         print(f"Estimating metabolite abundances with {est_fun}...")
 
     est_fun_dict = {'ulm': run_ulm,
-                    'mlm': run_mlm,
                     'wmean': run_wmean,
                     'wsum': run_wsum,
-                    'udt': run_udt,
-                    'mdt': run_mdt,
                     'viper': run_viper,
-                    'ora': run_ora,
-                    'gsea': run_gsea,
-                    'gsva': run_gsva
+                    # 'udt': run_udt,
+                    # 'mdt': run_mdt,
+                    # 'ora': run_ora,
+                    # 'gsea': run_gsea,
+                    # 'gsva': run_gsva
     }
 
     
@@ -56,10 +55,7 @@ def _metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell', pas
     mask.index = metabolites
     mask.columns = adata.var_names
 
-    if est_fun == 'mean_per_cell':
-        pass_mask = True
-
-    if pass_mask:
+    if pass_mask or est_fun == 'mean_per_cell':
 
         if verbose:
             print('Preparing mask...')
@@ -79,7 +75,7 @@ def _metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell', pas
         fun = est_fun_dict[est_fun]
 
         me_res['weight'] = me_res['direction'].apply(lambda x: 1 if x == 'producing' else -1)
-        me_res.drop_duplicates(subset=['HMDB', 'GENE'], inplace=True) ## attention: decide on direction 
+        me_res.drop_duplicates(subset=['HMDB', 'GENE'], inplace=True) ## attention: decide on direction
         df = DataFrame(adata.X.todense(), index = adata.obs_names, columns = adata.var_names)
         estimates = fun(df, me_res, source = 'HMDB',  target = 'GENE', weight = 'weight', verbose=verbose, use_raw=False, **kwargs)
         estimates = estimates[len(estimates) - 1]

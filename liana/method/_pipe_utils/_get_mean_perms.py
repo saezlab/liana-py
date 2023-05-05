@@ -96,12 +96,13 @@ def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fun, verbose, met=Fa
             if met:
                 perms_receptors[perm, ct_idx] = agg_fun(perm_mat[ct_mask], axis=0)
                 perms_ligands[perm, ct_idx] = agg_fun(perm_mat2[ct_mask], axis=0)
-
-                return perms_ligands, perms_receptors
             else:
                 perms[perm, ct_idx] = agg_fun(perm_mat[ct_mask], axis=0)
-                   
-                return perms
+        
+    if met:
+        return perms_ligands, perms_receptors
+    else:               
+        return perms
 
 
 def _get_positions(adata, lr_res, met = False):

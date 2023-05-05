@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from liana.method._Method import MethodMeta
-from liana.method._liana_pipe import liana_pipe
+from ...method._Method import MethodMeta
+from ...method._liana_pipe import liana_pipe
 
 from anndata import AnnData
 from pandas import DataFrame
@@ -20,7 +20,8 @@ class AggregateClass(MethodMeta):
                          specificity=_SCORE.specificity,
                          specificity_ascending=True,
                          permute=_SCORE.permute,
-                         reference=_SCORE.reference
+                         reference=_SCORE.reference,
+                         met = _SCORE.met
                          )
         self._SCORE = _SCORE
         self.methods = methods
@@ -66,6 +67,7 @@ class AggregateClass(MethodMeta):
                  verbose: Optional[bool] = False,
                  n_perms: int | None = 1000 ,
                  seed: int = 1337,
+                 prop_missing_allowed: float = 0.98,
                  resource: Optional[DataFrame] = None,
                  inplace=True
                  ):
@@ -131,6 +133,11 @@ class AggregateClass(MethodMeta):
                                resource=resource,
                                expr_prop=expr_prop,
                                min_cells=min_cells,
+                               met_est_resource_name=None,
+                               met_est_resource=None,
+                               est_fun=None,
+                               score_fun=None,
+                               prop_missing_allowed=prop_missing_allowed,
                                base=base,
                                return_all_lrs=return_all_lrs,
                                de_method=de_method,
@@ -158,6 +165,7 @@ _rank_aggregate_meta = \
                specificity='specificity_rank',
                specificity_ascending=True,
                permute=False,
+               met=False,
                reference='Dimitrov, D., Türei, D., Garrido-Rodriguez, M., Burmedi, P.L., '
                          'Nagai, J.S., Boys, C., Ramirez Flores, R.O., Kim, H., Szalai, B., '
                          'Costa, I.G. and Valdeolivas, A., 2022. Comparison of methods and '

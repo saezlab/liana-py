@@ -21,7 +21,7 @@ def test_check_dotplot_order():
     assert {'A', 'B', 'C'} == set(my_p.data.target)
 
 
-def test_check_doplot_filter():
+def test_check_dotplot_filter():
     my_p2 = dotplot(liana_res=liana_res,
                     size='specificity_rank',
                     colour='magnitude',

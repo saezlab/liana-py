@@ -3,8 +3,8 @@ import pathlib
 from scanpy.datasets import pbmc68k_reduced
 from pandas import read_csv
 
-from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_positions
-from liana.method._liana_pipe import _trimean
+from ..method._pipe_utils._get_mean_perms import _get_means_perms, _get_positions
+from ..method._liana_pipe import _trimean
 
 test_path = pathlib.Path(__file__).parent
 

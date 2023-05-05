@@ -7,7 +7,7 @@ def _spec_weight(ligand_means, ligand_means_sums, receptor_means, receptor_means
     return s_lig * s_rec
 
 
-def _natmi_score(x) -> tuple:
+def _natmi_score(x, **kwargs) -> tuple:
     """
     Calculate NATMI-like expression product and specificity weights
 
@@ -41,6 +41,7 @@ _natmi = MethodMeta(method_name="NATMI",
                     specificity='spec_weight',
                     specificity_ascending=False,
                     permute=False,
+                    met = False,
                     reference='Hou, R., Denisenko, E., Ong, H.T., Ramilowski, J.A. and Forrest, '
                               'A.R., 2020. Predicting cell-to-cell communication networks using '
                               'NATMI. Nature communications, 11(1), pp.1-11. '

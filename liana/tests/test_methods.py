@@ -3,7 +3,7 @@ from numpy import max, min
 from numpy.testing import assert_almost_equal
 
 from liana.method import cellphonedb, singlecellsignalr as sca, \
-    natmi, connectome, logfc, geometric_mean, cellchat
+    natmi, connectome, logfc, geometric_mean, cellchat, metalinks
     
 from liana.testing._toy_adata import get_toy_adata
 
@@ -128,8 +128,6 @@ def test_connectome():
     assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['scaled_weight'].max(), 0.9002860486507416, decimal=6)
     assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['expr_prod'].max(), 1.9646283122925752, decimal=6)
     
-
-
 def test_with_all_lrs():
     natmi(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, key_added='all_res')
     lr_all = adata.uns['all_res']
@@ -144,3 +142,6 @@ def test_methods_by_sample():
     
     assert 'sample' in lr_by_sample.columns
     assert lr_by_sample.shape == (10836, 15)
+
+
+

@@ -1,17 +1,20 @@
 from __future__ import annotations
 
 import anndata
-import pandas
-
+from pandas import DataFrame, concat
 from ._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
 from ..resource import select_resource, explode_complexes
 from ._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
 from ._pipe_utils._aggregate import _aggregate
 from ._pipe_utils._pre import _get_props
+from .ml._ml_utils._filter import filter_ml_resource
+from ..resource.ml import select_ml_resource
+from ..resource import select_resource
+from .ml.estimations import _metalinks_estimation
+from statsmodels.stats.multitest import fdrcorrection
 
 import scanpy as sc
-import pandas as pd
 import numpy as np
 from functools import reduce
 
@@ -19,23 +22,32 @@ from functools import reduce
 def liana_pipe(adata: anndata.AnnData,
                groupby: str,
                resource_name: str,
-               resource: pd.DataFrame | None,
+               resource: DataFrame | None,
                expr_prop: float,
                min_cells: int,
                base: float,
+               prop_missing_allowed: float | None,
                de_method: str,
                n_perms: int,
                seed: int,
                verbose: bool,
                use_raw: bool,
+               met_est_resource_name: str | None,
+               met_est_resource: DataFrame | None,
+               est_fun: str | None,
+               score_fun: str | None,
                layer: str | None,
                supp_columns: list | None = None,
                return_all_lrs: bool = False,
+               est_only: bool = False,
+               pass_mask: bool = True,
+               correct_fdr: bool = False,
                _key_cols: list = None,
                _score=None,
                _methods: list = None,
                _consensus_opts: list = None,
-               _aggregate_method: str | None = None
+               _aggregate_method: str | None = None,
+               **kwargs
                ):
     """
     Parameters
@@ -93,11 +105,83 @@ def liana_pipe(adata: anndata.AnnData,
     A adata frame with ligand-receptor results
 
     """
+    print(pass_mask)
+    from .sc import _sca_score, _natmi_score, _cellchat_score, _cpdb_score, \
+        _gmean_score, _connectome_score, _logfc_score
+
+    # Check and Reformat Mat if needed
+    assert groupby is not None
+    adata = prep_check_adata(adata=adata,
+                             groupby=groupby,
+                             min_cells=min_cells,
+                             use_raw=use_raw,
+                             layer=layer,
+                             verbose=verbose)
+    
+    if _score is not None:
+        if _score.met:
+                fun_dict = {'cellphone': _cpdb_score,
+                            'natmi': _natmi_score,            
+                            'gmean': _gmean_score,
+                            # 'cellchat': _cellchat_score,
+                            # 'connectome': _connectome_score,
+                            # 'logfc': _logfc_score,
+                            # 'sca': _sca_score
+                            }
+        
+                _score.fun = fun_dict[score_fun]
+                _key_cols = _key_cols = ['source', 'target']
+
+                if score_fun == 'cellchat':
+                    _score.complex_cols = ['ligand_trimean', 'receptor_trimean']
+                    _score.add_cols = ['mat_max']
+                    _score.magnitude = 'lr_probs',
+                    _score.specificity = 'cellchat_pvals'
+
+                elif score_fun == 'connectome': 
+                    _score.complex_cols=["ligand_means", "receptor_means"]
+                    _score.add_cols = ['ligand_zscores', 'receptor_zscores']
+
+                elif score_fun == 'gmean':
+                    _score. complex_cols=["ligand_means", "receptor_means"]
+                
+                elif score_fun == 'natmi':
+                    _score.complex_cols=["ligand_means", "receptor_means"]
+                    _score.add_cols = ['ligand_means_sums', 'receptor_means_sums', 'ligand_name']
+
+
+                # Load metabolite resource
+                met_est_resource = select_ml_resource(met_est_resource_name)
+
+                # Estimate metabolite abundances, check if ocean etc with flags and if or run_method
+                met_est_result = _metalinks_estimation(me_res=met_est_resource, 
+                                                        adata=adata, 
+                                                        est_fun = est_fun,
+                                                        verbose=verbose, 
+                                                        pass_mask=pass_mask, 
+                                                        **kwargs)
+
+                #assign results to adata
+                adata.obsm['metabolite_abundance'] = met_est_result[0]
+                adata.uns['met_index'] = met_est_result[1]
+
+                mask = DataFrame(met_est_result[2].todense(), columns=adata.var_names, index=met_est_result[1])
+
+                print(pass_mask)
+                # allow early exit e.g. for metabolite estimation benchmarking
+                if est_only:         
+                    if pass_mask:
+                        return adata.obsm['metabolite_abundance'], mask.T
+                    else:
+                        return adata.obsm['metabolite_abundance']
+                
+                
     if _key_cols is None:
         _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
 
     if _score is not None:
         _complex_cols, _add_cols = _score.complex_cols, _score.add_cols
+
     else:
         _complex_cols = ['ligand_means', 'receptor_means']
         # change to full list and move to _var
@@ -119,14 +203,7 @@ def liana_pipe(adata: anndata.AnnData,
     mat_mean = None
     mat_max = None
 
-    # Check and Reformat Mat if needed
-    assert groupby is not None
-    adata = prep_check_adata(adata=adata,
-                             groupby=groupby,
-                             min_cells=min_cells,
-                             use_raw=use_raw,
-                             layer=layer,
-                             verbose=verbose)
+
 
     # get mat mean for SCA (before reducing the features)
     if 'mat_mean' in _add_cols:
@@ -139,16 +216,27 @@ def liana_pipe(adata: anndata.AnnData,
 
     if resource is None:
         resource = select_resource(resource_name.lower())
+
     # explode complexes/decomplexify
-    resource = explode_complexes(resource)
+    if _score is not None:
+        if _score.met == False:
+            resource = explode_complexes(resource)
+    else:
+        resource = explode_complexes(resource)
 
     # Check overlap between resource and adata
     assert_covered(np.union1d(np.unique(resource["ligand"]),
                               np.unique(resource["receptor"])),
-                   adata.var_names, verbose=verbose)
+                   adata.var_names, verbose=verbose, prop_missing_allowed=prop_missing_allowed)
 
     # Filter Resource
-    resource = filter_resource(resource, adata.var_names)
+    if _score is not None:
+        if _score.met:
+            resource = filter_ml_resource(resource, adata.uns['met_index'], adata.var_names)
+        else:
+            resource = filter_resource(resource, adata.var_names)
+    else:
+        resource = filter_resource(resource, adata.var_names)
 
     if verbose:
         print(f"Generating ligand-receptor stats for {adata.shape[0]} samples "
@@ -162,25 +250,71 @@ def liana_pipe(adata: anndata.AnnData,
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
 
     # Get lr results
-    lr_res = _get_lr(adata=adata,
-                     resource=resource,
-                     mat_mean=mat_mean,
-                     mat_max=mat_max,
-                     relevant_cols=_key_cols + _add_cols + _complex_cols,
-                     de_method=de_method,
-                     base=base,
-                     verbose=verbose
-                     )
+
+    # Will get better ifn the moment get_lr and get_ml_lr are merged
+    if _score is not None:
+        if _score.met:
+            lr_res = _get_ml_lr(adata=adata,
+                            resource=resource,
+                            expr_prop=expr_prop,
+                            mat_mean=mat_mean,
+                            mat_max=mat_max,
+                            relevant_cols=_key_cols + _add_cols + _complex_cols,
+                            de_method=de_method,
+                            base=base,
+                            verbose=verbose
+                            )
+        else:
+            lr_res = _get_lr(adata=adata,
+                            resource=resource,
+                            mat_mean=mat_mean,
+                            mat_max=mat_max,
+                            relevant_cols=_key_cols + _add_cols + _complex_cols,
+                            de_method=de_method,
+                            base=base,
+                            verbose=verbose
+                            )
+    else:
+        lr_res = _get_lr(adata=adata,
+                        resource=resource,
+                        mat_mean=mat_mean,
+                        mat_max=mat_max,
+                        relevant_cols=_key_cols + _add_cols + _complex_cols,
+                        de_method=de_method,
+                        base=base,
+                        verbose=verbose
+                        )  
 
     # Mean Sums required for NATMI (note done on subunits also)
     if 'ligand_means_sums' in _add_cols:
-        lr_res = _sum_means(lr_res, what='ligand_means',
-                            on=['ligand_complex', 'receptor_complex',
-                                'ligand', 'receptor', 'target'])
+        if _score is not None:
+            if _score.met:
+                lr_res = _sum_means(lr_res, what='ligand_means',
+                                    on=['ligand', 'receptor', 'target'])
+            else:
+                lr_res = _sum_means(lr_res, what='ligand_means',
+                                on=['ligand_complex', 'receptor_complex',
+                                    'ligand', 'receptor', 'target'])
+        else:
+            lr_res = _sum_means(lr_res, what='ligand_means',
+                                    on=['ligand_complex', 'receptor_complex',
+                                    'ligand', 'receptor', 'target'])
+    
+            
     if 'receptor_means_sums' in _add_cols:
-        lr_res = _sum_means(lr_res, what='receptor_means',
-                            on=['ligand_complex', 'receptor_complex',
-                                'ligand', 'receptor', 'source'])
+        if _score is not None:
+            if _score.met:
+                lr_res = _sum_means(lr_res, what='receptor_means',
+                                    on=['ligand', 'receptor', 'source'])
+            else:
+                lr_res = _sum_means(lr_res, what='receptor_means',
+                                    on=['ligand_complex', 'receptor_complex',
+                                    'ligand', 'receptor', 'source'])
+        else:
+            lr_res = _sum_means(lr_res, what='receptor_means',
+                                    on=['ligand_complex', 'receptor_complex',
+                                    'ligand', 'receptor', 'source'])
+
 
     # Calculate Score
     if _score is not None:
@@ -226,8 +360,20 @@ def liana_pipe(adata: anndata.AnnData,
                                              expr_prop=expr_prop,
                                              complex_cols=_complex_cols,
                                              return_all_lrs=return_all_lrs)
+        
+    if correct_fdr:
+        lr_res[_score.specificity] = fdrcorrection(lr_res[_score.specificity])[1]
 
-    return lr_res
+    if _score is not None:
+        if _score.met:
+            if pass_mask:
+                return lr_res, met_est_result[0], mask.T
+            else:   
+                return lr_res, met_est_result[0]
+        else:
+            return lr_res
+    else:
+        return lr_res
 
 
 def _join_stats(source, target, resource, dedict_gene, dedict_met = None) :
@@ -331,7 +477,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
     for label in labels:
         temp = adata[adata.obs.label == label, :]
         a = _get_props(temp.X)
-        stats = pd.DataFrame({'names': temp.var_names, 'props': a}). \
+        stats = DataFrame({'names': temp.var_names, 'props': a}). \
             assign(label=label).sort_values('names')
         if rank_genes_bool:
             pvals = sc.get.rank_genes_groups_df(adata, label)
@@ -354,12 +500,12 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
             dedict[label]['trimean'] = _trimean(temp.X / mat_max)
 
     # Create df /w cell identity pairs
-    pairs = (pd.DataFrame(np.array(np.meshgrid(labels, labels))
+    pairs = (DataFrame(np.array(np.meshgrid(labels, labels))
                           .reshape(2, np.size(labels) * np.size(labels)).T)
              .rename(columns={0: "source", 1: "target"}))
 
     # Join Stats
-    lr_res = pd.concat(
+    lr_res = concat(
         [_join_stats(source, target, resource, dedict) for source, target in
          zip(pairs['source'], pairs['target'])]
     )
@@ -436,7 +582,7 @@ def _expm1_base(X, base):
     return np.power(base, X) - 1
 
 
-def _run_method(lr_res: pandas.DataFrame,
+def _run_method(lr_res: DataFrame,
                 adata: anndata.AnnData,
                 expr_prop: float,
                 _score,
@@ -448,7 +594,7 @@ def _run_method(lr_res: pandas.DataFrame,
                 return_all_lrs: bool,
                 verbose: bool,
                 _aggregate_flag: bool = False  # Indicates whether we're generating the consensus
-                ) -> pd.DataFrame:
+                ) -> DataFrame:
     # re-assemble complexes - specific for each method
     lr_res = filter_reassemble_complexes(lr_res=lr_res,
                                          _key_cols=_key_cols,
@@ -482,13 +628,24 @@ def _run_method(lr_res: pandas.DataFrame,
                                      seed=seed,
                                      agg_fun=agg_fun,
                                      norm_factor=norm_factor,
-                                     verbose=verbose)
+                                     verbose=verbose, 
+                                     met = _score.met)
+            if _score.met:
+                perms_ligand = perms[0]
+                perms_receptor = perms[1]
+
+
             # get tensor indexes for ligand, receptor, source, target
-            ligand_idx, receptor_idx, source_idx, target_idx = _get_mat_idx(adata, lr_res)
+            ligand_idx, receptor_idx, source_idx, target_idx = _get_mat_idx(adata, lr_res, met=_score.met)
             
             # ligand and receptor perms
-            ligand_stat_perms = perms[:, source_idx, ligand_idx]
-            receptor_stat_perms = perms[:, target_idx, receptor_idx]
+            if _score.met:
+                        ligand_stat_perms = perms_ligand[:, source_idx, ligand_idx]
+                        receptor_stat_perms = perms_receptor[:, target_idx, receptor_idx]
+            else:
+                ligand_stat_perms = perms[:, source_idx, ligand_idx]
+                receptor_stat_perms = perms[:, target_idx, receptor_idx]
+
             # stack them together
             perm_stats = np.stack((ligand_stat_perms, receptor_stat_perms), axis=0)
         else:
@@ -506,7 +663,7 @@ def _run_method(lr_res: pandas.DataFrame,
 
     if return_all_lrs:
         # re-append rest of results
-        lr_res = pd.concat([lr_res, rest_res], copy=False)
+        lr_res = concat([lr_res, rest_res], copy=False)
         if _score.magnitude is not None:
             fill_value = _assign_min_or_max(lr_res[_score.magnitude],
                                             _score.magnitude_ascending)
@@ -551,3 +708,134 @@ def _trimean(a, axis=0):
                     q=[0.25, 0.5, 0.5, 0.75],
                     axis=axis),
         axis=axis)
+
+
+
+def _get_ml_lr(adata, resource,  relevant_cols, mat_mean, mat_max, de_method, base, expr_prop, verbose): # will be incorporated as well
+    """
+    Run DE analysis and merge needed information with resource for LR inference
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        adata filtered and formated to contain only the relevant features for lr inference
+
+    resource : pandas.core.frame.DataFrame formatted and filtered resource
+    dataframe with the following columns: [interaction, ligand, receptor,
+    ligand_complex, receptor_complex]
+
+    Returns
+    -------
+    lr_res : pandas.core.frame.DataFrame long-format pandas dataframe with stats
+    for all interactions /w matching variables in the dataset.
+
+    """
+
+    # get label cats    
+    labels = adata.obs.label.cat.categories
+
+    # # Method-specific stats
+    # connectome_flag = ('ligand_zscores' in relevant_cols) | (
+    #         'receptor_zscores' in relevant_cols)
+    # if connectome_flag:
+    #     adata.obsm['met_scaled'] = sc.pp.scale(adata.obsm['metabolite_abundance'], copy=True)
+
+    # logfc_flag = ('ligand_logfc' in relevant_cols) | (
+    #         'receptor_logfc' in relevant_cols)
+    # if logfc_flag:
+    #     if 'log1p' in adata.uns_keys():
+    #         if (adata.uns['log1p']['base'] is not None) & verbose:
+    #             print("Assuming that counts were `natural` log-normalized!")
+    #     elif ('log1p' not in adata.uns_keys()) & verbose:
+    #         print("Assuming that counts were `natural` log-normalized!")
+    #     adata.layers['normcounts'] = adata.X.copy()
+    #     adata.layers['normcounts'].data = _expm1_base(adata.X.data, base)
+
+    # dedict_met = {}
+    dedict_met = {label: DataFrame({
+        'names': adata.uns['met_index'],
+        'props': _get_props(adata.obsm['metabolite_abundance']),
+        'label': label
+    }).sort_values('names') for label in labels}
+
+    #    # Calc pvals + other stats per gene or not
+    # rank_genes_bool = ('ligand_pvals' in relevant_cols) | ('receptor_pvals' in relevant_cols)
+    # if rank_genes_bool:
+    #     adata = sc.tl.rank_genes_groups(adata, groupby='label',
+    #                                     method=de_method, use_raw=False,
+    #                                     copy=True)
+
+    # for label in labels:
+    #     temp = adata.obsm['metabolite_abundance']
+    #     a = _get_props(temp)
+    #     stats = DataFrame({'names': adata.uns['met_index'], 'props': a}). \
+    #         assign(label=label).sort_values('names')
+    #     if rank_genes_bool:
+    #         pvals = sc.get.rank_genes_groups_df(adata, label)
+    #         stats = stats.merge(pvals)
+    #     dedict_met[label] = stats   
+
+    for label in labels:
+        # temp = adata[adata.obs.label.isin([label])]
+        # dedict_met[label]['means'] = temp.obsm['metabolite_abundance'].mean(axis=0).A.flatten()
+        dedict_met[label]['means'] = adata[adata.obs.label == label].obsm['metabolite_abundance'].mean(axis=0).A.flatten()
+        # if connectome_flag:
+        #     dedict_met[label]['zscores'] = temp.layers['scaled'].mean(axis=0)
+        # if logfc_flag:
+        #     dedict_met[label]['logfc'] = _calc_log2fc(adata, label)
+        # if isinstance(mat_max, np.float32):  # cellchat flag
+        #     dedict_met[label]['trimean'] = _trimean(temp.X / mat_max)
+
+    if list(adata.uns['met_index']) != list(dedict_met[labels[0]]['names']):
+        raise AssertionError("Variable names did not match DE results!")
+
+    
+    dedict_gene = {label: DataFrame({
+        'names': adata[adata.obs.label == label].var_names,
+        'props': _get_props(adata[adata.obs.label == label].X),
+        'label': label
+    }).sort_values('names') for label in labels}
+
+    # for label in labels:
+    #     temp = adata[adata.obs.label == label, :]
+    #     a = _get_props(temp.X)
+    #     stats = DataFrame({'names': temp.var_names, 'props': a}). \
+    #         assign(label=label).sort_values('names')
+    #     if rank_genes_bool:
+    #         pvals = sc.get.rank_genes_groups_df(adata, label)
+    #         stats = stats.merge(pvals)
+    #     dedict_gene[label] = stats   
+
+
+    if list(adata.var_names) != list(dedict_gene[labels[0]]['names']):
+        raise AssertionError("Variable names did not match DE results!")
+
+    for label in labels:
+        temp = adata[adata.obs.label.isin([label])]
+        dedict_gene[label]['means'] = temp.X.mean(axis=0).A.flatten()
+        # if connectome_flag:
+        #     dedict_gene[label]['zscores'] = temp.layers['scaled'].mean(axis=0)
+        # if logfc_flag:
+        #     dedict_gene[label]['logfc'] = _calc_log2fc(adata, label)
+        # if isinstance(mat_max, np.float32):  # cellchat flag
+        #     dedict_gene[label]['trimean'] = _trimean(temp.X / mat_max)
+
+    pairs = DataFrame(np.array(np.meshgrid(labels, labels)).reshape(2, len(labels) ** 2).T, columns=["source", "target"])
+
+    lr_res = concat([_join_stats(source, target, resource, dedict_gene, dedict_met) for source, target in pairs.to_numpy()])
+
+    lr_res.drop_duplicates(inplace=True)
+
+    lr_res = lr_res[(lr_res['receptor_props'] >= expr_prop) & (lr_res['ligand_means'] > 0) & (lr_res['ligand_props'] >= expr_prop)]
+
+    # if 'mat_mean' in relevant_cols:
+    #     assert isinstance(mat_mean, np.float32)
+    #     lr_res['mat_mean'] = mat_mean
+
+    # if isinstance(mat_max, np.float32):
+    #     lr_res['mat_max'] = mat_max
+
+    # # subset to only relevant columns
+    # relevant_cols = np.intersect1d(relevant_cols, lr_res.columns)
+
+    return lr_res # decide later if relevant columns

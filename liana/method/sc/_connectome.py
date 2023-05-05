@@ -2,7 +2,7 @@ from liana.method._Method import Method, MethodMeta
 from numpy import mean
 
 
-def _connectome_score(x) -> tuple:
+def _connectome_score(x, **kwargs) -> tuple:
     """
     Calculate Connectome-like Score
 
@@ -34,6 +34,7 @@ _connectome = MethodMeta(method_name="Connectome",
                          specificity='scaled_weight',
                          specificity_ascending=False,
                          permute=False,
+                         met = False,
                          reference='Raredon, M.S.B., Yang, J., Garritano, J., Wang, M., Kushnir, '
                                    'D., Schupp, J.C., Adams, T.S., Greaney, A.M., Leiby, K.L., '
                                    'Kaminski, N. and Kluger, Y., 2022. Computation and '

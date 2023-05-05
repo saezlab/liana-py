@@ -1,6 +1,6 @@
 import numpy as np
-from liana.method._Method import Method, MethodMeta
-from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
+from ...method._Method import Method, MethodMeta
+from ...method._pipe_utils._get_mean_perms import _calculate_pvals
 
 # Internal Function to calculate CellPhoneDB LR_mean and p-values
 def _cpdb_score(x, perm_stats) -> tuple:
@@ -38,6 +38,7 @@ _cellphonedb = MethodMeta(method_name="CellPhoneDB",
                           specificity="cellphone_pvals",
                           specificity_ascending=True,
                           permute=True,
+                          met=False,
                           reference="Efremova, M., Vento-Tormo, M., Teichmann, S.A. and "
                                     "Vento-Tormo, R., 2020. CellPhoneDB: inferring cell–cell "
                                     "communication from combined expression of multi-subunit "
