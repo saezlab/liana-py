@@ -13,7 +13,7 @@ adata = get_toy_adata()
 def test_metalinks_default():
     metalinks(adata, groupby='bulk_labels', n_perms=10)
     
-    assert adata.uns['CCC_res'].shape == (100, 11)
+    assert adata.uns['CCC_res'].shape == (6196, 11)
     assert adata.obsm['metabolite_abundance'].shape == (700, 421)
     assert adata.uns['mask'].shape == (765, 421)
     assert adata.uns['mask'].sum().sum() == -184
@@ -22,7 +22,7 @@ def test_metalinks_default():
 def test_metalinks_without_mask():
     metalinks(adata, groupby='bulk_labels', n_perms=10, pass_mask = False)
     
-    assert adata.uns['CCC_res'].shape == (100, 11)
+    assert adata.uns['CCC_res'].shape == (6196, 11)
     assert adata.obsm['metabolite_abundance'].shape == (700, 421)
     assert ('mask' in adata.uns) == False
     assert 'ligand_name' in adata.uns['CCC_res'].columns

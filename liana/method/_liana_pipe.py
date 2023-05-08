@@ -105,7 +105,6 @@ def liana_pipe(adata: anndata.AnnData,
     A adata frame with ligand-receptor results
 
     """
-    print(pass_mask)
     from .sc import _sca_score, _natmi_score, _cellchat_score, _cpdb_score, \
         _gmean_score, _connectome_score, _logfc_score
 
@@ -167,7 +166,6 @@ def liana_pipe(adata: anndata.AnnData,
 
                 mask = DataFrame(met_est_result[2].todense(), columns=adata.var_names, index=met_est_result[1])
 
-                print(pass_mask)
                 # allow early exit e.g. for metabolite estimation benchmarking
                 if est_only:         
                     if pass_mask:
@@ -202,8 +200,6 @@ def liana_pipe(adata: anndata.AnnData,
     # initialize mat_mean for sca
     mat_mean = None
     mat_max = None
-
-
 
     # get mat mean for SCA (before reducing the features)
     if 'mat_mean' in _add_cols:
@@ -253,27 +249,16 @@ def liana_pipe(adata: anndata.AnnData,
 
     # Will get better ifn the moment get_lr and get_ml_lr are merged
     if _score is not None:
-        if _score.met:
-            lr_res = _get_ml_lr(adata=adata,
-                            resource=resource,
-                            expr_prop=expr_prop,
-                            mat_mean=mat_mean,
-                            mat_max=mat_max,
-                            relevant_cols=_key_cols + _add_cols + _complex_cols,
-                            de_method=de_method,
-                            base=base,
-                            verbose=verbose
-                            )
-        else:
-            lr_res = _get_lr(adata=adata,
-                            resource=resource,
-                            mat_mean=mat_mean,
-                            mat_max=mat_max,
-                            relevant_cols=_key_cols + _add_cols + _complex_cols,
-                            de_method=de_method,
-                            base=base,
-                            verbose=verbose
-                            )
+        lr_res = _get_lr(adata=adata,
+                        resource=resource,
+                        mat_mean=mat_mean,
+                        mat_max=mat_max,
+                        relevant_cols=_key_cols + _add_cols + _complex_cols,
+                        de_method=de_method,
+                        base=base,
+                        verbose=verbose,
+                        met=_score.met,
+                        )
     else:
         lr_res = _get_lr(adata=adata,
                         resource=resource,
@@ -418,7 +403,7 @@ def _join_stats(source, target, resource, dedict_gene, dedict_met = None) :
     return bound
 
 
-def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, verbose):
+def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, verbose, met = False):
     """
     Run DE analysis and merge needed information with resource for LR inference
 
@@ -464,15 +449,36 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
         adata.layers['normcounts'] = adata.X.copy()
         adata.layers['normcounts'].data = _expm1_base(adata.X.data, base)
 
-    # initialize dict
-    dedict = {}
-
     # Calc pvals + other stats per gene or not
     rank_genes_bool = ('ligand_pvals' in relevant_cols) | ('receptor_pvals' in relevant_cols)
     if rank_genes_bool:
         adata = sc.tl.rank_genes_groups(adata, groupby='label',
                                         method=de_method, use_raw=False,
                                         copy=True)
+        
+    if met:
+
+        # initialize dict
+        dedict_met = {}
+
+        for label in labels:
+            temp = adata.obsm['metabolite_abundance']
+            a = _get_props(temp)
+            stats = DataFrame({'names': adata.uns['met_index'], 'props': a}). \
+                assign(label=label).sort_values('names')
+            dedict_met[label] = stats
+
+        # check if genes are ordered correctly
+        if not list(adata.uns['met_index']) == list(dedict_met[labels[0]]['names']):
+            raise AssertionError("Variable names did not match DE results!")
+
+        # Calculate Mean, logFC and z-scores by group
+        for label in labels:
+            temp = adata[adata.obs.label.isin([label])].obsm['metabolite_abundance']
+            dedict_met[label]['means'] = temp.mean(axis=0).A.flatten()
+
+    # initialize dict
+    dedict_gene = {}
 
     for label in labels:
         temp = adata[adata.obs.label == label, :]
@@ -482,33 +488,42 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
         if rank_genes_bool:
             pvals = sc.get.rank_genes_groups_df(adata, label)
             stats = stats.merge(pvals)
-        dedict[label] = stats
+        dedict_gene[label] = stats
 
     # check if genes are ordered correctly
-    if not list(adata.var_names) == list(dedict[labels[0]]['names']):
+    if not list(adata.var_names) == list(dedict_gene[labels[0]]['names']):
         raise AssertionError("Variable names did not match DE results!")
 
     # Calculate Mean, logFC and z-scores by group
     for label in labels:
         temp = adata[adata.obs.label.isin([label])]
-        dedict[label]['means'] = temp.X.mean(axis=0).A.flatten()
+        dedict_gene[label]['means'] = temp.X.mean(axis=0).A.flatten()
         if connectome_flag:
-            dedict[label]['zscores'] = temp.layers['scaled'].mean(axis=0)
+            dedict_gene[label]['zscores'] = temp.layers['scaled'].mean(axis=0)
         if logfc_flag:
-            dedict[label]['logfc'] = _calc_log2fc(adata, label)
+            dedict_gene[label]['logfc'] = _calc_log2fc(adata, label)
         if isinstance(mat_max, np.float32):  # cellchat flag
-            dedict[label]['trimean'] = _trimean(temp.X / mat_max)
+            dedict_gene[label]['trimean'] = _trimean(temp.X / mat_max)
 
     # Create df /w cell identity pairs
     pairs = (DataFrame(np.array(np.meshgrid(labels, labels))
                           .reshape(2, np.size(labels) * np.size(labels)).T)
              .rename(columns={0: "source", 1: "target"}))
+    
 
-    # Join Stats
-    lr_res = concat(
-        [_join_stats(source, target, resource, dedict) for source, target in
-         zip(pairs['source'], pairs['target'])]
-    )
+    if met:
+        # Join Stats
+        lr_res = concat(
+            [_join_stats(source, target, resource, dedict_gene, dedict_met) for source, target in
+            zip(pairs['source'], pairs['target'])]
+        )
+
+    else:
+        # Join Stats
+        lr_res = concat(
+            [_join_stats(source, target, resource, dedict_gene) for source, target in
+            zip(pairs['source'], pairs['target'])]
+        )
 
     if 'mat_mean' in relevant_cols:
         assert isinstance(mat_mean, np.float32)
@@ -516,6 +531,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
 
     if isinstance(mat_max, np.float32):
         lr_res['mat_max'] = mat_max
+
 
     # subset to only relevant columns
     relevant_cols = np.intersect1d(relevant_cols, lr_res.columns)
@@ -595,12 +611,17 @@ def _run_method(lr_res: DataFrame,
                 verbose: bool,
                 _aggregate_flag: bool = False  # Indicates whether we're generating the consensus
                 ) -> DataFrame:
-    # re-assemble complexes - specific for each method
-    lr_res = filter_reassemble_complexes(lr_res=lr_res,
-                                         _key_cols=_key_cols,
-                                         expr_prop=expr_prop,
-                                         return_all_lrs=return_all_lrs,
-                                         complex_cols=_complex_cols)
+    
+    if _score.met:
+        lr_res = lr_res[(lr_res['ligand_means'] > 0) & (lr_res['ligand_props'] >= expr_prop)  & (lr_res['receptor_props'] >= expr_prop) & (lr_res['receptor_means'] > 0) ]
+    else:
+        # re-assemble complexes - specific for each method
+        if _score.met == False:
+            lr_res = filter_reassemble_complexes(lr_res=lr_res,
+                                                _key_cols=_key_cols,
+                                                expr_prop=expr_prop,
+                                                return_all_lrs=return_all_lrs,
+                                                complex_cols=_complex_cols)
 
     _add_cols = _add_cols + ['ligand', 'receptor']
     relevant_cols = reduce(np.union1d, [_key_cols, _complex_cols, _add_cols])
@@ -708,134 +729,3 @@ def _trimean(a, axis=0):
                     q=[0.25, 0.5, 0.5, 0.75],
                     axis=axis),
         axis=axis)
-
-
-
-def _get_ml_lr(adata, resource,  relevant_cols, mat_mean, mat_max, de_method, base, expr_prop, verbose): # will be incorporated as well
-    """
-    Run DE analysis and merge needed information with resource for LR inference
-
-    Parameters
-    ----------
-    adata : anndata.AnnData
-        adata filtered and formated to contain only the relevant features for lr inference
-
-    resource : pandas.core.frame.DataFrame formatted and filtered resource
-    dataframe with the following columns: [interaction, ligand, receptor,
-    ligand_complex, receptor_complex]
-
-    Returns
-    -------
-    lr_res : pandas.core.frame.DataFrame long-format pandas dataframe with stats
-    for all interactions /w matching variables in the dataset.
-
-    """
-
-    # get label cats    
-    labels = adata.obs.label.cat.categories
-
-    # # Method-specific stats
-    # connectome_flag = ('ligand_zscores' in relevant_cols) | (
-    #         'receptor_zscores' in relevant_cols)
-    # if connectome_flag:
-    #     adata.obsm['met_scaled'] = sc.pp.scale(adata.obsm['metabolite_abundance'], copy=True)
-
-    # logfc_flag = ('ligand_logfc' in relevant_cols) | (
-    #         'receptor_logfc' in relevant_cols)
-    # if logfc_flag:
-    #     if 'log1p' in adata.uns_keys():
-    #         if (adata.uns['log1p']['base'] is not None) & verbose:
-    #             print("Assuming that counts were `natural` log-normalized!")
-    #     elif ('log1p' not in adata.uns_keys()) & verbose:
-    #         print("Assuming that counts were `natural` log-normalized!")
-    #     adata.layers['normcounts'] = adata.X.copy()
-    #     adata.layers['normcounts'].data = _expm1_base(adata.X.data, base)
-
-    # dedict_met = {}
-    dedict_met = {label: DataFrame({
-        'names': adata.uns['met_index'],
-        'props': _get_props(adata.obsm['metabolite_abundance']),
-        'label': label
-    }).sort_values('names') for label in labels}
-
-    #    # Calc pvals + other stats per gene or not
-    # rank_genes_bool = ('ligand_pvals' in relevant_cols) | ('receptor_pvals' in relevant_cols)
-    # if rank_genes_bool:
-    #     adata = sc.tl.rank_genes_groups(adata, groupby='label',
-    #                                     method=de_method, use_raw=False,
-    #                                     copy=True)
-
-    # for label in labels:
-    #     temp = adata.obsm['metabolite_abundance']
-    #     a = _get_props(temp)
-    #     stats = DataFrame({'names': adata.uns['met_index'], 'props': a}). \
-    #         assign(label=label).sort_values('names')
-    #     if rank_genes_bool:
-    #         pvals = sc.get.rank_genes_groups_df(adata, label)
-    #         stats = stats.merge(pvals)
-    #     dedict_met[label] = stats   
-
-    for label in labels:
-        # temp = adata[adata.obs.label.isin([label])]
-        # dedict_met[label]['means'] = temp.obsm['metabolite_abundance'].mean(axis=0).A.flatten()
-        dedict_met[label]['means'] = adata[adata.obs.label == label].obsm['metabolite_abundance'].mean(axis=0).A.flatten()
-        # if connectome_flag:
-        #     dedict_met[label]['zscores'] = temp.layers['scaled'].mean(axis=0)
-        # if logfc_flag:
-        #     dedict_met[label]['logfc'] = _calc_log2fc(adata, label)
-        # if isinstance(mat_max, np.float32):  # cellchat flag
-        #     dedict_met[label]['trimean'] = _trimean(temp.X / mat_max)
-
-    if list(adata.uns['met_index']) != list(dedict_met[labels[0]]['names']):
-        raise AssertionError("Variable names did not match DE results!")
-
-    
-    dedict_gene = {label: DataFrame({
-        'names': adata[adata.obs.label == label].var_names,
-        'props': _get_props(adata[adata.obs.label == label].X),
-        'label': label
-    }).sort_values('names') for label in labels}
-
-    # for label in labels:
-    #     temp = adata[adata.obs.label == label, :]
-    #     a = _get_props(temp.X)
-    #     stats = DataFrame({'names': temp.var_names, 'props': a}). \
-    #         assign(label=label).sort_values('names')
-    #     if rank_genes_bool:
-    #         pvals = sc.get.rank_genes_groups_df(adata, label)
-    #         stats = stats.merge(pvals)
-    #     dedict_gene[label] = stats   
-
-
-    if list(adata.var_names) != list(dedict_gene[labels[0]]['names']):
-        raise AssertionError("Variable names did not match DE results!")
-
-    for label in labels:
-        temp = adata[adata.obs.label.isin([label])]
-        dedict_gene[label]['means'] = temp.X.mean(axis=0).A.flatten()
-        # if connectome_flag:
-        #     dedict_gene[label]['zscores'] = temp.layers['scaled'].mean(axis=0)
-        # if logfc_flag:
-        #     dedict_gene[label]['logfc'] = _calc_log2fc(adata, label)
-        # if isinstance(mat_max, np.float32):  # cellchat flag
-        #     dedict_gene[label]['trimean'] = _trimean(temp.X / mat_max)
-
-    pairs = DataFrame(np.array(np.meshgrid(labels, labels)).reshape(2, len(labels) ** 2).T, columns=["source", "target"])
-
-    lr_res = concat([_join_stats(source, target, resource, dedict_gene, dedict_met) for source, target in pairs.to_numpy()])
-
-    lr_res.drop_duplicates(inplace=True)
-
-    lr_res = lr_res[(lr_res['receptor_props'] >= expr_prop) & (lr_res['ligand_means'] > 0) & (lr_res['ligand_props'] >= expr_prop)]
-
-    # if 'mat_mean' in relevant_cols:
-    #     assert isinstance(mat_mean, np.float32)
-    #     lr_res['mat_mean'] = mat_mean
-
-    # if isinstance(mat_max, np.float32):
-    #     lr_res['mat_max'] = mat_max
-
-    # # subset to only relevant columns
-    # relevant_cols = np.intersect1d(relevant_cols, lr_res.columns)
-
-    return lr_res # decide later if relevant columns
