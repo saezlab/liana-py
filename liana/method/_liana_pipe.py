@@ -129,7 +129,7 @@ def liana_pipe(adata: anndata.AnnData,
 
     # get mat max for CellChat
     if 'mat_max' in _add_cols:
-        mat_max = np.max(adata.X.data)
+        mat_max = adata.X.max()
         assert isinstance(mat_max, np.float32)
 
     if resource is None:
@@ -157,10 +157,14 @@ def liana_pipe(adata: anndata.AnnData,
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
 
     # Get lr results
-    lr_res = _get_lr(adata=adata, resource=resource,
-                     mat_mean=mat_mean, mat_max=mat_max,
+    lr_res = _get_lr(adata=adata, 
+                     resource=resource,
+                     mat_mean=mat_mean, 
+                     mat_max=mat_max,
                      relevant_cols=_key_cols + _add_cols + _complex_cols,
-                     de_method=de_method, base=base, verbose=verbose)
+                     de_method=de_method,
+                     base=base, 
+                     verbose=verbose)
 
     # Mean Sums required for NATMI (note done on subunits also)
     if 'ligand_means_sums' in _add_cols:
@@ -451,7 +455,7 @@ def _run_method(lr_res: pandas.DataFrame,
 
     if ('mat_max' in _add_cols) & (_score.method_name == "CellChat"):
         # CellChat matrix_max
-        norm_factor = np.unique(lr_res['mat_max'].values).item()
+        norm_factor = np.unique(lr_res['mat_max'].values)[0]
         agg_fun = _trimean
     else:
         norm_factor = None
