@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 from itertools import product
 
 from liana.testing._sample_anndata import generate_toy_mdata
@@ -30,7 +29,7 @@ def test_basis_nondefault():
     global_stats, local_scores, local_pvals, local_categories = \
           basis(mdata, x_mod='adata_x', y_mod='adata_y', 
                 function_name='morans', pvalue_method="analytical", 
-                proximity_key='ones', remove_self_interactions=False,
+                connectivity_key='ones', remove_self_interactions=False,
                 x_layer = "scaled", y_layer = "scaled", inplace=False, 
                 add_categories=True
                 )
@@ -53,7 +52,7 @@ def test_basis_external():
     y_vars = mdata.mod['adata_y'].var.index[0:3]
     interactions = list(product(x_vars, y_vars))
     
-    basis(mdata, x_mod='adata_x', y_mod='adata_y', function_name='morans', proximity=ones, interactions=interactions)
+    basis(mdata, x_mod='adata_x', y_mod='adata_y', function_name='morans', connectivity=ones, interactions=interactions)
     
     
 def test_masked_pearson():

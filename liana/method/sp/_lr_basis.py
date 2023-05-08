@@ -14,7 +14,7 @@ from liana.method._pipe_utils._pre import _get_props
 
 from liana.method.sp._SpatialMethod import _SpatialMeta
 from liana.method.sp._spatial_pipe import _get_ordered_matrix, _rename_means, \
-    _run_scores_pipeline, _proximity_to_weight, _handle_proximity, _categorize
+    _run_scores_pipeline, _connectivity_to_weight, _handle_connectivity, _categorize
 from liana.method.sp._bivariate_funs import _handle_functions
 
 
@@ -32,7 +32,7 @@ class SpatialLR(_SpatialMeta):
     def __call__(self,
                  adata: AnnData,
                  function_name: str,
-                 proximity_key = 'proximity',
+                 connectivity_key = 'spatial_connectivities',
                  key_added='global_res',
                  obsm_added='local_scores',
                  resource_name: str = 'consensus',
@@ -45,7 +45,7 @@ class SpatialLR(_SpatialMeta):
                  layer: Optional[str] = None,
                  verbose: Optional[bool] = False,
                  seed: int = 1337,
-                 proximity = None,
+                 connectivity = None,
                  resource: Optional[pd.DataFrame] = None,
                  inplace=True
                  ):
@@ -56,8 +56,8 @@ class SpatialLR(_SpatialMeta):
             Annotated data object.
         resource_name
             Name of the resource to be loaded and use for ligand-receptor inference.
-        proximity_key: str
-            Key to use to retrieve the proximity matrix from adata.obsp.
+        connectivity_key: str
+            Key to use to retrieve the connectivity matrix from adata.obsp.
         key_added : str
             Key to use to store the results in adata.uns.
         obsm_added : str
@@ -84,9 +84,9 @@ class SpatialLR(_SpatialMeta):
             Parameter to enable external resources to be passed. Expects a pandas dataframe
             with [`ligand`, `receptor`] columns. None by default. If provided will overrule
             the resource requested via `resource_name`
-        proximity : np.array 
-            Proximity matrix to be used to calculate bivariate relationships, should be with shape (n_obs, n_obs).
-            If provided, will overrule the proximities provided via `proximity_key`.
+        connectivity : np.array 
+            connectivity matrix to be used to calculate bivariate relationships, should be with shape (n_obs, n_obs).
+            If provided, will overrule the connectivities provided via `connectivity_key`.
         inplace
             If true return `DataFrame` with results, else assign to `.uns`.
 
@@ -109,9 +109,9 @@ class SpatialLR(_SpatialMeta):
         if resource is None:
             resource = select_resource(resource_name.lower())
 
-        proximity = _handle_proximity(adata, proximity, proximity_key)
+        connectivity = _handle_connectivity(adata, connectivity, connectivity_key)
         local_fun = _handle_functions(function_name)
-        weight = _proximity_to_weight(proximity, local_fun)
+        weight = _connectivity_to_weight(connectivity, local_fun)
 
         # prep adata
         temp = prep_check_adata(adata=adata,

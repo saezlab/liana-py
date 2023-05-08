@@ -3,7 +3,6 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import anndata
-from anndata import AnnData
 from pandas import DataFrame
 
 from sklearn.neighbors import NearestNeighbors
@@ -13,16 +12,17 @@ from scipy.stats import norm
 from tqdm import tqdm
 
 
-def get_spatial_proximity(adata: anndata.AnnData,
-                          parameter,
-                          family='gaussian',
-                          cutoff=None,
-                          n_neighbors=None,
-                          bypass_diagonal=False,
-                          inplace=True
-                          ):
+def spatial_neighbors(adata: anndata.AnnData,
+                      parameter,
+                      cutoff=None,
+                      family='gaussian',
+                      n_neighbors=None,
+                      set_diag=True,
+                      key_added='spatial',
+                      inplace=True,
+                      ):
     """
-    Generate spatial proximity weights using Euclidean distance.
+    Generate spatial connectivity weights using Euclidean distance.
 
     Parameters
     ----------
@@ -30,25 +30,27 @@ def get_spatial_proximity(adata: anndata.AnnData,
         `AnnData` object with spatial coordinates (in 'spatial') in `adata.obsm`.
     parameter
          Denotes signaling length (`l`)
-    family
-        Functions used to generate proximity weights. The following options are available:
-        ['gaussian', 'spatialdm', 'exponential', 'linear']
     cutoff
         Vales below this cutoff will be set to 0
+    family
+        Functions used to generate connectivity weights. The following options are available:
+        ['gaussian', 'spatialdm', 'exponential', 'linear']
     n_neighbors
-        Find k nearest neighbours, use it as a proximity mask. In other words,
-        only the proximity of the nearest neighbours is kept as calculated
+        Find k nearest neighbours, use it as a connectivity mask. In other words,
+        only the connectivity of the nearest neighbours is kept as calculated
         by the specified radial basis function, the remainder are set to 0.
-    bypass_diagonal
-        Logical, sets proximity diagonal to 0 if true.
+    set_diag
+        Logical, sets connectivity diagonal to 0 if `False`. Default is `True`.
+    key_added
+        Key to add to `adata.obsm` if `inplace = True`.
     inplace
         If true return `DataFrame` with results, else assign to `.obsm`.
 
     Returns
     -------
-    If ``inplace = False``, returns an `np.array` with spatial proximity weights.
+    If ``inplace = False``, returns an `np.array` with spatial connectivity weights.
     Otherwise, modifies the ``adata`` object with the following key:
-        - :attr:`anndata.AnnData.obsm` ``['proximity']`` with the aforementioned array
+        - :attr:`anndata.AnnData.obsm` ``['connectivity']`` with the aforementioned array
     """
 
     families = ['gaussian', 'spatialdm', 'exponential', 'linear']
@@ -72,38 +74,38 @@ def get_spatial_proximity(adata: anndata.AnnData,
     parameter = np.array(parameter, dtype=np.float64)
 
     if family == 'gaussian':
-        proximity = np.exp(-(dist ** 2.0) / (2.0 * parameter ** 2.0))
+        connectivity = np.exp(-(dist ** 2.0) / (2.0 * parameter ** 2.0))
     elif family == 'misty_rbf':
-        proximity = np.exp(-(dist ** 2.0) / (parameter ** 2.0))
+        connectivity = np.exp(-(dist ** 2.0) / (parameter ** 2.0))
     elif family == 'exponential':
-        proximity = np.exp(-dist / parameter)
+        connectivity = np.exp(-dist / parameter)
     elif family == 'linear':
-        proximity = 1 - dist / parameter
-        proximity[proximity < 0] = 0
+        connectivity = 1 - dist / parameter
+        connectivity[connectivity < 0] = 0
     else:
-        raise ValueError("Please specify a valid family to generate proximity weights")
+        raise ValueError("Please specify a valid family to generate connectivity weights")
 
-    if bypass_diagonal:
-        np.fill_diagonal(proximity, 0)
+    if not set_diag:
+        np.fill_diagonal(connectivity, 0)
 
     if cutoff is not None:
-        proximity[proximity < cutoff] = 0
+        connectivity[connectivity < cutoff] = 0
     if n_neighbors is not None:
-        nn = NearestNeighbors(n_neighbors=n_neighbors).fit(proximity)
-        knn = nn.kneighbors_graph(proximity).toarray()
-        proximity = proximity * knn  # knn works as a mask
+        nn = NearestNeighbors(n_neighbors=n_neighbors).fit(connectivity)
+        knn = nn.kneighbors_graph(connectivity).toarray()
+        connectivity = connectivity * knn  # knn works as a mask
 
-    spot_n = proximity.shape[0]
+    spot_n = connectivity.shape[0]
     assert spot_n == adata.shape[0]
 
     # speed up
     if spot_n > 1000:
-        proximity = proximity.astype(np.float16)
+        connectivity = connectivity.astype(np.float32)
 
-    proximity = csr_matrix(proximity)
+    connectivity = csr_matrix(connectivity)
 
-    adata.obsp['proximity'] = proximity
-    return None if inplace else proximity
+    adata.obsp[f'{key_added}_connectivities'] = connectivity
+    return None if inplace else connectivity
 
 
 def _rename_means(lr_stats, entity):
@@ -137,7 +139,7 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_per
     local_truth
         2D array with non-permuted local scores/co-expressions
     weight
-        proximity weights
+        connectivity weights
     n_perms
         number of permutations
     seed
@@ -202,7 +204,7 @@ def _encode_as_char(a, weight):
     if np.all(a >= 0):
         a = _standardize_matrix(a, local=True, axis=0)
     
-    # to get a sign for each spot, we multiply by proximities 
+    # to get a sign for each spot, we multiply by connectivities
     a = a @ weight
     
     a = np.where(a > 0, 'P', np.where(a < 0, 'N', 'Z'))
@@ -256,7 +258,7 @@ def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, positive_
     y_mat
         Matrix with y variables
     dist
-        Proximity weights 2D array
+        connectivity weights 2D array
     global_r
         Global Moran's I, 1D array
     n_perms
@@ -299,7 +301,7 @@ def _global_zscore_pvals(weight, global_r, positive_only):
     Parameters
     ----------
     weight
-        proximity weight matrix (spot_n x spot_n)
+        connectivity weight matrix (spot_n x spot_n)
     global_r
         Array with
     positive_only: bool
@@ -342,7 +344,7 @@ def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, positive_only):
     local_r
         2D array with Local Moran's I
     weight
-        proximity weights
+        connectivity weights
     positive_only
         Whether to mask negative correlations pvalue
 
@@ -386,7 +388,7 @@ def _get_local_var(x_sigma, y_sigma, weight, spot_n):
     y_sigma
         Standard deviations for each y (e.g. std of all receptors in the matrix)
     weight
-        proximity weight matrix
+        connectivity weight matrix
     spot_n
         number of spots/cells in the matrix
 
@@ -431,7 +433,7 @@ def _global_spatialdm(x_mat,
     xy_dataframe
         a dataframe with x,y relationships to be estimated, for example `lr_res`.
     weight
-        proximity weight matrix, obtained e.g. via `liana.method.get_spatial_proximity`.
+        connectivity weight matrix, obtained e.g. via `liana.method.get_spatial_connectivity`.
         Note that for spatialDM/Morans'I `weight` has to be weighed by n / sum(W).
     seed
         Reproducibility seed
@@ -491,7 +493,7 @@ def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun,
         local_fun
             Function to calculate local scores, e.g. `liana.method._local_morans`
         weight
-            proximity weight matrix, obtained e.g. via `liana.method.get_spatial_proximity`.
+            connectivity weight matrix, obtained e.g. via `liana.method.get_spatial_connectivity`.
             Note that for spatialDM/Morans'I `weight` has to be weighed by n / sum(W).
         pvalue_method
             Method to estimate pseudo p-value, must be in ['permutation', 'analytical']
@@ -568,7 +570,7 @@ def _get_local_scores(x_mat,
     xy_dataframe
         a dataframe with x,y relationships to be estimated, for example `lr_res`.
     weight
-        proximity weight matrix, obtained e.g. via `liana.method.get_spatial_proximity`.
+        connectivity weight matrix, obtained e.g. via `liana.method.get_spatial_connectivity`.
         Note that for spatialDM/Morans'I `weight` has to be weighed by n / sum(W).
     seed
         Reproducibility seed
@@ -645,27 +647,27 @@ def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, pvalue_method,
     return xy_stats
 
 
-def _proximity_to_weight(proximity, local_fun):
+def _connectivity_to_weight(connectivity, local_fun):
     ## TODO add tests for this
-    proximity = csr_matrix(proximity, dtype=np.float32)
+    connectivity = csr_matrix(connectivity, dtype=np.float32)
     
     if local_fun.__name__ == "_local_morans":
-        norm_factor = proximity.shape[0] / proximity.sum()
-        proximity = norm_factor * proximity
+        norm_factor = connectivity.shape[0] / connectivity.sum()
+        connectivity = norm_factor * connectivity
         
-        return csr_matrix(proximity)
+        return csr_matrix(connectivity)
     
-    elif (proximity.shape[0] < 5000) | local_fun.__name__.__contains__("masked"):
+    elif (connectivity.shape[0] < 5000) | local_fun.__name__.__contains__("masked"):
     # NOTE vectorized is faster with non-sparse, masked_scores don't work with sparse
-            return proximity.A
+            return connectivity.A
     else:
-        return csr_matrix(proximity)
+        return csr_matrix(connectivity)
 
 
-def _handle_proximity(adata, proximity, proximity_key):
-    if proximity is None:
-        if adata.obsp[proximity_key] is None:
-            raise ValueError(f'No proximity matrix founds in mdata.obsp[{proximity_key}]')
-        proximity = adata.obsp[proximity_key]
-    proximity = csr_matrix(proximity, dtype=np.float32)
-    return proximity
+def _handle_connectivity(adata, connectivity, connectivity_key):
+    if connectivity is None:
+        if adata.obsp[connectivity_key] is None:
+            raise ValueError(f'No connectivity matrix founds in mdata.obsp[{connectivity_key}]')
+        connectivity = adata.obsp[connectivity_key]
+    connectivity = csr_matrix(connectivity, dtype=np.float32)
+    return connectivity

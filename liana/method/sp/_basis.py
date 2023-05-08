@@ -5,7 +5,6 @@ import pandas as pd
 from itertools import product
 from scipy.sparse import csr_matrix
 from mudata import MuData
-from anndata import AnnData
 
 from liana.method._pipe_utils._pre import _choose_mtx_rep, _get_props
 
@@ -13,7 +12,7 @@ from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
 
 from liana.method.sp._spatial_pipe import _categorize, \
     _get_ordered_matrix, _rename_means, _run_scores_pipeline, \
-    _proximity_to_weight, _handle_proximity
+    _connectivity_to_weight, _handle_connectivity
     
 from liana.funcomics.obsm_to_adata import obsm_to_adata
 
@@ -35,7 +34,7 @@ class SpatialBivariate(_SpatialMeta):
                  y_mod,
                  interactions = None,
                  xy_separator = '^',
-                 proximity_key = 'proximity',
+                 connectivity_key = 'spatial_connectivities', # connectivity_key
                  mod_added = "local_scores",
                  key_added = 'global_res',
                  add_categories = False, ## TODO currently very experimental
@@ -45,7 +44,7 @@ class SpatialBivariate(_SpatialMeta):
                  seed = 1337,
                  nz_threshold = 0,
                  remove_self_interactions=True,
-                 proximity = None,
+                 connectivity = None,
                  x_use_raw = False,
                  x_layer = None,
                  y_use_raw=False,
@@ -68,8 +67,8 @@ class SpatialBivariate(_SpatialMeta):
         interactions : list of tuples
             Interactions to use for the local analysis. If None, all pairwise combinations of all variables in x and y will be used.
             Note that this may be very computationally expensive when working with modalities with many variables.
-        proximity_key : str
-            Key to use to retrieve the proximity matrix from adata.obsp.
+        connectivity_key : str
+            Key to use to retrieve the connectivity matrix from adata.obsp.
         mod_added : str
             Name of the modality to add to the MuData object (in case of inplace=True)
         add_categories : bool
@@ -87,8 +86,8 @@ class SpatialBivariate(_SpatialMeta):
         remove_self_interactions : bool
             Whether to remove self-interactions from the data (i.e. x & y have the same name).
             Current metrics implemented here do not make sense for self-interactions.
-        proximity : np.ndarray
-            Proximity matrix to use for the local analysis. If None, will use the one stored in adata.obsp[proximity_key].
+        connectivity : np.ndarray
+            connectivity matrix to use for the local analysis. If None, will use the one stored in adata.obsp[connectivity_key].
         x_use_raw : bool
             Whether to use the raw data for the x modality (By default it will use the .X matrix)
         x_layer : str
@@ -116,9 +115,9 @@ class SpatialBivariate(_SpatialMeta):
         if pvalue_method not in ['analytical', 'permutation', None]:
             raise ValueError("`pvalue_method` must be one of ['analytical', 'permutation', None]")
         
-        proximity = _handle_proximity(mdata, proximity, proximity_key)
+        connectivity = _handle_connectivity(mdata, connectivity, connectivity_key)
         local_fun = _handle_functions(function_name)
-        weight = _proximity_to_weight(proximity, local_fun)
+        weight = _connectivity_to_weight(connectivity, local_fun)
         
         if isinstance(mdata, MuData):
             xdata = mdata[x_mod]

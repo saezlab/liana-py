@@ -53,6 +53,7 @@ def test_dotplot_bysample():
 def test_proximity_plot():
     from liana.plotting import proximity_plot
     from liana.testing import generate_toy_spatial
+    
     adata = generate_toy_spatial()
     my_p4 = proximity_plot(adata=adata, idx=0)
     assert my_p4 is not None

@@ -3,19 +3,19 @@ from  scipy.sparse import csr_matrix
 
 from liana.method.sp._spatial_pipe import _global_zscore_pvals, _global_permutation_pvals, _local_permutation_pvals, _local_zscore_pvals
 from liana.method.sp._bivariate_funs import _local_morans
-from liana.method.sp import get_spatial_proximity
+from liana.method.sp import spatial_neighbors
 
 from liana.testing._sample_anndata import generate_toy_spatial
 
 adata = generate_toy_spatial()
 
-def test_get_spatial_proximity():
-    get_spatial_proximity(adata=adata, parameter=200, bypass_diagonal=False, cutoff=0.2)
-    np.testing.assert_equal(adata.obsp['proximity'].shape, (adata.shape[0], adata.shape[0]))
-    np.testing.assert_equal(adata.obsp['proximity'].sum(), 4550.654013895928)
+def test_get_spatial_connectivities():
+    spatial_neighbors(adata=adata, parameter=200, set_diag=True, cutoff=0.2)
+    np.testing.assert_equal(adata.obsp['spatial_connectivities'].shape, (adata.shape[0], adata.shape[0]))
+    np.testing.assert_equal(adata.obsp['spatial_connectivities'].sum(), 4550.654013895928)
     
-    get_spatial_proximity(adata=adata, parameter=100, bypass_diagonal=False, cutoff=0.1)
-    np.testing.assert_equal(adata.obsp['proximity'].sum(), 1802.332962418902)
+    spatial_neighbors(adata=adata, parameter=100, set_diag=True, cutoff=0.1)
+    np.testing.assert_equal(adata.obsp['spatial_connectivities'].sum(), 1802.332962418902)
     
 
 # toy test data

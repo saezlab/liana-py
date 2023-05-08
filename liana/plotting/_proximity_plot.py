@@ -3,7 +3,7 @@ import anndata
 import pandas as pd
 
 
-def proximity_plot(adata: anndata.AnnData, idx: int, spatial_key = 'spatial', proximity_key = 'proximity', return_fig: bool = True):
+def proximity_plot(adata: anndata.AnnData, idx: int, spatial_key = 'spatial', connectivity_key = 'spatial_connectivities', return_fig: bool = True):
     """
     Plot spatial proximity weights.
 
@@ -15,7 +15,7 @@ def proximity_plot(adata: anndata.AnnData, idx: int, spatial_key = 'spatial', pr
         Spot/cell index
     spatial_key
         Key to use to retrieve the spatial coordinates from adata.obsm.
-    proximity_key
+    connectivity_key
         Key to use to retrieve the proximity (sparse) matrix from adata.obsp.
     return_fig
         `bool` whether to return the fig object, `False` only plots
@@ -26,13 +26,13 @@ def proximity_plot(adata: anndata.AnnData, idx: int, spatial_key = 'spatial', pr
 
     """
 
-    assert proximity_key in list(adata.obsp.keys())
+    assert connectivity_key in list(adata.obsp.keys())
     assert spatial_key in adata.obsm_keys()
 
     coordinates = pd.DataFrame(adata.obsm[spatial_key],
                                index=adata.obs_names,
                                columns=['x', 'y']).copy()
-    coordinates['proximity'] = adata.obsp[proximity_key][:, idx].A
+    coordinates['proximity'] = adata.obsp[connectivity_key][:, idx].A
 
     p = (ggplot(coordinates.sort_values('proximity', ascending=True),
                 aes(x='x', y='y', colour='proximity'))
