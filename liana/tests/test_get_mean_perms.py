@@ -38,18 +38,36 @@ def test_positions():
 
 
 def test_cellchat_perms():
-    mat_max = np.max(adata.X.data)
+    mat_max = adata.X.max()
 
     perms, _, _, _ = \
-        _get_means_perms(adata=adata, lr_res=all_defaults,
-                         norm_factor=mat_max, agg_fun=_trimean,
-                         n_perms=100, seed=1337, verbose=False)
+        _get_means_perms(adata=adata,
+                         lr_res=all_defaults,
+                         norm_factor=None,
+                         agg_fun=_trimean,
+                         n_perms=100,
+                         seed=1337,
+                         verbose=False)
 
     assert perms.shape == (100, 10, 765)
 
     desired = np.array([33840.83, 36332.442, 34569.577, 33819.275,
                         33809.956, 33785.234, 33844.524, 34986.043,
                         34304.404, 33644.323])
-    expected = np.sum(np.sum(perms, axis=0), axis=1)
+    expected = perms.sum(axis=0).sum(axis=1)
+    
+    perms, _, _, _ = \
+    _get_means_perms(adata=adata,
+                        lr_res=all_defaults,
+                        norm_factor=mat_max,
+                        agg_fun=_trimean,
+                        n_perms=100,
+                        seed=1337,
+                        verbose=False)
+    desired = np.array([5215.107487, 5599.082231, 5327.412358,
+                        5211.785598, 5210.349528, 5206.53966,
+                        5215.676758, 5391.592763, 5286.547464,
+                        5184.824284])
+    expected = perms.sum(axis=0).sum(axis=1)
 
-    assert np.testing.assert_almost_equal(desired, expected, decimal=3) is None
+    assert np.testing.assert_almost_equal(desired, expected, decimal=6) is None
