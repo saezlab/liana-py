@@ -56,6 +56,8 @@ def test_cellchat_perms():
                         34304.404, 33644.323])
     expected = perms.sum(axis=0).sum(axis=1)
     
+    assert np.testing.assert_almost_equal(desired, expected, decimal=3) is None
+    
     perms, _, _, _ = \
     _get_means_perms(adata=adata,
                         lr_res=all_defaults,
