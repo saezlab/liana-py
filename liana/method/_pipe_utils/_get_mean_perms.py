@@ -46,7 +46,7 @@ def _get_means_perms(adata: anndata.AnnData,
     # initialize rng
     rng = np.random.default_rng(seed=seed)
 
-    if isinstance(norm_factor, np.float):
+    if isinstance(norm_factor, np.float64):
         adata.X /= norm_factor
 
     # define labels and dict
