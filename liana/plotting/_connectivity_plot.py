@@ -3,20 +3,20 @@ import anndata
 import pandas as pd
 
 
-def proximity_plot(adata: anndata.AnnData, idx: int, spatial_key = 'spatial', connectivity_key = 'spatial_connectivities', return_fig: bool = True):
+def connectivity_plot(adata: anndata.AnnData, idx: int, spatial_key = 'spatial', connectivity_key = 'spatial_connectivities', return_fig: bool = True):
     """
-    Plot spatial proximity weights.
+    Plot spatial connectivity weights.
 
     Parameters
     ----------
     adata
-        `AnnData` object with `proximity` (spatial proximity weights) in `adata.obsm`.
+        `AnnData` object with `connectivity` (spatial connectivity weights) in `adata.obsm`.
     idx
         Spot/cell index
     spatial_key
         Key to use to retrieve the spatial coordinates from adata.obsm.
     connectivity_key
-        Key to use to retrieve the proximity (sparse) matrix from adata.obsp.
+        Key to use to retrieve the connectivity (sparse) matrix from adata.obsp.
     return_fig
         `bool` whether to return the fig object, `False` only plots
 
@@ -32,13 +32,13 @@ def proximity_plot(adata: anndata.AnnData, idx: int, spatial_key = 'spatial', co
     coordinates = pd.DataFrame(adata.obsm[spatial_key],
                                index=adata.obs_names,
                                columns=['x', 'y']).copy()
-    coordinates['proximity'] = adata.obsp[connectivity_key][:, idx].A
+    coordinates['connectivity'] = adata.obsp[connectivity_key][:, idx].A
 
-    p = (ggplot(coordinates.sort_values('proximity', ascending=True),
-                aes(x='x', y='y', colour='proximity'))
+    p = (ggplot(coordinates.sort_values('connectivity', ascending=True),
+                aes(x='x', y='y', colour='connectivity'))
          + geom_point(size=2.7, shape='8')
          + theme_minimal()
-         + labs(colour='Proximity', y='y Coordinate', x='x Coordinate')
+         + labs(colour='connectivity', y='y Coordinate', x='x Coordinate')
          )
 
     if return_fig:

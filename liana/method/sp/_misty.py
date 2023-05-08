@@ -18,7 +18,7 @@ def _gauss_weight(distance_mtx, l):
 def _exponential_weight(distance_mtx, l):
     return np.exp(-distance_mtx / l)
 
-
+## Repetitive with my function, also not distances but connectivities / proximities
 def _get_distance_weights(adata, bandwidth, kernel="gaussian", add_self=True, spatial_key="spatial", zoi=0):
     kdtree = cKDTree(adata.obsm[spatial_key])
     if kernel == "gaussian":
@@ -38,11 +38,15 @@ def _get_distance_weights(adata, bandwidth, kernel="gaussian", add_self=True, sp
 
 
 def _get_neighbors(adata, juxta_cutoff=np.inf, add_self=True, spatial_key="spatial"):
-    neighbors, dists = sq.gr.spatial_neighbors(adata, coord_type="generic", 
-                                               copy=True, delaunay=True, spatial_key=spatial_key)
+    neighbors, dists = sq.gr.spatial_neighbors(adata, 
+                                               coord_type="generic", 
+                                               copy=True,
+                                               delaunay=True, # NOTE: should I make delaunay default for my function?
+                                               spatial_key=spatial_key
+                                               )
     neighbors[dists > juxta_cutoff] = 0
     if add_self:
-        neighbors += identity(neighbors.shape[0]) # add self for visium (not for the other assay though)
+        neighbors += identity(neighbors.shape[0]) # add self for Visium (not for the other assay though)
     return neighbors
 
 
@@ -57,6 +61,8 @@ def _check_features(adata, features, type_str):
     return features
 
 
+# TODO para/juxta functions seem repetitive
+# Additionally, creating a list of anndatas is not great
 def _get_paraview_groups(adata, predictors, bandwidth, group_env_by, kernel="gaussian", add_self=True, spatial_key="spatial", zoi=0):
     distance_weights = _get_distance_weights(adata=adata, bandwidth=bandwidth, kernel=kernel, add_self=add_self, spatial_key=spatial_key, zoi=zoi)
     paraviews = {}
@@ -94,11 +100,23 @@ def _compose_views_groups(xdata, predictors, bypass_intra, add_juxta, add_para, 
     if not bypass_intra:
         views["intra"] = xdata
     if add_juxta:
-        views["juxta"] = _get_juxtaview_groups(xdata, predictors, group_env_by=group_env_by, juxta_cutoff=juxta_cutoff, 
-                                               add_self=add_self, spatial_key=spatial_key)
+        views["juxta"] = _get_juxtaview_groups(xdata,
+                                               predictors,
+                                               group_env_by=group_env_by, 
+                                               juxta_cutoff=juxta_cutoff,
+                                               add_self=add_self,
+                                               spatial_key=spatial_key
+                                               )
     if add_para:
-        views["para"] = _get_paraview_groups(xdata, predictors, bandwidth=bandwidth, group_env_by=group_env_by, kernel=kernel, 
-                                             add_self=add_self, spatial_key=spatial_key, zoi=zoi)
+        views["para"] = _get_paraview_groups(xdata,
+                                             predictors,
+                                             bandwidth=bandwidth,
+                                             group_env_by=group_env_by,
+                                             kernel=kernel, 
+                                             add_self=add_self,
+                                             spatial_key=spatial_key,
+                                             zoi=zoi
+                                             )
     return views
 
 
@@ -146,8 +164,10 @@ def _multi_model(y, oob_predictions, intra_group, bypass_intra, view_str, k_cv, 
     kf = KFold(n_splits=k_cv, shuffle=True, random_state=seed)
     R2_vec_intra, R2_vec_multi = np.zeros(k_cv), np.zeros(k_cv)
     coef_mtx = np.zeros((k_cv, len(view_str)))
+    
     for cv_idx, (train_index, test_index) in enumerate(kf.split(oob_predictions)):
         ridge_multi_model = Ridge(alpha=alpha).fit(X=oob_predictions[train_index], y=y[train_index])
+        
         if few_sample_flag:
             R2_vec_multi[cv_idx] = ridge_multi_model.score(X=oob_predictions[test_index], y=y[test_index])
         else:
@@ -166,15 +186,28 @@ def _multi_model(y, oob_predictions, intra_group, bypass_intra, view_str, k_cv, 
 
 
 def _make_dataframes(target, predictors, intra_group, env_group, view_str, intra_r2, multi_r2, coefs, importance_dict):
-    performance_df = pd.DataFrame({"target": target, "intra_group": intra_group, "env_group": env_group, 
-                                   "intra.R2": intra_r2, "multi.R2": multi_r2}, index=[0])
+    performance_df = pd.DataFrame({"target": target,
+                                   "intra_group": intra_group,
+                                   "env_group": env_group, 
+                                   "intra.R2": intra_r2,
+                                   "multi.R2": multi_r2},
+                                  index=[0])
     coef_df = pd.DataFrame([coefs], columns=view_str, index=[0])
-    coef_df = pd.DataFrame({"target": target, "intra_group": intra_group, "env_group": env_group}, index=[0]).join(coef_df)
-    importance_df = pd.DataFrame({"target": np.repeat([target], len(predictors)), "predictor": predictors, 
-                                    "intra_group": np.repeat([intra_group], len(predictors)),
-                                    "env_group": np.repeat([env_group], len(predictors))})
+    
+    coef_df = pd.DataFrame({"target": target,
+                            "intra_group": intra_group,
+                            "env_group": env_group},
+                           index=[0]).join(coef_df)
+    
+    importance_df = pd.DataFrame({"target": np.repeat([target], len(predictors)),
+                                  "predictor": predictors,
+                                  "intra_group": np.repeat([intra_group], len(predictors)),
+                                  "env_group": np.repeat([env_group], len(predictors))}
+                                 )
+    
     for view_name, importance_score in importance_dict.items():
         importance_df[view_name] = importance_score
+        
     return performance_df, coef_df, importance_df
 
 
@@ -197,7 +230,7 @@ def misty(mdata,
           predictors = None,
           keep_same_predictor = False,  # TODO: maybe rename this variable
           bandwidth = None, 
-          juxta_cutoff = np.inf, 
+          juxta_cutoff = np.inf,
           zoi = 0, 
           kernel = "gaussian", 
           add_self = False, 
@@ -206,14 +239,15 @@ def misty(mdata,
           add_para = True, 
           bypass_intra = False, 
           group_intra_by = None, 
-          group_env_by = None, 
+          group_env_by = None,
           alpha = 1, 
           k_cv = 10, 
           n_estimators = 100,
           n_jobs = -1,
           seed = 1337,
           inplace = True,
-          overwrite = False):
+          overwrite = False
+          ):
     """
     Misty: a multi-view integration method for spatial transcriptomics data.
 
@@ -310,7 +344,7 @@ def misty(mdata,
                                   group_env_by, 
                                   juxta_cutoff, 
                                   bandwidth, 
-                                  kernel, 
+                                  kernel,
                                   zoi,
                                   add_self, 
                                   spatial_key)
