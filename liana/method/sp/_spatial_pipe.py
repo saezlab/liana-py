@@ -53,7 +53,7 @@ def spatial_neighbors(adata: anndata.AnnData,
         - :attr:`anndata.AnnData.obsm` ``['connectivity']`` with the aforementioned array
     """
 
-    families = ['gaussian', 'spatialdm', 'exponential', 'linear']
+    families = ['gaussian', 'spatialdm', 'exponential', 'linear', 'misty_rbf']
     if family not in families:
         raise AssertionError(f"{family} must be a member of {families}")
 

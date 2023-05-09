@@ -185,6 +185,7 @@ def _multi_model(y, oob_predictions, intra_group, bypass_intra, view_str, k_cv, 
     return intra_r2, R2_vec_multi.mean(), coef_mtx.mean(axis=0)
 
 
+## TODO: this function should be broken into 3 different ones
 def _make_dataframes(target, predictors, intra_group, env_group, view_str, intra_r2, multi_r2, coefs, importance_dict):
     performance_df = pd.DataFrame({"target": target,
                                    "intra_group": intra_group,
@@ -279,7 +280,8 @@ def misty(mdata,
         Possible values: "gaussian", "exponential"
     add_self : `bool`, optional (default: True)
         Whether to add self when constructing the juxtaview and paraview
-        Should be set to True if using spots with several cells, e.g. 10X Visium
+        Should be set to True if using spots with several cells, e.g. 10X Visium.
+        TODO: change to set_diag
     spatial_key : `str`, optional (default: "spatial")
         Key in the .obsm attribute of the AnnData objects where the spatial coordinates are stored
     add_juxta : `bool`, optional (default: True)
@@ -379,7 +381,8 @@ def misty(mdata,
                                                                                      predictor_subset, 
                                                                                      n_estimators, 
                                                                                      n_jobs, 
-                                                                                     seed)
+                                                                                     seed
+                                                                                     )
                 if insert_index is not None and keep_same_predictor:
                     importance_dict["intra"] = np.insert(importance_dict["intra"], insert_index, np.nan)
 
@@ -393,6 +396,8 @@ def misty(mdata,
                     oob_list.append(oob_predictions_intra)
 
                 # model the juxta and paraview (if applicable)
+                ## TODO: remove this thing with all
+                # TODO: drop intra_group & env_group cols when not applicable
                 for view_name in [v for v in view_str if v != "intra"]:
                     view = views[view_name][env_group] if env_group else views[view_name]["all"]
                     oob_predictions, importance_dict[view_name] = _single_view_model(y, 
