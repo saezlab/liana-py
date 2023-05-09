@@ -17,6 +17,27 @@ def test_get_spatial_connectivities():
     spatial_neighbors(adata=adata, parameter=100, set_diag=True, cutoff=0.1)
     np.testing.assert_equal(adata.obsp['spatial_connectivities'].sum(), 1802.332962418902)
     
+    conns = spatial_neighbors(adata=adata, parameter=100,
+                              family='linear', cutoff=0.1,
+                              inplace=False)
+    assert conns.sum() == 899.065036633088
+    
+    conns = spatial_neighbors(adata=adata, parameter=100,
+                              family='exponential', cutoff=0.1,
+                              inplace=False)
+    assert conns.sum() == 1520.8496098963612
+    
+    conns = spatial_neighbors(adata=adata, parameter=100,
+                              family='misty_rbf', cutoff=0.1,
+                              inplace=False)
+    assert conns.sum() == 1254.3161716188595
+    
+    conns = spatial_neighbors(adata=adata, parameter=100,
+                              family='misty_rbf', cutoff=0.99,
+                              n_neighbors=6, inplace=False)
+    assert conns.sum() == 703.9848317125305
+    
+    
 
 # toy test data
 seed = 0

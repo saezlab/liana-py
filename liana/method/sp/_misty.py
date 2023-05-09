@@ -10,11 +10,10 @@ import anndata as ad
 import pandas as pd
 import squidpy as sq
 
-from _spatial_pipe import spatial_neighbors
+from liana.method.sp._spatial_pipe import spatial_neighbors
 
 def _gauss_weight(distance_mtx, l):
     return np.exp(-distance_mtx**2 / l**2)
-
 
 def _exponential_weight(distance_mtx, l):
     return np.exp(-distance_mtx / l)

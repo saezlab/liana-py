@@ -90,14 +90,9 @@ def spatial_neighbors(adata: anndata.AnnData,
 
     if cutoff is not None:
         connectivity[connectivity < cutoff] = 0
-    if n_neighbors is not None:
-        nn = NearestNeighbors(n_neighbors=n_neighbors).fit(connectivity)
-        knn = nn.kneighbors_graph(connectivity).toarray()
-        connectivity = connectivity * knn  # knn works as a mask
 
     spot_n = connectivity.shape[0]
     assert spot_n == adata.shape[0]
-
     # speed up
     if spot_n > 1000:
         connectivity = connectivity.astype(np.float32)
