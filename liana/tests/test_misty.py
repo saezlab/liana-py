@@ -39,7 +39,7 @@ def test_misty_groups():
     misty(mdata=mdata, x_mod="rna", bandwidth=20, seed=42,
           add_self=True, keep_same_predictor=True, # TODO: Rename these two
           group_env_by='cell_type', group_intra_by='cell_type',
-          bypass_intra=False,  # TODO: shouldn't this always be false when keep=True?
+          bypass_intra=False, # TODO: shouldn't this always be false when keep=True?
           overwrite=True
           )
     misty_res = mdata.uns['misty_results'].copy()
