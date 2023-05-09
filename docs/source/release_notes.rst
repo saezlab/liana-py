@@ -1,7 +1,7 @@
 Release notes
 =============
 
-0.1.9 (25.04.2023)
+0.1.9 (10.05.2023)
 ------------------
 
 - Fixed issues with deprecated params of pandas.DataFrame.to_csv & .assert_frame_equal in tests
@@ -17,6 +17,7 @@ Release notes
 
 - Removed 'Steady' aggregation from rank_aggregate
 
+- Changed deprecated np.float to np.float32, relevant for CellChat `mat_max`.
 
 
 0.1.8 (24.03.2023)
