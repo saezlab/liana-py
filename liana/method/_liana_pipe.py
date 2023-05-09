@@ -132,7 +132,7 @@ def liana_pipe(adata: anndata.AnnData,
 
     # get mat max for CellChat
     if 'mat_max' in _add_cols:
-        mat_max = np.max(adata.X.data)
+        mat_max = adata.X.max()
         assert isinstance(mat_max, np.float32)
 
     if resource is None:
@@ -361,6 +361,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
         assert isinstance(mat_mean, np.float32)
         lr_res['mat_mean'] = mat_mean
 
+    # NOTE: this is not needed
     if isinstance(mat_max, np.float32):
         lr_res['mat_max'] = mat_max
 
@@ -461,7 +462,7 @@ def _run_method(lr_res: pandas.DataFrame,
 
     if ('mat_max' in _add_cols) & (_score.method_name == "CellChat"):
         # CellChat matrix_max
-        norm_factor = np.unique(lr_res['mat_max'].values).item()
+        norm_factor = np.unique(lr_res['mat_max'].values)[0]
         agg_fun = _trimean
     else:
         norm_factor = None

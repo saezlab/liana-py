@@ -38,7 +38,7 @@ def _get_means_perms(adata: anndata.AnnData,
         - labels_pos: Index of cell identities in the perms tensor
     """
 
-    if isinstance(norm_factor, np.float):
+    if isinstance(norm_factor, np.float32):
         adata.X /= norm_factor
 
     # define labels and masks
