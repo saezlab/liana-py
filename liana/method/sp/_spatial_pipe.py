@@ -11,6 +11,9 @@ from scipy.sparse import csr_matrix
 from scipy.stats import norm
 from tqdm import tqdm
 
+from scipy.spatial import cKDTree
+from scipy.sparse import identity, issparse
+
 
 def spatial_neighbors(adata: anndata.AnnData,
                       parameter,
@@ -61,12 +64,8 @@ def spatial_neighbors(adata: anndata.AnnData,
         raise ValueError("`cutoff` or `n_neighbors` must be provided!")
 
     assert 'spatial' in adata.obsm
-
-    coordinates = pd.DataFrame(adata.obsm['spatial'],
-                               index=adata.obs_names,
-                               columns=['x', 'y'])
-
-    dist = pdist(coordinates, 'euclidean')
+    
+    dist = pdist(adata.obsm['spatial'], 'euclidean')
     dist = squareform(dist)
 
     # prevent overflow
@@ -87,10 +86,15 @@ def spatial_neighbors(adata: anndata.AnnData,
 
     if not set_diag:
         np.fill_diagonal(connectivity, 0)
+        
 
     if cutoff is not None:
         connectivity[connectivity < cutoff] = 0
-
+    if n_neighbors is not None:
+        nn = NearestNeighbors(n_neighbors=n_neighbors).fit(connectivity)
+        knn = nn.kneighbors_graph(connectivity).toarray()
+        connectivity = connectivity * knn  # knn works as a mask
+        
     spot_n = connectivity.shape[0]
     assert spot_n == adata.shape[0]
     # speed up

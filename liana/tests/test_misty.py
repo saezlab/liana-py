@@ -20,7 +20,12 @@ def test_misty_para():
     assert np.sum(misty_res['contributions'][['intra', 'para']].values, axis=1).sum() == 11.0
     # assert that we get importances = 1 per target per view
     target = 'ECM' # 1 target, and we have 2 views
-    assert misty_res['importances'][misty_res['importances']['target']==target]['value'].sum() == 2.0
+    importances = misty_res['importances']
+    assert importances[importances['target']==target]['value'].sum() == 2.0
+    interaction_msk = (importances['target']=='ligA') & \
+        (importances['predictor']=='protE')
+    np.testing.assert_almost_equal(importances[interaction_msk]['value'].values,
+                                   np.array([0.00044188, 0.09210615]))
     # assert that R2 gain is consistent
     assert misty_res['performances']['gain.R2'].mean() == 0.007905199826670756
     
@@ -54,6 +59,7 @@ def test_misty_groups():
     
     perf_actual = (misty_res['performances'].
      groupby(['intra_group', 'env_group'])['gain.R2'].
-     mean().values)
+     mean().values
+    )
     perf_expected = np.array([0.01033989, 0.00859758, 0.00973386, 0.01135016])
     np.testing.assert_almost_equal(perf_actual, perf_expected)

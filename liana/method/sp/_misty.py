@@ -37,12 +37,13 @@ def _get_distance_weights(adata, bandwidth, kernel="gaussian", add_self=True, sp
     return sdm
 
 
-def _get_neighbors(adata, juxta_cutoff=np.inf, add_self=True, spatial_key="spatial"):
+def _get_neighbors(adata, juxta_cutoff=np.inf, add_self=True, spatial_key="spatial", **kwargs):
     neighbors, dists = sq.gr.spatial_neighbors(adata, 
                                                coord_type="generic", 
                                                copy=True,
-                                               delaunay=True, # NOTE: should I make delaunay default for my function?
-                                               spatial_key=spatial_key
+                                               delaunay=True,
+                                               spatial_key=spatial_key,
+                                               **kwargs
                                                )
     neighbors[dists > juxta_cutoff] = 0
     if add_self:
