@@ -27,7 +27,7 @@ def test_misty_para():
     np.testing.assert_almost_equal(importances[interaction_msk]['value'].values,
                                    np.array([0.00044188, 0.09210615]))
     # assert that R2 gain is consistent
-    assert misty_res['performances']['gain.R2'].mean() == 0.007905199826670756
+    assert misty_res['performances']['gain.R2'].mean() == 0.007905217610502951
     
 
 def test_misty_bypass():
@@ -35,7 +35,7 @@ def test_misty_bypass():
     misty_res = mdata.uns['misty_results']
     # multi & gain should be identical here (gain.R2 = multi.R2 - 0; when intra is bypassed)
     assert misty_res['performances']['gain.R2'].equals(misty_res['performances']['multi.R2'])
-    assert misty_res['performances']['multi.R2'].sum() == 3.104343049016745
+    assert misty_res['performances']['multi.R2'].sum() == 3.1041304499677613
     # ensure both para and juxta are present in contributions
     assert np.isin(['juxta', 'para'], misty_res['contributions'].columns).all()
 

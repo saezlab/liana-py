@@ -29,12 +29,13 @@ def _linear(distance_mtx, l):
 
 
 def spatial_neighbors(adata: anndata.AnnData,
-                      parameter,
+                      bandwidth,
                       cutoff=None,
-                      max_dist_ratio=5,
-                      family='gaussian',
+                      max_dist_ratio=3,
+                      kernel='gaussian',
                       n_neighbors=None,
                       set_diag=True,
+                      zoi=0,
                       key_added='spatial',
                       inplace=True,
                       ):
@@ -45,13 +46,13 @@ def spatial_neighbors(adata: anndata.AnnData,
     ----------
     adata
         `AnnData` object with spatial coordinates (in 'spatial') in `adata.obsm`.
-    parameter
+    bandwidth
          Denotes signaling length (`l`)
     cutoff
         Vales below this cutoff will be set to 0
-    family
-        Functions used to generate connectivity weights. The following options are available:
-        ['gaussian', 'spatialdm', 'exponential', 'linear']
+    kernel
+        Kernel function used to generate connectivity weights. The following options are available:
+        ['gaussian', 'spatialdm', 'exponential', 'linear', 'misty_rbf']
     n_neighbors
         Find k nearest neighbours, use it as a connectivity mask. In other words,
         only the connectivity of the nearest neighbours is kept as calculated
@@ -71,8 +72,8 @@ def spatial_neighbors(adata: anndata.AnnData,
     """
 
     families = ['gaussian', 'spatialdm', 'exponential', 'linear', 'misty_rbf']
-    if family not in families:
-        raise AssertionError(f"{family} must be a member of {families}")
+    if kernel not in families:
+        raise AssertionError(f"{kernel} must be a member of {families}")
 
     if (cutoff is None) & (n_neighbors is None):
         raise ValueError("`cutoff` or `n_neighbors` must be provided!")
@@ -81,33 +82,36 @@ def spatial_neighbors(adata: anndata.AnnData,
 
     tree = cKDTree(adata.obsm['spatial'])
     dist = tree.sparse_distance_matrix(tree, 
-                                       max_distance=parameter * max_dist_ratio,
+                                       max_distance=bandwidth * max_dist_ratio,
                                        output_type="coo_matrix")
     dist = dist.tocsr()
 
     # prevent float overflow
-    parameter = np.array(parameter, dtype=np.float64)
+    bandwidth = np.array(bandwidth, dtype=np.float64)
+    
+    # define zone of indifference
+    dist.data[dist.data < zoi] = np.inf
 
     # NOTE: dist gets converted to a connectivity matrix
-    if family == 'gaussian':
-        dist.data = _gaussian(dist.data, parameter)
-    elif family == 'misty_rbf':
-        dist.data = _misty_rbf(dist.data, parameter)
-    elif family == 'exponential':
-        dist.data = _exponential(dist.data, parameter)
-    elif family == 'linear':
-        dist.data = _linear(dist.data, parameter)
+    if kernel == 'gaussian':
+        dist.data = _gaussian(dist.data, bandwidth)
+    elif kernel == 'misty_rbf':
+        dist.data = _misty_rbf(dist.data, bandwidth)
+    elif kernel == 'exponential':
+        dist.data = _exponential(dist.data, bandwidth)
+    elif kernel == 'linear':
+        dist.data = _linear(dist.data, bandwidth)
     else:
         raise ValueError("Please specify a valid family to generate connectivity weights")
 
     if not set_diag:
-        np.fill_diagonal(dist, 0)
+        dist.setdiag(0)
     if cutoff is not None:
         dist.data = dist.data * (dist.data > cutoff)
     if n_neighbors is not None:
         nn = NearestNeighbors(n_neighbors=n_neighbors).fit(dist)
-        knn = nn.kneighbors_graph(dist)
-        dist = dist.multiply(knn)  # knn works as a mask
+        knn = nn.kneighbors_graph(dist.toarray())
+        dist = dist.multiply(knn) # knn works as a mask
 
     spot_n = dist.shape[0]
     assert spot_n == adata.shape[0]

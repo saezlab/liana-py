@@ -10,32 +10,33 @@ from liana.testing._sample_anndata import generate_toy_spatial
 adata = generate_toy_spatial()
 
 def test_get_spatial_connectivities():
-    spatial_neighbors(adata=adata, parameter=200, set_diag=True, cutoff=0.2)
+    spatial_neighbors(adata=adata, bandwidth=200, set_diag=True, cutoff=0.2)
     np.testing.assert_equal(adata.obsp['spatial_connectivities'].shape, (adata.shape[0], adata.shape[0]))
     np.testing.assert_equal(adata.obsp['spatial_connectivities'].sum(), 4550.654013895928)
     
-    spatial_neighbors(adata=adata, parameter=100, set_diag=True, cutoff=0.1)
+    spatial_neighbors(adata=adata, bandwidth=100, set_diag=True, cutoff=0.1)
     np.testing.assert_equal(adata.obsp['spatial_connectivities'].sum(), 1802.332962418902)
     
-    conns = spatial_neighbors(adata=adata, parameter=100,
-                              family='linear', cutoff=0.1,
+    conns = spatial_neighbors(adata=adata, bandwidth=100,
+                              kernel='linear', cutoff=0.1,
                               inplace=False)
     assert conns.sum() == 899.065036633088
     
-    conns = spatial_neighbors(adata=adata, parameter=100,
-                              family='exponential', cutoff=0.1,
+    conns = spatial_neighbors(adata=adata, bandwidth=100,
+                              kernel='exponential', cutoff=0.1,
                               inplace=False)
     assert conns.sum() == 1520.8496098963612
     
-    conns = spatial_neighbors(adata=adata, parameter=100,
-                              family='misty_rbf', cutoff=0.1,
+    conns = spatial_neighbors(adata=adata, bandwidth=100,
+                              kernel='misty_rbf', cutoff=0.1,
                               inplace=False)
     assert conns.sum() == 1254.3161716188595
     
-    conns = spatial_neighbors(adata=adata, parameter=100,
-                              family='misty_rbf', cutoff=0.99,
-                              n_neighbors=6, inplace=False)
-    assert conns.sum() == 703.9848317125305
+    conns = spatial_neighbors(adata=adata, bandwidth=200,
+                              kernel='misty_rbf', cutoff=0.1,
+                              n_neighbors=6, inplace=False,
+                              set_diag=False)
+    assert conns.sum() == 1068.2265541015922
     
     
 

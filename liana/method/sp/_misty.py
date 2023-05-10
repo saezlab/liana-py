@@ -12,30 +12,6 @@ import squidpy as sq
 
 from liana.method.sp._spatial_pipe import spatial_neighbors
 
-def _gauss_weight(distance_mtx, l):
-    return np.exp(-distance_mtx**2 / l**2)
-
-def _exponential_weight(distance_mtx, l):
-    return np.exp(-distance_mtx / l)
-
-## Repetitive with my function, also not distances but connectivities / proximities
-def _get_distance_weights(adata, bandwidth, kernel="gaussian", add_self=True, spatial_key="spatial", zoi=0):
-    kdtree = cKDTree(adata.obsm[spatial_key])
-    if kernel == "gaussian":
-        max_dist = 3*bandwidth
-    elif kernel == "exponential":
-        max_dist = 5*bandwidth
-    sdm = kdtree.sparse_distance_matrix(kdtree, max_distance=max_dist, output_type="coo_matrix")
-    sdm = sdm.tocsr()
-    sdm.data[sdm.data < zoi] = np.inf
-    if kernel == "gaussian":
-        sdm.data = _gauss_weight(sdm.data, bandwidth)
-    elif kernel == "exponential":
-        sdm.data = _exponential_weight(sdm.data, bandwidth)
-    if not add_self:
-        sdm -= identity(n=sdm.shape[0], format="csr", dtype=sdm.dtype)
-    return sdm
-
 
 def _get_neighbors(adata, juxta_cutoff=np.inf, add_self=True, spatial_key="spatial", **kwargs):
     neighbors, dists = sq.gr.spatial_neighbors(adata, 
@@ -64,8 +40,8 @@ def _check_features(adata, features, type_str):
 
 # TODO para/juxta functions seem repetitive
 # Additionally, creating a list of anndatas is not great
-def _get_paraview_groups(adata, predictors, bandwidth, group_env_by, kernel="gaussian", add_self=True, spatial_key="spatial", zoi=0):
-    distance_weights = _get_distance_weights(adata=adata, bandwidth=bandwidth, kernel=kernel, add_self=add_self, spatial_key=spatial_key, zoi=zoi)
+def _get_paraview_groups(adata, predictors, bandwidth, group_env_by, kernel="misty_rbf", add_self=True, spatial_key="spatial", zoi=0):
+    distance_weights = spatial_neighbors(adata=adata, bandwidth=bandwidth, kernel=kernel, set_diag=add_self, inplace=False, cutoff=0, zoi=zoi)
     paraviews = {}
     if group_env_by: 
         groups = np.unique(adata.obs[group_env_by])
@@ -234,7 +210,7 @@ def misty(mdata,
           bandwidth = None, 
           juxta_cutoff = np.inf,
           zoi = 0, 
-          kernel = "gaussian", 
+          kernel = "misty_rbf", 
           add_self = False, 
           spatial_key = "spatial", 
           add_juxta = True, 
@@ -327,10 +303,10 @@ def misty(mdata,
     xdata = mdata[x_mod]
     ydata = mdata[y_mod] if y_mod else xdata
 
-    _check_anndata_objects_groups(xdata, 
-                                  ydata, 
-                                  spatial_key=spatial_key, 
-                                  group_intra_by=group_intra_by, 
+    _check_anndata_objects_groups(xdata,
+                                  ydata,
+                                  spatial_key=spatial_key,
+                                  group_intra_by=group_intra_by,
                                   group_env_by=group_env_by)
     
     predictors = _check_features(xdata, predictors, type_str="predictors")
@@ -451,6 +427,30 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+## Repetitive with my function, also not distances but connectivities / proximities
+def _gauss_weight(distance_mtx, l):
+    return np.exp(-distance_mtx**2 / l**2)
+
+def _exponential_weight(distance_mtx, l):
+    return np.exp(-distance_mtx / l)
+
+
+def _get_distance_weights(adata, bandwidth, kernel="misty_rbf", set_diag=True, spatial_key="spatial", zoi=0):
+    kdtree = cKDTree(adata.obsm[spatial_key])
+    if kernel == "misty_rbf":
+        max_dist = 3*bandwidth
+    elif kernel == "exponential":
+        max_dist = 5*bandwidth
+    sdm = kdtree.sparse_distance_matrix(kdtree, max_distance=max_dist, output_type="coo_matrix")
+    sdm = sdm.tocsr()
+    sdm.data[sdm.data < zoi] = np.inf
+    if kernel == "misty_rbf":
+        sdm.data = _gauss_weight(sdm.data, bandwidth)
+    elif kernel == "exponential":
+        sdm.data = _exponential_weight(sdm.data, bandwidth)
+    if not set_diag:
+        sdm -= identity(n=sdm.shape[0], format="csr", dtype=sdm.dtype)
+    return sdm
 
 def plot_distance_weights(adata, bandwidth, cells, kernel="gaussian", add_self=True, spatial_key="spatial", zoi=0, **kwargs):
     distance_weights = _get_distance_weights(adata=adata, bandwidth=bandwidth, kernel=kernel, add_self=add_self, spatial_key=spatial_key, zoi=zoi)
