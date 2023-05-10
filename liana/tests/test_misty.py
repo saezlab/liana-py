@@ -21,9 +21,9 @@ def test_misty_para():
           )
     
     misty_res = mdata.uns['misty_results']
-    assert np.isin(list(misty_res.keys()), ['performances', 'contributions', 'importances']).all()
+    assert np.isin(list(misty_res.keys()), ['target_metrics', 'importances']).all()
     # assert that we get contribution = 1 for each target (11 targets in total)
-    assert np.sum(misty_res['contributions'][['intra', 'para']].values, axis=1).sum() == 11.0
+    assert np.sum(misty_res['target_metrics'][['intra', 'para']].values, axis=1).sum() == 11.0
     # assert that we get importances = 1 per target per view
     target = 'ECM' # 1 target, and we have 2 views
     importances = misty_res['importances']
@@ -33,7 +33,7 @@ def test_misty_para():
     np.testing.assert_almost_equal(importances[interaction_msk]['value'].values,
                                    np.array([0.00044188, 0.09210615]))
     # assert that R2 gain is consistent
-    assert misty_res['performances']['gain.R2'].mean() == 0.007860390621909826
+    assert misty_res['target_metrics']['gain.R2'].mean() == 0.007860390621909826
     
 
 def test_misty_bypass():
@@ -44,10 +44,10 @@ def test_misty_bypass():
           overwrite=True)
     misty_res = mdata.uns['misty_results']
     # multi & gain should be identical here (gain.R2 = multi.R2 - 0; when intra is bypassed)
-    assert misty_res['performances']['gain.R2'].equals(misty_res['performances']['multi.R2'])
-    assert misty_res['performances']['multi.R2'].sum() == 3.1041304499677653
+    assert misty_res['target_metrics']['gain.R2'].equals(misty_res['target_metrics']['multi.R2'])
+    assert misty_res['target_metrics']['multi.R2'].sum() == 3.1041304499677653
     # ensure both para and juxta are present in contributions
-    assert np.isin(['juxta', 'para'], misty_res['contributions'].columns).all()
+    assert np.isin(['juxta', 'para'], misty_res['target_metrics'].columns).all()
 
 def test_misty_groups():
     
@@ -70,7 +70,7 @@ def test_misty_groups():
     # 11 vars * 4 envs * 3 views = 132
     assert self_interacctions.shape == (132, 6)
     
-    perf_actual = (misty_res['performances'].
+    perf_actual = (misty_res['target_metrics'].
      groupby(['intra_group', 'env_group'])['gain.R2'].
      mean().values
     )

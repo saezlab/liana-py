@@ -162,18 +162,14 @@ def _multi_model(y, oob_predictions, intra_group, bypass_intra, view_str, k_cv, 
 
 ## TODO: this function should be broken into 2 different ones
 def _make_dataframes(target, predictors, intra_group, env_group, view_str, intra_r2, multi_r2, coefs, importance_dict):
-    performance_df = pd.DataFrame({"target": target,
+    target_metrics = pd.DataFrame({"target": target,
                                    "intra_group": intra_group,
                                    "env_group": env_group, 
                                    "intra.R2": intra_r2,
                                    "multi.R2": multi_r2},
-                                  index=[0])
-    coef_df = pd.DataFrame([coefs], columns=view_str, index=[0])
-    
-    coef_df = pd.DataFrame({"target": target,
-                            "intra_group": intra_group,
-                            "env_group": env_group},
-                           index=[0]).join(coef_df)
+                                   index=[0])
+    # add view coefficients/contributions
+    target_metrics[view_str] = coefs
     
     importance_df = pd.DataFrame({"target": np.repeat([target], len(predictors)),
                                   "predictor": predictors,
@@ -184,22 +180,22 @@ def _make_dataframes(target, predictors, intra_group, env_group, view_str, intra
     for view_name, importance_score in importance_dict.items():
         importance_df[view_name] = importance_score
         
-    return performance_df, coef_df, importance_df
+    return target_metrics, importance_df
 
 
-def _concat_dataframes(performances_list, contributions_list, importances_list, view_str):
-    performances = pd.concat(performances_list, axis=0, ignore_index=True)
-    performances["gain.R2"] = performances["multi.R2"] - performances["intra.R2"]
+def _concat_dataframes(targets_list, importances_list, view_str):
+    target_metrics = pd.concat(targets_list, axis=0, ignore_index=True)
+    target_metrics["gain.R2"] = target_metrics["multi.R2"] - target_metrics["intra.R2"]
     
-    contributions = pd.concat(contributions_list, axis=0, ignore_index=True)
-    contributions.loc[:, view_str] = contributions.loc[:, view_str].clip(lower=0)
-    contributions.loc[:, view_str] = contributions.loc[:, view_str].div(contributions.loc[:, view_str].sum(axis=1), axis=0)
+    target_metrics.loc[:, view_str] = target_metrics.loc[:, view_str].clip(lower=0)
+    target_metrics.loc[:, view_str] = target_metrics.loc[:, view_str].div(target_metrics.loc[:, view_str].sum(axis=1), axis=0)
     
     importances = pd.concat(importances_list, axis=0, ignore_index=True)
-    importances = pd.melt(importances, id_vars=["target", "predictor", "intra_group", "env_group"], 
+    importances = pd.melt(importances,
+                          id_vars=["target", "predictor", "intra_group", "env_group"], 
                           value_vars=view_str, var_name="view", value_name="value")
     
-    return performances, contributions, importances
+    return target_metrics, importances
 
 
 def misty(mdata, 
@@ -334,7 +330,7 @@ def misty(mdata,
 
     # init list to store the results for each intra group and env group as dataframe;
     # in last step all dataframe are concatenated 
-    performances_list, contributions_list, importances_list = [], [], []
+    targets_list, importances_list = [], []
 
     for intra_group in intra_groups:
 
@@ -401,32 +397,28 @@ def misty(mdata,
                                                          )
 
                 # store the results
-                performance_df, coef_df, importance_df = _make_dataframes(target, 
-                                                                          predictors if keep_same_predictor else predictor_subset, 
-                                                                          intra_group, 
-                                                                          env_group, 
-                                                                          view_str,
-                                                                          intra_r2, 
-                                                                          multi_r2, 
-                                                                          coefs,
-                                                                          importance_dict)
-                performances_list.append(performance_df)
-                contributions_list.append(coef_df)
+                targets_df, importance_df = _make_dataframes(target, 
+                                                             predictors if keep_same_predictor else predictor_subset, 
+                                                             intra_group, 
+                                                             env_group, 
+                                                             view_str,
+                                                             intra_r2, 
+                                                             multi_r2, 
+                                                             coefs,
+                                                             importance_dict)
+                targets_list.append(targets_df)
                 importances_list.append(importance_df)
 
     # create result dataframes
-    performances, contributions, importances = _concat_dataframes(performances_list, 
-                                                                  contributions_list, 
-                                                                  importances_list, 
-                                                                  view_str)
+    target_metrics, importances = _concat_dataframes(targets_list,
+                                                     importances_list,
+                                                     view_str)
     if inplace:
-        mdata.uns["misty_results"] = {"performances": performances,
-                                      "contributions": contributions,
+        mdata.uns["misty_results"] = {"target_metrics": target_metrics,
                                       "importances": importances
                                       }
     else:
-        return {"performances": performances,
-                "contributions": contributions,
+        return {"target_metrics": target_metrics,
                 "importances": importances}
 
 
