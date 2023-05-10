@@ -12,6 +12,8 @@ from tqdm import tqdm
 
 from scipy.spatial import cKDTree
 
+from squidpy.gr import spatial_neighbors as _spatial_neighbors
+
 
 def _gaussian(distance_mtx, l):
     return np.exp(-(distance_mtx ** 2.0) / (2.0 * l ** 2.0))
@@ -29,15 +31,16 @@ def _linear(distance_mtx, l):
 
 
 def spatial_neighbors(adata: anndata.AnnData,
-                      bandwidth,
+                      bandwidth=None,
                       cutoff=None,
                       max_dist_ratio=3,
                       kernel='gaussian',
-                      n_neighbors=None,
                       set_diag=True,
                       zoi=0,
+                      spatial_key="spatial",
                       key_added='spatial',
                       inplace=True,
+                      **kwargs
                       ):
     """
     Generate spatial connectivity weights using Euclidean distance.
@@ -63,27 +66,34 @@ def spatial_neighbors(adata: anndata.AnnData,
         Key to add to `adata.obsm` if `inplace = True`.
     inplace
         If true return `DataFrame` with results, else assign to `.obsm`.
-
+        
+    Notes
+    -----
+    This function is adapted from mistyR, and is set to be consistent with
+    the `squidpy.gr.spatial_neighbors` function in the `squidpy` package. 
+    It is intended to be a minimalist implementation of spatial connectivity weights,
+    for non-generic use cases, it should be replaced by `squidpy.gr.spatial_neighbors`.
     Returns
     -------
     If ``inplace = False``, returns an `np.array` with spatial connectivity weights.
     Otherwise, modifies the ``adata`` object with the following key:
-        - :attr:`anndata.AnnData.obsm` ``['connectivity']`` with the aforementioned array
+        - :attr:`anndata.AnnData.obsp` ``['connectivity']`` with the aforementioned array
     """
 
+    if cutoff is None:
+        raise ValueError("`cutoff` must be provided!")
+    assert spatial_key in adata.obsm
     families = ['gaussian', 'spatialdm', 'exponential', 'linear', 'misty_rbf']
     if kernel not in families:
         raise AssertionError(f"{kernel} must be a member of {families}")
+    if bandwidth is None:
+        raise ValueError("Please specify a bandwidth")
 
-    if (cutoff is None) & (n_neighbors is None):
-        raise ValueError("`cutoff` or `n_neighbors` must be provided!")
-
-    assert 'spatial' in adata.obsm
-
-    tree = cKDTree(adata.obsm['spatial'])
-    dist = tree.sparse_distance_matrix(tree, 
-                                       max_distance=bandwidth * max_dist_ratio,
-                                       output_type="coo_matrix")
+    coords = adata.obsm[spatial_key]
+    tree = cKDTree(coords)
+    dist = tree.sparse_distance_matrix(tree,
+                                        max_distance=bandwidth * max_dist_ratio,
+                                        output_type="coo_matrix")
     dist = dist.tocsr()
 
     # prevent float overflow
@@ -108,10 +118,6 @@ def spatial_neighbors(adata: anndata.AnnData,
         dist.setdiag(0)
     if cutoff is not None:
         dist.data = dist.data * (dist.data > cutoff)
-    if n_neighbors is not None:
-        nn = NearestNeighbors(n_neighbors=n_neighbors).fit(dist)
-        knn = nn.kneighbors_graph(dist.toarray())
-        dist = dist.multiply(knn) # knn works as a mask
 
     spot_n = dist.shape[0]
     assert spot_n == adata.shape[0]
@@ -120,6 +126,7 @@ def spatial_neighbors(adata: anndata.AnnData,
         dist = dist.astype(np.float32)
 
     adata.obsp[f'{key_added}_connectivities'] = dist
+        
     return None if inplace else dist
 
 

@@ -32,12 +32,6 @@ def test_get_spatial_connectivities():
                               inplace=False)
     assert conns.sum() == 1254.3161716188595
     
-    conns = spatial_neighbors(adata=adata, bandwidth=200,
-                              kernel='misty_rbf', cutoff=0.1,
-                              n_neighbors=6, inplace=False,
-                              set_diag=False)
-    assert conns.sum() == 1068.2265541015922
-    
     
 
 # toy test data

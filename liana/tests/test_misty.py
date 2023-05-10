@@ -12,7 +12,7 @@ mdata = mu.MuData({'rna':adata})
 
 
 def test_misty_para():
-    misty(mdata=mdata, x_mod="rna", bandwidth=10, add_juxta=False, add_self=False, seed=42)
+    misty(mdata=mdata, x_mod="rna", bandwidth=10, add_juxta=False, set_diag=False, seed=42)
     
     misty_res = mdata.uns['misty_results']
     assert np.isin(list(misty_res.keys()), ['performances', 'contributions', 'importances']).all()
@@ -31,7 +31,7 @@ def test_misty_para():
     
 
 def test_misty_bypass():
-    misty(mdata=mdata, x_mod="rna", bandwidth=10, bypass_intra=True, add_juxta=True, add_self=True, seed=42, overwrite=True)
+    misty(mdata=mdata, x_mod="rna", bandwidth=10, bypass_intra=True, add_juxta=True, set_diag=True, seed=42, overwrite=True)
     misty_res = mdata.uns['misty_results']
     # multi & gain should be identical here (gain.R2 = multi.R2 - 0; when intra is bypassed)
     assert misty_res['performances']['gain.R2'].equals(misty_res['performances']['multi.R2'])
@@ -42,7 +42,7 @@ def test_misty_bypass():
 def test_misty_groups():
     
     misty(mdata=mdata, x_mod="rna", bandwidth=20, seed=42,
-          add_self=True, keep_same_predictor=True, # TODO: Rename these two
+          set_diag=True, keep_same_predictor=True, # TODO: Rename these two
           group_env_by='cell_type', group_intra_by='cell_type',
           bypass_intra=False, # TODO: shouldn't this always be false when keep=True?
           overwrite=True

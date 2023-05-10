@@ -1,29 +1,42 @@
+from types import ModuleType
+import logging
 
-import numpy as np
 from scipy.spatial import cKDTree
 from scipy.sparse import identity, issparse
-import logging
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import KFold
+
+import numpy as np
 import anndata as ad
 import pandas as pd
-import squidpy as sq
 
 from liana.method.sp._spatial_pipe import spatial_neighbors
 
+## TODO generalize these functions to work with any package
+def _check_if_squidpy() -> ModuleType:
 
-def _get_neighbors(adata, juxta_cutoff=np.inf, add_self=True, spatial_key="spatial", **kwargs):
-    neighbors, dists = sq.gr.spatial_neighbors(adata, 
+    try:
+        import squidpy as sq
+    except Exception:
+
+        raise ImportError(
+            'decoupler is not installed. Please install it with: '
+            'pip install decoupler'
+        )
+    return sq
+
+def _get_neighbors(adata, juxta_cutoff=np.inf, set_diag=True, spatial_key="spatial", **kwargs):
+    sq = _check_if_squidpy()
+    neighbors, dists = sq.gr.spatial_neighbors(adata=adata, 
                                                coord_type="generic", 
                                                copy=True,
                                                delaunay=True,
                                                spatial_key=spatial_key,
+                                               set_diag=set_diag,
                                                **kwargs
                                                )
     neighbors[dists > juxta_cutoff] = 0
-    if add_self:
-        neighbors += identity(neighbors.shape[0]) # add self for Visium (not for the other assay though)
     return neighbors
 
 
@@ -40,8 +53,8 @@ def _check_features(adata, features, type_str):
 
 # TODO para/juxta functions seem repetitive
 # Additionally, creating a list of anndatas is not great
-def _get_paraview_groups(adata, predictors, bandwidth, group_env_by, kernel="misty_rbf", add_self=True, spatial_key="spatial", zoi=0):
-    distance_weights = spatial_neighbors(adata=adata, bandwidth=bandwidth, kernel=kernel, set_diag=add_self, inplace=False, cutoff=0, zoi=zoi)
+def _get_paraview_groups(adata, predictors, bandwidth, group_env_by, kernel="misty_rbf", set_diag=True, spatial_key="spatial", zoi=0):
+    distance_weights = spatial_neighbors(adata=adata, bandwidth=bandwidth, kernel=kernel, set_diag=set_diag, inplace=False, cutoff=0, zoi=zoi)
     paraviews = {}
     if group_env_by: 
         groups = np.unique(adata.obs[group_env_by])
@@ -57,8 +70,8 @@ def _get_paraview_groups(adata, predictors, bandwidth, group_env_by, kernel="mis
     return paraviews
 
 
-def _get_juxtaview_groups(adata, predictors, group_env_by, juxta_cutoff=np.inf, add_self=True, spatial_key="spatial"):
-    neighbors = _get_neighbors(adata, juxta_cutoff=juxta_cutoff, add_self=add_self, spatial_key=spatial_key)
+def _get_juxtaview_groups(adata, predictors, group_env_by, juxta_cutoff=np.inf, set_diag=True, spatial_key="spatial"):
+    neighbors = _get_neighbors(adata, juxta_cutoff=juxta_cutoff, set_diag=set_diag, spatial_key=spatial_key)
     juxtaviews = {}
     if group_env_by:
         groups = np.unique(adata.obs[group_env_by])
@@ -72,7 +85,7 @@ def _get_juxtaview_groups(adata, predictors, group_env_by, juxta_cutoff=np.inf, 
     return juxtaviews
 
 
-def _compose_views_groups(xdata, predictors, bypass_intra, add_juxta, add_para, group_env_by, juxta_cutoff, bandwidth, kernel, zoi, add_self, spatial_key):
+def _compose_views_groups(xdata, predictors, bypass_intra, add_juxta, add_para, group_env_by, juxta_cutoff, bandwidth, kernel, zoi, set_diag, spatial_key):
     views = {}
     if not bypass_intra:
         views["intra"] = xdata
@@ -81,7 +94,7 @@ def _compose_views_groups(xdata, predictors, bypass_intra, add_juxta, add_para, 
                                                predictors,
                                                group_env_by=group_env_by, 
                                                juxta_cutoff=juxta_cutoff,
-                                               add_self=add_self,
+                                               set_diag=set_diag,
                                                spatial_key=spatial_key
                                                )
     if add_para:
@@ -90,7 +103,7 @@ def _compose_views_groups(xdata, predictors, bypass_intra, add_juxta, add_para, 
                                              bandwidth=bandwidth,
                                              group_env_by=group_env_by,
                                              kernel=kernel, 
-                                             add_self=add_self,
+                                             set_diag=set_diag,
                                              spatial_key=spatial_key,
                                              zoi=zoi
                                              )
@@ -207,19 +220,19 @@ def misty(mdata,
           targets = None,
           predictors = None,
           keep_same_predictor = False,  # TODO: maybe rename this variable
-          bandwidth = None, 
+          bandwidth = None,
           juxta_cutoff = np.inf,
           zoi = 0, 
           kernel = "misty_rbf", 
-          add_self = False, 
+          set_diag = False, 
           spatial_key = "spatial", 
-          add_juxta = True, 
+          add_juxta = True,
           add_para = True, 
-          bypass_intra = False, 
-          group_intra_by = None, 
+          bypass_intra = False,
+          group_intra_by = None,
           group_env_by = None,
-          alpha = 1, 
-          k_cv = 10, 
+          alpha = 1,
+          k_cv = 10,
           n_estimators = 100,
           n_jobs = -1,
           seed = 1337,
@@ -255,7 +268,7 @@ def misty(mdata,
         To be use if juxtaview and paraview should have no overlap
     kernel : `str`, optional (default: "gaussian")
         Possible values: "gaussian", "exponential"
-    add_self : `bool`, optional (default: True)
+    set_diag : `bool`, optional (default: True)
         Whether to add self when constructing the juxtaview and paraview
         Should be set to True if using spots with several cells, e.g. 10X Visium.
         TODO: change to set_diag
@@ -325,7 +338,7 @@ def misty(mdata,
                                   bandwidth, 
                                   kernel,
                                   zoi,
-                                  add_self, 
+                                  set_diag, 
                                   spatial_key)
     view_str = list(views.keys())
 
@@ -452,8 +465,8 @@ def _get_distance_weights(adata, bandwidth, kernel="misty_rbf", set_diag=True, s
         sdm -= identity(n=sdm.shape[0], format="csr", dtype=sdm.dtype)
     return sdm
 
-def plot_distance_weights(adata, bandwidth, cells, kernel="gaussian", add_self=True, spatial_key="spatial", zoi=0, **kwargs):
-    distance_weights = _get_distance_weights(adata=adata, bandwidth=bandwidth, kernel=kernel, add_self=add_self, spatial_key=spatial_key, zoi=zoi)
+def plot_distance_weights(adata, bandwidth, cells, kernel="gaussian", set_diag=True, spatial_key="spatial", zoi=0, **kwargs):
+    distance_weights = _get_distance_weights(adata=adata, bandwidth=bandwidth, kernel=kernel, set_diag=set_diag, spatial_key=spatial_key, zoi=zoi)
     for cell_idx in cells:
         ax = plt.subplot(aspect="equal")
         im = ax.scatter(x=adata.obsm["spatial"][:, 0], y=adata.obsm["spatial"][:, 1], 
@@ -465,8 +478,8 @@ def plot_distance_weights(adata, bandwidth, cells, kernel="gaussian", add_self=T
         plt.show()
 
 
-def plot_neighbors(adata, cells, juxta_cutoff=np.inf, add_self=True, spatial_key="spatial", **kwargs):
-    neighbors = _get_neighbors(adata, juxta_cutoff=juxta_cutoff, add_self=add_self, spatial_key=spatial_key)
+def plot_neighbors(adata, cells, juxta_cutoff=np.inf, set_diag=True, spatial_key="spatial", **kwargs):
+    neighbors = _get_neighbors(adata, juxta_cutoff=juxta_cutoff, set_diag=set_diag, spatial_key=spatial_key)
     for cell_idx in cells:
         ax = plt.subplot(aspect="equal")
         im = ax.scatter(x=adata.obsm["spatial"][:, 0], y=adata.obsm["spatial"][:, 1], 
