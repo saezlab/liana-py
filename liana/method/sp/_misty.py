@@ -53,8 +53,7 @@ def _check_features(adata, features, type_str):
 
 # TODO para/juxta functions seem repetitive
 # Additionally, creating a list of anndatas is not great
-def _get_paraview_groups(adata, predictors, bandwidth, group_env_by, kernel="misty_rbf", set_diag=True, spatial_key="spatial", zoi=0):
-    distance_weights = spatial_neighbors(adata=adata, bandwidth=bandwidth, kernel=kernel, set_diag=set_diag, inplace=False, cutoff=0, zoi=zoi)
+def _get_env_groups(adata, predictors, group_env_by, connectivity):
     paraviews = {}
     if group_env_by: 
         groups = np.unique(adata.obs[group_env_by])
@@ -62,51 +61,40 @@ def _get_paraview_groups(adata, predictors, bandwidth, group_env_by, kernel="mis
             # set the weights for para cells that are not in the group to 0 (so we essentially make columns of the distance weight matrix 0,
             # but since the distance weight matrix is sparse, we need to do this in a slightly more complicated way
             # TODO: make this faster/better
-            distance_weights_csr = distance_weights.copy()
+            distance_weights_csr = connectivity.copy()
             distance_weights_csr.data[np.isin(distance_weights_csr.indices, np.where(adata.obs[group_env_by]!=group)[0])] = 0
             paraviews[group] = ad.AnnData(X=distance_weights_csr@adata[:, predictors].X, obs=adata.obs, var=pd.DataFrame(index=predictors))
     else:
-        paraviews["all"] = ad.AnnData(X=distance_weights@adata[:, predictors].X, obs=adata.obs, var=pd.DataFrame(index=predictors))
+        paraviews["all"] = ad.AnnData(X=connectivity@adata[:, predictors].X, obs=adata.obs, var=pd.DataFrame(index=predictors))
     return paraviews
-
-
-def _get_juxtaview_groups(adata, predictors, group_env_by, juxta_cutoff=np.inf, set_diag=True, spatial_key="spatial"):
-    neighbors = _get_neighbors(adata, juxta_cutoff=juxta_cutoff, set_diag=set_diag, spatial_key=spatial_key)
-    juxtaviews = {}
-    if group_env_by:
-        groups = np.unique(adata.obs[group_env_by])
-        for group in groups:
-            # see comment in get_paraview_groups
-            neighbors_csr = neighbors.copy()
-            neighbors_csr.data[np.isin(neighbors_csr.indices, np.where(adata.obs[group_env_by]!=group)[0])] = 0
-            juxtaviews[group] = ad.AnnData(X=neighbors_csr@adata[:, predictors].X, obs=adata.obs, var=pd.DataFrame(index=predictors))
-    else:
-        juxtaviews["all"] = ad.AnnData(X=neighbors@adata[:, predictors].X, obs=adata.obs, var=pd.DataFrame(index=predictors))
-    return juxtaviews
-
 
 def _compose_views_groups(xdata, predictors, bypass_intra, add_juxta, add_para, group_env_by, juxta_cutoff, bandwidth, kernel, zoi, set_diag, spatial_key):
     views = {}
     if not bypass_intra:
         views["intra"] = xdata
     if add_juxta:
-        views["juxta"] = _get_juxtaview_groups(xdata,
-                                               predictors,
-                                               group_env_by=group_env_by, 
-                                               juxta_cutoff=juxta_cutoff,
-                                               set_diag=set_diag,
-                                               spatial_key=spatial_key
-                                               )
+        neighbors = _get_neighbors(xdata, 
+                                      juxta_cutoff=juxta_cutoff, 
+                                      set_diag=set_diag, 
+                                      spatial_key=spatial_key)
+        views["juxta"] = _get_env_groups(xdata,
+                                         predictors,
+                                         group_env_by=group_env_by, 
+                                         connectivity=neighbors,
+                                         )
     if add_para:
-        views["para"] = _get_paraview_groups(xdata,
-                                             predictors,
-                                             bandwidth=bandwidth,
-                                             group_env_by=group_env_by,
-                                             kernel=kernel, 
-                                             set_diag=set_diag,
-                                             spatial_key=spatial_key,
-                                             zoi=zoi
-                                             )
+        distance_weights = spatial_neighbors(adata=xdata,
+                                             bandwidth=bandwidth, 
+                                             kernel=kernel,
+                                             set_diag=set_diag, 
+                                             inplace=False,
+                                             cutoff=0, 
+                                             zoi=zoi)
+        views["para"] = _get_env_groups(xdata,
+                                        predictors,
+                                        group_env_by=group_env_by,
+                                        connectivity=distance_weights
+                                        )
     return views
 
 
@@ -271,7 +259,6 @@ def misty(mdata,
     set_diag : `bool`, optional (default: True)
         Whether to add self when constructing the juxtaview and paraview
         Should be set to True if using spots with several cells, e.g. 10X Visium.
-        TODO: change to set_diag
     spatial_key : `str`, optional (default: "spatial")
         Key in the .obsm attribute of the AnnData objects where the spatial coordinates are stored
     add_juxta : `bool`, optional (default: True)
