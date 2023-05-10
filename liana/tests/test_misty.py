@@ -12,7 +12,13 @@ mdata = mu.MuData({'rna':adata})
 
 
 def test_misty_para():
-    misty(mdata=mdata, x_mod="rna", bandwidth=10, add_juxta=False, set_diag=False, seed=42)
+    misty(mdata=mdata, x_mod="rna",
+          bandwidth=10,
+          alphas=[0.1, 1, 10],
+          add_juxta=False,
+          set_diag=False,
+          seed=42
+          )
     
     misty_res = mdata.uns['misty_results']
     assert np.isin(list(misty_res.keys()), ['performances', 'contributions', 'importances']).all()
@@ -27,23 +33,30 @@ def test_misty_para():
     np.testing.assert_almost_equal(importances[interaction_msk]['value'].values,
                                    np.array([0.00044188, 0.09210615]))
     # assert that R2 gain is consistent
-    assert misty_res['performances']['gain.R2'].mean() == 0.007905217610502951
+    assert misty_res['performances']['gain.R2'].mean() == 0.007860390621909826
     
 
 def test_misty_bypass():
-    misty(mdata=mdata, x_mod="rna", bandwidth=10, bypass_intra=True, add_juxta=True, set_diag=True, seed=42, overwrite=True)
+    misty(mdata=mdata, x_mod="rna",
+          bandwidth=10, alphas=1,
+          bypass_intra=True, add_juxta=True, 
+          set_diag=True, seed=42,
+          overwrite=True)
     misty_res = mdata.uns['misty_results']
     # multi & gain should be identical here (gain.R2 = multi.R2 - 0; when intra is bypassed)
     assert misty_res['performances']['gain.R2'].equals(misty_res['performances']['multi.R2'])
-    assert misty_res['performances']['multi.R2'].sum() == 3.1041304499677613
+    assert misty_res['performances']['multi.R2'].sum() == 3.1041304499677653
     # ensure both para and juxta are present in contributions
     assert np.isin(['juxta', 'para'], misty_res['contributions'].columns).all()
 
 def test_misty_groups():
     
-    misty(mdata=mdata, x_mod="rna", bandwidth=20, seed=42,
+    misty(mdata=mdata, x_mod="rna",
+          bandwidth=20, seed=42,
+          alphas=1,
           set_diag=True, keep_same_predictor=True, # TODO: Rename these two
-          group_env_by='cell_type', group_intra_by='cell_type',
+          group_env_by='cell_type',
+          group_intra_by='cell_type',
           bypass_intra=False, # TODO: shouldn't this always be false when keep=True?
           overwrite=True
           )

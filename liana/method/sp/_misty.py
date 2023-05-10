@@ -4,7 +4,7 @@ import logging
 from scipy.spatial import cKDTree
 from scipy.sparse import identity, issparse
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import RidgeCV
 from sklearn.model_selection import KFold
 
 import numpy as np
@@ -15,14 +15,13 @@ from liana.method.sp._spatial_pipe import spatial_neighbors
 
 ## TODO generalize these functions to work with any package
 def _check_if_squidpy() -> ModuleType:
-
     try:
         import squidpy as sq
     except Exception:
 
         raise ImportError(
-            'decoupler is not installed. Please install it with: '
-            'pip install decoupler'
+            'squidpy is not installed. Please install it with: '
+            'pip install squidpy'
         )
     return sq
 
@@ -73,10 +72,11 @@ def _compose_views_groups(xdata, predictors, bypass_intra, add_juxta, add_para, 
     if not bypass_intra:
         views["intra"] = xdata
     if add_juxta:
-        neighbors = _get_neighbors(xdata, 
-                                      juxta_cutoff=juxta_cutoff, 
-                                      set_diag=set_diag, 
-                                      spatial_key=spatial_key)
+        neighbors = _get_neighbors(xdata,
+                                   juxta_cutoff=juxta_cutoff,
+                                   set_diag=set_diag, 
+                                   spatial_key=spatial_key
+                                   )
         views["juxta"] = _get_env_groups(xdata,
                                          predictors,
                                          group_env_by=group_env_by, 
@@ -132,38 +132,35 @@ def _single_view_model(y, view, target_group_bool, predictors, n_estimators=100,
     return rf_model.oob_prediction_, rf_model.feature_importances_
 
 
-def _multi_model(y, oob_predictions, intra_group, bypass_intra, view_str, k_cv, alpha, seed):
+def _multi_model(y, oob_predictions, intra_group, bypass_intra, view_str, k_cv, alphas, seed):    
+    # TODO just filter these groups out/or set to NaN
     if oob_predictions.shape[0] < k_cv:
-        logging.warn(f"Number of samples in {intra_group} is less than k_cv, using {oob_predictions.shape[0]} instead of {k_cv}")
-        few_sample_flag = True
-        k_cv = oob_predictions.shape[0]
-    else:
-        few_sample_flag = False
+        logging.warn(f"Number of samples in {intra_group} is less than k_cv. "
+                     "{intra_group} values set to NaN")
+        return np.nan, np.nan, np.repeat(np.nan, len(view_str))
+        
     kf = KFold(n_splits=k_cv, shuffle=True, random_state=seed)
     R2_vec_intra, R2_vec_multi = np.zeros(k_cv), np.zeros(k_cv)
     coef_mtx = np.zeros((k_cv, len(view_str)))
     
     for cv_idx, (train_index, test_index) in enumerate(kf.split(oob_predictions)):
-        ridge_multi_model = Ridge(alpha=alpha).fit(X=oob_predictions[train_index], y=y[train_index])
-        
-        if few_sample_flag:
-            R2_vec_multi[cv_idx] = ridge_multi_model.score(X=oob_predictions[test_index], y=y[test_index])
-        else:
-            R2_vec_multi[cv_idx] = ridge_multi_model.score(X=oob_predictions[test_index], y=y[test_index]).mean()
+        ridge_multi_model = RidgeCV(alphas=alphas).fit(X=oob_predictions[train_index], y=y[train_index])
+        R2_vec_multi[cv_idx] = ridge_multi_model.score(X=oob_predictions[test_index], y=y[test_index])
         coef_mtx[cv_idx, :] = ridge_multi_model.coef_
 
-        if not bypass_intra: # first column of oob_predictions is always intra only prediction of bypass_intra is False
-            ridge_intra_model = Ridge(alpha=alpha).fit(X=oob_predictions[train_index, 0].reshape(-1, 1), y=y[train_index])
-            if few_sample_flag:
-                R2_vec_intra[cv_idx] = ridge_intra_model.score(X=oob_predictions[test_index, 0].reshape(-1, 1), y=y[test_index])
-            else:
-                R2_vec_intra[cv_idx] = ridge_intra_model.score(X=oob_predictions[test_index, 0].reshape(-1, 1), y=y[test_index]).mean()
+        if not bypass_intra: 
+            # NOTE: first column of obp is always intra only prediction if bypass_intra is False
+            obp_train = oob_predictions[train_index, 0].reshape(-1, 1)
+            obp_test = oob_predictions[test_index, 0].reshape(-1, 1)
+            
+            ridge_intra_model = RidgeCV(alphas=alphas).fit(X=obp_train, y=y[train_index])
+            R2_vec_intra[cv_idx] = ridge_intra_model.score(X=obp_test, y=y[test_index])
 
     intra_r2 = R2_vec_intra.mean() if not bypass_intra else 0
     return intra_r2, R2_vec_multi.mean(), coef_mtx.mean(axis=0)
 
 
-## TODO: this function should be broken into 3 different ones
+## TODO: this function should be broken into 2 different ones
 def _make_dataframes(target, predictors, intra_group, env_group, view_str, intra_r2, multi_r2, coefs, importance_dict):
     performance_df = pd.DataFrame({"target": target,
                                    "intra_group": intra_group,
@@ -193,12 +190,15 @@ def _make_dataframes(target, predictors, intra_group, env_group, view_str, intra
 def _concat_dataframes(performances_list, contributions_list, importances_list, view_str):
     performances = pd.concat(performances_list, axis=0, ignore_index=True)
     performances["gain.R2"] = performances["multi.R2"] - performances["intra.R2"]
+    
     contributions = pd.concat(contributions_list, axis=0, ignore_index=True)
     contributions.loc[:, view_str] = contributions.loc[:, view_str].clip(lower=0)
     contributions.loc[:, view_str] = contributions.loc[:, view_str].div(contributions.loc[:, view_str].sum(axis=1), axis=0)
+    
     importances = pd.concat(importances_list, axis=0, ignore_index=True)
     importances = pd.melt(importances, id_vars=["target", "predictor", "intra_group", "env_group"], 
                           value_vars=view_str, var_name="view", value_name="value")
+    
     return performances, contributions, importances
 
 
@@ -219,7 +219,7 @@ def misty(mdata,
           bypass_intra = False,
           group_intra_by = None,
           group_env_by = None,
-          alpha = 1,
+          alphas = [0.1, 1, 10],
           k_cv = 10,
           n_estimators = 100,
           n_jobs = -1,
@@ -273,8 +273,9 @@ def misty(mdata,
     group_env_by : `str`, optional (default: None)
         Column in the .obs attribute of mdata[y_mod] which is used to construct juxta- and paraview per group
         If None, all cells are considered to be in the same environment
-    alpha : `float`, optional (default: 1)
-        Regularization parameter for the ridge regression (multi-view model)
+    alphas : `list`, optional (default: [0.1, 1, 10])
+        List of alpha values used to choose from, that control the strength of the ridge regression,
+        used for the multi-view part of the model
     k_cv : `int`, optional (default: 10)
         Number of folds for cross-validation used in the multi-view model
     n_estimators : `int`, optional (default: 100)
@@ -299,6 +300,8 @@ def misty(mdata,
         raise ValueError(f"Target modality {y_mod} not found in mdata.")
     if add_para and bandwidth is None:
         raise ValueError("bandwith must be specified if add_para=True")
+    
+    ## TODO get rid of groups with spots smaller than k_cv
     
     xdata = mdata[x_mod]
     ydata = mdata[y_mod] if y_mod else xdata
@@ -393,8 +396,9 @@ def misty(mdata,
                                                          bypass_intra, 
                                                          view_str, 
                                                          k_cv, 
-                                                         alpha, 
-                                                         seed)
+                                                         alphas, 
+                                                         seed
+                                                         )
 
                 # store the results
                 performance_df, coef_df, importance_df = _make_dataframes(target, 
@@ -416,9 +420,18 @@ def misty(mdata,
                                                                   importances_list, 
                                                                   view_str)
     if inplace:
-        mdata.uns["misty_results"] = {"performances": performances, "contributions": contributions, "importances": importances}
+        mdata.uns["misty_results"] = {"performances": performances,
+                                      "contributions": contributions,
+                                      "importances": importances
+                                      }
     else:
-        return {"performances": performances, "contributions": contributions, "importances": importances}
+        return {"performances": performances,
+                "contributions": contributions,
+                "importances": importances}
+
+
+
+
 
 
 ### start: temporary functions for testing ###
