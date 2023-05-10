@@ -6,18 +6,32 @@ import anndata
 from pandas import DataFrame
 
 from sklearn.neighbors import NearestNeighbors
-from scipy.spatial.distance import pdist, squareform
 from scipy.sparse import csr_matrix
 from scipy.stats import norm
 from tqdm import tqdm
 
 from scipy.spatial import cKDTree
-from scipy.sparse import identity, issparse
+
+
+def _gaussian(distance_mtx, l):
+    return np.exp(-(distance_mtx ** 2.0) / (2.0 * l ** 2.0))
+
+def _misty_rbf(distance_mtx, l):
+    return np.exp(-(distance_mtx ** 2.0) / (l ** 2.0))
+
+def _exponential(distance_mtx, l):
+    return np.exp(-distance_mtx / l)
+
+def _linear(distance_mtx, l):
+    connectivity = 1 - distance_mtx / l
+    return np.clip(connectivity, a_min=0, a_max=np.inf)
+
 
 
 def spatial_neighbors(adata: anndata.AnnData,
                       parameter,
                       cutoff=None,
+                      max_dist_ratio=5,
                       family='gaussian',
                       n_neighbors=None,
                       set_diag=True,
@@ -64,47 +78,45 @@ def spatial_neighbors(adata: anndata.AnnData,
         raise ValueError("`cutoff` or `n_neighbors` must be provided!")
 
     assert 'spatial' in adata.obsm
-    
-    dist = pdist(adata.obsm['spatial'], 'euclidean')
-    dist = squareform(dist)
 
-    # prevent overflow
-    dist = np.array(dist, dtype=np.float64)
+    tree = cKDTree(adata.obsm['spatial'])
+    dist = tree.sparse_distance_matrix(tree, 
+                                       max_distance=parameter * max_dist_ratio,
+                                       output_type="coo_matrix")
+    dist = dist.tocsr()
+
+    # prevent float overflow
     parameter = np.array(parameter, dtype=np.float64)
 
+    # NOTE: dist gets converted to a connectivity matrix
     if family == 'gaussian':
-        connectivity = np.exp(-(dist ** 2.0) / (2.0 * parameter ** 2.0))
+        dist.data = _gaussian(dist.data, parameter)
     elif family == 'misty_rbf':
-        connectivity = np.exp(-(dist ** 2.0) / (parameter ** 2.0))
+        dist.data = _misty_rbf(dist.data, parameter)
     elif family == 'exponential':
-        connectivity = np.exp(-dist / parameter)
+        dist.data = _exponential(dist.data, parameter)
     elif family == 'linear':
-        connectivity = 1 - dist / parameter
-        connectivity[connectivity < 0] = 0
+        dist.data = _linear(dist.data, parameter)
     else:
         raise ValueError("Please specify a valid family to generate connectivity weights")
 
     if not set_diag:
-        np.fill_diagonal(connectivity, 0)
-        
-
+        np.fill_diagonal(dist, 0)
     if cutoff is not None:
-        connectivity[connectivity < cutoff] = 0
+        dist.data = dist.data * (dist.data > cutoff)
     if n_neighbors is not None:
-        nn = NearestNeighbors(n_neighbors=n_neighbors).fit(connectivity)
-        knn = nn.kneighbors_graph(connectivity).toarray()
-        connectivity = connectivity * knn  # knn works as a mask
-        
-    spot_n = connectivity.shape[0]
+        nn = NearestNeighbors(n_neighbors=n_neighbors).fit(dist)
+        knn = nn.kneighbors_graph(dist)
+        dist = dist.multiply(knn)  # knn works as a mask
+
+    spot_n = dist.shape[0]
     assert spot_n == adata.shape[0]
     # speed up
     if spot_n > 1000:
-        connectivity = connectivity.astype(np.float32)
+        dist = dist.astype(np.float32)
 
-    connectivity = csr_matrix(connectivity)
-
-    adata.obsp[f'{key_added}_connectivities'] = connectivity
-    return None if inplace else connectivity
+    adata.obsp[f'{key_added}_connectivities'] = dist
+    return None if inplace else dist
 
 
 def _rename_means(lr_stats, entity):
