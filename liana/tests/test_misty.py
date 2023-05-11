@@ -2,13 +2,13 @@ import os
 import pathlib
 import numpy as np
 import scanpy as sc
-import muon as mu
+from mudata import MuData
 from liana.method.sp._misty import misty
 
 test_path = pathlib.Path(__file__).parent
 
 adata = sc.read_h5ad(os.path.join(test_path, "data" , "synthetic.h5ad"))
-mdata = mu.MuData({'rna':adata})
+mdata = MuData({'rna':adata})
 
 
 def test_misty_para():
@@ -62,6 +62,8 @@ def test_misty_groups():
           )
     misty_res = mdata.uns['misty_results'].copy()
     importances = misty_res['importances']
+    top5 = importances.sort_values('value', ascending=False)['target'][0:5].values
+    assert (top5 == np.array(['prodD', 'prodD', 'prodA', 'prodA', 'prodA'])).all()
     
     # assert that there are self interactions = var_n * var_n
     self_interacctions = importances[(importances['target']==importances['predictor'])]

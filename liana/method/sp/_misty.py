@@ -100,13 +100,17 @@ def _check_target_in_predictors(target, predictors):
     return predictors_subset, insert_idx
 
 
-def _single_view_model(y, view, target_group_bool, predictors, n_estimators=100, n_jobs=-1, seed=1337):
-    # TODO: Why is this here?
-    if issparse(view[target_group_bool, predictors].X):
-        X = np.asarray(view[target_group_bool, predictors].X.todense())
+def _single_view_model(y, view, intra_obs_msk, predictors, n_estimators=100, n_jobs=-1, seed=1337):
+    if issparse(view.X):
+        X = view[intra_obs_msk, predictors].X.toarray()
     else:
-        X = view[target_group_bool, predictors].X
-    rf_model = RandomForestRegressor(n_estimators=n_estimators, oob_score=True, n_jobs=n_jobs, random_state=seed).fit(X=X, y=y)
+        X = view[intra_obs_msk, predictors].X
+        
+    rf_model = RandomForestRegressor(n_estimators=n_estimators, 
+                                     oob_score=True,
+                                     n_jobs=n_jobs, 
+                                     random_state=seed).fit(y=y, X=X)
+    
     return rf_model.oob_prediction_, rf_model.feature_importances_
 
 
@@ -277,8 +281,6 @@ def misty(mdata,
     if add_para and bandwidth is None:
         raise ValueError("bandwith must be specified if add_para=True")
     
-    ## TODO get rid of groups with spots smaller than k_cv
-    
     xdata = mdata[x_mod]
     ydata = mdata[y_mod] if y_mod else xdata
 
@@ -309,20 +311,19 @@ def misty(mdata,
     view_str = list(views.keys())
 
     # init list to store the results for each intra group and env group as dataframe;
-    # in last step all dataframe are concatenated 
     targets_list, importances_list = [], []
 
-    for intra_group in intra_groups:
-
-        intra_group_bool = ydata.obs[group_intra_by] == intra_group if intra_group else np.ones(ydata.shape[0], dtype=bool)
-
-        # loop over each target and build one RF model for each view
-        for target in targets:
-
+    # loop over each target and build one RF model for each view
+    for target in targets:
+        
+        for intra_group in intra_groups:
+            intra_obs_msk = ydata.obs[group_intra_by] == \
+                    intra_group if intra_group else np.ones(ydata.shape[0], dtype=bool)
+            
             if issparse(ydata.X):
-                y = np.asarray(ydata[intra_group_bool, target].X.todense()).reshape(-1)
+                y = np.asarray(ydata[intra_obs_msk, target].X.todense()).reshape(-1)
             else:
-                y = ydata[intra_group_bool, target].X.reshape(-1)
+                y = ydata[intra_obs_msk, target].X.reshape(-1)
 
             # intra is always non-self, while other views can be self
             predictors_nonself, insert_index = _check_target_in_predictors(target, predictors)
@@ -334,7 +335,7 @@ def misty(mdata,
             if not bypass_intra:
                 oob_predictions_intra, importance_dict["intra"] = _single_view_model(y, 
                                                                                      views["intra"], 
-                                                                                     intra_group_bool, 
+                                                                                     intra_obs_msk, 
                                                                                      predictors_nonself, 
                                                                                      n_estimators, 
                                                                                      n_jobs, 
@@ -345,7 +346,6 @@ def misty(mdata,
 
             # loop over the group_views_by
             for env_group in env_groups:
-                
                 # store the oob predictions for each view to construct predictor matrix for meta model
                 oob_list = []
 
@@ -359,13 +359,14 @@ def misty(mdata,
                     oob_predictions, importance_dict[view_name] = \
                         _single_view_model(y, 
                                            view, 
-                                           intra_group_bool, 
+                                           intra_obs_msk, 
                                            preds, 
                                            n_estimators,
-                                           n_jobs, 
+                                           n_jobs,
                                            seed
                                            )
                     oob_list.append(oob_predictions)
+
 
                 # train the meta model with k-fold CV 
                 intra_r2, multi_r2, coefs = _multi_model(y,
@@ -379,8 +380,11 @@ def misty(mdata,
                                                          )
                 
                 targets_df = _format_targets(target,
-                                             intra_group, env_group,
-                                             view_str, intra_r2,  multi_r2,
+                                             intra_group,
+                                             env_group,
+                                             view_str,
+                                             intra_r2,
+                                             multi_r2,
                                              coefs
                                             )
                 targets_list.append(targets_df)
@@ -392,6 +396,7 @@ def misty(mdata,
                                                      importance_dict
                                                      )
                 importances_list.append(importances_df)
+
 
     # create result dataframes
     target_metrics, importances = _concat_dataframes(targets_list,
