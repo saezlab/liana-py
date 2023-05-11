@@ -13,30 +13,6 @@ import pandas as pd
 
 from liana.method.sp._spatial_pipe import spatial_neighbors
 
-def _check_if_squidpy() -> ModuleType:
-    try:
-        import squidpy as sq
-    except Exception:
-
-        raise ImportError(
-            'squidpy is not installed. Please install it with: '
-            'pip install squidpy'
-        )
-    return sq
-
-def _get_neighbors(adata, juxta_cutoff=np.inf, set_diag=True, spatial_key="spatial", **kwargs):
-    sq = _check_if_squidpy()
-    neighbors, dists = sq.gr.spatial_neighbors(adata=adata, 
-                                               coord_type="generic", 
-                                               copy=True,
-                                               delaunay=True,
-                                               spatial_key=spatial_key,
-                                               set_diag=set_diag,
-                                               **kwargs
-                                               )
-    neighbors[dists > juxta_cutoff] = 0
-    return neighbors
-
 
 def _check_features(adata, features, type_str):
     if features is not None:
@@ -48,7 +24,7 @@ def _check_features(adata, features, type_str):
         features = adata.var_names.tolist()
     return features
 
-# Additionally, creating a list of anndatas is not great
+# TODO: creating a list of anndatas is not great
 def _get_env_groups(adata, predictors, group_env_by, connectivity):
     paraviews = {}
     if group_env_by: 
@@ -64,6 +40,8 @@ def _get_env_groups(adata, predictors, group_env_by, connectivity):
         paraviews["all"] = ad.AnnData(X=X, obs=adata.obs, var=pd.DataFrame(index=predictors))
     return paraviews
 
+
+# TODO replace with a class constructor object
 def _compose_views_groups(xdata, predictors, bypass_intra, add_juxta, add_para,
                           group_env_by, juxta_cutoff, bandwidth,
                           kernel, zoi, set_diag, spatial_key):
@@ -159,27 +137,30 @@ def _multi_model(y, oob_predictions, intra_group, bypass_intra, view_str, k_cv, 
     return intra_r2, R2_vec_multi.mean(), coef_mtx.mean(axis=0)
 
 
-## TODO: this function should be broken into 2 different ones
-def _make_dataframes(target, predictors, intra_group, env_group, view_str, intra_r2, multi_r2, coefs, importance_dict):
-    target_metrics = pd.DataFrame({"target": target,
-                                   "intra_group": intra_group,
-                                   "env_group": env_group, 
-                                   "intra.R2": intra_r2,
-                                   "multi.R2": multi_r2},
-                                   index=[0])
-    # add view coefficients/contributions
-    target_metrics[view_str] = coefs
+def _format_targets(target, intra_group, env_group, view_str, intra_r2, multi_r2, coefs):
+    target_df = pd.DataFrame({"target": target,
+                              "intra_group": intra_group,
+                              "env_group": env_group, 
+                              "intra.R2": intra_r2,
+                              "multi.R2": multi_r2},
+                             index=[0]
+                             )
+    target_df[view_str] = coefs
     
-    importance_df = pd.DataFrame({"target": np.repeat([target], len(predictors)),
+    return target_df
+    
+
+def _format_importances(target, predictors, intra_group, env_group, importance_dict):
+    importances_df = pd.DataFrame({"target": np.repeat([target], len(predictors)),
                                   "predictor": predictors,
                                   "intra_group": np.repeat([intra_group], len(predictors)),
                                   "env_group": np.repeat([env_group], len(predictors))}
-                                 )
+                                )
     
     for view_name, importance_score in importance_dict.items():
-        importance_df[view_name] = importance_score
+        importances_df[view_name] = importance_score
         
-    return target_metrics, importance_df
+    return importances_df
 
 
 def _concat_dataframes(targets_list, importances_list, view_str):
@@ -210,7 +191,7 @@ def misty(mdata,
           set_diag = False, 
           spatial_key = "spatial", 
           add_juxta = True,
-          add_para = True, 
+          add_para = True,
           bypass_intra = False,
           group_intra_by = None,
           group_env_by = None,
@@ -343,8 +324,9 @@ def misty(mdata,
             else:
                 y = ydata[intra_group_bool, target].X.reshape(-1)
 
-            # remove target feature from predictors if it is in predictors
-            predictor_subset, insert_index = _check_target_in_predictors(target, predictors)
+            # intra is always non-self, while other views can be self
+            predictors_nonself, insert_index = _check_target_in_predictors(target, predictors)
+            preds = predictors if keep_same_predictor else predictors_nonself
 
             importance_dict = {}
             
@@ -353,7 +335,7 @@ def misty(mdata,
                 oob_predictions_intra, importance_dict["intra"] = _single_view_model(y, 
                                                                                      views["intra"], 
                                                                                      intra_group_bool, 
-                                                                                     predictor_subset, 
+                                                                                     predictors_nonself, 
                                                                                      n_estimators, 
                                                                                      n_jobs, 
                                                                                      seed
@@ -374,13 +356,15 @@ def misty(mdata,
                 ## TODO: remove this thing with all
                 for view_name in [v for v in view_str if v != "intra"]:
                     view = views[view_name][env_group] if env_group else views[view_name]["all"]
-                    oob_predictions, importance_dict[view_name] = _single_view_model(y, 
-                                                                                     view, 
-                                                                                     intra_group_bool, 
-                                                                                     predictors if keep_same_predictor else predictor_subset, 
-                                                                                     n_estimators,
-                                                                                     n_jobs, 
-                                                                                     seed)
+                    oob_predictions, importance_dict[view_name] = \
+                        _single_view_model(y, 
+                                           view, 
+                                           intra_group_bool, 
+                                           preds, 
+                                           n_estimators,
+                                           n_jobs, 
+                                           seed
+                                           )
                     oob_list.append(oob_predictions)
 
                 # train the meta model with k-fold CV 
@@ -393,19 +377,21 @@ def misty(mdata,
                                                          alphas, 
                                                          seed
                                                          )
-
-                # store the results
-                targets_df, importance_df = _make_dataframes(target, 
-                                                             predictors if keep_same_predictor else predictor_subset, 
-                                                             intra_group, 
-                                                             env_group, 
-                                                             view_str,
-                                                             intra_r2, 
-                                                             multi_r2, 
-                                                             coefs,
-                                                             importance_dict)
+                
+                targets_df = _format_targets(target,
+                                             intra_group, env_group,
+                                             view_str, intra_r2,  multi_r2,
+                                             coefs
+                                            )
                 targets_list.append(targets_df)
-                importances_list.append(importance_df)
+                
+                importances_df = _format_importances(target, 
+                                                     preds, 
+                                                     intra_group, 
+                                                     env_group,
+                                                     importance_dict
+                                                     )
+                importances_list.append(importances_df)
 
     # create result dataframes
     target_metrics, importances = _concat_dataframes(targets_list,
@@ -425,6 +411,31 @@ def misty(mdata,
 
 
 ### start: temporary functions for testing ###
+def _check_if_squidpy() -> ModuleType:
+    try:
+        import squidpy as sq
+    except Exception:
+
+        raise ImportError(
+            'squidpy is not installed. Please install it with: '
+            'pip install squidpy'
+        )
+    return sq
+
+def _get_neighbors(adata, juxta_cutoff=np.inf, set_diag=True, spatial_key="spatial", **kwargs):
+    sq = _check_if_squidpy()
+    neighbors, dists = sq.gr.spatial_neighbors(adata=adata, 
+                                               coord_type="generic", 
+                                               copy=True,
+                                               delaunay=True,
+                                               spatial_key=spatial_key,
+                                               set_diag=set_diag,
+                                               **kwargs
+                                               )
+    neighbors[dists > juxta_cutoff] = 0
+    return neighbors
+
+
 from IPython.core.display_functions import display
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
