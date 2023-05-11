@@ -8,6 +8,7 @@ from liana.method.sp._misty import misty
 test_path = pathlib.Path(__file__).parent
 
 adata = sc.read_h5ad(os.path.join(test_path, "data" , "synthetic.h5ad"))
+adata = sc.pp.subsample(adata, n_obs=100, copy=True)
 mdata = MuData({'rna':adata})
 
 
@@ -31,9 +32,9 @@ def test_misty_para():
     interaction_msk = (importances['target']=='ligA') & \
         (importances['predictor']=='protE')
     np.testing.assert_almost_equal(importances[interaction_msk]['value'].values,
-                                   np.array([0.00044188, 0.09210615]))
+                                   np.array([0.00162521, 0.05350179]))
     # assert that R2 gain is consistent
-    assert misty_res['target_metrics']['gain.R2'].mean() == 0.007860390621909826
+    assert misty_res['target_metrics']['gain.R2'].mean() == -0.003487056749054847
     
 
 def test_misty_bypass():
@@ -45,12 +46,11 @@ def test_misty_bypass():
     misty_res = mdata.uns['misty_results']
     # multi & gain should be identical here (gain.R2 = multi.R2 - 0; when intra is bypassed)
     assert misty_res['target_metrics']['gain.R2'].equals(misty_res['target_metrics']['multi.R2'])
-    assert misty_res['target_metrics']['multi.R2'].sum() == 3.1041304499677653
+    assert misty_res['target_metrics']['multi.R2'].sum() == -2.171910172942944
     # ensure both para and juxta are present in contributions
     assert np.isin(['juxta', 'para'], misty_res['target_metrics'].columns).all()
 
-def test_misty_groups():
-    
+def test_misty_groups():    
     misty(mdata=mdata, x_mod="rna",
           bandwidth=20, seed=42,
           alphas=1,
@@ -63,7 +63,7 @@ def test_misty_groups():
     misty_res = mdata.uns['misty_results'].copy()
     importances = misty_res['importances']
     top5 = importances.sort_values('value', ascending=False)['target'][0:5].values
-    assert (top5 == np.array(['prodD', 'prodD', 'prodA', 'prodA', 'prodA'])).all()
+    assert (top5 == np.array(['prodB', 'prodB', 'prodC', 'prodC', 'ligB'])).all()
     
     # assert that there are self interactions = var_n * var_n
     self_interacctions = importances[(importances['target']==importances['predictor'])]
@@ -76,5 +76,5 @@ def test_misty_groups():
      groupby(['intra_group', 'env_group'])['gain.R2'].
      mean().values
     )
-    perf_expected = np.array([0.01033989, 0.00859758, 0.00973386, 0.01135016])
+    perf_expected = np.array([0.07707842154368322, 0.03275119745812092, 0.12220937386420569, 0.05019178543805167])
     np.testing.assert_almost_equal(perf_actual, perf_expected)

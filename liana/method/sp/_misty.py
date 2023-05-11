@@ -8,7 +8,7 @@ from sklearn.linear_model import RidgeCV
 from sklearn.model_selection import KFold
 
 import numpy as np
-import anndata as ad
+from anndata import AnnData
 import pandas as pd
 
 from liana.method.sp._spatial_pipe import spatial_neighbors
@@ -24,55 +24,14 @@ def _check_features(adata, features, type_str):
         features = adata.var_names.tolist()
     return features
 
-# TODO: creating a list of anndatas is not great
-def _get_env_groups(adata, predictors, group_env_by, connectivity):
-    paraviews = {}
-    if group_env_by: 
-        groups = np.unique(adata.obs[group_env_by])
-        # why is this for loop necessary if there is one in the main pipe?
-        for group in groups:
-            weights = connectivity.copy()
-            weights[:, adata.obs[group_env_by]!=group] = 0
-            X = weights @ adata[:, predictors].X
-            paraviews[group] = ad.AnnData(X=X, obs=adata.obs, var=pd.DataFrame(index=predictors))
-    else:
-        X = connectivity @ adata[:, predictors].X
-        paraviews["all"] = ad.AnnData(X=X, obs=adata.obs, var=pd.DataFrame(index=predictors))
-    return paraviews
-
-
-# TODO replace with a class constructor object
-def _compose_views_groups(xdata, predictors, bypass_intra, add_juxta, add_para,
-                          group_env_by, juxta_cutoff, bandwidth,
-                          kernel, zoi, set_diag, spatial_key):
-    views = {}
-    if not bypass_intra:
-        views["intra"] = xdata
-    if add_juxta:
-        neighbors = _get_neighbors(xdata,
-                                   juxta_cutoff=juxta_cutoff,
-                                   set_diag=set_diag, 
-                                   spatial_key=spatial_key
-                                   )
-        views["juxta"] = _get_env_groups(xdata,
-                                         predictors,
-                                         group_env_by=group_env_by, 
-                                         connectivity=neighbors,
-                                         )
-    if add_para:
-        distance_weights = spatial_neighbors(adata=xdata,
-                                             bandwidth=bandwidth, 
-                                             kernel=kernel,
-                                             set_diag=set_diag, 
-                                             inplace=False,
-                                             cutoff=0, 
-                                             zoi=zoi)
-        views["para"] = _get_env_groups(xdata,
-                                        predictors,
-                                        group_env_by=group_env_by,
-                                        connectivity=distance_weights
-                                        )
-    return views
+def _mask_connectivity(xdata, connectivity, env_obs_msk, predictors):
+    
+    weights = connectivity.copy()
+    weights[:, ~env_obs_msk] = 0
+    X = weights @ xdata[:, predictors].X
+    view = AnnData(X=X, obs=xdata.obs, var=pd.DataFrame(index=predictors))
+    
+    return view
 
 
 def _check_anndata_objects_groups(xdata, ydata, spatial_key, group_intra_by, group_env_by):
@@ -296,19 +255,25 @@ def misty(mdata,
     intra_groups = np.unique(ydata.obs[group_intra_by]) if group_intra_by else [None]
     env_groups = np.unique(xdata.obs[group_env_by]) if group_env_by else [None]
 
-    views = _compose_views_groups(xdata, 
-                                  predictors,
-                                  bypass_intra, 
-                                  add_juxta, 
-                                  add_para, 
-                                  group_env_by, 
-                                  juxta_cutoff, 
-                                  bandwidth, 
-                                  kernel,
-                                  zoi,
-                                  set_diag, 
-                                  spatial_key)
-    view_str = list(views.keys())
+    connectivities = {}
+    if add_juxta:
+        connectivities['juxta'] = _get_neighbors(xdata,
+                                                juxta_cutoff=juxta_cutoff,
+                                                set_diag=set_diag, 
+                                                spatial_key=spatial_key
+                                                )
+    if add_para:
+        connectivities['para'] = spatial_neighbors(adata=xdata,
+                                                   bandwidth=bandwidth, 
+                                                   kernel=kernel,
+                                                   set_diag=set_diag, 
+                                                   inplace=False,
+                                                   cutoff=0,
+                                                   zoi=zoi
+                                                   )
+    view_str = list(connectivities.keys())
+    if not bypass_intra:
+        view_str = ['intra'] + view_str
 
     # init list to store the results for each intra group and env group as dataframe;
     targets_list, importances_list = [], []
@@ -334,7 +299,7 @@ def misty(mdata,
             # model the intraview
             if not bypass_intra:
                 oob_predictions_intra, importance_dict["intra"] = _single_view_model(y, 
-                                                                                     views["intra"], 
+                                                                                     ydata, 
                                                                                      intra_obs_msk, 
                                                                                      predictors_nonself, 
                                                                                      n_estimators, 
@@ -348,6 +313,8 @@ def misty(mdata,
             for env_group in env_groups:
                 # store the oob predictions for each view to construct predictor matrix for meta model
                 oob_list = []
+                
+                env_obs_msk = ydata.obs[group_env_by] == env_group if env_group else np.ones(xdata.shape[0], dtype=bool)
 
                 if not bypass_intra:
                     oob_list.append(oob_predictions_intra)
@@ -355,9 +322,12 @@ def misty(mdata,
                 # model the juxta and paraview (if applicable)
                 ## TODO: remove this thing with all
                 for view_name in [v for v in view_str if v != "intra"]:
-                    view = views[view_name][env_group] if env_group else views[view_name]["all"]
+                    connectivity = connectivities[view_name]
+                    # NOTE indexing here is expensive, but we do it to avoid memory issues
+                    view = _mask_connectivity(xdata, connectivity, env_obs_msk, predictors)
+                    
                     oob_predictions, importance_dict[view_name] = \
-                        _single_view_model(y, 
+                        _single_view_model(y,
                                            view, 
                                            intra_obs_msk, 
                                            preds, 
