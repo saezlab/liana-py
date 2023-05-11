@@ -77,7 +77,7 @@ def spatial_neighbors(adata: anndata.AnnData,
     -------
     If ``inplace = False``, returns an `np.array` with spatial connectivity weights.
     Otherwise, modifies the ``adata`` object with the following key:
-        - :attr:`anndata.AnnData.obsp` ``['connectivity']`` with the aforementioned array
+        - :attr:`anndata.AnnData.obsp` ``['{key_added}_connectivities']`` with the aforementioned array
     """
 
     if cutoff is None:

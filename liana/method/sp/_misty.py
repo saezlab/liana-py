@@ -320,7 +320,6 @@ def misty(mdata,
                     oob_list.append(oob_predictions_intra)
 
                 # model the juxta and paraview (if applicable)
-                ## TODO: remove this thing with all
                 for view_name in [v for v in view_str if v != "intra"]:
                     connectivity = connectivities[view_name]
                     # NOTE indexing here is expensive, but we do it to avoid memory issues
