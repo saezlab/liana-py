@@ -13,7 +13,6 @@ import pandas as pd
 
 from liana.method.sp._spatial_pipe import spatial_neighbors
 
-## TODO generalize these functions to work with any package
 def _check_if_squidpy() -> ModuleType:
     try:
         import squidpy as sq
@@ -49,25 +48,25 @@ def _check_features(adata, features, type_str):
         features = adata.var_names.tolist()
     return features
 
-
-# TODO para/juxta functions seem repetitive
 # Additionally, creating a list of anndatas is not great
 def _get_env_groups(adata, predictors, group_env_by, connectivity):
     paraviews = {}
     if group_env_by: 
         groups = np.unique(adata.obs[group_env_by])
+        # why is this for loop necessary if there is one in the main pipe?
         for group in groups:
-            # set the weights for para cells that are not in the group to 0 (so we essentially make columns of the distance weight matrix 0,
-            # but since the distance weight matrix is sparse, we need to do this in a slightly more complicated way
-            # TODO: make this faster/better
-            distance_weights_csr = connectivity.copy()
-            distance_weights_csr.data[np.isin(distance_weights_csr.indices, np.where(adata.obs[group_env_by]!=group)[0])] = 0
-            paraviews[group] = ad.AnnData(X=distance_weights_csr@adata[:, predictors].X, obs=adata.obs, var=pd.DataFrame(index=predictors))
+            weights = connectivity.copy()
+            weights[:, adata.obs[group_env_by]!=group] = 0
+            X = weights @ adata[:, predictors].X
+            paraviews[group] = ad.AnnData(X=X, obs=adata.obs, var=pd.DataFrame(index=predictors))
     else:
-        paraviews["all"] = ad.AnnData(X=connectivity@adata[:, predictors].X, obs=adata.obs, var=pd.DataFrame(index=predictors))
+        X = connectivity @ adata[:, predictors].X
+        paraviews["all"] = ad.AnnData(X=X, obs=adata.obs, var=pd.DataFrame(index=predictors))
     return paraviews
 
-def _compose_views_groups(xdata, predictors, bypass_intra, add_juxta, add_para, group_env_by, juxta_cutoff, bandwidth, kernel, zoi, set_diag, spatial_key):
+def _compose_views_groups(xdata, predictors, bypass_intra, add_juxta, add_para,
+                          group_env_by, juxta_cutoff, bandwidth,
+                          kernel, zoi, set_diag, spatial_key):
     views = {}
     if not bypass_intra:
         views["intra"] = xdata
@@ -124,6 +123,7 @@ def _check_target_in_predictors(target, predictors):
 
 
 def _single_view_model(y, view, target_group_bool, predictors, n_estimators=100, n_jobs=-1, seed=1337):
+    # TODO: Why is this here?
     if issparse(view[target_group_bool, predictors].X):
         X = np.asarray(view[target_group_bool, predictors].X.todense())
     else:
@@ -132,8 +132,7 @@ def _single_view_model(y, view, target_group_bool, predictors, n_estimators=100,
     return rf_model.oob_prediction_, rf_model.feature_importances_
 
 
-def _multi_model(y, oob_predictions, intra_group, bypass_intra, view_str, k_cv, alphas, seed):    
-    # TODO just filter these groups out/or set to NaN
+def _multi_model(y, oob_predictions, intra_group, bypass_intra, view_str, k_cv, alphas, seed):
     if oob_predictions.shape[0] < k_cv:
         logging.warn(f"Number of samples in {intra_group} is less than k_cv. "
                      "{intra_group} values set to NaN")
@@ -373,7 +372,6 @@ def misty(mdata,
 
                 # model the juxta and paraview (if applicable)
                 ## TODO: remove this thing with all
-                # TODO: drop intra_group & env_group cols when not applicable
                 for view_name in [v for v in view_str if v != "intra"]:
                     view = views[view_name][env_group] if env_group else views[view_name]["all"]
                     oob_predictions, importance_dict[view_name] = _single_view_model(y, 
@@ -386,7 +384,7 @@ def misty(mdata,
                     oob_list.append(oob_predictions)
 
                 # train the meta model with k-fold CV 
-                intra_r2, multi_r2, coefs = _multi_model(y, 
+                intra_r2, multi_r2, coefs = _multi_model(y,
                                                          np.column_stack(oob_list),
                                                          intra_group, 
                                                          bypass_intra, 
