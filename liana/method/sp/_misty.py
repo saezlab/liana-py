@@ -108,6 +108,7 @@ def _format_targets(target, intra_group, env_group, view_str, intra_r2, multi_r2
                               "multi.R2": multi_r2},
                              index=[0]
                              )
+    target_df["gain.R2"] = target_df["multi.R2"] - target_df["intra.R2"]
     target_df[view_str] = coefs
     
     return target_df
@@ -128,7 +129,6 @@ def _format_importances(target, predictors, intra_group, env_group, importance_d
 
 def _concat_dataframes(targets_list, importances_list, view_str):
     target_metrics = pd.concat(targets_list, axis=0, ignore_index=True)
-    target_metrics["gain.R2"] = target_metrics["multi.R2"] - target_metrics["intra.R2"]
     
     target_metrics.loc[:, view_str] = target_metrics.loc[:, view_str].clip(lower=0)
     target_metrics.loc[:, view_str] = target_metrics.loc[:, view_str].div(target_metrics.loc[:, view_str].sum(axis=1), axis=0)
@@ -313,7 +313,7 @@ def misty(mdata,
             for env_group in env_groups:
                 # store the oob predictions for each view to construct predictor matrix for meta model
                 oob_list = []
-                
+                # TODO rename to extra_obs_msk
                 env_obs_msk = ydata.obs[group_env_by] == env_group if env_group else np.ones(xdata.shape[0], dtype=bool)
 
                 if not bypass_intra:
