@@ -24,12 +24,12 @@ def _check_features(adata, features, type_str):
         features = adata.var_names.tolist()
     return features
 
-def _mask_connectivity(xdata, connectivity, env_obs_msk, predictors):
+def _mask_connectivity(adata, connectivity, env_obs_msk, predictors):
     
     weights = connectivity.copy()
     weights[:, ~env_obs_msk] = 0
-    X = weights @ xdata[:, predictors].X
-    view = AnnData(X=X, obs=xdata.obs, var=pd.DataFrame(index=predictors))
+    X = weights @ adata[:, predictors].X
+    view = AnnData(X=X, obs=adata.obs, var=pd.DataFrame(index=predictors))
     
     return view
 
