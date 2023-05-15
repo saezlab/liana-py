@@ -60,6 +60,7 @@ def _check_target_in_predictors(target, predictors):
 
 
 def _single_view_model(y, view, intra_obs_msk, predictors, n_estimators=100, n_jobs=-1, seed=1337):
+    # TODO: remove this it's always sparse from select_mtx
     if issparse(view.X):
         X = view[intra_obs_msk, predictors].X.toarray()
     else:

@@ -112,12 +112,6 @@ def prep_check_adata(adata: AnnData,
                        obsp=adata.obsp
                        )
 
-    # convert to sparse csr matrix
-    if not isspmatrix_csr(adata.X):
-        if verbose:
-            print("Converting mat to CSR format")
-        adata.X = csr_matrix(adata.X)
-
     # Check for empty features
     msk_features = np.sum(adata.X, axis=0).A1 == 0
     n_empty_features = np.sum(msk_features)
@@ -260,24 +254,31 @@ def _choose_mtx_rep(adata, use_raw=False, layer=None, verbose=False) -> csr_matr
     -------
         The matrix to be used by liana-py.
     """
-
     is_layer = layer is not None
     if is_layer & use_raw:
         raise ValueError("Cannot specify `layer` and have `use_raw=True`.")
     if is_layer:
         if verbose:
             print(f"Using the `{layer}` layer!")
-        return adata.layers[layer]
+        X = adata.layers[layer]
     elif use_raw:
         if adata.raw is None:
             raise ValueError("`.raw` is not initialized!")
         if verbose:
             print("Using `.raw`!")
-        return adata.raw.X
+        X = adata.raw.X
     else:
         if verbose:
             print("Using `.X`!")
-        return adata.X
+        X = adata.X
+        
+    # convert to sparse csr matrix
+    if not isspmatrix_csr(X):
+        if verbose:
+            print("Converting mat to CSR format")
+        X = csr_matrix(X)
+    
+    return X
 
 
 def _get_props(X_mask):
