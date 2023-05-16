@@ -117,11 +117,10 @@ def _format_targets(target, intra_group, env_group, view_str, intra_r2, multi_r2
 
 def _format_importances(target, predictors, intra_group, env_group, importance_dict):
     importances_df = pd.DataFrame({"target": np.repeat([target], len(predictors)),
-                                  "predictor": predictors,
-                                  "intra_group": np.repeat([intra_group], len(predictors)),
-                                  "env_group": np.repeat([env_group], len(predictors))}
-                                )
-    
+                                   "predictor": predictors,
+                                   "intra_group": np.repeat([intra_group], len(predictors)),
+                                   "env_group": np.repeat([env_group], len(predictors))}
+                                )    
     for view_name, importance_score in importance_dict.items():
         importances_df[view_name] = importance_score
         

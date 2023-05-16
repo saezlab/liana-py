@@ -5,7 +5,7 @@ import numpy as np
 from anndata import AnnData
 import pandas as pd
 from typing import Optional
-from scipy.sparse import hstack, csr_matrix
+from scipy.sparse import hstack, csr_matrix, isspmatrix_csr
 
 
 from liana.resource import select_resource
@@ -240,6 +240,11 @@ def _add_complexes_to_var(adata, entities):
             else:
                 X = hstack((X, new_array))
 
-    adata = AnnData(X=hstack((adata.X, X)), obs=adata.obs, var=adata.var, obsm=adata.obsm, obsp=adata.obsp)
+    adata = AnnData(X=hstack((adata.X, X)),
+                    obs=adata.obs, var=adata.var,
+                    obsm=adata.obsm, obsp=adata.obsp)
+    
+    if not isspmatrix_csr(adata.X):
+        adata.X = adata.X.tocsr()
     
     return adata
