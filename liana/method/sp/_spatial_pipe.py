@@ -125,7 +125,8 @@ def spatial_neighbors(adata: anndata.AnnData,
     if spot_n > 1000:
         dist = dist.astype(np.float32)
 
-    adata.obsp[f'{key_added}_connectivities'] = dist
+    if inplace:
+        adata.obsp[f'{key_added}_connectivities'] = dist
         
     return None if inplace else dist
 
