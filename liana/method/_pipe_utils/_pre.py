@@ -65,6 +65,7 @@ def prep_check_adata(adata: AnnData,
                      min_cells: (int | None),
                      use_raw: Optional[bool] = False,
                      layer: Optional[str] = None,
+                     obsm = None,
                      verbose: Optional[bool] = False) -> AnnData:
     """
     Check if the anndata object is in the correct format and preprocess
@@ -84,9 +85,6 @@ def prep_check_adata(adata: AnnData,
         Use raw attribute of adata if present.
     layer
         Indicate whether to use any layer.
-    obsm_keys
-        Indicate whether to keep obsm with spatial info or to discard.
-        By default, False and discarded.
     verbose
         Verbosity flag.
 
@@ -109,7 +107,8 @@ def prep_check_adata(adata: AnnData,
                        obs=adata.obs.copy(),
                        dtype="float32",
                        var=var,
-                       obsp=adata.obsp
+                       obsp=adata.obsp,
+                       obsm=obsm
                        )
 
     # Check for empty features

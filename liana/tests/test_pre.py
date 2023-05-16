@@ -1,8 +1,6 @@
 import pytest
 from scanpy.datasets import pbmc68k_reduced
 import numpy as np
-from scipy.sparse import csr_matrix
-
 from liana.method._pipe_utils._pre import assert_covered, prep_check_adata, format_vars
 
 adata = pbmc68k_reduced()

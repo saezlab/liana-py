@@ -121,7 +121,11 @@ class SpatialLR(_SpatialMeta):
                                 groupby=None,
                                 min_cells=None
                                 )
-        temp = _add_complexes_to_var(temp, resource)
+        temp = _add_complexes_to_var(temp, 
+                                     np.union1d(resource['receptor'].astype(str),
+                                                resource['ligand'].astype(str)
+                                                )
+                                     )
 
         # filter_resource
         resource = resource[(np.isin(resource.ligand, temp.var_names)) &
@@ -129,9 +133,8 @@ class SpatialLR(_SpatialMeta):
 
         # get entities
         entities = np.union1d(np.unique(resource["ligand"]),
-                            np.unique(resource["receptor"]))
-
-        # Check overlap between resource and adata  TODO check if this works
+                              np.unique(resource["receptor"]))
+        # Check overlap between resource and adata TODO check if this works
         assert_covered(entities, temp.var_names, verbose=verbose)
 
         # Filter to only include the relevant features
@@ -207,22 +210,18 @@ _spatial_lr = _SpatialMeta(
     method_name="SpatialDM",
     key_cols=['ligand_complex', 'receptor_complex'],
     reference=""
-)
+    )
 
 lr_basis = SpatialLR(_method=_spatial_lr,
                      _complex_cols=['ligand_means', 'receptor_means'],
                      )
 
 
-
-## TODO this function will become duplicated with the feature branch
-def _add_complexes_to_var(adata, resource):
+def _add_complexes_to_var(adata, entities):
     """
     Generate an AnnData object with complexes appended as variables.
     """
-    
-    complexes = np.union1d(resource['receptor'].astype(str), resource['ligand'].astype(str))
-    complexes = complexes[pd.Series(complexes).str.contains('_')]
+    complexes = entities[pd.Series(entities).str.contains('_')]
     
     X = None
 
@@ -241,8 +240,6 @@ def _add_complexes_to_var(adata, resource):
             else:
                 X = hstack((X, new_array))
 
-    adata.var
-
-    adata = AnnData(X=hstack((adata.X, X)), obs=adata.obs, var=adata.var)
+    adata = AnnData(X=hstack((adata.X, X)), obs=adata.obs, var=adata.var, obsm=adata.obsm, obsp=adata.obsp)
     
     return adata

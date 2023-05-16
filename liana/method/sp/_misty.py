@@ -275,10 +275,10 @@ def misty(mdata,
     view_str = list(connectivities.keys())
     if not bypass_intra:
         view_str = ['intra'] + view_str
-
+    
     # init list to store the results for each intra group and env group as dataframe;
     targets_list, importances_list = [], []
-
+    
     # loop over each target and build one RF model for each view
     for target in targets:
         
