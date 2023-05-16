@@ -341,11 +341,11 @@ def misty(mdata,
                 # train the meta model with k-fold CV 
                 intra_r2, multi_r2, coefs = _multi_model(y,
                                                          np.column_stack(oob_list),
-                                                         intra_group, 
-                                                         bypass_intra, 
-                                                         view_str, 
-                                                         k_cv, 
-                                                         alphas, 
+                                                         intra_group,
+                                                         bypass_intra,
+                                                         view_str,
+                                                         k_cv,
+                                                         alphas,
                                                          seed
                                                          )
                 
