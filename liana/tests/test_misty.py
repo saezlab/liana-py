@@ -4,6 +4,7 @@ import numpy as np
 import scanpy as sc
 from mudata import MuData
 from liana.method.sp._misty import misty
+from liana.method.sp._misty_constructs import lrMistyData, genericMistyData
 
 test_path = pathlib.Path(__file__).parent
 
@@ -11,6 +12,8 @@ adata = sc.read_h5ad(os.path.join(test_path, "data" , "synthetic.h5ad"))
 adata = sc.pp.subsample(adata, n_obs=100, copy=True)
 mdata = MuData({'rna':adata})
 
+
+### TODO: TEST SHAPES BEFORE CHANGING TO MISTYDATA
 
 def test_misty_para():
     misty(mdata=mdata, x_mod="rna",
@@ -20,6 +23,11 @@ def test_misty_para():
           set_diag=False,
           seed=42
           )
+    
+    # misty = genericMistyData(adata, bandwidth=10, add_juxta=False, set_diag=False, seed=42)
+    # misty(bypass_intra=False, seed=42)
+    # NOTE: importances are not always 1 per target per view? -> why?
+    # list(importances.groupby(['target', 'view']).sum()['value'].values)
     
     misty_res = mdata.uns['misty_results']
     assert np.isin(list(misty_res.keys()), ['target_metrics', 'importances']).all()
@@ -43,6 +51,11 @@ def test_misty_bypass():
           bypass_intra=True, add_juxta=True, 
           set_diag=True, seed=42,
           overwrite=True)
+    
+    # misty = genericMistyData(adata, bandwidth=10, add_juxta=True, set_diag=True, cutoff=0, coord_type="generic", delaunay=True)
+    # misty(alphas=1, bypass_intra=True, seed=42)
+    
+    
     misty_res = mdata.uns['misty_results']
     # multi & gain should be identical here (gain.R2 = multi.R2 - 0; when intra is bypassed)
     assert misty_res['target_metrics']['gain.R2'].equals(misty_res['target_metrics']['multi.R2'])
@@ -51,15 +64,22 @@ def test_misty_bypass():
     assert np.isin(['juxta', 'para'], misty_res['target_metrics'].columns).all()
 
 def test_misty_groups():    
-    misty(mdata=mdata, x_mod="rna",
-          bandwidth=20, seed=42,
+    misty(mdata=mdata,
+          x_mod="rna",
+          bandwidth=20,
+          seed=42,
           alphas=1,
-          set_diag=True, keep_same_predictor=True, # TODO: Rename these two
+          set_diag=True,
+          keep_same_predictor=True, # TODO: Rename these two
           group_env_by='cell_type',
           group_intra_by='cell_type',
           bypass_intra=False, # TODO: shouldn't this always be false when keep=True?
           overwrite=True
           )
+    
+    # misty = genericMistyData(adata, bandwidth=20, add_juxta=True, set_diag=True, cutoff=0, coord_type="generic", delaunay=True)
+    # misty(alphas=1, bypass_intra=False, seed=42, keep_same_predictor=True, group_env_by='cell_type', group_intra_by='cell_type')
+    
     misty_res = mdata.uns['misty_results'].copy()
     importances = misty_res['importances']
     top5 = importances.sort_values('value', ascending=False)['target'][0:5].values

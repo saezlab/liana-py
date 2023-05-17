@@ -57,11 +57,11 @@ class MistyData(MuData):
     def __call__(self, 
                  n_estimators = 100,
                  bypass_intra = False,
-                 keep_same_predictor = False,
+                 keep_same_predictor = False, # NOTE: -> predict_self
                  k_cv = 10,
                  alphas = [0.1, 1, 10],
-                 group_intra_by = None,
-                 group_env_by = None,
+                 group_intra_by = None, # -> intra_groupby
+                 group_env_by = None, # extra_groupby
                  n_jobs = -1,
                  seed = 1337,
                  inplace=True
@@ -74,7 +74,7 @@ class MistyData(MuData):
         n_estimators : `int`, optional (default: 100)
             Number of trees in the random forest models used to model single views
         bypass_intra : `bool`, optional (default: False)
-            Whether to bypass modeling the intraview
+            Whether to bypass modeling the intraview features importances via LOFO
         group_intra_by : `str`, optional (default: None)
             Column in the .obs attribute used to group cells in the intra-view
             If None, all cells are considered as one group
@@ -134,16 +134,16 @@ class MistyData(MuData):
                 # model the intraview
                 if not bypass_intra:
                     obp_intra, importance_dict["intra"] = _single_view_model(y,
-                                                                            intra,
-                                                                            intra_obs_msk,
-                                                                            predictors_nonself, 
-                                                                            n_estimators,
-                                                                            n_jobs,
-                                                                            seed
-                                                                            )
+                                                                             intra,
+                                                                             intra_obs_msk,
+                                                                             predictors_nonself, 
+                                                                             n_estimators,
+                                                                             n_jobs,
+                                                                             seed
+                                                                             )
                     if insert_index is not None and keep_same_predictor: 
-                        # insert nan to self-interactions
-                        importance_dict["intra"] = np.insert(importance_dict["intra"], insert_index, np.nan)
+                        # add self-interactions as nan
+                        importance_dict["intra"][target] = np.nan
 
                 # loop over the group_views_by
                 for extra_group in extra_groups:
@@ -219,6 +219,7 @@ class MistyData(MuData):
 
 
 def _format_targets(target, intra_group, env_group, view_str, intra_r2, multi_r2, coefs):
+    # TODO: Remove dot from column names
     target_df = pd.DataFrame({"target": target,
                               "intra_group": intra_group,
                               "env_group": env_group, 

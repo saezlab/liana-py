@@ -14,7 +14,8 @@ from liana.method._pipe_utils import prep_check_adata
 from liana.method.sp._lr_basis import _add_complexes_to_var
 
 
-def _make_view(adata, nz_threshold=0.1, obs=None, use_raw=False, layer=None, connecitivity=None, spatial_key=None, verbose=False):
+def _make_view(adata, nz_threshold=0.1, add_obs=False, use_raw=False,
+               layer=None, connecitivity=None, spatial_key=None, verbose=False):
     
     X = _choose_mtx_rep(adata=adata, use_raw=use_raw, layer=layer, verbose=verbose)
         
@@ -28,8 +29,11 @@ def _make_view(adata, nz_threshold=0.1, obs=None, use_raw=False, layer=None, con
         if connecitivity is not None:
             obsp = dict()
             obsp[f"{spatial_key}_connectivities"] = connecitivity
+    
+    obs = adata.obs if add_obs else pd.DataFrame(index=adata.obs.index)
         
-    adata = AnnData(X=X, obs=obs, var=pd.DataFrame(index=adata.var_names), obsp=obsp, obsm=obsm)
+    adata = AnnData(X=X, obs=obs, var=pd.DataFrame(index=adata.var_names),
+                    obsp=obsp, obsm=obsm)
     var_msk = _get_props(adata.X) >= nz_threshold
     adata = adata[:, var_msk]
     
@@ -109,7 +113,7 @@ def genericMistyData(intra,
     views = {}
     
     # NOTE the intra view is the one with obs
-    intra = _make_view(adata=intra, nz_threshold=nz_threshold, obs=intra.obs,
+    intra = _make_view(adata=intra, nz_threshold=nz_threshold, add_obs=True,
                        use_raw=intra_use_raw, layer=intra_layer,
                        spatial_key=spatial_key, verbose=verbose)
     views['intra'] = intra
@@ -180,7 +184,7 @@ def lrMistyData(adata,
     # TODO: reduce redundancies with lr_basis
     # TODO: reduce redundancies in documentation
     if resource is None:
-        resource = select_resource(resource_name.lower())
+        resource = select_resource(resource_name)
     
     adata = prep_check_adata(adata=adata,
                              use_raw=use_raw,
@@ -203,7 +207,7 @@ def lrMistyData(adata,
     
     views = dict()
     views['intra'] =  _make_view(adata=adata[:, resource['receptor'].unique()],
-                                 nz_threshold=nz_threshold, obs=adata.obs)
+                                 nz_threshold=nz_threshold, add_obs=True)
     
     connectivity = spatial_neighbors(adata=adata, spatial_key=spatial_key,
                                  bandwidth=bandwidth, kernel=kernel,
@@ -212,7 +216,6 @@ def lrMistyData(adata,
 
     views['extra'] = _make_view(adata=adata[:,resource['ligand'].unique()],
                                 spatial_key=spatial_key, nz_threshold=nz_threshold,
-                                connecitivity=connectivity,
-                                obs=pd.DataFrame(index=adata.obs.index))
+                                connecitivity=connectivity)
     
     return MistyData(data=views, obs=views['intra'].obs, spatial_key=spatial_key)

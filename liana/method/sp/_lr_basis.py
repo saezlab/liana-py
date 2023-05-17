@@ -107,7 +107,7 @@ class SpatialLR(_SpatialMeta):
         
         # select & process resource
         if resource is None:
-            resource = select_resource(resource_name.lower())
+            resource = select_resource(resource_name)
 
         connectivity = _handle_connectivity(adata, connectivity, connectivity_key)
         local_fun = _handle_functions(function_name)
@@ -121,7 +121,7 @@ class SpatialLR(_SpatialMeta):
                                 groupby=None,
                                 min_cells=None
                                 )
-        temp = _add_complexes_to_var(temp, 
+        temp = _add_complexes_to_var(temp,
                                      np.union1d(resource['receptor'].astype(str),
                                                 resource['ligand'].astype(str)
                                                 )

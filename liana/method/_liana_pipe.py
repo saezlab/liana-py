@@ -138,7 +138,7 @@ def liana_pipe(adata: anndata.AnnData,
         assert isinstance(mat_max, np.float32)
 
     if resource is None:
-        resource = select_resource(resource_name.lower())
+        resource = select_resource(resource_name)
     # explode complexes/decomplexify
     resource = explode_complexes(resource)
 
