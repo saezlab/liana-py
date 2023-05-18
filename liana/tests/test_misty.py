@@ -4,6 +4,7 @@ import numpy as np
 import scanpy as sc
 from mudata import MuData
 from liana.method.sp._misty_constructs import lrMistyData, genericMistyData
+from liana.testing._sample_anndata import generate_toy_spatial
 
 test_path = pathlib.Path(__file__).parent
 
@@ -75,3 +76,17 @@ def test_misty_groups():
     # 11 vars * 4 envs * 3 views = 132
     assert self_interactions.shape == (132, 6)
     assert self_interactions[self_interactions['view']=='intra']['value'].isna().all()
+
+
+def test_lr_misty():
+    adata = generate_toy_spatial()
+    misty = lrMistyData(adata, bandwidth=10, set_diag=True, cutoff=0)
+    assert misty.shape == (700, 42)
+    
+    misty(n_estimators=10, bypass_intra=True)
+    assert misty.uns['target_metrics'].shape == (16, 7)
+    
+    importances = misty.uns['importances']
+    assert importances.shape == (415, 6)
+    cmplxs = importances[importances['target'].str.contains('_')]['target'].unique()
+    assert np.isin(['CD8A_CD8B', 'CD74_CXCR4'], cmplxs).all()

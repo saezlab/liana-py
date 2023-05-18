@@ -175,7 +175,7 @@ def lrMistyData(adata,
                 spatial_key='spatial',
                 bandwidth = 100,
                 kernel = 'misty_rbf',
-                set_diag = True,
+                set_diag = False,
                 cutoff = 0.1,
                 zoi = 0,
                 verbose = False
@@ -195,25 +195,25 @@ def lrMistyData(adata,
                              obsm = {spatial_key: adata.obsm[spatial_key]}
                              )
     
-    # filter_resource
-    resource = resource[(np.isin(resource.ligand, adata.var_names)) &
-                        (np.isin(resource.receptor, adata.var_names))]
-    
     adata = _add_complexes_to_var(adata,
                                   np.union1d(resource['receptor'].astype(str),
                                              resource['ligand'].astype(str)
                                              )
                                   )
     
+    # filter_resource after adding complexes to var
+    resource = resource[(np.isin(resource.ligand, adata.var_names)) &
+                        (np.isin(resource.receptor, adata.var_names))]
+    
     views = dict()
     views['intra'] =  _make_view(adata=adata[:, resource['receptor'].unique()],
-                                 nz_threshold=nz_threshold, add_obs=True)
-    
+                        nz_threshold=0, add_obs=True)
+        
     connectivity = spatial_neighbors(adata=adata, spatial_key=spatial_key,
-                                 bandwidth=bandwidth, kernel=kernel,
-                                 set_diag=set_diag, cutoff=cutoff,
-                                 zoi=zoi, inplace=False)
-
+                                     bandwidth=bandwidth, kernel=kernel,
+                                     set_diag=set_diag, cutoff=cutoff,
+                                     zoi=zoi, inplace=False)
+    
     views['extra'] = _make_view(adata=adata[:,resource['ligand'].unique()],
                                 spatial_key=spatial_key, nz_threshold=nz_threshold,
                                 connecitivity=connectivity)

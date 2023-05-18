@@ -3,7 +3,7 @@ from liana.testing._sample_anndata import generate_toy_spatial
 
 from liana.method.sp._lr_basis import lr_basis
 
-adata = generate_toy_spatial()    
+adata = generate_toy_spatial()
 
 
 def test_morans_analytical():
