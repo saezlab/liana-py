@@ -10,7 +10,6 @@ from sklearn.model_selection import KFold
 from anndata import AnnData
 from mudata import MuData
 
-
 class MistyData(MuData):
     # TODO: change to SpatialData when Squidpy is also updated
     def __init__(self, data, obs, spatial_key, **kwargs):

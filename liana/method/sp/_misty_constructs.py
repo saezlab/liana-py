@@ -33,7 +33,7 @@ def _make_view(adata, nz_threshold=0.1, add_obs=False, use_raw=False,
     obs = adata.obs if add_obs else pd.DataFrame(index=adata.obs.index)
         
     adata = AnnData(X=X, obs=obs, var=pd.DataFrame(index=adata.var_names),
-                    obsp=obsp, obsm=obsm)
+                    obsp=obsp, obsm=obsm, dtype=np.float32)
     var_msk = _get_props(adata.X) >= nz_threshold
     adata = adata[:, var_msk]
     
