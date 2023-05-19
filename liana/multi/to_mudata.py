@@ -342,7 +342,7 @@ def get_variable_loadings(mdata,
         if drop_columns:
             df.drop(columns='view', inplace=True)
     
-    df = df.rename(columns={"LFs-{0}".format(0):'loadings'})
+    df = df.rename(columns={"LFs-{0}".format(str(idx):'loadings'})
     
     # re-order to absolute values
     df = (df.reindex(df['loadings'].abs().sort_values(ascending=False).index))
