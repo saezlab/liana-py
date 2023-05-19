@@ -54,13 +54,20 @@ def test_misty_bypass():
     
 
 def test_misty_groups():        
-    misty = genericMistyData(adata, bandwidth=20, add_juxta=True, set_diag=False, cutoff=0, coord_type="generic", delaunay=True)
+    misty = genericMistyData(adata,
+                             bandwidth=20,
+                             add_juxta=True, 
+                             set_diag=False,
+                             cutoff=0,
+                             coord_type="generic",
+                             delaunay=True
+                             )
     misty(alphas=1, 
           bypass_intra=False,
           seed=42,
           predict_self=True, 
-          group_env_by='cell_type', 
-          group_intra_by='cell_type')
+          extra_groupby='cell_type', 
+          intra_groupby='cell_type')
     
     assert misty.uns['target_metrics'].shape==(44, 9)
     perf_actual = (misty.uns['target_metrics'].

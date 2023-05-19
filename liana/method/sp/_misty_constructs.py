@@ -78,7 +78,7 @@ def genericMistyData(intra,
     extra_layer : `str`, optional (default: None)
         The layer of the extraview(s) to use.
     nz_threshold: `float`, optional (default: 0.1)
-        The threshold for the number of non-zero entries in the intraview.
+        The threshold for the number of non-zero entries in each view.
     add_para : `bool`, optional (default: True)
         Whether to add the paraview.
     spatial_key : `str`, optional (default: 'spatial')
@@ -173,15 +173,50 @@ def lrMistyData(adata,
                 use_raw = False,
                 layer = None,
                 spatial_key='spatial',
-                bandwidth = 100,
                 kernel = 'misty_rbf',
+                bandwidth = 100,
                 set_diag = False,
                 cutoff = 0.1,
                 zoi = 0,
                 verbose = False
                 ):
+    """
+    Generate a MistyData object from an AnnData object in ligand-receptor format.
     
-    # TODO: reduce redundancies with lr_basis
+    Parameters
+    ----------
+    adata : `anndata.AnnData`
+        AnnData object
+    resource_name : `str`, optional (default: 'consensus')
+        The name of the resource to use. See `show_resources` for available resources.
+    resource : `pandas.DataFrame`, optional (default: None)
+        A resource in the form of a pandas DataFrame. If None, the resource is selected using `select_resource`.
+    nz_threshold : `float`, optional (default: 0.1)
+        The threshold for the number of non-zero entries in each view.
+    use_raw : `bool`, optional (default: False)
+        Whether to use the raw data of the AnnData object.
+    layer : `str`, optional (default: None)
+        The layer of the AnnData object to use.
+    spatial_key : `str`, optional (default: 'spatial')
+        The key in adata.obsm where the spatial coordinates are stored.
+    kernel : `str`, optional (default: 'misty_rbf')
+        A radial basis function kernel to use for the generation of the connectivity matrix for the extra view.
+        Default is 'misty_rbf', a kernel derivative of a Gaussian kernel.
+    bandwidth : `float`, optional (default: 100)
+        The bandwidth of the kernel.
+    set_diag : `bool`, optional (default: True)
+        Whether to set the diagonal of the connectivity matrix to 1.
+    cutoff : `float`, optional (default: 0.1)
+        The minimum value cutoff for the connectivity matrix.
+    zoi : `float`, optional (default: 0)
+        Zone of indifference of the kernel, i.e. the kernel is set to 0 for distances smaller than zoi.
+    verbose : `bool`, optional (default: False)
+        Whether to print progress.    
+        
+    Returns
+    -------
+    A `MistyData` object with receptors in the intra view & ligands in the extra view.
+    """
     # TODO: reduce redundancies in documentation
     if resource is None:
         resource = select_resource(resource_name)

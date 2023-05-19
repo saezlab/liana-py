@@ -46,8 +46,6 @@ class MistyData(MuData):
             if f"{self.spatial_key}_connectivities" not in self.mod[view].obsp.keys():
                 raise ValueError(f"view {view} does not contain `{self.spatial_key}_connectivities` key in .obsp")
 
-            
-                
     
     def _get_conn(self, view_name):
         return self.mod[view_name].obsp[f"{self.spatial_key}_connectivities"]
@@ -56,11 +54,11 @@ class MistyData(MuData):
     def __call__(self, 
                  n_estimators = 100,
                  bypass_intra = False,
-                 predict_self = False, # NOTE: -> predict_self
+                 predict_self = False,
                  k_cv = 10,
                  alphas = [0.1, 1, 10],
-                 group_intra_by = None, # -> intra_groupby
-                 group_env_by = None, # extra_groupby
+                 intra_groupby = None, # -> intra_groupby
+                 extra_groupby = None, # extra_groupby
                  n_jobs = -1,
                  seed = 1337,
                  inplace=True
@@ -74,10 +72,10 @@ class MistyData(MuData):
             Number of trees in the random forest models used to model single views
         bypass_intra : `bool`, optional (default: False)
             Whether to bypass modeling the intraview features importances via LOFO
-        group_intra_by : `str`, optional (default: None)
+        intra_groupby : `str`, optional (default: None)
             Column in the .obs attribute used to group cells in the intra-view
             If None, all cells are considered as one group
-        group_env_by : `str`, optional (default: None)
+        extra_groupby : `str`, optional (default: None)
             Column in the .obs attribute used to group cells in the extra-view(s)
             If None, all cells are considered as one group.
         alphas : `list`, optional (default: [0.1, 1, 10])
@@ -102,8 +100,8 @@ class MistyData(MuData):
         
         # TODO: function that checks if the groupby is in the obs
         # and does this for both extra & intra
-        intra_groups = np.unique(self.obs[group_intra_by]) if group_intra_by else [None]
-        extra_groups = np.unique(self.obs[group_env_by]) if group_env_by else [None]
+        intra_groups = np.unique(self.obs[intra_groupby]) if intra_groupby else [None]
+        extra_groups = np.unique(self.obs[extra_groupby]) if extra_groupby else [None]
         
         view_str = list(self.view_names)
         
@@ -119,7 +117,7 @@ class MistyData(MuData):
         for target in intra_features:
             
             for intra_group in intra_groups:
-                intra_obs_msk = intra.obs[group_intra_by] == \
+                intra_obs_msk = intra.obs[intra_groupby] == \
                         intra_group if intra_group else np.ones(intra.shape[0], dtype=bool)
                 
                 # to array
@@ -159,7 +157,7 @@ class MistyData(MuData):
                         extra_features = extra.var_names.to_list()
                         _predictors, _ =  _check_nonself(target, extra_features) if not predict_self else (extra_features, None)
                         
-                        extra_obs_msk = self.obs[group_env_by] == extra_group if extra_group is not None else None
+                        extra_obs_msk = self.obs[extra_groupby] == extra_group if extra_group is not None else None
                         
                         # NOTE: indexing here is expensive, but we do it to avoid memory issues
                         connectivity = self._get_conn(view_name)
