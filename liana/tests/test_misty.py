@@ -33,7 +33,7 @@ def test_misty_para():
         (importances['predictor']=='protE')
     np.testing.assert_almost_equal(importances[interaction_msk]['value'].values,
                                 np.array([0.0011129, 0.0553538]))
-    assert target_metrics['gain.R2'].mean() == -0.0032406852423374943
+    assert target_metrics['gain_R2'].mean() == -0.0032406852423374943
     
 
 def test_misty_bypass():    
@@ -43,7 +43,7 @@ def test_misty_bypass():
     assert np.isin(['juxta', 'para'], misty.uns['target_metrics'].columns).all()
     assert ~np.isin(['intra'], misty.uns['target_metrics'].columns).all()
     assert misty.uns['target_metrics'].shape == (11, 8)
-    assert misty.uns['target_metrics']['multi.R2'].sum() == -2.142582410377362
+    assert misty.uns['target_metrics']['multi_R2'].sum() == -2.142582410377362
     
     importances = misty.uns['importances']
     assert importances.shape == (220, 6)
@@ -58,13 +58,13 @@ def test_misty_groups():
     misty(alphas=1, 
           bypass_intra=False,
           seed=42,
-          keep_same_predictor=True, 
+          predict_self=True, 
           group_env_by='cell_type', 
           group_intra_by='cell_type')
     
     assert misty.uns['target_metrics'].shape==(44, 9)
     perf_actual = (misty.uns['target_metrics'].
-     groupby(['intra_group', 'env_group'])['gain.R2'].
+     groupby(['intra_group', 'env_group'])['gain_R2'].
      mean().values
     )
     perf_expected = np.array([-0.10600711322549207, 0.04402447752647749, 0.1635208524520852, 0.04838660952488709])

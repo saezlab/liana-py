@@ -56,7 +56,7 @@ class MistyData(MuData):
     def __call__(self, 
                  n_estimators = 100,
                  bypass_intra = False,
-                 keep_same_predictor = False, # NOTE: -> predict_self
+                 predict_self = False, # NOTE: -> predict_self
                  k_cv = 10,
                  alphas = [0.1, 1, 10],
                  group_intra_by = None, # -> intra_groupby
@@ -96,7 +96,7 @@ class MistyData(MuData):
         Returns
         -------
         If inplace is True, the results are written to the `.uns` attribute of the object.
-        Else, two DataFrames are returned, one for target metrics and one for importances.
+        Otherwise two DataFrames are returned, one for target metrics and one for importances.
 
         """
         
@@ -125,7 +125,7 @@ class MistyData(MuData):
                 # to array
                 y = intra[intra_obs_msk, target].X.toarray().reshape(-1)
                 # intra is always non-self, while other views can be self
-                predictors_nonself, insert_index = _check_target_in_predictors(target, intra_features)
+                predictors_nonself, insert_index = _check_nonself(target, intra_features)
 
                 # TODO: rename to target_importances
                 importance_dict = {}
@@ -140,7 +140,7 @@ class MistyData(MuData):
                                                                              n_jobs,
                                                                              seed
                                                                              )
-                    if insert_index is not None and keep_same_predictor: 
+                    if insert_index is not None and predict_self: 
                         # add self-interactions as nan
                         importance_dict["intra"][target] = np.nan
 
@@ -155,10 +155,11 @@ class MistyData(MuData):
                     # model the juxta and paraview (if applicable)
                     for view_name in [v for v in view_str if v != "intra"]:
                         extra = self.mod[view_name]
-                        extra_obs_msk = self.obs[group_env_by] == extra_group if extra_group else np.ones(extra.shape[0], dtype=bool)
                         
                         extra_features = extra.var_names.to_list()
-                        _predictors, _ =  _check_target_in_predictors(target, extra_features) if not keep_same_predictor else (extra_features, None)
+                        _predictors, _ =  _check_nonself(target, extra_features) if not predict_self else (extra_features, None)
+                        
+                        extra_obs_msk = self.obs[group_env_by] == extra_group if extra_group is not None else None
                         
                         # NOTE: indexing here is expensive, but we do it to avoid memory issues
                         connectivity = self._get_conn(view_name)
@@ -222,11 +223,11 @@ def _format_targets(target, intra_group, env_group, view_str, intra_r2, multi_r2
     target_df = pd.DataFrame({"target": target,
                               "intra_group": intra_group,
                               "env_group": env_group, 
-                              "intra.R2": intra_r2,
-                              "multi.R2": multi_r2},
+                              "intra_R2": intra_r2,
+                              "multi_R2": multi_r2},
                              index=[0]
                              )
-    target_df["gain.R2"] = target_df["multi.R2"] - target_df["intra.R2"]
+    target_df["gain_R2"] = target_df["multi_R2"] - target_df["intra_R2"]
     target_df[view_str] = coefs
     
     return target_df
@@ -293,20 +294,23 @@ def _multi_model(y, oob_predictions, intra_group, bypass_intra, view_str, k_cv, 
             R2_vec_intra[cv_idx] = ridge_intra_model.score(X=obp_test, y=y[test_index])
 
     intra_r2 = R2_vec_intra.mean() if not bypass_intra else 0
+    
     return intra_r2, R2_vec_multi.mean(), coef_mtx.mean(axis=0)
 
 
 def _mask_connectivity(adata, connectivity, env_obs_msk, predictors):
     
     weights = connectivity.copy()
-    weights[:, ~env_obs_msk] = 0
+    if env_obs_msk is not None:
+        weights[:, ~env_obs_msk] = 0
     X = weights @ adata[:, predictors].X
     view = AnnData(X=X, obs=adata.obs, var=pd.DataFrame(index=predictors))
     
     return view
 
+
 # TODO: rename to _get_nonself
-def _check_target_in_predictors(target, predictors):
+def _check_nonself(target, predictors):
     if target in predictors:
         insert_idx = np.where(np.array(predictors) == target)[0][0]
         predictors_subset = predictors.copy()
