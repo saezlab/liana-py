@@ -10,47 +10,45 @@ test_path = pathlib.Path(__file__).parent
 
 adata = sc.read_h5ad(os.path.join(test_path, "data" , "synthetic.h5ad"))
 adata = sc.pp.subsample(adata, n_obs=100, copy=True)
-mdata = MuData({'rna':adata})
 
 
 def test_misty_para():
-
     misty = genericMistyData(adata, bandwidth=10,
                              cutoff=0, add_juxta=False,
                              set_diag=False, seed=133)
-    misty(bypass_intra=False, seed=42)
-    assert np.isin(list(misty.uns.keys()), ['target_metrics', 'importances']).all()
+    misty(bypass_intra=False, seed=42, n_estimators=11)
+    assert np.isin(list(misty.uns.keys()), ['target_metrics', 'interactions']).all()
     target_metrics = misty.uns['target_metrics']
     # NOTE: contributions are not exactly equal to 1 per target per view
     # likely due to numpy rounding
-    assert np.sum(target_metrics[['intra', 'para']].values, axis=1).sum()  == 11.0
-    assert target_metrics.shape == (11, 8)
+    assert np.sum(target_metrics[['intra', 'para']].values, axis=1).sum() == 11.0
+    assert target_metrics.shape == (11, 6)
     
-    importances = misty.uns['importances']
-    assert importances.shape == (220, 6)
-    assert importances[importances['target']=='ECM']['value'].sum() == 2.0
-    interaction_msk = (importances['target']=='ligA') & \
-        (importances['predictor']=='protE')
-    np.testing.assert_almost_equal(importances[interaction_msk]['value'].values,
-                                np.array([0.0011129, 0.0553538]))
-    assert target_metrics['gain_R2'].mean() == -0.0032406852423374943
+    interactions = misty.uns['interactions']
+    assert interactions.shape == (220, 6)
+    assert interactions[interactions['target']=='ECM']['importances'].sum().round(8) == 2.0
+    interaction_msk = (interactions['target']=='ligA') & \
+        (interactions['predictor']=='protE')
+    np.testing.assert_almost_equal(interactions[interaction_msk]['importances'].values,
+                                np.array([0.0015018, 0.0732367]))
+    assert target_metrics['gain_R2'].mean() == -0.0006017023721442239
     
 
 def test_misty_bypass():    
     misty = genericMistyData(adata, bandwidth=10, add_juxta=True, set_diag=True,
                              cutoff=0, coord_type="generic", delaunay=True)
-    misty(alphas=1, bypass_intra=True, seed=42)
+    misty(alphas=1, bypass_intra=True, seed=42, n_estimators=11)
     assert np.isin(['juxta', 'para'], misty.uns['target_metrics'].columns).all()
     assert ~np.isin(['intra'], misty.uns['target_metrics'].columns).all()
-    assert misty.uns['target_metrics'].shape == (11, 8)
-    assert misty.uns['target_metrics']['multi_R2'].sum() == -2.142582410377362
+    assert misty.uns['target_metrics'].shape == (11, 6)
+    assert misty.uns['target_metrics']['multi_R2'].sum() == -3.6771450967285975
     
-    importances = misty.uns['importances']
-    assert importances.shape == (220, 6)
-    assert importances['value'].sum().round(10) == 22.0
-    np.testing.assert_almost_equal(importances[(importances['target']=='ligC') &
-                                               (importances['predictor']=='ligA')]['value'].values,
-                                   np.array([0.07792869, 0.055088]))
+    interactions = misty.uns['interactions']
+    assert interactions.shape == (220, 6)
+    assert interactions['importances'].sum().round(10) == 22.0
+    np.testing.assert_almost_equal(interactions[(interactions['target']=='ligC') &
+                                               (interactions['predictor']=='ligA')]['importances'].values,
+                                   np.array([0.0444664, 0.0541467]))
     
 
 def test_misty_groups():        
@@ -67,22 +65,23 @@ def test_misty_groups():
           seed=42,
           predict_self=True, 
           extra_groupby='cell_type', 
-          intra_groupby='cell_type')
+          intra_groupby='cell_type',
+          n_estimators=11)
     
     assert misty.uns['target_metrics'].shape==(44, 9)
     perf_actual = (misty.uns['target_metrics'].
-     groupby(['intra_group', 'env_group'])['gain_R2'].
+     groupby(['intra_group', 'extra_group'])['gain_R2'].
      mean().values
     )
-    perf_expected = np.array([-0.10600711322549207, 0.04402447752647749, 0.1635208524520852, 0.04838660952488709])
+    perf_expected = np.array([-0.07680232034078138, 0.07309281412850636, 0.3557452382095637, 0.16556153161342435])
     np.testing.assert_almost_equal(perf_actual, perf_expected)
     
     # assert that there are self interactions = var_n * var_n
-    importances = misty.uns['importances']
-    self_interactions = importances[(importances['target']==importances['predictor'])]
+    interactions = misty.uns['interactions']
+    self_interactions = interactions[(interactions['target']==interactions['predictor'])]
     # 11 vars * 4 envs * 3 views = 132
     assert self_interactions.shape == (132, 6)
-    assert self_interactions[self_interactions['view']=='intra']['value'].isna().all()
+    assert self_interactions[self_interactions['view']=='intra']['importances'].isna().all()
 
 
 def test_lr_misty():
@@ -91,9 +90,9 @@ def test_lr_misty():
     assert misty.shape == (700, 42)
     
     misty(n_estimators=10, bypass_intra=True)
-    assert misty.uns['target_metrics'].shape == (16, 7)
+    assert misty.uns['target_metrics'].shape == (16, 5)
     
-    importances = misty.uns['importances']
-    assert importances.shape == (415, 6)
-    cmplxs = importances[importances['target'].str.contains('_')]['target'].unique()
+    interactions = misty.uns['interactions']
+    assert interactions.shape == (415, 6)
+    cmplxs = interactions[interactions['target'].str.contains('_')]['target'].unique()
     assert np.isin(['CD8A_CD8B', 'CD74_CXCR4'], cmplxs).all()

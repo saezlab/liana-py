@@ -49,16 +49,17 @@ class MistyData(MuData):
     
     def _get_conn(self, view_name):
         return self.mod[view_name].obsp[f"{self.spatial_key}_connectivities"]
-
     
+    # NOTE: having this as a call fun would mean that it would only work when a misty object is created
+    # but not when a mudata object in misty format is loaded from disk
     def __call__(self, 
                  n_estimators = 100,
                  bypass_intra = False,
                  predict_self = False,
                  k_cv = 10,
                  alphas = [0.1, 1, 10],
-                 intra_groupby = None, # -> intra_groupby
-                 extra_groupby = None, # extra_groupby
+                 intra_groupby = None,
+                 extra_groupby = None,
                  n_jobs = -1,
                  seed = 1337,
                  inplace=True
@@ -211,21 +212,26 @@ class MistyData(MuData):
         
         if inplace:
             self.uns['target_metrics'] = target_metrics
-            self.uns['importances'] = importances
+            self.uns['interactions'] = importances
         else:
             return target_metrics, importances
 
 
-def _format_targets(target, intra_group, env_group, view_str, intra_r2, multi_r2, coefs):
+
+def _create_dict(**kwargs):
+    return {k: v for k, v in kwargs.items() if v is not None}
+
+def _format_targets(target, intra_group, extra_group, view_str, intra_r2, multi_r2, coefs):
     # TODO: Remove dot from column names
-    target_df = pd.DataFrame({"target": target,
-                              "intra_group": intra_group,
-                              "env_group": env_group, 
-                              "intra_R2": intra_r2,
-                              "multi_R2": multi_r2},
-                             index=[0]
-                             )
-    target_df["gain_R2"] = target_df["multi_R2"] - target_df["intra_R2"]
+    d = _create_dict(target=target,
+                     intra_group=intra_group,
+                     extra_group=extra_group,
+                     intra_R2=intra_r2,
+                     multi_R2=multi_r2,
+                     gain_R2=multi_r2-intra_r2,
+                     )
+    
+    target_df = pd.DataFrame(d, index=[0])
     target_df[view_str] = coefs
     
     return target_df
@@ -248,7 +254,7 @@ def _concat_dataframes(targets_list, importances_list, view_str):
     importances = pd.concat(importances_list, axis=0, ignore_index=True)
     importances = pd.melt(importances,
                           id_vars=["target", "predictor", "intra_group", "extra_group"], 
-                          value_vars=view_str, var_name="view", value_name="value")
+                          value_vars=view_str, var_name="view", value_name="importances")
     
     return target_metrics, importances
 
