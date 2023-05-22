@@ -1,18 +1,14 @@
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
 import anndata
 from pandas import DataFrame
 
-from sklearn.neighbors import NearestNeighbors
 from scipy.sparse import csr_matrix
 from scipy.stats import norm
 from tqdm import tqdm
 
 from scipy.spatial import cKDTree
-
-from squidpy.gr import spatial_neighbors as _spatial_neighbors
 
 
 def _gaussian(distance_mtx, l):
@@ -39,8 +35,7 @@ def spatial_neighbors(adata: anndata.AnnData,
                       zoi=0,
                       spatial_key="spatial",
                       key_added='spatial',
-                      inplace=True,
-                      **kwargs
+                      inplace=True
                       ):
     """
     Generate spatial connectivity weights using Euclidean distance.
@@ -141,11 +136,6 @@ def _local_to_dataframe(array, idx, columns):
     if array is None:
         return None
     return DataFrame(array.T, index=idx, columns=columns)
-
-
-def _get_ordered_matrix(mat, pos, order):
-    _indx = np.array([pos[x] for x in order])
-    return mat[:, _indx].T
 
 
 def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_perms, seed,

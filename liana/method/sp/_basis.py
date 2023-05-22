@@ -11,7 +11,7 @@ from liana.method._pipe_utils._pre import _choose_mtx_rep, _get_props
 from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
 
 from liana.method.sp._spatial_pipe import _categorize, \
-    _get_ordered_matrix, _rename_means, _run_scores_pipeline, \
+    _rename_means, _run_scores_pipeline, \
     _connectivity_to_weight, _handle_connectivity
     
 from liana.funcomics.obsm_to_adata import obsm_to_adata
@@ -147,19 +147,12 @@ class SpatialBivariate(_SpatialMeta):
         if remove_self_interactions:
             xy_stats = xy_stats[xy_stats['x_entity'] != xy_stats['y_entity']]
         
-        # assign the positions of x, y to the adata
-        x_pos = {entity: np.where(xdata.var_names == entity)[0][0] for entity in xy_stats['x_entity']}
-        y_pos = {entity: np.where(ydata.var_names == entity)[0][0] for entity in xy_stats['y_entity']}
         # reorder columns
         xy_stats = xy_stats.reindex(columns=sorted(xy_stats.columns))
         
-        # convert to spot_n x xy_n matrices
-        x_mat = _get_ordered_matrix(mat=mdata[x_mod].X,
-                                    pos=x_pos,
-                                    order=xy_stats['x_entity'])
-        y_mat = _get_ordered_matrix(mat=mdata[y_mod].X,
-                                    pos=y_pos,
-                                    order=xy_stats['y_entity'])
+        # TODO get rid of transpose
+        x_mat = mdata[x_mod][:, xy_stats['x_entity']].X.T
+        y_mat = mdata[y_mod][:, xy_stats['y_entity']].X.T
             
         # get local scores
         xy_stats, local_scores, local_pvals = \

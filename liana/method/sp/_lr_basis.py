@@ -13,10 +13,9 @@ from liana.method._pipe_utils import prep_check_adata, assert_covered
 from liana.method._pipe_utils._pre import _get_props
 
 from liana.method.sp._SpatialMethod import _SpatialMeta
-from liana.method.sp._spatial_pipe import _get_ordered_matrix, _rename_means, \
-    _run_scores_pipeline, _connectivity_to_weight, _handle_connectivity, _categorize
+from liana.method.sp._spatial_pipe import _rename_means, _categorize, \
+    _run_scores_pipeline, _connectivity_to_weight, _handle_connectivity
 from liana.method.sp._bivariate_funs import _handle_functions
-
 
 
 class SpatialLR(_SpatialMeta):
@@ -156,20 +155,9 @@ class SpatialLR(_SpatialMeta):
                         (lr_res['receptor_props'] >= expr_prop)]
         # create interaction column
         lr_res['interaction'] = lr_res['ligand'] + '&' + lr_res['receptor']
-
-        # assign the positions of x, y to the adata
-        ligand_pos = {entity: np.where(temp.var_names == entity)[0][0] for entity in
-                    lr_res['ligand']}
-        receptor_pos = {entity: np.where(temp.var_names == entity)[0][0] for entity in
-                        lr_res['receptor']}
         
-        # convert to spot_n x lr_n matrices
-        x_mat = _get_ordered_matrix(mat=temp.X,
-                                    pos=ligand_pos,
-                                    order=lr_res['ligand'])
-        y_mat = _get_ordered_matrix(mat=temp.X,
-                                    pos=receptor_pos,
-                                    order=lr_res['receptor'])
+        x_mat = temp[:, lr_res['ligand']].X.T
+        y_mat = temp[:, lr_res['receptor']].X.T
         
         # add categories
         if add_categories:
