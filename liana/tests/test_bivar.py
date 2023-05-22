@@ -68,7 +68,7 @@ def test_masked_pearson():
     assert 'global_res' in mdata.uns.keys()
     assert set(['global_mean','global_sd']).issubset(mdata.uns['global_res'].columns)
     # check specific values are what we expect
-    
+
 
 def test_vectorized_pearson():
     mdata = generate_toy_mdata()

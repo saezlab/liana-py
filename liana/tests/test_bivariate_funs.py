@@ -55,8 +55,12 @@ def test_vectorized_jaccard():
 
 
 def test_masked_jaccard():
+    def _binarize(mat):
+       return (mat > 0).astype(np.float32)
+        
+    x_bin, y_bin = _binarize(x_mat), _binarize(y_mat)
     jac_masked_truth = np.array([0.34295967, 0.35367563, 0.39685577, 0.41780996, 0.30527356])
-    _assert_bivariate(_masked_jaccard, jac_masked_truth, x_mat, y_mat, weight.A) # NOTE the .A is to convert to dense
+    _assert_bivariate(_masked_jaccard, jac_masked_truth, x_bin, y_bin, weight.A) # NOTE the .A is to convert to dense
 
 
 # NOTE: spatialdm uses raw counts

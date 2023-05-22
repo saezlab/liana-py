@@ -19,9 +19,6 @@ def _wcossim(x, y, w):
 
 @nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:]), cache=True)
 def _wjaccard(x, y , w):
-    x = (x > 0).astype(nb.int8)
-    y = (y > 0).astype(nb.int8)
-    
     # intersect and union
     numerator = np.sum(np.minimum(x, y) * w)
     denominator = np.sum(np.maximum(x, y) * w)
