@@ -6,12 +6,12 @@ from types import ModuleType
 
 from liana.method.sp._Misty import MistyData
 
-from liana.method.sp._spatial_pipe import spatial_neighbors
+from liana.method.sp._spatial_neighbors import spatial_neighbors
 from liana.method._pipe_utils._pre import _choose_mtx_rep, _get_props
 
 from liana.resource import select_resource
 from liana.method._pipe_utils import prep_check_adata
-from liana.method.sp._lr_bivar import _add_complexes_to_var
+from liana.method.sp._spatial_pipe import _add_complexes_to_var
 
 
 def _make_view(adata, nz_threshold=0.1, add_obs=False, use_raw=False,
@@ -50,7 +50,7 @@ def genericMistyData(intra,
                      add_para=True,
                      spatial_key='spatial',
                      set_diag=False,
-                     kernel = 'misty_rbf',
+                     kernel = 'misty_rbf', ## TODO change to gaussian kernel
                      bandwidth = 100,
                      zoi = 0,
                      cutoff = 0.1,
@@ -172,7 +172,7 @@ def lrMistyData(adata,
                 nz_threshold=0.1,
                 use_raw = False,
                 layer = None,
-                spatial_key='spatial',
+                spatial_key='spatial', ## TODO Change to Gaussian kernel
                 kernel = 'misty_rbf',
                 bandwidth = 100,
                 set_diag = False,

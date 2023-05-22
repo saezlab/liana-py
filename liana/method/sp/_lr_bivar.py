@@ -5,7 +5,6 @@ import numpy as np
 from anndata import AnnData
 import pandas as pd
 from typing import Optional
-from scipy.sparse import hstack, csr_matrix, isspmatrix_csr
 
 
 from liana.resource import select_resource
@@ -14,7 +13,8 @@ from liana.method._pipe_utils._pre import _get_props
 
 from liana.method.sp._SpatialMethod import _SpatialMeta
 from liana.method.sp._spatial_pipe import _rename_means, _categorize, \
-    _run_scores_pipeline, _connectivity_to_weight, _handle_connectivity
+    _run_scores_pipeline, _connectivity_to_weight, _handle_connectivity, \
+        _add_complexes_to_var
 from liana.method.sp._bivariate_funs import _handle_functions
 
 
@@ -203,36 +203,3 @@ _spatial_lr = _SpatialMeta(
 lr_bivar = SpatialLR(_method=_spatial_lr,
                      _complex_cols=['ligand_means', 'receptor_means'],
                      )
-
-
-def _add_complexes_to_var(adata, entities):
-    """
-    Generate an AnnData object with complexes appended as variables.
-    """
-    complexes = entities[pd.Series(entities).str.contains('_')]
-    
-    X = None
-
-    for comp in complexes:
-        subunits = comp.split('_')
-        
-        # keep only complexes, the subunits of which are in var
-        if all([subunit in adata.var.index for subunit in subunits]):
-            adata.var.loc[comp, :] = None
-
-            # create matrix for this complex
-            new_array = csr_matrix(adata[:, subunits].X.min(axis=1))
-
-            if X is None:
-                X = new_array
-            else:
-                X = hstack((X, new_array))
-
-    adata = AnnData(X=hstack((adata.X, X)),
-                    obs=adata.obs, var=adata.var,
-                    obsm=adata.obsm, obsp=adata.obsp)
-    
-    if not isspmatrix_csr(adata.X):
-        adata.X = adata.X.tocsr()
-    
-    return adata

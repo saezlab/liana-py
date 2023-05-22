@@ -1,7 +1,9 @@
 from ._Method import Method, MethodMeta, _show_methods
 from .sc._rank_aggregate import AggregateClass, _rank_aggregate_meta as aggregate_meta
 from .sc import cellphonedb, connectome, logfc, natmi, singlecellsignalr, geometric_mean, cellchat
-from .sp import bivar, lr_bivar, spatial_neighbors, show_functions
+
+from .sp import bivar, lr_bivar, show_functions
+from .sp._spatial_neighbors import spatial_neighbors
 
 import numpy as np
 

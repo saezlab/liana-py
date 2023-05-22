@@ -50,7 +50,7 @@ def test_misty_bypass():
                                    np.array([0.0444664, 0.0541467]))
     
 
-def test_misty_groups():        
+def test_misty_groups():
     misty = genericMistyData(adata,
                              bandwidth=20,
                              add_juxta=True, 
