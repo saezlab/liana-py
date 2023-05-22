@@ -197,7 +197,7 @@ class SpatialBivariate(_SpatialMeta):
     
 
 
-basis = SpatialBivariate(_basis_meta)
+bivar = SpatialBivariate(_basis_meta)
 
 
 def _anndata_to_stats(adata, nz_thr=0.1):

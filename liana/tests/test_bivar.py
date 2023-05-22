@@ -2,23 +2,23 @@ import numpy as np
 from itertools import product
 
 from liana.testing._sample_anndata import generate_toy_mdata
-from liana.method.sp._basis import basis
+from liana.method.sp._bivar import bivar
 
-def test_morans():
+def test_bivar_morans():
     mdata = generate_toy_mdata()    
     
     # default
-    basis(mdata, x_mod='adata_x', y_mod='adata_y', function_name='morans')
+    bivar(mdata, x_mod='adata_x', y_mod='adata_y', function_name='morans')
     assert 'local_scores' in mdata.mod.keys()
     np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -9.947859, decimal=5)
     
     # with perms
-    basis(mdata, x_mod='adata_x', y_mod='adata_y', 
+    bivar(mdata, x_mod='adata_x', y_mod='adata_y', 
           function_name='morans', pvalue_method="permutation", n_perms=2)
     np.testing.assert_almost_equal(np.mean(mdata.obsm['local_pvals'].values), 0.604936507, decimal=6)
 
 
-def test_basis_nondefault():
+def test_bivar_nondefault():
     mdata = generate_toy_mdata()   
     # test different params, inplace = False
     proximity = np.ones((mdata.shape[0], mdata.shape[0]))
@@ -27,7 +27,7 @@ def test_basis_nondefault():
     mdata.obsp['ones'] = proximity
     
     global_stats, local_scores, local_pvals, local_categories = \
-          basis(mdata, x_mod='adata_x', y_mod='adata_y', 
+          bivar(mdata, x_mod='adata_x', y_mod='adata_y', 
                 function_name='morans', pvalue_method="analytical", 
                 connectivity_key='ones', remove_self_interactions=False,
                 x_layer = "scaled", y_layer = "scaled", inplace=False, 
@@ -44,7 +44,7 @@ def test_basis_nondefault():
     
     
 
-def test_basis_external():
+def test_bivar_external():
     mdata = generate_toy_mdata()
     ones = np.ones((mdata.shape[0], mdata.shape[0]), dtype=np.float64)
     
@@ -52,12 +52,12 @@ def test_basis_external():
     y_vars = mdata.mod['adata_y'].var.index[0:3]
     interactions = list(product(x_vars, y_vars))
     
-    basis(mdata, x_mod='adata_x', y_mod='adata_y', function_name='morans', connectivity=ones, interactions=interactions)
+    bivar(mdata, x_mod='adata_x', y_mod='adata_y', function_name='morans', connectivity=ones, interactions=interactions)
     
     
 def test_masked_pearson():
     mdata = generate_toy_mdata()
-    basis(mdata, x_mod='adata_x', y_mod='adata_y', function_name='masked_pearson')
+    bivar(mdata, x_mod='adata_x', y_mod='adata_y', function_name='masked_pearson')
     
     # check local
     assert 'local_scores' in mdata.mod.keys()
@@ -72,7 +72,7 @@ def test_masked_pearson():
 
 def test_vectorized_pearson():
     mdata = generate_toy_mdata()
-    basis(mdata, x_mod='adata_x', y_mod='adata_y', function_name='pearson')
+    bivar(mdata, x_mod='adata_x', y_mod='adata_y', function_name='pearson')
     
     # check local
     assert 'local_scores' in mdata.mod.keys()

@@ -1,14 +1,14 @@
 import numpy as np
 from liana.testing._sample_anndata import generate_toy_spatial
 
-from liana.method.sp._lr_basis import lr_basis
+from liana.method.sp._lr_bivar import lr_bivar
 
 adata = generate_toy_spatial()
 
 
 def test_morans_analytical():
     adata = generate_toy_spatial()
-    lr_basis(adata, function_name='morans', pvalue_method="analytical", use_raw=True)
+    lr_bivar(adata, function_name='morans', pvalue_method="analytical", use_raw=True)
     assert 'global_res' in adata.uns_keys()
     assert 'local_scores' in adata.obsm_keys()
     assert 'local_pvals' in adata.obsm_keys()
@@ -25,7 +25,7 @@ def test_morans_analytical():
 
 def test_morans_permutation():
     adata = generate_toy_spatial()    
-    lr_basis(adata, function_name='morans', pvalue_method="permutation", use_raw=True)
+    lr_bivar(adata, function_name='morans', pvalue_method="permutation", use_raw=True)
     assert 'global_res' in adata.uns_keys()
     assert 'local_scores' in adata.obsm_keys()
     assert 'local_pvals' in adata.obsm_keys()
@@ -42,7 +42,7 @@ def test_morans_permutation():
 
 def test_morans_pval_none_cats():
     adata = generate_toy_spatial()
-    lr_basis(adata, function_name='morans', pvalue_method=None, use_raw=True, add_categories=True)
+    lr_bivar(adata, function_name='morans', pvalue_method=None, use_raw=True, add_categories=True)
     assert 'global_res' in adata.uns_keys()
     assert 'local_scores' in adata.obsm_keys()
     # NOT IN

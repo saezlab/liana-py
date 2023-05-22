@@ -200,7 +200,7 @@ _spatial_lr = _SpatialMeta(
     reference=""
     )
 
-lr_basis = SpatialLR(_method=_spatial_lr,
+lr_bivar = SpatialLR(_method=_spatial_lr,
                      _complex_cols=['ligand_means', 'receptor_means'],
                      )
 

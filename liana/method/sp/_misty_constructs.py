@@ -11,7 +11,7 @@ from liana.method._pipe_utils._pre import _choose_mtx_rep, _get_props
 
 from liana.resource import select_resource
 from liana.method._pipe_utils import prep_check_adata
-from liana.method.sp._lr_basis import _add_complexes_to_var
+from liana.method.sp._lr_bivar import _add_complexes_to_var
 
 
 def _make_view(adata, nz_threshold=0.1, add_obs=False, use_raw=False,
