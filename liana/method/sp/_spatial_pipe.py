@@ -76,13 +76,6 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_per
     return local_pvals
 
 
-# def _standardize_matrix(mat, local=True, axis=0):
-#     mat = np.array(mat - np.array(mat.mean(axis=axis)))
-#     if not local:
-#         mat = mat / np.sqrt(np.sum(mat ** 2, axis=axis, keepdims=True))
-#     return mat
-
-
 def _standardize_matrix(mat, local=True, axis=0):
     spot_n = mat.shape[1]
     

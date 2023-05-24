@@ -1,11 +1,13 @@
 import numpy as np
 import pandas as pd
 import logging
+from tqdm import tqdm
+
 from scipy.sparse import isspmatrix_csr, csr_matrix
 
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import RidgeCV
-from sklearn.model_selection import KFold
+from sklearn.linear_model import LinearRegression, RidgeCV
+from sklearn.model_selection import KFold, cross_val_predict
 
 from anndata import AnnData
 from mudata import MuData
@@ -52,8 +54,8 @@ class MistyData(MuData):
     
     # NOTE: having this as a call fun would mean that it would only work when a misty object is created
     # but not when a mudata object in misty format is loaded from disk
-    def __call__(self, 
-                 n_estimators = 100,
+    def __call__(self,
+                 model='rf',
                  bypass_intra = False,
                  predict_self = False,
                  k_cv = 10,
@@ -62,7 +64,9 @@ class MistyData(MuData):
                  extra_groupby = None,
                  n_jobs = -1,
                  seed = 1337,
-                 inplace=True
+                 inplace=True,
+                 verbose=False,
+                 **kwargs
                  ):
         """
         A Multi-view Learning for dissecting Spatial Transcriptomics data (MISTY) model.
@@ -113,9 +117,12 @@ class MistyData(MuData):
         # init list to store the results for each intra group and env group as dataframe;
         targets_list, importances_list = [], []
         intra_features = intra.var_names.to_list()
-        
+                
+        progress_bar = tqdm(intra_features, disable=not verbose)
         # loop over each target and build one RF model for each view
-        for target in intra_features:
+        for target in (progress_bar):
+            if verbose:
+                progress_bar.set_description(f"Now learning: {target}")
             
             for intra_group in intra_groups:
                 intra_obs_msk = intra.obs[intra_groupby] == \
@@ -131,14 +138,16 @@ class MistyData(MuData):
                 
                 # model the intraview
                 if not bypass_intra:
-                    obp_intra, importance_dict["intra"] = _single_view_model(y,
-                                                                             intra,
-                                                                             intra_obs_msk,
-                                                                             predictors_nonself, 
-                                                                             n_estimators,
-                                                                             n_jobs,
-                                                                             seed
-                                                                             )
+                    predictions_intra, importance_dict["intra"] = _single_view_model(y,
+                                                                                     intra,
+                                                                                     intra_obs_msk,
+                                                                                     predictors_nonself,
+                                                                                     model=model,
+                                                                                     k_cv=k_cv,
+                                                                                     seed=seed,
+                                                                                     n_jobs=n_jobs,
+                                                                                     **kwargs
+                                                                                     )
                     if insert_index is not None and predict_self: 
                         # add self-interactions as nan
                         importance_dict["intra"][target] = np.nan
@@ -146,10 +155,10 @@ class MistyData(MuData):
                 # loop over the group_views_by
                 for extra_group in extra_groups:
                     # store the oob predictions for each view to construct predictor matrix for meta model
-                    oob_list = []
+                    predictions_list = []
 
                     if not bypass_intra:
-                        oob_list.append(obp_intra)
+                        predictions_list.append(predictions_intra)
 
                     # model the juxta and paraview (if applicable)
                     for view_name in [v for v in view_str if v != "intra"]:
@@ -164,20 +173,22 @@ class MistyData(MuData):
                         connectivity = self._get_conn(view_name)
                         view = _mask_connectivity(extra, connectivity, extra_obs_msk, _predictors)
                         
-                        oob_predictions, importance_dict[view_name] = \
+                        predictions_extra, importance_dict[view_name] = \
                             _single_view_model(y,
                                                view,
                                                intra_obs_msk,
-                                               _predictors,
-                                               n_estimators,
-                                               n_jobs,
-                                               seed
+                                               _predictors, 
+                                               model=model,
+                                               k_cv=k_cv,
+                                               seed=seed,
+                                               n_jobs=n_jobs,
+                                               **kwargs
                                                )
-                        oob_list.append(oob_predictions)
+                        predictions_list.append(predictions_extra)
 
-                    # train the meta model with k-fold CV 
+                    # train the meta model with k-fold CV
                     intra_r2, multi_r2, coefs = _multi_model(y,
-                                                             np.column_stack(oob_list),
+                                                             np.column_stack(predictions_list),
                                                              intra_group,
                                                              bypass_intra,
                                                              view_str,
@@ -260,22 +271,39 @@ def _concat_dataframes(targets_list, importances_list, view_str):
 
 
 
-def _single_view_model(y, view, intra_obs_msk, predictors, n_estimators=100, n_jobs=-1, seed=1337):
-    # TODO: remove this it's always sparse from select_mtx
+def _single_view_model(y, view, intra_obs_msk, predictors, model, k_cv, seed, n_jobs, **kwargs):
     X = view[intra_obs_msk, predictors].X
+    
+    if model=='rf':
+        model = RandomForestRegressor(oob_score=True,
+                                      n_jobs=n_jobs, 
+                                      random_state=seed,
+                                      **kwargs,
+                                      )
+        # Model is a RandomForestRegressor
+        model = model.fit(y=y, X=X)
+        predictions = model.oob_prediction_
+        importances = model.feature_importances_
         
-    rf_model = RandomForestRegressor(n_estimators=n_estimators, 
-                                     oob_score=True,
-                                     n_jobs=n_jobs, 
-                                     random_state=seed).fit(y=y, X=X)
+    elif model=='linear':
+        model = LinearRegression(n_jobs=n_jobs, **kwargs)
+        predictions = cross_val_predict(model, X, y,
+                                        cv=KFold(n_splits=k_cv,
+                                                 random_state = seed,
+                                                 shuffle=True),
+                                        )
+        importances = model.fit(X=X, y=y).coef_
+        
+    else:
+        raise ValueError(f"model {model} is not supported")
     
-    named_importances = dict(zip(predictors, rf_model.feature_importances_))
+    named_importances = dict(zip(predictors, importances))
     
-    return rf_model.oob_prediction_, named_importances
+    return predictions, named_importances
 
 
-def _multi_model(y, oob_predictions, intra_group, bypass_intra, view_str, k_cv, alphas, seed):
-    if oob_predictions.shape[0] < k_cv:
+def _multi_model(y, predictions, intra_group, bypass_intra, view_str, k_cv, alphas, seed):
+    if predictions.shape[0] < k_cv:
         logging.warn(f"Number of samples in {intra_group} is less than k_cv. "
                      "{intra_group} values set to NaN")
         return np.nan, np.nan, np.repeat(np.nan, len(view_str))
@@ -284,15 +312,15 @@ def _multi_model(y, oob_predictions, intra_group, bypass_intra, view_str, k_cv, 
     R2_vec_intra, R2_vec_multi = np.zeros(k_cv), np.zeros(k_cv)
     coef_mtx = np.zeros((k_cv, len(view_str)))
     
-    for cv_idx, (train_index, test_index) in enumerate(kf.split(oob_predictions)):
-        ridge_multi_model = RidgeCV(alphas=alphas).fit(X=oob_predictions[train_index], y=y[train_index])
-        R2_vec_multi[cv_idx] = ridge_multi_model.score(X=oob_predictions[test_index], y=y[test_index])
+    for cv_idx, (train_index, test_index) in enumerate(kf.split(predictions)):
+        ridge_multi_model = RidgeCV(alphas=alphas).fit(X=predictions[train_index], y=y[train_index])
+        R2_vec_multi[cv_idx] = ridge_multi_model.score(X=predictions[test_index], y=y[test_index])
         coef_mtx[cv_idx, :] = ridge_multi_model.coef_
 
         if not bypass_intra: 
             # NOTE: first column of obp is always intra only prediction if bypass_intra is False
-            obp_train = oob_predictions[train_index, 0].reshape(-1, 1)
-            obp_test = oob_predictions[test_index, 0].reshape(-1, 1)
+            obp_train = predictions[train_index, 0].reshape(-1, 1)
+            obp_test = predictions[test_index, 0].reshape(-1, 1)
             
             ridge_intra_model = RidgeCV(alphas=alphas).fit(X=obp_train, y=y[train_index])
             R2_vec_intra[cv_idx] = ridge_intra_model.score(X=obp_test, y=y[test_index])
@@ -302,13 +330,13 @@ def _multi_model(y, oob_predictions, intra_group, bypass_intra, view_str, k_cv, 
     return intra_r2, R2_vec_multi.mean(), coef_mtx.mean(axis=0)
 
 
-def _mask_connectivity(adata, connectivity, env_obs_msk, predictors):
+def _mask_connectivity(adata, connectivity, extra_obs_msk, predictors):
     
     weights = connectivity.copy()
-    if env_obs_msk is not None:
-        weights[:, ~env_obs_msk] = 0
+    if extra_obs_msk is not None:
+        weights[:, ~extra_obs_msk] = 0
     X = weights @ adata[:, predictors].X
-    view = AnnData(X=X, obs=adata.obs, var=pd.DataFrame(index=predictors))
+    view = AnnData(X=X, obs=adata.obs, var=pd.DataFrame(index=predictors), dtype='float32')
     
     return view
 
