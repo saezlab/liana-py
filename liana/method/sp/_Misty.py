@@ -75,6 +75,9 @@ class MistyData(MuData):
         ----------
         n_estimators : `int`, optional (default: 100)
             Number of trees in the random forest models used to model single views
+        model : `str`, optional (default: 'rf')
+            Model used to model the single views. Default is 'rf'.
+            Can be either 'rf' (random forest) or 'linear' (linear regression).
         bypass_intra : `bool`, optional (default: False)
             Whether to bypass modeling the intraview features importances via LOFO
         intra_groupby : `str`, optional (default: None)
@@ -87,7 +90,8 @@ class MistyData(MuData):
             List of alpha values used to choose from, that control the strength of the ridge regression,
             used for the multi-view part of the model
         k_cv : `int`, optional (default: 10)
-            Number of folds for cross-validation used in the multi-view model
+            Number of folds for cross-validation used in the multi-view model, and single-view models if
+            model is 'linear'.
         n_jobs : `int`, optional (default: -1)
             Number of cores used to construct random forest models
         seed : `int`, optional (default: 1337)
@@ -95,6 +99,8 @@ class MistyData(MuData):
         inplace : `bool`, optional (default: True)
             Whether to write the results to the .uns attribute of the object or return 
             two DataFrames, one for target metrics and one for importances.
+        **kwargs : `dict`
+            Keyword arguments passed to the Regressors. Note that n_jobs & random_state are already set.
         
         Returns
         -------
@@ -272,11 +278,11 @@ def _concat_dataframes(targets_list, importances_list, view_str):
 
 
 def _single_view_model(y, view, intra_obs_msk, predictors, model, k_cv, seed, n_jobs, **kwargs):
-    X = view[intra_obs_msk, predictors].X
+    X = view[intra_obs_msk, predictors].X.toarray()
     
     if model=='rf':
         model = RandomForestRegressor(oob_score=True,
-                                      n_jobs=n_jobs, 
+                                      n_jobs=n_jobs,
                                       random_state=seed,
                                       **kwargs,
                                       )
@@ -286,11 +292,12 @@ def _single_view_model(y, view, intra_obs_msk, predictors, model, k_cv, seed, n_
         importances = model.feature_importances_
         
     elif model=='linear':
-        model = LinearRegression(n_jobs=n_jobs, **kwargs)
+        model = LinearRegression(n_jobs=1, **kwargs)
         predictions = cross_val_predict(model, X, y,
                                         cv=KFold(n_splits=k_cv,
                                                  random_state = seed,
                                                  shuffle=True),
+                                        n_jobs=n_jobs
                                         )
         importances = model.fit(X=X, y=y).coef_
         

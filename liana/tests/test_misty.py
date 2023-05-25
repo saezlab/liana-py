@@ -95,3 +95,13 @@ def test_lr_misty():
     assert interactions.shape == (415, 6)
     cmplxs = interactions[interactions['target'].str.contains('_')]['target'].unique()
     assert np.isin(['CD8A_CD8B', 'CD74_CXCR4'], cmplxs).all()
+
+
+def test_linear_misty():
+    misty = genericMistyData(adata, bandwidth=10, set_diag=False, cutoff=0)
+    assert misty.shape == (100, 33)
+    
+    misty(model='linear')
+    assert misty.uns['target_metrics'].shape == (11, 7)
+    
+    # TODO extend this test to specific values
