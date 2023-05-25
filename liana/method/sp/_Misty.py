@@ -276,7 +276,6 @@ def _concat_dataframes(targets_list, importances_list, view_str):
     return target_metrics, importances
 
 
-
 def _single_view_model(y, view, intra_obs_msk, predictors, model, k_cv, seed, n_jobs, **kwargs):
     X = view[intra_obs_msk, predictors].X.toarray()
     
@@ -299,6 +298,7 @@ def _single_view_model(y, view, intra_obs_msk, predictors, model, k_cv, seed, n_
                                                  shuffle=True),
                                         n_jobs=n_jobs
                                         )
+        # NOTE: To discuss this with Jovan
         importances = model.fit(X=X, y=y).coef_
         
     else:
@@ -346,7 +346,6 @@ def _mask_connectivity(adata, connectivity, extra_obs_msk, predictors):
     view = AnnData(X=X, obs=adata.obs, var=pd.DataFrame(index=predictors), dtype='float32')
     
     return view
-
 
 # TODO: rename to _get_nonself
 def _check_nonself(target, predictors):
