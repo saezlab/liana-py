@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 from liana.method._Method import MethodMeta
 from liana.method._liana_pipe import liana_pipe
 
 from anndata import AnnData
-from pandas import DataFrame, concat
+from pandas import DataFrame
 from typing import Optional
 
 
@@ -22,8 +24,6 @@ class AggregateClass(MethodMeta):
                          )
         self._SCORE = _SCORE
         self.methods = methods
-        self.steady = 'steady_rank'
-        self.steady_ascending = True
 
         # Define sc to aggregate
         self.specificity_specs = {method.method_name: (
@@ -32,14 +32,6 @@ class AggregateClass(MethodMeta):
         self.magnitude_specs = {method.method_name: (
             method.magnitude, method.magnitude_ascending) for method in methods
             if method.magnitude is not None}
-
-        # If SingleCellSignalR is in there also add it to calculate method; TODO just remove this
-        methods_by_name = {method.method_name: method for method in methods}
-        if 'SingleCellSignalR' in methods_by_name.keys():
-            self.steady_specs = self.specificity_specs.copy()
-            self.steady_specs['SingleCellSignalR'] = \
-                (methods_by_name['SingleCellSignalR'].magnitude,
-                 methods_by_name['SingleCellSignalR'].magnitude_ascending)
 
         # Define additional columns needed depending on the methods to be run
         self.add_cols = list(
@@ -52,13 +44,9 @@ class AggregateClass(MethodMeta):
     def describe(self):
         """Briefly described the method"""
         print(
-            f"{self.method_name} returns `{self.magnitude}`, `{self.specificity}`,"
-            f" and `{self.steady}`. "
-            f"{self.magnitude} and {self.specificity} represent an aggregate of the "
+            f"{self.method_name} returns `{self.magnitude}`, `{self.specificity}`."
+            f"{self.magnitude} and {self.specificity} respectively represent an aggregate of the "
             f"`magnitude`- and `specificity`-related scoring functions from the different methods."
-            f"{self.steady} (DEPRECATED) represents one scoring function from each method intended"
-            f" to prioritize ligand-receptor interactions in steady-state data, "
-            f"regardless if they represent `specificity` or `magnitude`."
         )
 
     def __call__(self,
@@ -76,7 +64,7 @@ class AggregateClass(MethodMeta):
                  layer: Optional[str] = None,
                  de_method='t-test',
                  verbose: Optional[bool] = False,
-                 n_perms: int = 1000,
+                 n_perms: int | None = 1000 ,
                  seed: int = 1337,
                  resource: Optional[DataFrame] = None,
                  inplace=True
@@ -119,7 +107,8 @@ class AggregateClass(MethodMeta):
             Verbosity flag
         n_perms
             Number of permutations for the permutation test. Note that this is relevant
-            only for permutation-based methods - e.g. `CellPhoneDB`
+            only for permutation-based methods - e.g. `CellPhoneDB`. If `None` is passed, 
+            no permutation testing is performed. Thus, specificity_rank is not returned. 
         seed
             Random seed for reproducibility.
         resource

@@ -1,5 +1,5 @@
-from ..multi import to_tensor_c2c, adata_to_views, lrs_to_views, get_variable_loadings, get_factor_scores
-from ..testing import sample_lrs, get_toy_adata
+from liana.multi import to_tensor_c2c, adata_to_views, lrs_to_views, get_variable_loadings, get_factor_scores
+from liana.testing import sample_lrs, get_toy_adata
 
 import numpy as np
 import pandas as pd
@@ -57,19 +57,38 @@ def test_adata_to_views():
                            groupby='bulk_labels',
                            sample_key='sample',
                            obs_keys=None,
-                           min_prop=0.05,
-                           min_smpls=1,
                            min_cells=5,
                            min_counts=10,
                            mode='sum',
                            verbose=True,
                            use_raw=True,
-                           skip_checks=True # skip because it's log-normalized (it's OK because toydata)
+                           min_smpls=2,
+                           # filter features
+                           min_count=0,
+                           min_total_count=0,
+                           large_n=0, 
+                           min_prop=0,
+                           skip_checks=True # skip because it's log-normalized
                            )
     
-    assert len(mdata.varm_keys())==8
+    assert len(mdata.varm_keys())==9
     assert 'case' not in mdata.obs.columns
-    assert mdata.shape == (4, 5403)
+    assert mdata.shape == (4, 6201)
+    
+    #test feature level filtering (with default values)
+    mdata = adata_to_views(adata,
+                           groupby='bulk_labels',
+                           sample_key='sample',
+                           obs_keys = ['case'],
+                           mode='sum',
+                           verbose=True,
+                           use_raw=True,
+                           skip_checks=True
+                           )
+    
+    assert len(mdata.varm_keys())==7
+    assert 'case' in mdata.obs.columns
+    assert mdata.shape == (4, 1598)
     
     
     
@@ -92,14 +111,14 @@ def test_get_funs():
     # generate random loadings
     mdata.varm['LFs'] = np.random.rand(mdata.shape[1], 5)
     
-    loadings = get_variable_loadings(mdata, 0, view_separator=':', variable_separator='^', pair_separator='&')
+    loadings = get_variable_loadings(mdata, view_separator=':', variable_separator='^', pair_separator='&')
     assert isinstance(loadings, pd.DataFrame)
-    assert loadings.shape == (16, 5)
+    assert loadings.shape == (16, 9)
     
     # dont drop columns & and don't separate
-    loadings = get_variable_loadings(mdata, 0, drop_columns=False)
+    loadings = get_variable_loadings(mdata, drop_columns=False)
     assert isinstance(loadings, pd.DataFrame)
-    assert loadings.shape == (16, 2)
+    assert loadings.shape == (16, 6)
     
     
     # generate random factor scores

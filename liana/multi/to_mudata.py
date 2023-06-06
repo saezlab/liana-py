@@ -40,7 +40,17 @@ def _check_if_decoupler() -> ModuleType:
     return dc
 
 
-def adata_to_views(adata, groupby, sample_key, obs_keys, view_separator=':', verbose=False, **kwargs):
+def adata_to_views(adata,
+                   groupby,
+                   sample_key,
+                   obs_keys,
+                   view_separator=':',
+                   min_count=10,
+                   min_total_count=15,
+                   large_n=10, 
+                   min_prop=0.1,
+                   verbose=False,
+                   **kwargs):
     """
     Converts an AnnData object to a MuData object with views that represent an aggregate for each entity in `adata.obs[groupby]`.
     
@@ -54,12 +64,20 @@ def adata_to_views(adata, groupby, sample_key, obs_keys, view_separator=':', ver
         Column name in `adata.obs` to use as sample key
     obs_keys:
         Column names in `adata.obs` to merge with the MuData object
-    view_separator
+    view_separator:
         Separator to use when assigning `adata.var_names` to views
-    verbose
+    min_count:
+        Minimum number of counts per gene per sample to be included in the pseudobulk.
+    min_total_count:
+        Minimum number of counts per sample to be included in the pseudobulk.
+    large_n:
+        Number of samples per group that is considered to be "large".
+    min_prop:
+        Minimum proportion of samples that must have a count for a gene to be included in the pseudobulk.
+    verbose:
         If True, show progress bar.
     **kwargs
-        Keyword arguments used to aggregate the values per cell into views. See `dc.get_pseudobulk` for more details.
+        Keyword arguments used to aggregate the values per cell into views. See `dc.filter_by_expr` for more details.
     
     Returns
     -------
@@ -77,21 +95,34 @@ def adata_to_views(adata, groupby, sample_key, obs_keys, view_separator=':', ver
     padatas = {}
     for view in (views):
         # filter AnnData to view
-        temp = adata[adata.obs[groupby] == view]
+        temp = adata[adata.obs[groupby] == view].copy()
         # assign view to var_names
         temp.var_names = view + view_separator + temp.var_names
-        
+
         padata = dc.get_pseudobulk(temp,
                                    sample_col=sample_key,
-                                   groups_col=None, 
+                                   groups_col=None,
                                    **kwargs
                                    )
         
+        # only filter genes for views that pass QC
+        if 0 in padata.shape:
+            continue
+
+        # edgeR filtering
+        feature_mask = dc.filter_by_expr(padata,
+                                         min_count=min_count,
+                                         min_total_count=min_total_count,
+                                         large_n=large_n,
+                                         min_prop=min_prop,
+                                         )
+        padata = padata[:, feature_mask]
+
         # only append views that pass QC
         if 0 not in padata.shape:
             del padata.obs
             padatas[view] = padata
-            
+
     # Convert to MuData
     mdata = MuData(padatas)
     
@@ -283,7 +314,6 @@ def _dataframe_to_anndata(df):
 
 
 def get_variable_loadings(mdata,
-                          idx,
                           varm_key = 'LFs',
                           view_separator = None,
                           variable_separator = None,
@@ -300,8 +330,6 @@ def get_variable_loadings(mdata,
     
     mdata: :class:`~mudata.MuData`
         MuData object
-    idx: int
-        Index of the variable to extract. Pass index 0 to extract the first Factor.
     varm_key: str
         Key to use when extracting variable loadings from `mdata.varm`
     view_separator: str
@@ -318,8 +346,12 @@ def get_variable_loadings(mdata,
     Returns a pandas DataFrame with the variable loadings for the specified index.
     
     """
+    # columns are Factor up to idx
+    n_factors = mdata.varm[varm_key].shape[1]
+    columns = [f'Factor{i+1}' for i in range(n_factors)]
     
-    df = sc.get.var_df(mdata, varm_keys=[(varm_key, idx)])
+    df = pd.DataFrame(index=mdata.var.index, data=mdata.varm[varm_key], columns=columns)
+    
     df.index.name = None
     df = df.reset_index().rename(columns={'index':'view:variable'})
     
@@ -342,10 +374,11 @@ def get_variable_loadings(mdata,
         if drop_columns:
             df.drop(columns='view', inplace=True)
     
-    df = df.rename(columns={"LFs-{0}".format(0):'loadings'})
+    # Re-order columns so that factors are last
+    df = df.reindex(sorted(df.columns, key=lambda x: x.startswith('Factor')), axis=1)
     
     # re-order to absolute values
-    df = (df.reindex(df['loadings'].abs().sort_values(ascending=False).index))
+    df = (df.reindex(df['Factor1'].abs().sort_values(ascending=False).index))
     
     return df
 
@@ -372,7 +405,7 @@ def get_factor_scores(mdata, obsm_key='X_mofa'):
     
     df = pd.DataFrame(mdata.obsm['X_mofa'], index=mdata.obs.index)
     
-    df.columns = ['Factor_{0}'.format(x + 1) for x in range(df.shape[1])]
+    df.columns = ['Factor{0}'.format(x + 1) for x in range(df.shape[1])]
     df = df.reset_index()
     
     # join with metadata

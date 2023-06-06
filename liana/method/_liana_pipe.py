@@ -6,7 +6,7 @@ import pandas
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
 from ..resource import select_resource, explode_complexes
-from liana.method._pipe_utils._get_mean_perms import _get_means_perms
+from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
 from liana.method._pipe_utils._aggregate import _aggregate
 
 import scanpy as sc
@@ -34,7 +34,7 @@ def liana_pipe(adata: anndata.AnnData,
                _score=None,
                _methods: list = None,
                _consensus_opts: list = None,
-               _aggregate_method: str = None
+               _aggregate_method: str | None = None
                ):
     """
     Parameters
@@ -106,6 +106,9 @@ def liana_pipe(adata: anndata.AnnData,
                      'ligand_trimean', 'receptor_trimean',
                      'mat_mean', 'mat_max',
                      ]
+        
+    if n_perms is None:
+        _consensus_opts = 'Magnitude'
 
     if supp_columns is None:
         supp_columns = []
@@ -157,14 +160,15 @@ def liana_pipe(adata: anndata.AnnData,
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
 
     # Get lr results
-    lr_res = _get_lr(adata=adata, 
+    lr_res = _get_lr(adata=adata,
                      resource=resource,
-                     mat_mean=mat_mean, 
+                     mat_mean=mat_mean,
                      mat_max=mat_max,
                      relevant_cols=_key_cols + _add_cols + _complex_cols,
                      de_method=de_method,
-                     base=base, 
-                     verbose=verbose)
+                     base=base,
+                     verbose=verbose
+                     )
 
     # Mean Sums required for NATMI (note done on subunits also)
     if 'ligand_means_sums' in _add_cols:
@@ -203,15 +207,22 @@ def liana_pipe(adata: anndata.AnnData,
                 lr_res = _aggregate(lrs,
                                     consensus=_score,
                                     aggregate_method=_aggregate_method,
-                                    _key_cols=_key_cols)
+                                    _key_cols=_key_cols,
+                                    _consensus_opts=_consensus_opts,
+                                    )
             else:  # Return by method results as they are
                 return lrs
         else:  # Run the specific method in mind
-            lr_res = _run_method(lr_res=lr_res, adata=adata, expr_prop=expr_prop,
-                                 _score=_score, _key_cols=_key_cols, _complex_cols=_complex_cols,
-                                 _add_cols=_add_cols, n_perms=n_perms,
+            lr_res = _run_method(lr_res=lr_res,
+                                 adata=adata,
+                                 expr_prop=expr_prop,
+                                 _score=_score, _key_cols=_key_cols,
+                                 _complex_cols=_complex_cols,
+                                 _add_cols=_add_cols,
+                                 n_perms=n_perms,
                                  return_all_lrs=return_all_lrs,
-                                 verbose=verbose, seed=seed)
+                                 verbose=verbose,
+                                 seed=seed)
     else:  # Just return lr_res
         lr_res = filter_reassemble_complexes(lr_res=lr_res,
                                              _key_cols=_key_cols,
@@ -219,6 +230,12 @@ def liana_pipe(adata: anndata.AnnData,
                                              complex_cols=_complex_cols,
                                              return_all_lrs=return_all_lrs)
 
+    if _score is not None:
+        orderby, ascending =  (_score.magnitude, _score.magnitude_ascending) if _score.magnitude is not None \
+            else (_score.specificity, _score.specificity_ascending)
+            
+        lr_res = lr_res.sort_values(by=orderby, ascending=ascending)
+    
     return lr_res
 
 
@@ -355,6 +372,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
         assert isinstance(mat_mean, np.float32)
         lr_res['mat_mean'] = mat_mean
 
+    # NOTE: this is not needed
     if isinstance(mat_max, np.float32):
         lr_res['mat_max'] = mat_max
 
@@ -462,21 +480,34 @@ def _run_method(lr_res: pandas.DataFrame,
         agg_fun = np.mean
 
     if _score.permute:
-        perms, ligand_pos, receptor_pos, labels_pos = \
-            _get_means_perms(adata=adata,
-                             lr_res=lr_res,
-                             n_perms=n_perms,
-                             seed=seed,
-                             agg_fun=agg_fun,
-                             norm_factor=norm_factor,
-                             verbose=verbose)
-        lr_res[[_score.magnitude, _score.specificity]] = \
-            lr_res.apply(_score.fun, axis=1, result_type="expand",
-                         perms=perms, ligand_pos=ligand_pos,
-                         receptor_pos=receptor_pos, labels_pos=labels_pos)
+        # get permutations
+        if n_perms is not None:
+            perms = _get_means_perms(adata=adata,
+                                     n_perms=n_perms,
+                                     seed=seed,
+                                     agg_fun=agg_fun,
+                                     norm_factor=norm_factor,
+                                     verbose=verbose)
+            # get tensor indexes for ligand, receptor, source, target
+            ligand_idx, receptor_idx, source_idx, target_idx = _get_mat_idx(adata, lr_res)
+            
+            # ligand and receptor perms
+            ligand_stat_perms = perms[:, source_idx, ligand_idx]
+            receptor_stat_perms = perms[:, target_idx, receptor_idx]
+            # stack them together
+            perm_stats = np.stack((ligand_stat_perms, receptor_stat_perms), axis=0)
+        else:
+            perm_stats = None
+            _score.specificity = None
+        
+        scores = _score.fun(x=lr_res,
+                            perm_stats=perm_stats)
     else:  # non-perm funs
-        lr_res[[_score.magnitude, _score.specificity]] = \
-            lr_res.apply(_score.fun, axis=1, result_type="expand")
+        scores = _score.fun(x=lr_res)
+        
+    lr_res.loc[:, _score.magnitude] = scores[0]
+    lr_res.loc[:, _score.specificity] = scores[1]
+        
 
     if return_all_lrs:
         # re-append rest of results
