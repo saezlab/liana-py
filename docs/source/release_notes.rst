@@ -17,7 +17,7 @@ Release notes
 
 - Removed 'Steady' aggregation from rank_aggregate
 
-- Changed deprecated np.float to np.float32, relevant for CellChat `mat_max`.
+- Changed deprecated np.float to np.float32 in `liana_pipe`, relevant for CellChat `mat_max`.
 
 
 0.1.8 (24.03.2023)
