@@ -77,7 +77,7 @@ def adata_to_views(adata,
     verbose:
         If True, show progress bar.
     **kwargs
-        Keyword arguments used to aggregate the values per cell into views. See `dc.get_pseudobulk` for more details.
+        Keyword arguments used to aggregate the values per cell into views. See `dc.filter_by_expr` for more details.
     
     Returns
     -------

@@ -21,6 +21,10 @@ Release notes
 
 - Method results will now be ordered by magnitude, if available, if not specificity is used.
 
+- Added `ligand_complex` and `receptor_complex` filtering to liana's dotplot
+
+- MOFAcellular will now work only with decoupler>=1.4.0 which implements edgeR-like filtering for the views.
+
 
 0.1.8 (24.03.2023)
 ------------------
