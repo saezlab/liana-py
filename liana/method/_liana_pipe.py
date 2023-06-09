@@ -134,7 +134,7 @@ def liana_pipe(adata: anndata.AnnData,
 
     # get mat max for CellChat
     if 'mat_max' in _add_cols:
-        mat_max = np.max(adata.X.data)
+        mat_max = adata.X.max()
         assert isinstance(mat_max, np.float32)
 
     if resource is None:
@@ -215,11 +215,16 @@ def liana_pipe(adata: anndata.AnnData,
             else:  # Return by method results as they are
                 return lrs
         else:  # Run the specific method in mind
-            lr_res = _run_method(lr_res=lr_res, adata=adata, expr_prop=expr_prop,
-                                 _score=_score, _key_cols=_key_cols, _complex_cols=_complex_cols,
-                                 _add_cols=_add_cols, n_perms=n_perms,
+            lr_res = _run_method(lr_res=lr_res,
+                                 adata=adata,
+                                 expr_prop=expr_prop,
+                                 _score=_score, _key_cols=_key_cols,
+                                 _complex_cols=_complex_cols,
+                                 _add_cols=_add_cols,
+                                 n_perms=n_perms,
                                  return_all_lrs=return_all_lrs,
-                                 verbose=verbose, seed=seed)
+                                 verbose=verbose,
+                                 seed=seed)
     else:  # Just return lr_res
         lr_res = filter_reassemble_complexes(lr_res=lr_res,
                                              _key_cols=_key_cols,
@@ -227,6 +232,12 @@ def liana_pipe(adata: anndata.AnnData,
                                              complex_cols=_complex_cols,
                                              return_all_lrs=return_all_lrs)
 
+    if _score is not None:
+        orderby, ascending =  (_score.magnitude, _score.magnitude_ascending) if _score.magnitude is not None \
+            else (_score.specificity, _score.specificity_ascending)
+            
+        lr_res = lr_res.sort_values(by=orderby, ascending=ascending)
+    
     return lr_res
 
 
@@ -363,6 +374,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
         assert isinstance(mat_mean, np.float32)
         lr_res['mat_mean'] = mat_mean
 
+    # NOTE: this is not needed
     if isinstance(mat_max, np.float32):
         lr_res['mat_max'] = mat_max
 
@@ -463,7 +475,7 @@ def _run_method(lr_res: pandas.DataFrame,
 
     if ('mat_max' in _add_cols) & (_score.method_name == "CellChat"):
         # CellChat matrix_max
-        norm_factor = np.unique(lr_res['mat_max'].values).item()
+        norm_factor = np.unique(lr_res['mat_max'].values)[0]
         agg_fun = _trimean
     else:
         norm_factor = None

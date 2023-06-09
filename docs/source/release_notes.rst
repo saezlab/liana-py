@@ -1,7 +1,7 @@
 Release notes
 =============
 
-0.1.9 (25.04.2023)
+0.1.9 (06.06.2023)
 ------------------
 
 - Fixed issues with deprecated params of pandas.DataFrame.to_csv & .assert_frame_equal in tests
@@ -17,6 +17,13 @@ Release notes
 
 - Removed 'Steady' aggregation from rank_aggregate
 
+- Changed deprecated np.float to np.float32 in `liana_pipe`, relevant for CellChat `mat_max`.
+
+- Method results will now be ordered by magnitude, if available, if not specificity is used.
+
+- Added `ligand_complex` and `receptor_complex` filtering to liana's dotplot
+
+- MOFAcellular will now work only with decoupler>=1.4.0 which implements edgeR-like filtering for the views.
 
 
 0.1.8 (24.03.2023)
