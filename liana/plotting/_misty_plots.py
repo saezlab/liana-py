@@ -2,7 +2,7 @@ import pandas as pd
 import plotnine as p9
 
 
-def plot_target_metrics(misty, stat, figure_size=(7,5), return_fig=True):
+def target_metrics(misty, stat, figure_size=(7,5), return_fig=True):
     target_metrics = misty.uns['target_metrics'].copy()
     
     # get order of target by decreasing intra.R2
@@ -24,7 +24,7 @@ def plot_target_metrics(misty, stat, figure_size=(7,5), return_fig=True):
     p.draw()
     
     
-def plot_contributions(misty, figure_size=(7, 5), return_fig=True):
+def contributions(misty, figure_size=(7, 5), return_fig=True):
     contributions = misty.uns['target_metrics'].copy()
 
     view_names = misty.view_names.copy()
@@ -47,10 +47,11 @@ def plot_contributions(misty, figure_size=(7, 5), return_fig=True):
     p.draw()
 
 
-def plot_interactions(misty, view, figure_size=(7,5), return_fig=True):
+def interactions(misty, view, figure_size=(7,5), return_fig=True):
     interactions = misty.uns['interactions'].copy()
     interactions = interactions[interactions['view'] == view]
-    interactions.sort_values(by='importances')
+    grouped = interactions.groupby('predictor')['importances'].apply(lambda x: x.isna().all())
+    interactions = interactions[~interactions['predictor'].isin(grouped[grouped].index)]
     
     p = (p9.ggplot(interactions, 
                    p9.aes(x='predictor',

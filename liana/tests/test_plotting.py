@@ -51,9 +51,9 @@ def test_dotplot_bysample():
     
 
 def test_proximity_plot():
-    from liana.plotting import connectivity_plot
+    from liana.plotting import connectivity
     from liana.testing import generate_toy_spatial
     
     adata = generate_toy_spatial()
-    my_p4 = connectivity_plot(adata=adata, idx=0)
+    my_p4 = connectivity(adata=adata, idx=0)
     assert my_p4 is not None

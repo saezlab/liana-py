@@ -14,7 +14,7 @@ from mudata import MuData
 
 class MistyData(MuData):
     # TODO: change to SpatialData when Squidpy is also updated
-    def __init__(self, data, obs, spatial_key, **kwargs):
+    def __init__(self, data, obs=None, spatial_key='spatial', **kwargs):
         """
         Construct a MistyData object from a dictionary of views (anndatas).
         
@@ -23,18 +23,19 @@ class MistyData(MuData):
         data : `dict`
             Dictionary of views (anndatas). Requires an intra-view called "intra".
         obs : `pd.DataFrame`
-            DataFrame of observations
+            DataFrame of observations. If None, the obs of the intra-view is used.
         spatial_key : `str`
-            Key in the .obsm attribute of each view that contains the spatial coordinates
+            Key in the .obsm attribute of each view that contains the spatial coordinates.
+            Default is 'spatial'.
         **kwargs : `dict`
             Keyword arguments passed to the MuData Super class
         """
         super().__init__(data, **kwargs)
         self.view_names = list(self.mod.keys())
-        self.obs = obs
         self.spatial_key = spatial_key
         self._check_views()
-    
+        self.obs = obs if obs is not None else self.mod['intra'].obs
+
     def _check_views(self):
         assert isinstance(self, MuData), "views must be a MuData object"
         assert "intra" in self.view_names, "views must contain an intra view"
@@ -137,7 +138,7 @@ class MistyData(MuData):
                 # to array
                 y = intra[intra_obs_msk, target].X.toarray().reshape(-1)
                 # intra is always non-self, while other views can be self
-                predictors_nonself, insert_index = _check_nonself(target, intra_features)
+                predictors_nonself, insert_index = _get_nonself(target, intra_features)
 
                 # TODO: rename to target_importances
                 importance_dict = {}
@@ -171,7 +172,7 @@ class MistyData(MuData):
                         extra = self.mod[view_name]
                         
                         extra_features = extra.var_names.to_list()
-                        _predictors, _ =  _check_nonself(target, extra_features) if not predict_self else (extra_features, None)
+                        _predictors, _ =  _get_nonself(target, extra_features) if not predict_self else (extra_features, None)
                         
                         extra_obs_msk = self.obs[extra_groupby] == extra_group if extra_group is not None else None
                         
@@ -348,7 +349,7 @@ def _mask_connectivity(adata, connectivity, extra_obs_msk, predictors):
     return view
 
 # TODO: rename to _get_nonself
-def _check_nonself(target, predictors):
+def _get_nonself(target, predictors):
     if target in predictors:
         insert_idx = np.where(np.array(predictors) == target)[0][0]
         predictors_subset = predictors.copy()
