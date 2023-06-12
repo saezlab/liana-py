@@ -413,17 +413,46 @@ class MetabMethod(MethodMeta):
         if inplace:
             if est_only:
                 if pass_mask:
-                    adata.obsm['metabolite_abundance'] = ml_res[0]
-                    adata.uns['mask'] = ml_res[1]
+                    if est_fun == 'transport':
+                        adata.obsm['metabolite_abundance'] = ml_res[0][0][0]
+                        adata.uns['mask'] = DataFrame(ml_res[1][0][0].todense(), columns=adata.var_names, index=ml_res[2][0])
+                        adata.obsm['efflux'] = ml_res[0][1][0]
+                        adata.uns['efflux_mask'] = DataFrame(ml_res[1][1][0].todense(), columns=adata.var_names, index=ml_res[2][1])
+                        adata.obsm['influx'] = ml_res[0][2][0]
+                        adata.uns['influx_mask'] = DataFrame(ml_res[1][2][0].todense(), columns=adata.var_names, index=ml_res[2][2])
+                    else:
+                        adata.obsm['metabolite_abundance'] = ml_res[0]
+                        adata.uns['mask'] = ml_res[1].T
                 else:
-                    adata.obsm['metabolite_abundance'] = ml_res
+                    if est_fun == 'transport':
+                        adata.obsm['metabolite_abundance'] = ml_res[0][0]
+                        adata.obsm['efflux'] = ml_res[1][0]
+                        adata.obsm['influx'] = ml_res[2][0]
+                    else:
+                        adata.obsm['metabolite_abundance'] = ml_res
             else:
                 if pass_mask:
-                    adata.uns['CCC_res'] = ml_res[0]
-                    adata.obsm['metabolite_abundance'] = ml_res[1]
-                    adata.uns['mask'] = ml_res[2]
+                    if est_fun == 'transport':
+                        adata.uns['CCC_res'] = ml_res[0]
+                        adata.obsm['metabolite_abundance'] = ml_res[1][0][0]
+                        adata.uns['mask'] = DataFrame(ml_res[2][0][0].todense(), columns=adata.var_names, index=ml_res[3][0])
+                        adata.obsm['efflux'] = ml_res[1][1][0]
+                        adata.uns['efflux_mask'] = DataFrame(ml_res[2][1][0].todense(), columns=adata.var_names, index=ml_res[3][1])
+                        adata.obsm['influx'] = ml_res[1][2][0]
+                        adata.uns['influx_mask'] = DataFrame(ml_res[2][2][0].todense(), columns=adata.var_names, index=ml_res[3][2])
+                    else:
+                        adata.uns['CCC_res'] = ml_res[0]
+                        adata.obsm['metabolite_abundance'] = ml_res[1]
+                        adata.uns['mask'] = ml_res[2]
                 else:
-                    adata.uns['CCC_res'] = ml_res[0]
-                    adata.obsm['metabolite_abundance'] = ml_res[1]
-        
+                    if est_fun == 'transport':
+                        adata.uns['CCC_res'] = ml_res[0]
+                        adata.obsm['metabolite_abundance'] = ml_res[1][0][0]
+                        adata.obsm['efflux'] = ml_res[1][1][0]
+                        adata.obsm['influx'] = ml_res[1][2][0]
+
+                    else:
+                        adata.uns['CCC_res'] = ml_res[0]
+                        adata.obsm['metabolite_abundance'] = ml_res[1]
+            
         return None if inplace else ml_res

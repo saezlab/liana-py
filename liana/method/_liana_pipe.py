@@ -131,17 +131,7 @@ def liana_pipe(adata: anndata.AnnData,
                 _score.fun = fun_dict[score_fun]
                 _key_cols = _key_cols = ['source', 'target']
 
-                if score_fun == 'cellchat':
-                    _score.complex_cols = ['ligand_trimean', 'receptor_trimean']
-                    _score.add_cols = ['mat_max']
-                    _score.magnitude = 'lr_probs',
-                    _score.specificity = 'cellchat_pvals'
-
-                elif score_fun == 'connectome': 
-                    _score.complex_cols=["ligand_means", "receptor_means"]
-                    _score.add_cols = ['ligand_zscores', 'receptor_zscores']
-
-                elif score_fun == 'gmean':
+                if score_fun == 'gmean':
                     _score. complex_cols=["ligand_means", "receptor_means"]
                 
                 elif score_fun == 'natmi':
@@ -160,18 +150,34 @@ def liana_pipe(adata: anndata.AnnData,
                                                         pass_mask=pass_mask, 
                                                         **kwargs)
 
-                #assign results to adata
-                adata.obsm['metabolite_abundance'] = met_est_result[0]
-                adata.uns['met_index'] = met_est_result[1]
+                if met_est_resource_name == 'transport':
 
-                mask = DataFrame(met_est_result[2].todense(), columns=adata.var_names, index=met_est_result[1])
+                    _score.add_cols = ['ligand_influx_score', 'ligand_efflux_score', 'ligand_name']
+
+                    adata.obsm['metabolite_abundance'] = met_est_result[0][0][0]
+                    adata.uns['met_index'] = met_est_result[1][0]
+
+                    mask = DataFrame(met_est_result[2][0][0].todense(), columns=adata.var_names, index=met_est_result[1][0])
+
+                    adata.obsm['metabolite_efflux'] = met_est_result[0][1][0]
+                    adata.uns['met_index_efflux'] = met_est_result[1][1]
+
+                    adata.obsm['metabolite_influx'] = met_est_result[0][2][0]
+                    adata.uns['met_index_influx'] = met_est_result[1][2]
+
+                else:
+                    #assign results to adata
+                    adata.obsm['metabolite_abundance'] = met_est_result[0]
+                    adata.uns['met_index'] = met_est_result[1]
+
+                    mask = DataFrame(met_est_result[2].todense(), columns=adata.var_names, index=met_est_result[1])
 
                 # allow early exit e.g. for metabolite estimation benchmarking
                 if est_only:         
                     if pass_mask:
-                        return adata.obsm['metabolite_abundance'], mask.T
+                        return met_est_result[0], met_est_result[2], met_est_result[1]
                     else:
-                        return adata.obsm['metabolite_abundance']
+                        return met_est_result[0]
                 
                 
     if _key_cols is None:
@@ -258,6 +264,7 @@ def liana_pipe(adata: anndata.AnnData,
                         base=base,
                         verbose=verbose,
                         met=_score.met,
+                        est_fun = est_fun,
                         )
     else:
         lr_res = _get_lr(adata=adata,
@@ -352,7 +359,7 @@ def liana_pipe(adata: anndata.AnnData,
     if _score is not None:
         if _score.met:
             if pass_mask:
-                return lr_res, met_est_result[0], mask.T
+                return lr_res, met_est_result[0], met_est_result[2], met_est_result[1]
             else:   
                 return lr_res, met_est_result[0]
         else:
@@ -361,7 +368,7 @@ def liana_pipe(adata: anndata.AnnData,
         return lr_res
 
 
-def _join_stats(source, target, resource, dedict_gene, dedict_met = None) :
+def _join_stats(source, target, resource, dedict_gene, dedict_met = None, dedict_efflux = None, dedict_influx = None) :
     """
     Joins and renames source-ligand and target-receptor stats to the ligand-receptor resource
 
@@ -384,6 +391,18 @@ def _join_stats(source, target, resource, dedict_gene, dedict_met = None) :
 
     if dedict_met:
         source_stats = dedict_met[source].copy()
+
+        if dedict_efflux:
+
+            efflux_stats = dedict_efflux[source].copy()
+            efflux_stats = efflux_stats.rename(columns={'means': 'efflux_score', 'props': 'efflux_props'})  
+
+            influx_stats = dedict_influx[source].copy()
+            influx_stats = influx_stats.rename(columns={'means': 'influx_score', 'props': 'influx_props'})
+
+            source_stats = source_stats.merge(efflux_stats, on = ['names', 'label'], how = 'left')
+            source_stats = source_stats.merge(influx_stats, on = ['names', 'label'], how = 'left')
+
     else: 
         source_stats = dedict_gene[source].copy()
 
@@ -403,7 +422,7 @@ def _join_stats(source, target, resource, dedict_gene, dedict_met = None) :
     return bound
 
 
-def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, verbose, met = False):
+def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, verbose, met = False, est_fun = None):
     """
     Run DE analysis and merge needed information with resource for LR inference
 
@@ -472,10 +491,45 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
         if not list(adata.uns['met_index']) == list(dedict_met[labels[0]]['names']):
             raise AssertionError("Variable names did not match DE results!")
 
-        # Calculate Mean, logFC and z-scores by group
         for label in labels:
             temp = adata[adata.obs.label.isin([label])].obsm['metabolite_abundance']
             dedict_met[label]['means'] = temp.mean(axis=0).A.flatten()
+
+        if est_fun == 'transport':
+
+            dedict_efflux = {}
+
+            for label in labels:
+                temp = adata.obsm['metabolite_efflux']
+                a = _get_props(temp)
+                stats = DataFrame({'names': adata.uns['met_index_efflux'], 'props': a}). \
+                    assign(label=label).sort_values('names')
+                dedict_efflux[label] = stats
+
+            # check if genes are ordered correctly
+            if not list(adata.uns['met_index_efflux']) == list(dedict_efflux[labels[0]]['names']):
+                raise AssertionError("Variable names did not match DE results!")
+            
+            for label in labels:
+                temp = adata[adata.obs.label.isin([label])].obsm['metabolite_efflux']
+                dedict_efflux[label]['means'] = temp.mean(axis=0).A.flatten()
+
+            dedict_influx = {}
+
+            for label in labels:
+                temp = adata.obsm['metabolite_influx']
+                a = _get_props(temp)
+                stats = DataFrame({'names': adata.uns['met_index_influx'], 'props': a}). \
+                    assign(label=label).sort_values('names')
+                dedict_influx[label] = stats
+
+            # check if genes are ordered correctly
+            if not list(adata.uns['met_index_influx']) == list(dedict_influx[labels[0]]['names']):
+                raise AssertionError("Variable names did not match DE results!")
+            
+            for label in labels:
+                temp = adata[adata.obs.label.isin([label])].obsm['metabolite_influx']
+                dedict_influx[label]['means'] = temp.mean(axis=0).A.flatten()
 
     # initialize dict
     dedict_gene = {}
@@ -512,11 +566,19 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
     
 
     if met:
-        # Join Stats
-        lr_res = concat(
-            [_join_stats(source, target, resource, dedict_gene, dedict_met) for source, target in
-            zip(pairs['source'], pairs['target'])]
-        )
+
+        if est_fun == 'transport':
+            # Join Stats
+            lr_res = concat(
+                [_join_stats(source, target, resource, dedict_gene, dedict_met, dedict_efflux, dedict_influx) for source, target in
+                zip(pairs['source'], pairs['target'])]
+            )
+        else:
+            # Join Stats
+            lr_res = concat(
+                [_join_stats(source, target, resource, dedict_gene, dedict_met) for source, target in
+                zip(pairs['source'], pairs['target'])]
+            )
 
     else:
         # Join Stats

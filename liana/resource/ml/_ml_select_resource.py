@@ -51,6 +51,11 @@ def select_ml_resource(met_est_resource_name: str = 'metalinksdb') -> DataFrame:
 
         resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_Kidney.csv'
         met_est_resource = read_csv(resource_path, sep=',')
+
+    elif met_est_resource_name == 'transport':
+
+        resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_t.csv'
+        met_est_resource = read_csv(resource_path, sep=',')
         
     
     #resource_path = pathlib.Path(__file__).parent.joinpath("omni_resource.csv")

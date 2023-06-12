@@ -51,9 +51,10 @@ def select_resource(resource_name: str) -> DataFrame:
         resource_path = '/home/efarr/Documents/GitHub/metalinks/metalinksDB/MR_Kidney.csv'
         resource = read_csv(resource_path, sep=',')
 
-        resource = resource[['hmdb_id', 'symbol']]
+        resource = resource[['hmdb_id', 'symbol', 'name']]
         resource = resource.rename(columns={'hmdb_id': 'ligand',
-                                            'symbol': 'receptor'})
+                                            'symbol': 'receptor', 
+                                            'name': 'ligand_name'})
 
     else:
 
