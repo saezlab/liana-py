@@ -8,6 +8,7 @@ from scipy.sparse import isspmatrix_csr, csr_matrix
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression, RidgeCV
 from sklearn.model_selection import KFold, cross_val_predict
+import statsmodels.api as sm
 
 from anndata import AnnData
 from mudata import MuData
@@ -235,7 +236,6 @@ class MistyData(MuData):
             return target_metrics, importances
 
 
-
 def _create_dict(**kwargs):
     return {k: v for k, v in kwargs.items() if v is not None}
 
@@ -299,8 +299,10 @@ def _single_view_model(y, view, intra_obs_msk, predictors, model, k_cv, seed, n_
                                                  shuffle=True),
                                         n_jobs=n_jobs
                                         )
-        # NOTE: To discuss this with Jovan
-        importances = model.fit(X=X, y=y).coef_
+        # NOTE: I use the t-values as for feature importances
+        importances = sm.OLS(y, X).fit().tvalues
+        # importances = model.fit(X=X, y=y).coef_
+        # importances = sm.OLS(y, X).fit().params
         
     else:
         raise ValueError(f"model {model} is not supported")
@@ -332,6 +334,10 @@ def _multi_model(y, predictions, intra_group, bypass_intra, view_str, k_cv, alph
             
             ridge_intra_model = RidgeCV(alphas=alphas).fit(X=obp_train, y=y[train_index])
             R2_vec_intra[cv_idx] = ridge_intra_model.score(X=obp_test, y=y[test_index])
+            
+        # TODO: misty's ridgeCV p-values (ridge::pvals) are calculated as in 
+        # https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-12-372#Sec2
+        # these are needed for the normalization of the RF importances
 
     intra_r2 = R2_vec_intra.mean() if not bypass_intra else 0
     

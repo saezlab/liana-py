@@ -103,5 +103,11 @@ def test_linear_misty():
     
     misty(model='linear')
     assert misty.uns['target_metrics'].shape == (11, 7)
+    assert misty.uns['target_metrics']['gain_R2'].sum() == -0.09727229653770031
     
-    # TODO extend this test to specific values
+    assert misty.uns['interactions'].shape == (330, 6)
+    actual = misty.uns['interactions'].loc[(misty.uns['interactions']['target']=='ECM') &
+                                  (misty.uns['interactions']['predictor']=='protE')]['importances'].values
+    expected = np.array([13.590895 , -0.4754166, -1.0671989], dtype='float32')
+    np.testing.assert_almost_equal(actual, expected)
+    
