@@ -246,7 +246,7 @@ def _format_targets(target, intra_group, extra_group, view_str, intra_r2, multi_
                      extra_group=extra_group,
                      intra_R2=intra_r2,
                      multi_R2=multi_r2,
-                     gain_R2=multi_r2-intra_r2,
+                     gain_R2=multi_r2 - intra_r2,
                      )
     
     target_df = pd.DataFrame(d, index=[0])
@@ -273,6 +273,9 @@ def _concat_dataframes(targets_list, importances_list, view_str):
     importances = pd.melt(importances,
                           id_vars=["target", "predictor", "intra_group", "extra_group"], 
                           value_vars=view_str, var_name="view", value_name="importances")
+    
+    # drop intra and extra group columns if they are all None
+    importances = importances.dropna(axis=1, how='all')
     
     return target_metrics, importances
 

@@ -24,7 +24,7 @@ def test_misty_para():
     assert target_metrics.shape == (11, 6)
     
     interactions = misty.uns['interactions']
-    assert interactions.shape == (220, 6)
+    assert interactions.shape == (220, 4)
     assert interactions[interactions['target']=='ECM']['importances'].sum().round(8) == 2.0
     interaction_msk = (interactions['target']=='ligA') & \
         (interactions['predictor']=='protE')
@@ -43,7 +43,7 @@ def test_misty_bypass():
     assert misty.uns['target_metrics']['multi_R2'].sum() == -3.6771450967285975
     
     interactions = misty.uns['interactions']
-    assert interactions.shape == (220, 6)
+    assert interactions.shape == (220, 4)
     assert interactions['importances'].sum().round(10) == 22.0
     np.testing.assert_almost_equal(interactions[(interactions['target']=='ligC') &
                                                (interactions['predictor']=='ligA')]['importances'].values,
@@ -92,7 +92,7 @@ def test_lr_misty():
     assert misty.uns['target_metrics'].shape == (16, 5)
     
     interactions = misty.uns['interactions']
-    assert interactions.shape == (415, 6)
+    assert interactions.shape == (415, 4)
     cmplxs = interactions[interactions['target'].str.contains('_')]['target'].unique()
     assert np.isin(['CD8A_CD8B', 'CD74_CXCR4'], cmplxs).all()
 
@@ -105,7 +105,7 @@ def test_linear_misty():
     assert misty.uns['target_metrics'].shape == (11, 7)
     assert misty.uns['target_metrics']['gain_R2'].sum() == -0.09727229653770031
     
-    assert misty.uns['interactions'].shape == (330, 6)
+    assert misty.uns['interactions'].shape == (330, 4)
     actual = misty.uns['interactions'].loc[(misty.uns['interactions']['target']=='ECM') &
                                   (misty.uns['interactions']['predictor']=='protE')]['importances'].values
     expected = np.array([13.590895 , -0.4754166, -1.0671989], dtype='float32')
