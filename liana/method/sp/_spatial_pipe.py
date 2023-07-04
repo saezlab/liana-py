@@ -257,6 +257,7 @@ def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, positive_only):
     local_zscores = local_truth / std
 
     if positive_only:
+        # TODO: this should be according to categories...
         local_zpvals = norm.sf(local_zscores)
         pos_msk = ((x_mat > 0) + (y_mat > 0)).T  # mask?
         local_zpvals[~pos_msk] = 1

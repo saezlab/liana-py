@@ -168,19 +168,18 @@ class SpatialBivariate(_SpatialMeta):
                                  positive_only=positive_only,
                                  )
             
-            
         if add_categories:
-            local_categories = _categorize(x_mat=x_mat,
-                                           y_mat=y_mat,
-                                           weight=weight,
-                                           idx=mdata.obs.index,
-                                           columns=xy_stats.interaction,
-                                           )
+            local_cats = _categorize(x_mat=x_mat,
+                                     y_mat=y_mat,
+                                     weight=weight,
+                                     idx=mdata.obs.index,
+                                     columns=xy_stats.interaction,
+                                     )
         else:
-            local_categories = None
+            local_cats = None
         
         if not inplace:
-            return xy_stats, local_scores, local_pvals, local_categories
+            return xy_stats, local_scores, local_pvals, local_cats
             
         # save to uns
         mdata.uns[key_added] = xy_stats
@@ -189,8 +188,8 @@ class SpatialBivariate(_SpatialMeta):
         mdata.mod[mod_added] = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
         
         # save to obsm
-        if local_categories is not None:
-            mdata.obsm['local_categories'] = local_categories
+        if local_cats is not None:
+            mdata.obsm['local_cats'] = local_cats
         
         if local_pvals is not None: 
             mdata.obsm['local_pvals'] = local_pvals

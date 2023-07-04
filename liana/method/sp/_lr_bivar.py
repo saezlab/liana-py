@@ -188,7 +188,7 @@ class SpatialLR(_SpatialMeta):
             if pvalue_method is not None:
                 adata.obsm['local_pvals'] = local_pvals
             if add_categories:
-                adata.obsm['local_categories'] = local_categories
+                adata.obsm['local_cats'] = local_categories
 
         return None if inplace else (lr_res, local_scores, local_pvals, local_categories)
 

@@ -19,8 +19,9 @@ def target_metrics(misty, stat, top_n=None, figure_size=(7,5), return_fig=True):
          p9.geom_point(size=3) + 
          p9.theme_bw() +
          p9.theme(axis_text_x=p9.element_text(rotation=90),
-                  figure_size=figure_size)
-         )
+                  figure_size=figure_size) +
+        p9.labs(x='Target')
+        )
     
     if return_fig:
         return p
@@ -43,9 +44,10 @@ def contributions(misty, figure_size=(7, 5), stat=None, top_n=None, return_fig=T
     p = (p9.ggplot(contributions, p9.aes(x='target', y='contribution', fill='view')) +
             p9.geom_bar(stat='identity') +
             p9.theme_bw(base_size=14) +
-        p9.theme(axis_text_x=p9.element_text(rotation=90),
-                    figure_size=figure_size) +
-            p9.scale_fill_brewer(palette=2, type='qual')
+            p9.theme(axis_text_x=p9.element_text(rotation=90),
+                     figure_size=figure_size) +
+            p9.scale_fill_brewer(palette=2, type='qual') +
+            p9.labs(x='Target', y='Contribution', fill='View')
     )
 
     if return_fig:

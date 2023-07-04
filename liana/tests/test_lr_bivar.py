@@ -48,5 +48,5 @@ def test_morans_pval_none_cats():
     # NOT IN
     assert 'local_pvals' not in adata.obsm_keys()
     
-    assert 'local_categories' in adata.obsm_keys()
-    assert adata.obsm['local_categories'].values.sum() == -10306
+    assert 'local_cats' in adata.obsm_keys()
+    assert adata.obsm['local_cats'].values.sum() == -10306
