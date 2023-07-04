@@ -110,6 +110,9 @@ def _reduce_complexes(col: str,
         lr_res with exploded complexes reduced to only the minimum (default) subunit
 
     """    
+    # absolute
+    lr_res[col] = lr_res[col].abs()
+    
     # Group by keys
     lr_res = lr_res.groupby(key_cols)
 
