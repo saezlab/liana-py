@@ -3,6 +3,7 @@ from types import ModuleType
 import numpy as np
 import pandas as pd
 import scanpy as sc
+import warnings as warnings
 
 from anndata import AnnData
 from tqdm import tqdm
@@ -310,6 +311,58 @@ def _dataframe_to_anndata(df):
     X = np.array(df.values).T
     
     return AnnData(X=X, obs=obs, var=var, dtype=np.float32)
+
+def remove_hvg_marker_genes(mdata,
+                            markers,
+                            view_separator=':',
+                            hvg_column='highly_variable',
+                            hvg_filtered='filtered_highly_variable'
+                           ):
+    """
+    In each view, sets highly variable genes to False if they are in the markers dict for another view, but not if they are in the markers for the same view.
+    Used for removing potential cell type marker genes found in the background of other views and thought to be contamination.
+
+    Parameters
+    ----------
+    mdata :class:`~mudata.MuData`
+        MuData object. Highly variable genes should be computed already in .var for each modality.
+    markers :class:`dict`
+        Dictionary with markers for each view. Keys are the views and values are lists of markers. Can contain markers for views that are not in mdata.mod.keys().
+    view_separator :class:`str`, optional
+        Separator between view and gene names. Defaults to ':'.
+    hvg_column :class:`str`, optional
+        Column in mdata.mod['some_view'].var that contains the highly variable genes. Defaults to 'highly_variable'.
+    hvg_filtered :class:`str`, optional
+        Column in mdata.mod['some_view'].var where filtered highly variable genes will be stored. Defaults to 'filtered_highly_variable'.
+    """
+    # check if markers is a dict
+    if not isinstance(markers, dict):
+        raise TypeError('markers is not a dict')
+
+    # check that all keys in markers are lists
+    if not all(isinstance(markers[mod], list) for mod in markers.keys()):
+        raise TypeError('not all values in markers are lists')
+
+    # check that hvg_column is in var for all modalities
+    if not all(hvg_column in mdata.mod[mod].var.columns for mod in mdata.mod.keys()):
+        raise ValueError('{0} is not in the columns of .var for all modalities'.format(hvg_column))
+
+    for current_mod in mdata.mod.keys():
+        # markers in markers dict for each modality except for current_mod
+        negative_markers = [marker for mod in markers.keys() if mod != current_mod for marker in markers[mod]]
+
+        if current_mod not in list(markers.keys()):
+            warnings.warn('no markers in dict for view: {0}'.format(current_mod), Warning)
+        else:
+            #keep negative_markers not in markers[current_mod] and add view_separator
+            negative_markers = [current_mod + view_separator + marker for marker in negative_markers if marker not in markers[current_mod]]
+        
+        # duplicate hvg_column to hvg_filtered
+        mdata.mod[current_mod].var[hvg_filtered] = mdata.mod[current_mod].var[hvg_column]
+        # set negative_markers to False in current_mod
+        mdata.mod[current_mod].var.loc[mdata.mod[current_mod].var_names.isin(negative_markers), hvg_filtered] = False
+
+    mdata.update()
 
 
 
