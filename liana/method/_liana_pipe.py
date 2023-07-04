@@ -105,8 +105,7 @@ def liana_pipe(adata: anndata.AnnData,
     A adata frame with ligand-receptor results
 
     """
-    from .sc import _sca_score, _natmi_score, _cellchat_score, _cpdb_score, \
-        _gmean_score, _connectome_score, _logfc_score
+    from .sc import _natmi_score, _cpdb_score, _gmean_score
 
     # Check and Reformat Mat if needed
     assert groupby is not None
@@ -122,10 +121,6 @@ def liana_pipe(adata: anndata.AnnData,
                 fun_dict = {'cellphone': _cpdb_score,
                             'natmi': _natmi_score,            
                             'gmean': _gmean_score,
-                            # 'cellchat': _cellchat_score,
-                            # 'connectome': _connectome_score,
-                            # 'logfc': _logfc_score,
-                            # 'sca': _sca_score
                             }
         
                 _score.fun = fun_dict[score_fun]
@@ -152,7 +147,7 @@ def liana_pipe(adata: anndata.AnnData,
 
                 if met_est_resource_name == 'transport':
 
-                    _score.add_cols = ['ligand_influx_score', 'ligand_efflux_score', 'ligand_name']
+                    _score.add_cols = ['ligand_influx_score', 'ligand_efflux_score', 'ligand_name', 'ligand_pd_score']
 
                     adata.obsm['metabolite_abundance'] = met_est_result[0][0][0]
                     adata.uns['met_index'] = met_est_result[1][0]
@@ -402,6 +397,15 @@ def _join_stats(source, target, resource, dedict_gene, dedict_met = None, dedict
 
             source_stats = source_stats.merge(efflux_stats, on = ['names', 'label'], how = 'left')
             source_stats = source_stats.merge(influx_stats, on = ['names', 'label'], how = 'left')
+
+            est_scores = DataFrame(source_stats[['efflux_score', 'influx_score', 'means']].values)
+            est_scores.fillna(0, inplace = True)
+            est_scores['met_est'] = est_scores.mean(axis = 1)
+
+            source_stats.rename(columns = {'means': 'pd_score'}, inplace = True)
+            source_stats['means'] = est_scores['met_est']
+
+
 
     else: 
         source_stats = dedict_gene[source].copy()

@@ -35,8 +35,6 @@ def _product_score(x, perm_stats) -> tuple:  # fun fact: mean is done by mebocos
 
     return lr_means, cpdb_pvals
 
-
-
 # Initialize metalinks Meta
 _metalinks = MethodMeta(method_name="metalinks",
                             complex_cols=['ligand_means', 'receptor_means'],

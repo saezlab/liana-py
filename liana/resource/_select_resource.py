@@ -48,7 +48,7 @@ def select_resource(resource_name: str) -> DataFrame:
         
     elif resource_name == 'kidney':
 
-        resource_path = '/home/efarr/Documents/GitHub/metalinks/metalinksDB/MR_Kidney.csv'
+        resource_path = '/home/efarr/Documents/GitHub/metalinks/metalinksDB/MR_500500900_Kidney-pred.csv'
         resource = read_csv(resource_path, sep=',')
 
         resource = resource[['hmdb_id', 'symbol', 'name']]

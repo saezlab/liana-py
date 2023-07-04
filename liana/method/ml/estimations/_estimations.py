@@ -59,14 +59,8 @@ def _metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell', pas
         PD = me_res[me_res['transport'] == 'unknown']
         transport = me_res[me_res['transport'] != 'unknown']
 
-        # transport_out = transport[~((transport['transport_direction'] == 'in') & (transport['reversibility'] == 'reversible'))]
-        # transport_in = transport[~((transport['transport_direction'] == 'out') & (transport['reversibility'] == 'reversible'))]
-
-        # reduce PD to upper half of the matrix
-        transport_out = PD[PD.shape[0] // 2:]
-        transport_in = PD[:PD.shape[0] // 2]
-
-
+        transport_out = transport[~((transport['transport_direction'] == 'in') & (transport['reversibility'] == 'reversible'))]
+        transport_in = transport[~((transport['transport_direction'] == 'out') & (transport['reversibility'] == 'reversible'))]
 
 
     mask = lil_matrix((len(metabolites), adata.shape[1]))
@@ -108,7 +102,7 @@ def _metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell', pas
             transport_out['weight'] = transport_out['direction'].apply(lambda x: 1 if x == 'producing' else -1)
             transport_out.drop_duplicates(subset=['HMDB', 'GENE'], inplace=True) ## attention: decide on direction
             df = DataFrame(adata.X.todense(), index = adata.obs_names, columns = adata.var_names)
-            estimates = fun(df, transport_out, source = 'HMDB',  target = 'GENE', weight = 'weight', verbose=verbose, use_raw=False, **kwargs)
+            estimates = fun(df, transport_out, source = 'HMDB',  target = 'GENE', weight = 'weight', verbose=verbose, use_raw=False, min_n = 1, **kwargs)
             estimates = estimates[len(estimates) - 1]
             estimates[estimates < 0] = 0
             final_estimates_tout = csr_matrix(estimates)
@@ -118,7 +112,7 @@ def _metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell', pas
             transport_in['weight'] = transport_in['direction'].apply(lambda x: 1 if x == 'producing' else -1)
             transport_in.drop_duplicates(subset=['HMDB', 'GENE'], inplace=True) ## attention: decide on direction
             df = DataFrame(adata.X.todense(), index = adata.obs_names, columns = adata.var_names)
-            estimates = fun(df, transport_in, source = 'HMDB',  target = 'GENE', weight = 'weight', verbose=verbose, use_raw=False, **kwargs)
+            estimates = fun(df, transport_in, source = 'HMDB',  target = 'GENE', weight = 'weight', verbose=verbose, use_raw=False,min_n = 1, **kwargs)
             estimates = estimates[len(estimates) - 1]
             estimates[estimates < 0] = 0
             final_estimates_tin = csr_matrix(estimates)
