@@ -1,6 +1,6 @@
 import numpy as np
 from ..testing._toy_ml import get_toy_ml
-from ..plotting import dotplot, set_dotplot
+from ..plotting import dotplot, setplot
 
 
 
@@ -8,7 +8,7 @@ adata = get_toy_ml()
 CCC_res = adata.uns['CCC_res']
 
 def test_gene_plot():
-    gp = set_dotplot(adata=adata,
+    gp = setplot(adata=adata,
                    metabolite = 'A',
                    groupby='bulk_labels',
     )

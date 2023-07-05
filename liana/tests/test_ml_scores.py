@@ -12,17 +12,19 @@ expected_shape = adata.shape
 
 
 def test_cellphone():
+    adata = get_toy_adata()
     metalinks(adata, groupby='bulk_labels', est_fun = 'ulm', score_fun = 'cellphone', n_perms=10, pass_mask = False)
     
-    assert adata.uns['CCC_res'].shape == (100, 11)
+    assert adata.uns['CCC_res'].shape == (2690, 11)
     assert adata.obsm['metabolite_abundance'].shape == (700, 29)
     assert ('mask' in adata.uns) == False
     assert 'ligand_name' in adata.uns['CCC_res'].columns
 
 def test_gmean():
+    adata = get_toy_adata()
     metalinks(adata, groupby='bulk_labels', est_fun = 'ulm', score_fun = 'gmean', n_perms=10, pass_mask = False)
 
-    assert adata.uns['CCC_res'].shape == (100, 11)
+    assert adata.uns['CCC_res'].shape == (2690, 11)
     assert adata.obsm['metabolite_abundance'].shape == (700, 29)
     assert ('mask' in adata.uns) == False
     assert 'ligand_name' in adata.uns['CCC_res'].columns
@@ -30,45 +32,11 @@ def test_gmean():
 def test_natmi():
     metalinks(adata, groupby='bulk_labels', est_fun = 'ulm', score_fun = 'natmi', n_perms=10, pass_mask = False)
     
-    assert adata.uns['CCC_res'].shape == (100, 13)
+    assert adata.uns['CCC_res'].shape == (2690, 13)
     assert adata.obsm['metabolite_abundance'].shape == (700, 29)
     assert ('mask' in adata.uns) == False
     assert 'ligand_name' in adata.uns['CCC_res'].columns
 
-# def test_cellchat():
-#     metalinks(adata, groupby='bulk_labels', est_fun = 'ulm', score_fun = 'cellchat', n_perms=10, pass_mask = False)
-    
-#     assert adata.uns['CCC_res'].shape == (100, 11)
-#     assert adata.obsm['metabolite_abundance'].shape == (700, 29)
-#     assert ('mask' in adata.uns) == False
-#     assert 'ligand_name' in adata.uns['CCC_res'].columns
-
-# def test_connectome():
-#     metalinks(adata, groupby='bulk_labels', est_fun = 'ulm', score_fun = 'connectome', n_perms=10, pass_mask = False)
-    
-#     assert adata.uns['CCC_res'].shape == (100, 11)
-#     assert adata.obsm['metabolite_abundance'].shape == (700, 29)
-#     assert ('mask' in adata.uns) == False
-#     assert 'ligand_name' in adata.uns['CCC_res'].columns
-
-
-
-# def test_logfc():
-#     metalinks(adata, groupby='bulk_labels', est_fun = 'ulm', score_fun = 'logfc', n_perms=10, pass_mask = False)
-    
-#     assert adata.uns['CCC_res'].shape == (100, 11)
-#     assert adata.obsm['metabolite_abundance'].shape == (700, 29)
-#     assert ('mask' in adata.uns) == False
-#     assert 'ligand_name' in adata.uns['CCC_res'].columns
-
-
-# def test_sca():
-#     metalinks(adata, groupby='bulk_labels', est_fun = 'ulm', score_fun = 'sca', n_perms=10, pass_mask = False)
-    
-#     assert adata.uns['CCC_res'].shape == (100, 11)
-#     assert adata.obsm['metabolite_abundance'].shape == (700, 29)
-#     assert ('mask' in adata.uns) == False
-#     assert 'ligand_name' in adata.uns['CCC_res'].columns
 
 
 

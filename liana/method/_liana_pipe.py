@@ -4,12 +4,11 @@ import anndata
 from pandas import DataFrame, concat
 from ._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
-from ..resource import select_resource, explode_complexes
+from ..resource import select_resource, explode_complexes, select_ml_resource
 from ._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
 from ._pipe_utils._aggregate import _aggregate
 from ._pipe_utils._pre import _get_props
-from .ml._ml_utils._filter import filter_ml_resource
-from ..resource.ml import select_ml_resource
+# from ..resource.ml import select_ml_resource
 from ..resource import select_resource
 from .ml.estimations import _metalinks_estimation
 from statsmodels.stats.multitest import fdrcorrection
@@ -170,7 +169,10 @@ def liana_pipe(adata: anndata.AnnData,
                 # allow early exit e.g. for metabolite estimation benchmarking
                 if est_only:         
                     if pass_mask:
-                        return met_est_result[0], met_est_result[2], met_est_result[1]
+                        if est_fun == 'transport':
+                            return met_est_result[0], met_est_result[2], met_est_result[1]
+                        else:
+                            return met_est_result[0], mask.T, met_est_result[1]
                     else:
                         return met_est_result[0]
                 
@@ -229,7 +231,7 @@ def liana_pipe(adata: anndata.AnnData,
     # Filter Resource
     if _score is not None:
         if _score.met:
-            resource = filter_ml_resource(resource, adata.uns['met_index'], adata.var_names)
+            resource = filter_resource(resource=resource, var_names=adata.var_names, metabolite_index=adata.uns['met_index'])
         else:
             resource = filter_resource(resource, adata.var_names)
     else:
@@ -354,7 +356,10 @@ def liana_pipe(adata: anndata.AnnData,
     if _score is not None:
         if _score.met:
             if pass_mask:
-                return lr_res, met_est_result[0], met_est_result[2], met_est_result[1]
+                if est_fun == 'transport':
+                    return lr_res, met_est_result[0], met_est_result[2], met_est_result[1]
+                else:
+                    return lr_res, met_est_result[0], mask.T, met_est_result[1]
             else:   
                 return lr_res, met_est_result[0]
         else:

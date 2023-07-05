@@ -7,7 +7,7 @@ from plotnine import ggplot, geom_point, aes, facet_wrap, \
     labs, theme_bw, theme, element_text 
 
 
-def set_dotplot(adata, metabolite, groupby, return_fig=True, use_raw=True):
+def setplot(adata, metabolite, groupby, return_fig=True, use_raw=True):
 
     df = get_gene_dfs(id=metabolite, adata=adata, groupby=groupby, use_raw=use_raw)
     
