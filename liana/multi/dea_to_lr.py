@@ -18,6 +18,7 @@ def dea_to_lr(adata,
               use_raw = True,
               expr_prop = 0.1,
               min_cells=10,
+              complex_col=None,
               return_all_lrs=False,
               source_labels = None,
               target_labels = None,
@@ -27,10 +28,21 @@ def dea_to_lr(adata,
     if resource is None:
         if resource_name is not None:
             resource = select_resource(resource_name)
-    else:
-        raise ValueError('Please provide a `resource` or a valid `resource_name`')
+        else:
+            raise ValueError('Please provide a `resource` or a valid `resource_name`')
+        
+    if any('_' in key for key in stat_keys):
+        raise ValueError('stat_keys must not contain "_"')
     
-    stat_names = stat_keys + ['props', 'expr']
+    stat_names = ['expr', 'props'] + stat_keys
+    if complex_col is not None:
+        if complex_col not in stat_names:
+            raise ValueError(f'complex_col must be one of {stat_names}')
+        # set complex_col as first column
+        stat_names = stat_names[stat_names.index(complex_col):]+stat_names[:stat_names.index(complex_col)]
+    else:
+        complex_col = 'expr'
+    
     _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
     
     # Check and Reformat Mat if needed
@@ -95,17 +107,20 @@ def dea_to_lr(adata,
     )
     
     # ligand_ or receptor + stat_keys
-    complex_cols = list(product(['ligand', 'receptor'], stat_names))
+    complex_cols = list(product(['ligand', 'receptor'], [complex_col]))
     complex_cols = [f'{x}_{y}' for x, y in complex_cols]
+    
+    # assign receptor and ligand absolutes, NOTE to refactor this
+    lr_res[['ligand_absolute', 'receptor_absolute']] = \
+        lr_res[complex_cols].apply(lambda x: x.abs())
     
     lr_res = filter_reassemble_complexes(lr_res=lr_res,
                                          _key_cols=_key_cols,
                                          expr_prop=expr_prop,
                                          return_all_lrs=return_all_lrs,
-                                         complex_cols=complex_cols
+                                         complex_cols=['ligand_absolute', 'receptor_absolute']
                                         )
-    lr_res = lr_res.drop(['prop_min', 'interaction'], axis=1)
-    
+    lr_res = lr_res.drop(['prop_min', 'interaction', 'ligand_absolute', 'receptor_absolute'], axis=1)
     
     # summarise stats for each lr
     for key in stat_keys:
@@ -113,6 +128,3 @@ def dea_to_lr(adata,
         lr_res.loc[:, f'interaction_{key}'] = lr_res.loc[:, stat_columns].mean(axis=1)
     
     return lr_res
-    
-    
-

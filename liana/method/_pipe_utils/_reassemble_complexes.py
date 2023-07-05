@@ -87,33 +87,6 @@ def _reduce_complexes(col: str,
                       key_cols: list,
                       aggs: (dict | str)
                       ):
-    """
-    Reduce the complexes
-
-    Parameters
-    ------------
-
-    col
-        column by which we are reducing the complexes
-    lr_res
-     liana_pipe generated long DataFrame
-    key_cols
-        a list of columns that define each row as unique
-    aggs
-        dictionary with the way(s) by which we aggregate. Note 'min' should be there -
-        we need the miniumum to find the lowest expression subunits, which are then used
-        to reduce the exploded complexes
-
-    Return
-    -----------
-    :returns:
-        lr_res with exploded complexes reduced to only the minimum (default) subunit
-
-    """    
-    # absolute
-    lr_res[col] = lr_res[col].abs()
-    
-    # Group by keys
     lr_res = lr_res.groupby(key_cols)
 
     # Get min cols by which we will join
