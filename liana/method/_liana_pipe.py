@@ -4,11 +4,10 @@ import anndata
 from pandas import DataFrame, concat
 from ._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
-from ..resource import select_resource, explode_complexes, select_ml_resource
+from ..resource import select_resource, explode_complexes, select_metabolite_sets
 from ._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
 from ._pipe_utils._aggregate import _aggregate
 from ._pipe_utils._pre import _get_props
-# from ..resource.ml import select_ml_resource
 from ..resource import select_resource
 from .ml.estimations import _metalinks_estimation
 from statsmodels.stats.multitest import fdrcorrection
@@ -31,7 +30,7 @@ def liana_pipe(adata: anndata.AnnData,
                seed: int,
                verbose: bool,
                use_raw: bool,
-               met_est_resource_name: str | None,
+               metsets_name: str | None,
                met_est_resource: DataFrame | None,
                est_fun: str | None,
                score_fun: str | None,
@@ -134,7 +133,7 @@ def liana_pipe(adata: anndata.AnnData,
 
 
                 # Load metabolite resource
-                met_est_resource = select_ml_resource(met_est_resource_name)
+                met_est_resource = select_metabolite_sets(metsets_name)
 
                 # Estimate metabolite abundances, check if ocean etc with flags and if or run_method
                 met_est_result = _metalinks_estimation(me_res=met_est_resource, 
@@ -144,7 +143,7 @@ def liana_pipe(adata: anndata.AnnData,
                                                         pass_mask=pass_mask, 
                                                         **kwargs)
 
-                if met_est_resource_name == 'transport':
+                if metsets_name == 'transport':
 
                     _score.add_cols = ['ligand_influx_score', 'ligand_efflux_score', 'ligand_name', 'ligand_pd_score']
 

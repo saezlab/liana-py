@@ -86,7 +86,7 @@ def show_resources():
     return list(unique(resource.resource))
 
 
-def select_ml_resource(met_est_resource_name: str = 'metalinksdb') -> DataFrame:
+def select_metabolite_sets(metsets_name: str = 'metalinksdb') -> DataFrame:
     """
     Read resource of choice from the pre-generated resources in LIANA.
 
@@ -101,39 +101,39 @@ def select_ml_resource(met_est_resource_name: str = 'metalinksdb') -> DataFrame:
 
     """
 
-    met_est_resource_name = met_est_resource_name.lower()
+    metsets_name = metsets_name.lower()
         
-    if met_est_resource_name == 'oceandb':
+    if metsets_name == 'oceandb':
 
         resource_path = '~/Documents/Database_old/recon3D_full/proddeg_ocean.csv'
         met_est_resource = read_csv(resource_path, sep=',')
         
-    elif met_est_resource_name == 'metalinksdb':    
+    elif metsets_name == 'metalinksdb':    
 
         resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_hmdb_recon_cut.csv'
         met_est_resource = read_csv(resource_path, sep=',')
 
-    elif met_est_resource_name == 'nci60':
+    elif metsets_name == 'nci60':
 
         resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_NCI60.csv'
         met_est_resource = read_csv(resource_path, sep='\t')
 
-    elif met_est_resource_name == 'ccle':
+    elif metsets_name == 'ccle':
 
         resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_CCLE.csv'
         met_est_resource = read_csv(resource_path, sep='\t')
 
-    elif met_est_resource_name == 'ocean':
+    elif metsets_name == 'ocean':
 
         resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_OCEAN.csv'
         met_est_resource = read_csv(resource_path, sep='\t')
 
-    elif met_est_resource_name == 'kidney':
+    elif metsets_name == 'kidney':
 
         resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_Kidney.csv'
         met_est_resource = read_csv(resource_path, sep=',')
 
-    elif met_est_resource_name == 'transport':
+    elif metsets_name == 'transport':
 
         resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_t.csv'
         met_est_resource = read_csv(resource_path, sep=',')

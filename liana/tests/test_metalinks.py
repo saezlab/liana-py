@@ -45,7 +45,7 @@ def test_metalinks_default():
 
 def test_metalinks_transporter_est_only_without_mask():
     adata = get_toy_adata()
-    metalinks(adata, groupby='bulk_labels', n_perms=10, met_est_resource_name='transport',
+    metalinks(adata, groupby='bulk_labels', n_perms=10, metsets_name='transport',
            est_fun='transport', score_fun= 'gmean', min_cells=3, pass_mask=False, est_only=True)
          
     assert ('CCC_res' in adata.uns) == False
@@ -64,7 +64,7 @@ def test_metalinks_transporter_est_only_without_mask():
 
 def test_metalinks_transporter_without_mask():
     adata = get_toy_adata()
-    metalinks(adata, groupby='bulk_labels', n_perms=10, met_est_resource_name='transport',
+    metalinks(adata, groupby='bulk_labels', n_perms=10, metsets_name='transport',
            est_fun='transport', score_fun= 'gmean', min_cells=3, pass_mask=False)
     
     assert 'CCC_res' in adata.uns
@@ -84,7 +84,7 @@ def test_metalinks_transporter_without_mask():
 def test_metalinks_transporter_est_only():
     
     adata = get_toy_adata()
-    metalinks(adata, groupby='bulk_labels', n_perms=10, met_est_resource_name='transport',
+    metalinks(adata, groupby='bulk_labels', n_perms=10, metsets_name='transport',
            est_fun='transport', score_fun= 'gmean', min_cells=3, pass_mask=True, est_only=True)
     
     assert ('CCC_res' in adata.uns) == False
@@ -107,7 +107,7 @@ def test_metalinks_transporter_est_only():
 
 
 def test_metalinks_transporter_default():
-    metalinks(adata, groupby='bulk_labels', n_perms=10, met_est_resource_name='transport',
+    metalinks(adata, groupby='bulk_labels', n_perms=10, metsets_name='transport',
            est_fun='transport', score_fun= 'gmean', min_cells=3)
     
     assert 'CCC_res' in adata.uns

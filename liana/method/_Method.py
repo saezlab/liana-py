@@ -254,7 +254,7 @@ class Method(MethodMeta):
                                resource=resource,
                                expr_prop=expr_prop,
                                min_cells=min_cells,
-                               met_est_resource_name=None,
+                               metsets_name=None,
                                met_est_resource=None,
                                est_fun=None,
                                score_fun=None,
@@ -305,7 +305,7 @@ class MetabMethod(MethodMeta):
                  groupby: str,
                  resource: Optional[DataFrame] = None,
                  resource_name: str = 'metalinksdb',
-                 met_est_resource_name: str = 'metalinksdb',
+                 metsets_name: str = 'metalinksdb',
                  met_est_resource: Optional[DataFrame] = None,
                  est_fun: str = 'mean_per_cell',
                  score_fun: str = 'cellphone',
@@ -336,7 +336,7 @@ class MetabMethod(MethodMeta):
             Full MR calculation (CCC) or only metabolite estimation (ME).
         resource_name
             Name of the resource to be loaded and use for ligand-receptor inference.
-        met_est_resource_name
+        metsets_name
             Name of the resource to be loaded and use for metabolite estimation.
         met_est_resource
             Metabolite-gene links to be used for metabolite estimation.
@@ -387,7 +387,7 @@ class MetabMethod(MethodMeta):
                         groupby=groupby,
                         resource_name=resource_name,
                         resource=None,
-                        met_est_resource_name=met_est_resource_name,
+                        metsets_name=metsets_name,
                         met_est_resource=None,
                         expr_prop=expr_prop,
                         est_fun=est_fun,

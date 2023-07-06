@@ -33,14 +33,7 @@ def _metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell', pas
         print(f"Estimating metabolite abundances with {est_fun}...")
 
     est_fun_dict = {'ulm': run_ulm,
-                    'wmean': run_wmean,
-                    'wsum': run_wsum,
-                    'viper': run_viper,
-                    # 'udt': run_udt,
-                    # 'mdt': run_mdt,
-                    # 'ora': run_ora,
-                    # 'gsea': run_gsea,
-                    # 'gsva': run_gsva
+                    'wmean': run_wmean
     }
 
     
