@@ -24,13 +24,15 @@ def dea_to_lr(adata,
               target_labels = None,
               verbose = False,
               ):
-    
+    _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
+        
+    if (groupby not in adata.obs.columns) or (groupby not in dea_df.columns):
+        raise ValueError(f'groupby must match a column in adata.obs and dea_df')
     if resource is None:
         if resource_name is not None:
             resource = select_resource(resource_name)
         else:
             raise ValueError('Please provide a `resource` or a valid `resource_name`')
-        
     if any('_' in key for key in stat_keys):
         raise ValueError('stat_keys must not contain "_"')
     
@@ -42,8 +44,6 @@ def dea_to_lr(adata,
         stat_names = stat_names[stat_names.index(complex_col):]+stat_names[:stat_names.index(complex_col)]
     else:
         complex_col = 'expr'
-    
-    _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
     
     # Check and Reformat Mat if needed
     adata = prep_check_adata(adata=adata,
