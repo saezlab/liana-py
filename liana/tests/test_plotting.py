@@ -5,7 +5,6 @@ from liana.testing import generate_toy_spatial
 
 liana_res = sample_lrs()
 
-
 def test_check_dotplot_order():
     my_p = dotplot(liana_res=liana_res,
                    size='specificity_rank',
@@ -75,4 +74,4 @@ def test_misty_interactions_plot():
     adata.uns['interactions'] = _sample_interactions()
     adata.view_names = ['intra', 'extra']
     
-    interactions(misty=adata, top_n=1, view='extra', key=lambda x: np.abs(x), ascending=False)
+    interactions(misty=adata, top_n=3, view='extra', key=lambda x: np.abs(x), ascending=False)
