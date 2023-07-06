@@ -1,6 +1,7 @@
 import numpy as np
-from liana.plotting import dotplot, dotplot_by_sample
+from liana.plotting import dotplot, dotplot_by_sample, interactions, contributions, target_metrics
 from liana.testing import sample_lrs
+from liana.testing import generate_toy_spatial
 
 liana_res = sample_lrs()
 
@@ -52,8 +53,26 @@ def test_dotplot_bysample():
 
 def test_proximity_plot():
     from liana.plotting import connectivity
-    from liana.testing import generate_toy_spatial
     
     adata = generate_toy_spatial()
     my_p4 = connectivity(adata=adata, idx=0)
     assert my_p4 is not None
+
+
+def test_target_metrics_plots():
+    from liana.testing import _sample_target_metrics
+    adata = generate_toy_spatial()
+    adata.uns['target_metrics'] = _sample_target_metrics()
+    adata.view_names = ['intra', 'extra']
+    
+    contributions(misty=adata, stat='intra_R2', top_n=1)
+    target_metrics(misty=adata, stat='gain_R2')
+
+
+def test_misty_interactions_plot():
+    from liana.testing import _sample_interactions
+    adata = generate_toy_spatial()
+    adata.uns['interactions'] = _sample_interactions()
+    adata.view_names = ['intra', 'extra']
+    
+    interactions(misty=adata, top_n=1, view='extra', key=lambda x: np.abs(x), ascending=False)
