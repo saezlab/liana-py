@@ -249,6 +249,7 @@ def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, positive_only, pvalue
     local_zscores = local_truth / std
 
     if positive_only:
+        local_zpvals = norm.sf(local_zscores)
         local_zpvals[pvalue_msk] = 1
     else:
         local_zpvals = norm.sf(np.abs(local_zscores))
@@ -332,7 +333,10 @@ def _global_spatialdm(x_mat,
     global_r = ((x_mat @ weight) * y_mat).sum(axis=1)
 
     # calc p-values
-    if n_perms > 1:
+    
+    if n_perms is None:
+        global_pvals = None
+    elif n_perms > 0:
         global_pvals = _global_permutation_pvals(x_mat=x_mat,
                                                  y_mat=y_mat,
                                                  weight=weight,
@@ -345,8 +349,6 @@ def _global_spatialdm(x_mat,
         global_pvals = _global_zscore_pvals(weight=weight,
                                             global_r=global_r,
                                             positive_only=positive_only)
-    elif n_perms is None:
-        global_pvals = None
 
     return np.array((global_r, global_pvals))
 
@@ -421,7 +423,9 @@ def _get_local_scores(x_mat,
 
     local_scores = local_fun(x_mat, y_mat, weight)
 
-    if n_perms > 0:
+    if n_perms is None:
+        local_pvals = None
+    elif n_perms > 0:
         local_pvals = _local_permutation_pvals(x_mat=x_mat,
                                                y_mat=y_mat,
                                                weight=weight,
@@ -440,8 +444,6 @@ def _get_local_scores(x_mat,
                                           positive_only=positive_only,
                                           pvalue_msk=pvalue_msk
                                           )
-    elif n_perms is None:
-        local_pvals = None
 
     return local_scores, local_pvals
 

@@ -36,7 +36,6 @@ class SpatialLR(_SpatialMeta):
                  obsm_added='local_scores',
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.05,
-                 pvalue_method: (str | None) = None,
                  n_perms: int = 1000,
                  positive_only: bool = True, ## TODO change to categorical
                  add_categories: bool = False,
@@ -64,9 +63,6 @@ class SpatialLR(_SpatialMeta):
         expr_prop
             Minimum expression proportion for the ligands/receptors (and their subunits).
              Set to `0` to return unfiltered results.
-        pvalue_method
-            Method to obtain P-values: One out of ['permutation', 'analytical'];
-            'analytical' by default.
         n_perms
             Number of permutations to be performed if `pvalue_method`=='permutation'
         positive_only
@@ -100,9 +96,10 @@ class SpatialLR(_SpatialMeta):
         - :attr:`anndata.AnnData.obsm` ``['local_r']`` with  `2)`
         - :attr:`anndata.AnnData.obsm` ``['local_pvals']`` with  `3)`
 
-        """
-        if pvalue_method not in ['analytical', 'permutation', None]:
-            raise ValueError("`pvalue_method` must be one of ['analytical', 'permutation', None]")
+        """        
+        if n_perms is not None:
+            if not isinstance(n_perms, int) or n_perms < 0:
+                raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")
         
         # select & process resource
         if resource is None:
@@ -160,13 +157,13 @@ class SpatialLR(_SpatialMeta):
         y_mat = temp[:, lr_res['receptor']].X.T
         
         # add categories
-        if add_categories:
-            local_categories = _categorize(x_mat=x_mat,
-                                           y_mat=y_mat,
-                                           weight=weight,
-                                           idx=adata.obs.index,
-                                           columns=lr_res.interaction,
-                                           )
+        if add_categories or positive_only:
+            local_cats = _categorize(x_mat=x_mat,
+                                     y_mat=y_mat,
+                                     weight=weight,
+                                     idx=adata.obs.index,
+                                     columns=lr_res.interaction,
+                                     )
         
         # get local scores
         lr_res, local_scores, local_pvals = \
@@ -178,19 +175,19 @@ class SpatialLR(_SpatialMeta):
                                  weight=weight,
                                  seed=seed,
                                  n_perms=n_perms,
-                                 pvalue_method=pvalue_method,
                                  positive_only=positive_only,
+                                 pvalue_msk=local_cats
                                  )
         
         if inplace:
             adata.uns[key_added] = lr_res
             adata.obsm[obsm_added] = local_scores
-            if pvalue_method is not None:
+            if n_perms is not None:
                 adata.obsm['local_pvals'] = local_pvals
             if add_categories:
-                adata.obsm['local_cats'] = local_categories
+                adata.obsm['local_cats'] = local_cats.T
 
-        return None if inplace else (lr_res, local_scores, local_pvals, local_categories)
+        return None if inplace else (lr_res, local_scores, local_pvals, local_cats)
 
 
 # initialize instance

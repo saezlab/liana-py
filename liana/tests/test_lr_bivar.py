@@ -8,7 +8,7 @@ adata = generate_toy_spatial()
 
 def test_morans_analytical():
     adata = generate_toy_spatial()
-    lr_bivar(adata, function_name='morans', pvalue_method="analytical", use_raw=True)
+    lr_bivar(adata, function_name='morans', n_perms=0, use_raw=True)
     assert 'global_res' in adata.uns_keys()
     assert 'local_scores' in adata.obsm_keys()
     assert 'local_pvals' in adata.obsm_keys()
@@ -20,12 +20,12 @@ def test_morans_analytical():
     np.testing.assert_almost_equal(interaction['global_pvals'].values, 3.4125671e-07)
 
     np.testing.assert_almost_equal(np.mean(adata.obsm['local_scores']['MIF&CD74_CXCR4']), -0.0013958386, decimal=6)
-    np.testing.assert_almost_equal(np.mean(adata.obsm['local_pvals']['TNFSF13B&TNFRSF13B']), 0.8878231110397902, decimal=6)
+    np.testing.assert_almost_equal(np.mean(adata.obsm['local_pvals']['TNFSF13B&TNFRSF13B']), 0.5040244933799871, decimal=6)
 
 
 def test_morans_permutation():
     adata = generate_toy_spatial()    
-    lr_bivar(adata, function_name='morans', pvalue_method="permutation", use_raw=True)
+    lr_bivar(adata, function_name='morans', n_perms=1000, use_raw=True)
     assert 'global_res' in adata.uns_keys()
     assert 'local_scores' in adata.obsm_keys()
     assert 'local_pvals' in adata.obsm_keys()
@@ -37,16 +37,16 @@ def test_morans_permutation():
     np.testing.assert_almost_equal(interaction['global_pvals'].values, 0.0)
     
     np.testing.assert_almost_equal(np.mean(adata.obsm['local_scores']['MIF&CD74_CXCR4']), -0.0013958386, decimal=6)
-    np.testing.assert_almost_equal(np.mean(adata.obsm['local_pvals']['TNFSF13B&TNFRSF13B']), 0.9419328571428572, decimal=6)
+    np.testing.assert_almost_equal(np.mean(adata.obsm['local_pvals']['TNFSF13B&TNFRSF13B']), 0.6131514285714286, decimal=6)
 
 
 def test_morans_pval_none_cats():
     adata = generate_toy_spatial()
-    lr_bivar(adata, function_name='morans', pvalue_method=None, use_raw=True, add_categories=True)
+    lr_bivar(adata, function_name='morans', n_perms=None, use_raw=True, add_categories=True)
     assert 'global_res' in adata.uns_keys()
     assert 'local_scores' in adata.obsm_keys()
     # NOT IN
     assert 'local_pvals' not in adata.obsm_keys()
     
     assert 'local_cats' in adata.obsm_keys()
-    assert adata.obsm['local_cats'].values.sum() == -10306
+    assert adata.obsm['local_cats'].sum() == -10306

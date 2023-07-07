@@ -71,7 +71,7 @@ class SpatialBivariate(_SpatialMeta):
         mod_added : str
             Name of the modality to add to the MuData object (in case of inplace=True)
         add_categories : bool
-            Whether to add_categories the local scores or not
+            Whether to add_categories about the local scores or not
         positive_only : bool
             Whether to calculate p-values only for positive correlations. `True` by default.
         n_perms : int
@@ -97,21 +97,21 @@ class SpatialBivariate(_SpatialMeta):
         inplace : bool
             Whether to add the results as modalities to to the MuData object
             or return them as a pandas.DataFrame, and local_scores/local_pvalues as a pandas.DataFrame
+            
         Returns
         -------
-        
-        If inplace is True, it will add the following modalities to the MuData object:
-            - local_scores: pandas.DataFrame with the local scores
-            - local_pvalues: pandas.DataFrame with the local p-values (if n_perms is not None)
-            - global_scores: pandas.DataFrame with the global scores
+        If inplace is True, it will add `mod_added` to the MuData object.
+            If add_categories is True, `cats` will be added as a layer to the `mod_added` AnnData object.
+            If n_perms is not None, `local_pvalues` will be added as a layer to the `mod_added` AnnData object.
         if inplace is False, it will return:
             - global_scores: pandas.DataFrame with the global scores
             - local_scores: pandas.DataFrame with the local scores
             - local_pvalues: pandas.DataFrame with the local p-values (if n_perms is not None)
         
         """
-        if n_perms < 0:
-            raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")
+        if n_perms is not None:
+            if not isinstance(n_perms, int) or n_perms < 0:
+                raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")
         
         connectivity = _handle_connectivity(mdata, connectivity, connectivity_key)
         local_fun = _handle_functions(function_name)
