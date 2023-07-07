@@ -22,7 +22,8 @@ class MistyData(MuData):
         Parameters
         ----------
         data : `dict`
-            Dictionary of views (anndatas). Requires an intra-view called "intra".
+            Dictionary of views (anndatas) or an mdata object.
+            Requires an intra-view called "intra".
         obs : `pd.DataFrame`
             DataFrame of observations. If None, the obs of the intra-view is used.
         spatial_key : `str`
@@ -31,6 +32,13 @@ class MistyData(MuData):
         **kwargs : `dict`
             Keyword arguments passed to the MuData Super class
         """
+        
+        if isinstance(data, MuData):
+            temp = {}
+            for view in list(data.mod.keys()):
+                temp[view] = data.mod[view]
+            data = temp
+        
         super().__init__(data, **kwargs)
         self.view_names = list(self.mod.keys())
         self.spatial_key = spatial_key

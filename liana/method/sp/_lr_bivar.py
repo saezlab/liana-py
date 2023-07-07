@@ -38,7 +38,7 @@ class SpatialLR(_SpatialMeta):
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.05,
                  n_perms: int = 1000,
-                 positive_only: bool = True, ## TODO change to categorical
+                 positive_only: bool = True,
                  add_categories: bool = False,
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
