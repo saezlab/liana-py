@@ -5,6 +5,7 @@ import numpy as np
 from anndata import AnnData
 import pandas as pd
 from typing import Optional
+from scipy.sparse import csr_matrix
 
 
 from liana.resource import select_resource
@@ -16,7 +17,7 @@ from liana.method.sp._spatial_pipe import _rename_means, _categorize, \
     _run_scores_pipeline, _connectivity_to_weight, _handle_connectivity, \
         _add_complexes_to_var
 from liana.method.sp._bivariate_funs import _handle_functions
-
+from liana.funcomics.obsm_to_adata import obsm_to_adata
 
 class SpatialLR(_SpatialMeta):
     def __init__(self, _method, _complex_cols):
@@ -181,11 +182,11 @@ class SpatialLR(_SpatialMeta):
         
         if inplace:
             adata.uns[key_added] = lr_res
-            adata.obsm[obsm_added] = local_scores
+            adata.obsm[obsm_added] = obsm_to_adata(adata=adata, df=local_scores, obsm_key=None, _uns=adata.uns)
             if n_perms is not None:
-                adata.obsm['local_pvals'] = local_pvals
+                adata.obsm[obsm_added].layers['pvals'] = csr_matrix(local_pvals.T)
             if add_categories:
-                adata.obsm['local_cats'] = local_cats.T
+                adata.obsm[obsm_added].layers['cats'] = csr_matrix(local_cats.T)
 
         return None if inplace else (lr_res, local_scores, local_pvals, local_cats)
 

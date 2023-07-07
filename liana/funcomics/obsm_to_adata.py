@@ -40,7 +40,6 @@ def obsm_to_adata(adata, obsm_key, df = None, _uns=None, _obsm=None):
     else:
         obsm = _obsm
     
-    obsm = adata.obsm
     obsp = adata.obsp
     
     var = pd.DataFrame(index = df.columns)

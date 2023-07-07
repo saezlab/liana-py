@@ -68,18 +68,24 @@ def test_masked_pearson():
     # check global
     assert 'global_res' in mdata.uns.keys()
     assert set(['global_mean','global_sd']).issubset(mdata.uns['global_res'].columns)
-    # check specific values are what we expect; TODO
+    
     
 
 
 def test_vectorized_pearson():
     mdata = generate_toy_mdata()
-    bivar(mdata, x_mod='adata_x', y_mod='adata_y', function_name='pearson')
+    bivar(mdata, x_mod='adata_x', y_mod='adata_y', function_name='pearson', n_perms=100)
     
     # check local
     assert 'local_scores' in mdata.mod.keys()
-    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.mean(), 0.009908355, decimal=5)
+    adata = mdata.mod['local_scores']
+    np.testing.assert_almost_equal(adata.X.mean(), 0.009908355, decimal=5)
+    np.testing.assert_almost_equal(adata.layers['pvals'].mean(), 0.754255396825397, decimal=5)
     
     # check global
     assert 'global_res' in mdata.uns.keys()
-    assert set(['global_mean','global_sd']).issubset(mdata.uns['global_res'].columns)
+    global_res = mdata.uns['global_res']
+    assert set(['global_mean','global_sd']).issubset(global_res.columns)
+    np.testing.assert_almost_equal(global_res['global_mean'].mean(), 0.009908353887100166, decimal=5)
+    np.testing.assert_almost_equal(global_res['global_sd'].mean(), 0.3175441555765978, decimal=5)
+    

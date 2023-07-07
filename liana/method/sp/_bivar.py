@@ -39,7 +39,7 @@ class SpatialBivariate(_SpatialMeta):
                  key_added = 'global_res',
                  positive_only=False, ## TODO change to categorical
                  add_categories = False,
-                 n_perms: int = 100,
+                 n_perms: int = None,
                  seed = 1337,
                  nz_threshold = 0,
                  remove_self_interactions=True,
@@ -152,7 +152,6 @@ class SpatialBivariate(_SpatialMeta):
         x_mat = mdata[x_mod][:, xy_stats['x_entity']].X.T
         y_mat = mdata[y_mod][:, xy_stats['y_entity']].X.T
             
-            
         if add_categories or positive_only:
             local_cats = _categorize(x_mat=x_mat,
                                      y_mat=y_mat,
@@ -176,7 +175,6 @@ class SpatialBivariate(_SpatialMeta):
                                  positive_only=positive_only,
                                  pvalue_msk=local_cats,
                                  )
-
         
         if not inplace:
             return xy_stats, local_scores, local_pvals, local_cats
@@ -188,10 +186,10 @@ class SpatialBivariate(_SpatialMeta):
         mdata.mod[mod_added] = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
         
         if local_cats is not None:
-            mdata.mod[mod_added].layers['cats'] = local_cats
+            mdata.mod[mod_added].layers['cats'] = csr_matrix(local_cats.T)
         
         if local_pvals is not None: 
-            mdata.mod[mod_added].layers['pvals'] = local_pvals
+            mdata.mod[mod_added].layers['pvals'] = csr_matrix(local_pvals.T)
     
 
 

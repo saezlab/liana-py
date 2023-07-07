@@ -302,7 +302,7 @@ def _single_view_model(y, view, intra_obs_msk, predictors, model, k_cv, seed, n_
                                                  shuffle=True),
                                         n_jobs=n_jobs
                                         )
-        # NOTE: I use the t-values as for feature importances
+        # NOTE: I use ols t-values for feature importances
         importances = sm.OLS(y, X).fit().tvalues
         # importances = model.fit(X=X, y=y).coef_
         # importances = sm.OLS(y, X).fit().params
@@ -340,7 +340,7 @@ def _multi_model(y, predictions, intra_group, bypass_intra, view_str, k_cv, alph
             
         # TODO: misty's ridgeCV p-values (ridge::pvals) are calculated as in 
         # https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-12-372#Sec2
-        # these are needed for the normalization of the RF importances
+        # these are needed for the scaling of RF importances
 
     intra_r2 = R2_vec_intra.mean() if not bypass_intra else 0
     
@@ -357,7 +357,6 @@ def _mask_connectivity(adata, connectivity, extra_obs_msk, predictors):
     
     return view
 
-# TODO: rename to _get_nonself
 def _get_nonself(target, predictors):
     if target in predictors:
         insert_idx = np.where(np.array(predictors) == target)[0][0]

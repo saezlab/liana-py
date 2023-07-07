@@ -382,10 +382,6 @@ def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, pvalue_msk,
     local_scores = _local_to_dataframe(array=local_scores,
                                        idx=idx,
                                        columns=xy_stats['interaction'])
-    if local_pvals is not None:
-        local_pvals = _local_to_dataframe(array=local_pvals,
-                                          idx=idx,
-                                          columns=xy_stats['interaction'])
 
     return xy_stats, local_scores, local_pvals
 
@@ -479,7 +475,7 @@ def _connectivity_to_weight(connectivity, local_fun):
         return csr_matrix(connectivity)
     
     elif (connectivity.shape[0] < 5000) | local_fun.__name__.__contains__("masked"):
-    # NOTE vectorized is faster with non-sparse, masked_scores don't work with sparse
+    # NOTE vectorized is faster with non-sparse, masked_scores won't work with sparse
             return connectivity.A
     else:
         return csr_matrix(connectivity)
