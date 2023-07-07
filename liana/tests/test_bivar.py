@@ -15,7 +15,8 @@ def test_bivar_morans():
     # with perms
     bivar(mdata, x_mod='adata_x', y_mod='adata_y', 
           function_name='morans', n_perms=2)
-    np.testing.assert_almost_equal(np.mean(mdata.obsm['local_pvals'].values), 0.604936507, decimal=6)
+    
+    np.testing.assert_almost_equal(np.mean(mdata.mod['local_scores'].layers['pvals']), 0.604936507, decimal=6)
 
 
 def test_bivar_nondefault():
@@ -40,7 +41,7 @@ def test_bivar_nondefault():
     local_pvals.shape == (700, 100)
     np.testing.assert_almost_equal(np.min(np.min(local_pvals)), 0.5, decimal=2)
     
-    assert local_categories.values.sum() == -22400
+    assert local_categories.sum() == -22400
     
     
 

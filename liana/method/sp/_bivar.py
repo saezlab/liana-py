@@ -29,9 +29,9 @@ class SpatialBivariate(_SpatialMeta):
 
     def __call__(self,
                  mdata,
-                 function_name,
                  x_mod,
                  y_mod,
+                 function_name='cosine',
                  interactions = None,
                  xy_separator = '^',
                  connectivity_key = 'spatial_connectivities', # connectivity_key
@@ -153,7 +153,7 @@ class SpatialBivariate(_SpatialMeta):
         y_mat = mdata[y_mod][:, xy_stats['y_entity']].X.T
             
             
-        if add_categories:
+        if add_categories or positive_only:
             local_cats = _categorize(x_mat=x_mat,
                                      y_mat=y_mat,
                                      weight=weight,
@@ -162,7 +162,6 @@ class SpatialBivariate(_SpatialMeta):
                                      )
         else:
             local_cats = None
-            
         
         # get local scores
         xy_stats, local_scores, local_pvals = \
@@ -175,6 +174,7 @@ class SpatialBivariate(_SpatialMeta):
                                  seed=seed,
                                  n_perms=n_perms,
                                  positive_only=positive_only,
+                                 pvalue_msk=local_cats,
                                  )
 
         
@@ -187,12 +187,11 @@ class SpatialBivariate(_SpatialMeta):
         # save as a modality
         mdata.mod[mod_added] = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
         
-        # save to obsm; TODO: save to layer
         if local_cats is not None:
-            mdata.obsm['local_cats'] = local_cats
+            mdata.mod[mod_added].layers['cats'] = local_cats
         
         if local_pvals is not None: 
-            mdata.obsm['local_pvals'] = local_pvals
+            mdata.mod[mod_added].layers['pvals'] = local_pvals
     
 
 

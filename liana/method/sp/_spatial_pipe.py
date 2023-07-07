@@ -22,7 +22,7 @@ def _local_to_dataframe(array, idx, columns):
 
 
 def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_perms, seed,
-                             positive_only, **kwargs):
+                             positive_only, pvalue_msk, **kwargs):
     """
     Calculate local pvalues for a given local score function.
 
@@ -67,11 +67,8 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_per
 
     local_pvals = local_pvals / n_perms
 
-    ## TODO change this to directed which uses the categories as mask
-    if positive_only:  # TODO change to directed mask (both, negative, positive)
-        # only keep positive pvals where either x or y is positive
-        pos_msk = ((x_mat > 0) + (y_mat > 0)).T
-        local_pvals[~pos_msk] = 1
+    if positive_only:
+        local_pvals[pvalue_msk] = 1
 
     return local_pvals
 
@@ -107,11 +104,6 @@ def _categorize(x_mat, y_mat, weight, idx, columns):
     # add the two categories, and simplify them to ints
     cats = np.core.defchararray.add(x_cats, y_cats)
     cats = _simplify_cats(cats)
-    
-    cats = _local_to_dataframe(array=cats,
-                               idx=idx,
-                               columns=columns
-                               )
     
     return cats
 
@@ -221,7 +213,7 @@ def _global_zscore_pvals(weight, global_r, positive_only):
     return global_zpvals
 
 
-def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, positive_only):
+def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, positive_only, pvalue_msk):
     """
 
     Parameters
@@ -257,10 +249,7 @@ def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, positive_only):
     local_zscores = local_truth / std
 
     if positive_only:
-        # TODO: this should be according to categories...
-        local_zpvals = norm.sf(local_zscores)
-        pos_msk = ((x_mat > 0) + (y_mat > 0)).T  # mask?
-        local_zpvals[~pos_msk] = 1
+        local_zpvals[pvalue_msk] = 1
     else:
         local_zpvals = norm.sf(np.abs(local_zscores))
 
@@ -362,7 +351,7 @@ def _global_spatialdm(x_mat,
     return np.array((global_r, global_pvals))
 
 
-def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun,
+def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, pvalue_msk,
                          weight, positive_only, n_perms, seed):
     local_scores, local_pvals = _get_local_scores(x_mat=x_mat.T,
                                                   y_mat=y_mat.T,
@@ -371,6 +360,7 @@ def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun,
                                                   seed=seed,
                                                   n_perms=n_perms,
                                                   positive_only=positive_only,
+                                                  pvalue_msk=pvalue_msk,
                                                   )
 
     # global scores fun
@@ -383,6 +373,7 @@ def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun,
                                   n_perms=n_perms,
                                   positive_only=positive_only,
                                   local_scores=local_scores,
+                                  pvalue_msk=pvalue_msk,
                                   )
 
     # convert to DataFrames
@@ -404,6 +395,7 @@ def _get_local_scores(x_mat,
                       n_perms,
                       seed,
                       positive_only,
+                      pvalue_msk,
                       ):
     """
     Local Moran's Bivariate I as implemented in SpatialDM
@@ -437,14 +429,16 @@ def _get_local_scores(x_mat,
                                                local_fun=local_fun,
                                                n_perms=n_perms,
                                                seed=seed,
-                                               positive_only=positive_only
+                                               positive_only=positive_only,
+                                               pvalue_msk=pvalue_msk
                                                )
     elif n_perms == 0:
         local_pvals = _local_zscore_pvals(x_mat=x_mat,
                                           y_mat=y_mat,
                                           local_truth=local_scores,
                                           weight=weight,
-                                          positive_only=positive_only
+                                          positive_only=positive_only,
+                                          pvalue_msk=pvalue_msk
                                           )
     elif n_perms is None:
         local_pvals = None
@@ -452,7 +446,7 @@ def _get_local_scores(x_mat,
     return local_scores, local_pvals
 
 
-def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, positive_only,
+def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, positive_only, pvalue_msk,
                        n_perms, seed, local_scores):
     if local_fun.__name__ == "_local_morans":
         xy_stats.loc[:, ['global_r', 'global_pvals']] = \
