@@ -37,8 +37,8 @@ class SpatialLR(_SpatialMeta):
                  obsm_added='local_scores',
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.05,
-                 n_perms: int = 1000,
-                 positive_only: bool = True,
+                 n_perms: int = None,
+                 positive_only: bool = False, # TODO: False, and apply to scores?
                  add_categories: bool = False,
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
@@ -165,6 +165,8 @@ class SpatialLR(_SpatialMeta):
                                      idx=adata.obs.index,
                                      columns=lr_res.interaction,
                                      )
+        else:
+            local_cats = None
         
         # get local scores
         lr_res, local_scores, local_pvals = \

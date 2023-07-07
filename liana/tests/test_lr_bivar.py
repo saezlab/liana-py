@@ -8,7 +8,7 @@ adata = generate_toy_spatial()
 
 def test_morans_analytical():
     adata = generate_toy_spatial()
-    lr_bivar(adata, function_name='morans', n_perms=0, use_raw=True)
+    lr_bivar(adata, function_name='morans', n_perms=0, use_raw=True, positive_only=True)
     assert 'local_scores' in adata.obsm_keys()
     lrdata = adata.obsm['local_scores']
 
