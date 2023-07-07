@@ -37,9 +37,8 @@ class SpatialBivariate(_SpatialMeta):
                  connectivity_key = 'spatial_connectivities', # connectivity_key
                  mod_added = "local_scores",
                  key_added = 'global_res',
-                 add_categories = False, ## TODO currently very experimental
-                 pvalue_method: (str | None) = None,
                  positive_only=False, ## TODO change to categorical
+                 add_categories = False,
                  n_perms: int = 100,
                  seed = 1337,
                  nz_threshold = 0,
@@ -73,12 +72,11 @@ class SpatialBivariate(_SpatialMeta):
             Name of the modality to add to the MuData object (in case of inplace=True)
         add_categories : bool
             Whether to add_categories the local scores or not
-        pvalue_method : str
-            Method to obtain P-values: One out of ['permutation', 'analytical', None];
         positive_only : bool
             Whether to calculate p-values only for positive correlations. `True` by default.
         n_perms : int
-            Number of permutations to use for the p-value calculation (when set to permutation)
+            Number of permutations to use for the p-value calculation (when > 1). If -1, will use the analytical solution.
+            If None (default), will not calculate p-values (only local scores).
         seed : int
             Seed to use for the permutation
         nz_threshold : int
@@ -104,16 +102,16 @@ class SpatialBivariate(_SpatialMeta):
         
         If inplace is True, it will add the following modalities to the MuData object:
             - local_scores: pandas.DataFrame with the local scores
-            - local_pvalues: pandas.DataFrame with the local p-values (if pvalue_method is not None)
+            - local_pvalues: pandas.DataFrame with the local p-values (if n_perms is not None)
             - global_scores: pandas.DataFrame with the global scores
         if inplace is False, it will return:
             - global_scores: pandas.DataFrame with the global scores
             - local_scores: pandas.DataFrame with the local scores
-            - local_pvalues: pandas.DataFrame with the local p-values (if pvalue_method is not None)
+            - local_pvalues: pandas.DataFrame with the local p-values (if n_perms is not None)
         
         """
-        if pvalue_method not in ['analytical', 'permutation', None]:
-            raise ValueError("`pvalue_method` must be one of ['analytical', 'permutation', None]")
+        if n_perms < 0:
+            raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")
         
         connectivity = _handle_connectivity(mdata, connectivity, connectivity_key)
         local_fun = _handle_functions(function_name)
@@ -154,19 +152,6 @@ class SpatialBivariate(_SpatialMeta):
         x_mat = mdata[x_mod][:, xy_stats['x_entity']].X.T
         y_mat = mdata[y_mod][:, xy_stats['y_entity']].X.T
             
-        # get local scores
-        xy_stats, local_scores, local_pvals = \
-            _run_scores_pipeline(xy_stats=xy_stats,
-                                 x_mat=x_mat,
-                                 y_mat=y_mat,
-                                 idx=mdata.obs.index,
-                                 local_fun=local_fun,
-                                 weight=weight,
-                                 seed=seed,
-                                 n_perms=n_perms,
-                                 pvalue_method=pvalue_method,
-                                 positive_only=positive_only,
-                                 )
             
         if add_categories:
             local_cats = _categorize(x_mat=x_mat,
@@ -177,6 +162,21 @@ class SpatialBivariate(_SpatialMeta):
                                      )
         else:
             local_cats = None
+            
+        
+        # get local scores
+        xy_stats, local_scores, local_pvals = \
+            _run_scores_pipeline(xy_stats=xy_stats,
+                                 x_mat=x_mat,
+                                 y_mat=y_mat,
+                                 idx=mdata.obs.index,
+                                 local_fun=local_fun,
+                                 weight=weight,
+                                 seed=seed,
+                                 n_perms=n_perms,
+                                 positive_only=positive_only,
+                                 )
+
         
         if not inplace:
             return xy_stats, local_scores, local_pvals, local_cats
@@ -187,7 +187,7 @@ class SpatialBivariate(_SpatialMeta):
         # save as a modality
         mdata.mod[mod_added] = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
         
-        # save to obsm
+        # save to obsm; TODO: save to layer
         if local_cats is not None:
             mdata.obsm['local_cats'] = local_cats
         

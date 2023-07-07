@@ -14,7 +14,7 @@ def test_bivar_morans():
     
     # with perms
     bivar(mdata, x_mod='adata_x', y_mod='adata_y', 
-          function_name='morans', pvalue_method="permutation", n_perms=2)
+          function_name='morans', n_perms=2)
     np.testing.assert_almost_equal(np.mean(mdata.obsm['local_pvals'].values), 0.604936507, decimal=6)
 
 
@@ -28,7 +28,7 @@ def test_bivar_nondefault():
     
     global_stats, local_scores, local_pvals, local_categories = \
           bivar(mdata, x_mod='adata_x', y_mod='adata_y', 
-                function_name='morans', pvalue_method="analytical", 
+                function_name='morans', n_perms=0,
                 connectivity_key='ones', remove_self_interactions=False,
                 x_layer = "scaled", y_layer = "scaled", inplace=False, 
                 add_categories=True
