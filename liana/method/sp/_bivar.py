@@ -159,8 +159,10 @@ class SpatialBivariate(_SpatialMeta):
                                      idx=mdata.obs.index,
                                      columns=xy_stats.interaction,
                                      )
+            pos_msk = local_cats > 0
         else:
             local_cats = None
+            pos_msk = None
         
         # get local scores
         xy_stats, local_scores, local_pvals = \
@@ -173,7 +175,7 @@ class SpatialBivariate(_SpatialMeta):
                                  seed=seed,
                                  n_perms=n_perms,
                                  positive_only=positive_only,
-                                 pvalue_msk=local_cats,
+                                 pos_msk=pos_msk,
                                  )
         
         if not inplace:

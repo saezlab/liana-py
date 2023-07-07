@@ -165,8 +165,10 @@ class SpatialLR(_SpatialMeta):
                                      idx=adata.obs.index,
                                      columns=lr_res.interaction,
                                      )
+            pos_msk = local_cats > 0
         else:
             local_cats = None
+            pos_msk = None
         
         # get local scores
         lr_res, local_scores, local_pvals = \
@@ -179,7 +181,7 @@ class SpatialLR(_SpatialMeta):
                                  seed=seed,
                                  n_perms=n_perms,
                                  positive_only=positive_only,
-                                 pvalue_msk=local_cats
+                                 pos_msk=pos_msk
                                  )
         
         if inplace:

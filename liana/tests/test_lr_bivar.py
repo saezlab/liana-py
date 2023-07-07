@@ -22,7 +22,7 @@ def test_morans_analytical():
     np.testing.assert_almost_equal(interaction['global_pvals'].values, 3.4125671e-07)
 
     np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF&CD74_CXCR4'].X), -0.0013958386, decimal=6)
-    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF&CD74_CXCR4'].layers['pvals']), 0.5015600724400779, decimal=6)
+    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF&CD74_CXCR4'].layers['pvals']), 0.8947058566671323, decimal=6)
 
 
 def test_cosine_permutation():
@@ -53,4 +53,4 @@ def test_morans_pval_none_cats():
     assert 'pvals' not in adata.layers.keys()
     
     assert 'cats' in adata.layers.keys()
-    assert adata.layers['cats'].sum() == -10306
+    assert adata.layers['cats'].sum() == -6197
