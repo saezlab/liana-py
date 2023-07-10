@@ -75,7 +75,7 @@ def test_local_permutation_pvals():
                                      n_perms = n_perms,
                                      seed = seed,
                                      positive_only=positive_only,
-                                     pvalue_msk=np.ones((10, 10), dtype=bool)
+                                     pos_msk=np.ones((10, 10), dtype=bool)
                                      )
     assert pvals.shape == (10, 10)
 
@@ -93,5 +93,5 @@ def test_local_zscore_pvals():
     local_truth = rng.normal(size=(10, 10))
     pvals = _local_zscore_pvals(x_mat=x_mat, y_mat=y_mat, weight=weight,
                                 local_truth=local_truth, positive_only=positive_only,
-                                pvalue_msk=np.ones((10, 10), dtype=bool))
+                                pos_msk=np.ones((10, 10), dtype=bool))
     assert pvals.shape == (10, 10)

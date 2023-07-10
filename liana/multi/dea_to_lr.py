@@ -22,6 +22,7 @@ def dea_to_lr(adata,
               return_all_lrs=False,
               source_labels = None,
               target_labels = None,
+              lr_sep="^",
               verbose = False,
               ):
     _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
@@ -126,5 +127,7 @@ def dea_to_lr(adata,
     for key in stat_keys:
         stat_columns = lr_res.columns[lr_res.columns.str.endswith(key)]
         lr_res.loc[:, f'interaction_{key}'] = lr_res.loc[:, stat_columns].mean(axis=1)
+        
+    lr_res['interaction'] = lr_res['ligand_complex'] + lr_sep + lr_res['receptor_complex']
     
     return lr_res
