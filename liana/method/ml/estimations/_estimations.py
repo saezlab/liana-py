@@ -2,10 +2,10 @@ from pandas import DataFrame
 from numpy import array, in1d, vstack, array
 from scipy.sparse import csr_matrix, lil_matrix
 from tqdm import tqdm
-from decoupler import run_ulm, run_mlm, run_wmean, run_wsum, run_mdt, run_udt, run_viper, run_ora, run_gsea, run_gsva
+from decoupler import run_ulm, run_wmean
 
 
-def _metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell', pass_mask = False, **kwargs) -> DataFrame: 
+def metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell', pass_mask = False, **kwargs) -> DataFrame: 
     """
     Estimate metabolite abundances 
     Parameters

@@ -133,7 +133,7 @@ class AggregateClass(MethodMeta):
                                resource=resource,
                                expr_prop=expr_prop,
                                min_cells=min_cells,
-                               met_est_resource_name=None,
+                               metsets_name=None,
                                met_est_resource=None,
                                est_fun=None,
                                score_fun=None,

@@ -15,27 +15,27 @@ def test_cellphone():
     adata = get_toy_adata()
     metalinks(adata, groupby='bulk_labels', est_fun = 'ulm', score_fun = 'cellphone', n_perms=10, pass_mask = False)
     
-    assert adata.uns['CCC_res'].shape == (2690, 11)
+    assert adata.uns['liana_res'].shape == (2690, 11)
     assert adata.obsm['metabolite_abundance'].shape == (700, 29)
     assert ('mask' in adata.uns) == False
-    assert 'ligand_name' in adata.uns['CCC_res'].columns
+    assert 'ligand_name' in adata.uns['liana_res'].columns
 
 def test_gmean():
     adata = get_toy_adata()
     metalinks(adata, groupby='bulk_labels', est_fun = 'ulm', score_fun = 'gmean', n_perms=10, pass_mask = False)
 
-    assert adata.uns['CCC_res'].shape == (2690, 11)
+    assert adata.uns['liana_res'].shape == (2690, 11)
     assert adata.obsm['metabolite_abundance'].shape == (700, 29)
     assert ('mask' in adata.uns) == False
-    assert 'ligand_name' in adata.uns['CCC_res'].columns
+    assert 'ligand_name' in adata.uns['liana_res'].columns
 
 def test_natmi():
     metalinks(adata, groupby='bulk_labels', est_fun = 'ulm', score_fun = 'natmi', n_perms=10, pass_mask = False)
     
-    assert adata.uns['CCC_res'].shape == (2690, 13)
+    assert adata.uns['liana_res'].shape == (2690, 13)
     assert adata.obsm['metabolite_abundance'].shape == (700, 29)
     assert ('mask' in adata.uns) == False
-    assert 'ligand_name' in adata.uns['CCC_res'].columns
+    assert 'ligand_name' in adata.uns['liana_res'].columns
 
 
 

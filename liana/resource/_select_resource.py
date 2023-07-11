@@ -2,9 +2,19 @@ from pandas import read_csv
 from numpy import unique
 import pathlib
 from pandas import DataFrame
+from ._neo4j_controller import Neo4jController
 
 
-def select_resource(resource_name: str) -> DataFrame:
+def select_resource(resource_name: str, 
+                    cellular_locations_list= None, 
+                    tissue_locations_list=None, 
+                    biospecimen_locations_list= None, 
+                    database_cutoff= None, 
+                    experiment_cutoff= None,
+                    prediction_cutoff= None,
+                    combined_cutoff= None,
+                    ) -> DataFrame:
+
     """
     Read resource of choice from the pre-generated resources in LIANA.
 
@@ -20,7 +30,7 @@ def select_resource(resource_name: str) -> DataFrame:
     """
     if resource_name == 'metalinksdb':
         
-        resource_path = '/home/efarr/Documents/GitHub/metalinks/metalinksDB/MR_ai_cgno.csv'
+        resource_path = resource_path = pathlib.Path(__file__).parent.joinpath('MR_ai_cgno.csv') # will be removed, just for testing
         resource = read_csv(resource_path, sep='\t')
 
         resource = resource[['hmdb_id', 'symbol', 'name']]
@@ -28,33 +38,35 @@ def select_resource(resource_name: str) -> DataFrame:
                                             'symbol': 'receptor', 
                                             'name': 'ligand_name'})
         
-    elif resource_name == 'NCI60':
+    elif resource_name == 'neo4j':
 
-        resource_path = '/home/efarr/Documents/GitHub/metalinks/metalinksDB/MR_NCI60.csv'
-        resource = read_csv(resource_path, sep='\t')
+        n4j = Neo4jController(
+            'bolt://localhost:7687',
+            'neo4j',
+            '12345678'
+        )
 
-        resource = resource[['hmdb_id', 'symbol']]
-        resource = resource.rename(columns={'hmdb_id': 'ligand',
-                                            'symbol': 'receptor'})
-        
-    elif resource_name == 'CCLE':
+        subgraph = n4j.get_subgraph(
+            cellular_locations_list,
+            tissue_locations_list,
+            biospecimen_locations_list,
+            database_cutoff,
+            experiment_cutoff,
+            prediction_cutoff,
+            combined_cutoff
+        )
+        # Prepare the data for the dataframe
+        data = []
+        for record in subgraph:
+            data.append({
+                'ligand': record['HMDB'],
+                'receptor': record['Symbol'],
+                'ligand_name': record['MetName']
+                
+            })
 
-        resource_path = '/home/efarr/Documents/GitHub/metalinks/metalinksDB/MR_CCLE.csv'
-        resource = read_csv(resource_path, sep='\t')
-
-        resource = resource[['hmdb_id', 'symbol']]
-        resource = resource.rename(columns={'hmdb_id': 'ligand',
-                                            'symbol': 'receptor'})
-        
-    elif resource_name == 'kidney':
-
-        resource_path = '/home/efarr/Documents/GitHub/metalinks/metalinksDB/MR_500500900_Kidney-pred.csv'
-        resource = read_csv(resource_path, sep=',')
-
-        resource = resource[['hmdb_id', 'symbol', 'name']]
-        resource = resource.rename(columns={'hmdb_id': 'ligand',
-                                            'symbol': 'receptor', 
-                                            'name': 'ligand_name'})
+        # Create the dataframe
+        resource = DataFrame(data)
 
     else:
 
@@ -103,45 +115,17 @@ def select_metabolite_sets(metsets_name: str = 'metalinksdb') -> DataFrame:
 
     metsets_name = metsets_name.lower()
         
-    if metsets_name == 'oceandb':
+    if metsets_name == 'metalinksdb':    
 
-        resource_path = '~/Documents/Database_old/recon3D_full/proddeg_ocean.csv'
-        met_est_resource = read_csv(resource_path, sep=',')
-        
-    elif metsets_name == 'metalinksdb':    
-
-        resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_hmdb_recon_cut.csv'
-        met_est_resource = read_csv(resource_path, sep=',')
-
-    elif metsets_name == 'nci60':
-
-        resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_NCI60.csv'
-        met_est_resource = read_csv(resource_path, sep='\t')
-
-    elif metsets_name == 'ccle':
-
-        resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_CCLE.csv'
-        met_est_resource = read_csv(resource_path, sep='\t')
-
-    elif metsets_name == 'ocean':
-
-        resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_OCEAN.csv'
-        met_est_resource = read_csv(resource_path, sep='\t')
-
-    elif metsets_name == 'kidney':
-
-        resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_Kidney.csv'
-        met_est_resource = read_csv(resource_path, sep=',')
+        resource_path = pathlib.Path(__file__).parent.joinpath('PD_hmdb_recon_cut.csv') # will be removed, just for testing
+        metsets = read_csv(resource_path, sep=',')
 
     elif metsets_name == 'transport':
 
-        resource_path = '~/Documents/GitHub/metalinks/metalinksDB/PD_t.csv'
-        met_est_resource = read_csv(resource_path, sep=',')
-        
-    
-    #resource_path = pathlib.Path(__file__).parent.joinpath("omni_resource.csv")
+        resource_path = pathlib.Path(__file__).parent.joinpath('PD_t.csv') # will be removed, just for testing
+        metsets = read_csv(resource_path, sep=',')
 
-    return met_est_resource
+    return metsets
 
 
 def show_ml_resources():

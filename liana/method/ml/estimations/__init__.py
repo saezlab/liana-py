@@ -1,1 +1,1 @@
-from ._estimations import _metalinks_estimation
+from ._estimations import metalinks_estimation
