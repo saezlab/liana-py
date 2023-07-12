@@ -82,10 +82,10 @@ def _get_positions(adata, lr_res):
     labels = adata.obs['label'].cat.categories
     
     # get positions of each entity in the matrix
-    ligand_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity
-                  in lr_res['ligand']}
-    receptor_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity
-                    in lr_res['receptor']}
+    ligand_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity 
+                  in lr_res['ligand'].unique()}
+    receptor_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity 
+                    in lr_res['receptor'].unique()}
     labels_pos = {labels[pos]: pos for pos in range(labels.shape[0])}
     
     return ligand_pos, receptor_pos, labels_pos

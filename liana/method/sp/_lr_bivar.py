@@ -38,7 +38,7 @@ class SpatialLR(_SpatialMeta):
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.05,
                  n_perms: int = None,
-                 positive_only: bool = False, # TODO: False, and apply to scores?
+                 positive_only: bool = False,
                  add_categories: bool = False,
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,

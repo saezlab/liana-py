@@ -139,6 +139,8 @@ def liana_pipe(adata: anndata.AnnData,
 
     if resource is None:
         resource = select_resource(resource_name)
+    else:
+        resource = resource.copy()
     # explode complexes/decomplexify
     resource = explode_complexes(resource)
 
@@ -510,7 +512,7 @@ def _run_method(lr_res: pandas.DataFrame,
         
     lr_res.loc[:, _score.magnitude] = scores[0]
     lr_res.loc[:, _score.specificity] = scores[1]
-        
+    
 
     if return_all_lrs:
         # re-append rest of results

@@ -124,7 +124,7 @@ def prep_check_adata(adata: AnnData,
     msk_samples = np.sum(adata.X, axis=1).A1 == 0
     n_empty_samples = np.sum(msk_samples)
     if n_empty_samples > 0:
-        raise ValueError("{0} cells are empty, please remove those!")
+        raise ValueError(f"{n_empty_samples} cells are empty, please remove those!")
 
     # Check if log-norm
     _sum = np.sum(adata.X.data[0:100])
