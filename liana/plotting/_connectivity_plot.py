@@ -3,7 +3,11 @@ import anndata
 import pandas as pd
 
 
-def connectivity(adata: anndata.AnnData, idx: int, spatial_key = 'spatial', connectivity_key = 'spatial_connectivities', size=1.5, figure_size=(5.4, 5), return_fig: bool = True):
+def connectivity(adata: anndata.AnnData, idx: int, 
+                 spatial_key='spatial',
+                 connectivity_key='spatial_connectivities',
+                 size=1, figure_size=(5.4, 5),
+                 return_fig: bool = True):
     """
     Plot spatial connectivity weights.
 

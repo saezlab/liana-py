@@ -29,19 +29,19 @@ def target_metrics(misty, stat, top_n=None, figure_size=(7,5), return_fig=True):
     
     
 def contributions(misty, figure_size=(7, 5), stat=None, top_n=None, return_fig=True):
-    contributions = misty.uns['target_metrics'].copy()
+    target_metrics = misty.uns['target_metrics'].copy()
     
     if top_n is not None:
         target_metrics = target_metrics.sort_values(stat).head(top_n)
 
     view_names = misty.view_names.copy()
-    if 'intra' not in contributions.columns:
+    if 'intra' not in target_metrics.columns:
         view_names.remove('intra')
 
-    contributions = contributions[['target', *view_names]]
-    contributions = contributions.melt(id_vars='target', var_name='view', value_name='contribution')
+    target_metrics = target_metrics[['target', *view_names]]
+    target_metrics = target_metrics.melt(id_vars='target', var_name='view', value_name='contribution')
 
-    p = (p9.ggplot(contributions, p9.aes(x='target', y='contribution', fill='view')) +
+    p = (p9.ggplot(target_metrics, p9.aes(x='target', y='contribution', fill='view')) +
             p9.geom_bar(stat='identity') +
             p9.theme_bw(base_size=14) +
             p9.theme(axis_text_x=p9.element_text(rotation=90),
@@ -55,19 +55,17 @@ def contributions(misty, figure_size=(7, 5), stat=None, top_n=None, return_fig=T
     p.draw()
 
 
-def interactions(misty, view, top_n = None, ascending=None, figure_size=(7,5), return_fig=True):
+def interactions(misty, view, top_n = None, ascending=False, key=None, figure_size=(7,5), return_fig=True):
     interactions = misty.uns['interactions'].copy()
     interactions = interactions[interactions['view'] == view]
     grouped = interactions.groupby('predictor')['importances'].apply(lambda x: x.isna().all())
     interactions = interactions[~interactions['predictor'].isin(grouped[grouped].index)]
     
     if top_n is not None:
-        if ascending is None:
-            key = lambda x: abs(x)
-        else:
-            key = None
-        interactions = interactions.sort_values(by='importances', key=key, ascending=False)
-    
+        interactions = interactions.sort_values(by='importances', key=key, ascending=ascending)
+        top_interactions = interactions.drop_duplicates(['target', 'predictor']).head(top_n)
+        interactions = interactions[interactions['target'].isin(top_interactions['target']) & 
+                            interactions['predictor'].isin(top_interactions['predictor'])]
     
     p = (p9.ggplot(interactions, 
                    p9.aes(x='predictor',

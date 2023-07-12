@@ -22,7 +22,7 @@ def _local_to_dataframe(array, idx, columns):
 
 
 def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_perms, seed,
-                             positive_only, **kwargs):
+                             positive_only, pos_msk, **kwargs):
     """
     Calculate local pvalues for a given local score function.
 
@@ -67,18 +67,16 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_per
 
     local_pvals = local_pvals / n_perms
 
-    ## TODO change this to directed which uses the categories as mask
-    if positive_only:  # TODO change to directed mask (both, negative, positive)
-        # only keep positive pvals where either x or y is positive
-        pos_msk = ((x_mat > 0) + (y_mat > 0)).T
+    if positive_only:
         local_pvals[~pos_msk] = 1
 
     return local_pvals
 
 
-def _standardize_matrix(mat, local=True, axis=0):
+def _zscore(mat, local=True, axis=0):
     spot_n = mat.shape[1]
     
+    # NOTE: specific to global SpatialDM
     if not local:
         spot_n = 1
     
@@ -91,7 +89,7 @@ def _standardize_matrix(mat, local=True, axis=0):
 def _encode_as_char(a, weight):
     # if only positive
     if np.all(a >= 0):
-        a = _standardize_matrix(a, local=True, axis=0)
+        a = _zscore(a.T).T
     
     # to get a sign for each spot, we multiply by connectivities
     a = a @ weight
@@ -107,11 +105,6 @@ def _categorize(x_mat, y_mat, weight, idx, columns):
     # add the two categories, and simplify them to ints
     cats = np.core.defchararray.add(x_cats, y_cats)
     cats = _simplify_cats(cats)
-    
-    cats = _local_to_dataframe(array=cats,
-                               idx=idx,
-                               columns=columns
-                               )
     
     return cats
 
@@ -221,7 +214,7 @@ def _global_zscore_pvals(weight, global_r, positive_only):
     return global_zpvals
 
 
-def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, positive_only):
+def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, positive_only, pos_msk):
     """
 
     Parameters
@@ -257,9 +250,7 @@ def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, positive_only):
     local_zscores = local_truth / std
 
     if positive_only:
-        # TODO: this should be according to categories...
         local_zpvals = norm.sf(local_zscores)
-        pos_msk = ((x_mat > 0) + (y_mat > 0)).T  # mask?
         local_zpvals[~pos_msk] = 1
     else:
         local_zpvals = norm.sf(np.abs(local_zscores))
@@ -304,7 +295,6 @@ def _global_spatialdm(x_mat,
                       weight,
                       seed,
                       n_perms,
-                      pvalue_method,
                       positive_only
                       ):
     """
@@ -328,8 +318,6 @@ def _global_spatialdm(x_mat,
     seed
         Reproducibility seed
     n_perms
-        Number of permutatins to perform (if `pvalue_method`=='permutation')
-    pvalue_method
         Method to estimate pseudo p-value, must be in ['permutation', 'analytical']
     positive_only
         Whether to return only p-values for positive spatial correlations.
@@ -346,7 +334,10 @@ def _global_spatialdm(x_mat,
     global_r = ((x_mat @ weight) * y_mat).sum(axis=1)
 
     # calc p-values
-    if pvalue_method == 'permutation':
+    
+    if n_perms is None:
+        global_pvals = None
+    elif n_perms > 0:
         global_pvals = _global_permutation_pvals(x_mat=x_mat,
                                                  y_mat=y_mat,
                                                  weight=weight,
@@ -355,59 +346,24 @@ def _global_spatialdm(x_mat,
                                                  positive_only=positive_only,
                                                  seed=seed
                                                  )
-    elif pvalue_method == 'analytical':
+    elif n_perms==0:
         global_pvals = _global_zscore_pvals(weight=weight,
                                             global_r=global_r,
                                             positive_only=positive_only)
-    elif pvalue_method is None:
-        global_pvals = None
 
     return np.array((global_r, global_pvals))
 
 
-def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun,
-                         weight, pvalue_method, positive_only, n_perms, seed):
-    """
-        Calculates local and global scores for each interaction in `xy_dataframe`
-
-        Parameters
-        ----------
-        xy_stats
-            a dataframe with x,y relationships to be estimated, for example `lr_res`.
-        x_mat
-            Gene expression matrix for entity x (e.g. ligand)
-        y_mat
-            Gene expression matrix for entity y (e.g. receptor)
-        idx
-            Index positions of cells/spots (i.e. adata.obs.index)
-        local_fun
-            Function to calculate local scores, e.g. `liana.method._local_morans`
-        weight
-            connectivity weight matrix, obtained e.g. via `liana.method.get_spatial_connectivity`.
-            Note that for spatialDM/Morans'I `weight` has to be weighed by n / sum(W).
-        pvalue_method
-            Method to estimate pseudo p-value, must be in ['permutation', 'analytical']
-        positive_only
-            Whether to return only p-values for positive spatial correlations.
-            By default, `True`.
-        n_perms
-            Number of permutatins to perform (if `pvalue_method`=='permutation')
-        seed
-            Reproducibility seed
-
-        Returns
-        -------
-        A dataframe and two 2D arrays of size xy_dataframe.shape[1], adata.shape[0]
-
-        """
+def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, pos_msk,
+                         weight, positive_only, n_perms, seed):
     local_scores, local_pvals = _get_local_scores(x_mat=x_mat.T,
                                                   y_mat=y_mat.T,
                                                   local_fun=local_fun,
                                                   weight=weight,
                                                   seed=seed,
                                                   n_perms=n_perms,
-                                                  pvalue_method=pvalue_method,
                                                   positive_only=positive_only,
+                                                  pos_msk=pos_msk,
                                                   )
 
     # global scores fun
@@ -415,22 +371,17 @@ def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun,
                                   x_mat=x_mat,
                                   y_mat=y_mat,
                                   local_fun=local_fun,
-                                  pvalue_method=pvalue_method,
                                   weight=weight,
                                   seed=seed,
                                   n_perms=n_perms,
                                   positive_only=positive_only,
-                                  local_scores=local_scores,
+                                  local_scores=local_scores
                                   )
 
     # convert to DataFrames
     local_scores = _local_to_dataframe(array=local_scores,
                                        idx=idx,
                                        columns=xy_stats['interaction'])
-    if local_pvals is not None:
-        local_pvals = _local_to_dataframe(array=local_pvals,
-                                          idx=idx,
-                                          columns=xy_stats['interaction'])
 
     return xy_stats, local_scores, local_pvals
 
@@ -441,36 +392,11 @@ def _get_local_scores(x_mat,
                       weight,
                       n_perms,
                       seed,
-                      pvalue_method,
                       positive_only,
+                      pos_msk,
                       ):
     """
     Local Moran's Bivariate I as implemented in SpatialDM
-
-    Parameters
-    ----------
-    x_mat
-        Matrix with x variables
-    y_mat
-        Matrix with y variables
-    x_pos
-        Index positions of entity x (e.g. ligand) in `mat`
-    y_pos
-        Index positions of entity y (e.g. receptor) in `mat`
-    xy_dataframe
-        a dataframe with x,y relationships to be estimated, for example `lr_res`.
-    weight
-        connectivity weight matrix, obtained e.g. via `liana.method.get_spatial_connectivity`.
-        Note that for spatialDM/Morans'I `weight` has to be weighed by n / sum(W).
-    seed
-        Reproducibility seed
-    n_perms
-        Number of permutations to perform (if `pvalue_method`=='permutation')
-    pvalue_method
-        Method to estimate pseudo p-value, must be in ['permutation', 'analytical']
-    positive_only
-        Whether to return only p-values for positive spatial correlations.
-        By default, `True`.
 
     Returns
     -------
@@ -480,8 +406,8 @@ def _get_local_scores(x_mat,
     """
 
     if local_fun.__name__ == '_local_morans':
-        x_mat = _standardize_matrix(x_mat, local=True, axis=0)
-        y_mat = _standardize_matrix(y_mat, local=True, axis=0)
+        x_mat = _zscore(x_mat, local=True, axis=0)
+        y_mat = _zscore(y_mat, local=True, axis=0)
         
         # # NOTE: spatialdm do this, and also use .raw by default
         # x_mat = x_mat / np.max(x_mat, axis=0)
@@ -493,7 +419,9 @@ def _get_local_scores(x_mat,
 
     local_scores = local_fun(x_mat, y_mat, weight)
 
-    if pvalue_method == 'permutation':
+    if n_perms is None:
+        local_pvals = None
+    elif n_perms > 0:
         local_pvals = _local_permutation_pvals(x_mat=x_mat,
                                                y_mat=y_mat,
                                                weight=weight,
@@ -501,31 +429,30 @@ def _get_local_scores(x_mat,
                                                local_fun=local_fun,
                                                n_perms=n_perms,
                                                seed=seed,
-                                               positive_only=positive_only
+                                               positive_only=positive_only,
+                                               pos_msk=pos_msk
                                                )
-    elif pvalue_method == 'analytical':
+    elif n_perms == 0:
         local_pvals = _local_zscore_pvals(x_mat=x_mat,
                                           y_mat=y_mat,
                                           local_truth=local_scores,
                                           weight=weight,
-                                          positive_only=positive_only
+                                          positive_only=positive_only,
+                                          pos_msk=pos_msk
                                           )
-    elif pvalue_method is None:
-        local_pvals = None
 
     return local_scores, local_pvals
 
 
-def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, pvalue_method, positive_only,
+def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, positive_only,
                        n_perms, seed, local_scores):
     if local_fun.__name__ == "_local_morans":
         xy_stats.loc[:, ['global_r', 'global_pvals']] = \
-            _global_spatialdm(x_mat=_standardize_matrix(x_mat, local=False, axis=1),
-                              y_mat=_standardize_matrix(y_mat, local=False, axis=1),
+            _global_spatialdm(x_mat=_zscore(x_mat, local=False, axis=1),
+                              y_mat=_zscore(y_mat, local=False, axis=1),
                               weight=weight,
                               seed=seed,
                               n_perms=n_perms,
-                              pvalue_method=pvalue_method,
                               positive_only=positive_only
                               ).T
     else:
@@ -548,7 +475,7 @@ def _connectivity_to_weight(connectivity, local_fun):
         return csr_matrix(connectivity)
     
     elif (connectivity.shape[0] < 5000) | local_fun.__name__.__contains__("masked"):
-    # NOTE vectorized is faster with non-sparse, masked_scores don't work with sparse
+    # NOTE vectorized is faster with non-sparse, masked_scores won't work with sparse
             return connectivity.A
     else:
         return csr_matrix(connectivity)

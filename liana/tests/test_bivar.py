@@ -14,8 +14,9 @@ def test_bivar_morans():
     
     # with perms
     bivar(mdata, x_mod='adata_x', y_mod='adata_y', 
-          function_name='morans', pvalue_method="permutation", n_perms=2)
-    np.testing.assert_almost_equal(np.mean(mdata.obsm['local_pvals'].values), 0.604936507, decimal=6)
+          function_name='morans', n_perms=2)
+    
+    np.testing.assert_almost_equal(np.mean(mdata.mod['local_scores'].layers['pvals']), 0.604936507, decimal=6)
 
 
 def test_bivar_nondefault():
@@ -28,7 +29,7 @@ def test_bivar_nondefault():
     
     global_stats, local_scores, local_pvals, local_categories = \
           bivar(mdata, x_mod='adata_x', y_mod='adata_y', 
-                function_name='morans', pvalue_method="analytical", 
+                function_name='morans', n_perms=0,
                 connectivity_key='ones', remove_self_interactions=False,
                 x_layer = "scaled", y_layer = "scaled", inplace=False, 
                 add_categories=True
@@ -40,7 +41,7 @@ def test_bivar_nondefault():
     local_pvals.shape == (700, 100)
     np.testing.assert_almost_equal(np.min(np.min(local_pvals)), 0.5, decimal=2)
     
-    assert local_categories.values.sum() == -22400
+    assert local_categories.sum() == -22400
     
     
 
@@ -67,17 +68,24 @@ def test_masked_pearson():
     # check global
     assert 'global_res' in mdata.uns.keys()
     assert set(['global_mean','global_sd']).issubset(mdata.uns['global_res'].columns)
-    # check specific values are what we expect
+    
+    
 
 
 def test_vectorized_pearson():
     mdata = generate_toy_mdata()
-    bivar(mdata, x_mod='adata_x', y_mod='adata_y', function_name='pearson')
+    bivar(mdata, x_mod='adata_x', y_mod='adata_y', function_name='pearson', n_perms=100)
     
     # check local
     assert 'local_scores' in mdata.mod.keys()
-    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.mean(), 0.009908355, decimal=5)
+    adata = mdata.mod['local_scores']
+    np.testing.assert_almost_equal(adata.X.mean(), 0.009908355, decimal=5)
+    np.testing.assert_almost_equal(adata.layers['pvals'].mean(), 0.754255396825397, decimal=5)
     
     # check global
     assert 'global_res' in mdata.uns.keys()
-    assert set(['global_mean','global_sd']).issubset(mdata.uns['global_res'].columns)
+    global_res = mdata.uns['global_res']
+    assert set(['global_mean','global_sd']).issubset(global_res.columns)
+    np.testing.assert_almost_equal(global_res['global_mean'].mean(), 0.009908353887100166, decimal=5)
+    np.testing.assert_almost_equal(global_res['global_sd'].mean(), 0.3175441555765978, decimal=5)
+    

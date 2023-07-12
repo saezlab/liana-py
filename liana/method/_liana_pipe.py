@@ -360,6 +360,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
             dedict[label]['trimean'] = _trimean(temp.X / mat_max)
 
     # Create df /w cell identity pairs
+    # pd.DataFrame(list(product(labels, labels))); TODO: check this
     pairs = (pd.DataFrame(np.array(np.meshgrid(labels, labels))
                           .reshape(2, np.size(labels) * np.size(labels)).T)
              .rename(columns={0: "source", 1: "target"}))

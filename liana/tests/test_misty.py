@@ -4,6 +4,7 @@ import numpy as np
 import scanpy as sc
 from liana.method.sp._misty_constructs import lrMistyData, genericMistyData
 from liana.testing._sample_anndata import generate_toy_spatial
+from liana.method import MistyData
 
 test_path = pathlib.Path(__file__).parent
 
@@ -111,3 +112,8 @@ def test_linear_misty():
     expected = np.array([13.590895 , -0.4754166, -1.0671989], dtype='float32')
     np.testing.assert_almost_equal(actual, expected)
     
+    
+def test_misty_mudata():
+    misty = genericMistyData(adata, bandwidth=10, set_diag=False, cutoff=0)
+    misty = MistyData(misty)
+    assert misty.shape == (100, 33)

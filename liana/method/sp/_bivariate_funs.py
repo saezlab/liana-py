@@ -258,7 +258,7 @@ _bivariate_functions = [
         ),
         SpatialFunction(
             name="masked_pearson",
-            metadata="Calculates masked & weighted Pearson correlation",
+            metadata="masked & weighted Pearson correlation",
             local_function=_masked_pearson,
         ),
         SpatialFunction(
