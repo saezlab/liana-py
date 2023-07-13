@@ -25,7 +25,7 @@ def spatial_neighbors(adata: anndata.AnnData,
                       cutoff=None,
                       max_dist_ratio=3,
                       kernel='gaussian',
-                      set_diag=True,
+                      set_diag=False,
                       zoi=0,
                       spatial_key="spatial",
                       key_added='spatial',
@@ -79,8 +79,8 @@ def spatial_neighbors(adata: anndata.AnnData,
     coords = adata.obsm[spatial_key]
     tree = cKDTree(coords)
     dist = tree.sparse_distance_matrix(tree,
-                                        max_distance=bandwidth * max_dist_ratio,
-                                        output_type="coo_matrix")
+                                       max_distance=bandwidth * max_dist_ratio,
+                                       output_type="coo_matrix")
     dist = dist.tocsr()
 
     # prevent float overflow
