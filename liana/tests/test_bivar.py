@@ -56,21 +56,22 @@ def test_bivar_external():
     bivar(mdata, x_mod='adata_x', y_mod='adata_y', function_name='morans', connectivity=ones, interactions=interactions)
     
     
-def test_masked_pearson():
+def test_masked_spearman():
     mdata = generate_toy_mdata()
-    bivar(mdata, x_mod='adata_x', y_mod='adata_y', function_name='masked_pearson')
+    mdata.obsp['spatial_connectivities'] = np.ones([mdata.shape[0], mdata.shape[0]])
+    bivar(mdata, x_mod='adata_x', y_mod='adata_y', function_name='masked_spearman')
     
     # check local
     assert 'local_scores' in mdata.mod.keys()
-    mdata.mod['local_scores'].X[np.isnan(mdata.mod['local_scores'].X)]=0 # TODO fix this
-    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.mean(), 0.010296326, decimal=5)
+    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.mean(), 0.22955093, decimal=5)
     
     # check global
     assert 'global_res' in mdata.uns.keys()
-    assert set(['global_mean','global_sd']).issubset(mdata.uns['global_res'].columns)
+    global_res = mdata.uns['global_res']
+    assert set(['global_mean','global_sd']).issubset(global_res.columns)
+    np.testing.assert_almost_equal(global_res['global_mean'].mean(), 0.229551, decimal=5)
+    np.testing.assert_almost_equal(global_res['global_sd'].mean(), 1.0779696e-06, decimal=5)
     
-    
-
 
 def test_vectorized_pearson():
     mdata = generate_toy_mdata()

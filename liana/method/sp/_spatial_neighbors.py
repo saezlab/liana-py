@@ -1,5 +1,3 @@
-
-
 import anndata
 import numpy as np
 from scipy.spatial import cKDTree
@@ -45,7 +43,7 @@ def spatial_neighbors(adata: anndata.AnnData,
         Vales below this cutoff will be set to 0
     kernel
         Kernel function used to generate connectivity weights. The following options are available:
-        ['gaussian', 'spatialdm', 'exponential', 'linear', 'misty_rbf']
+        ['gaussian', 'exponential', 'linear', 'misty_rbf']
     n_neighbors
         Find k nearest neighbours, use it as a connectivity mask. In other words,
         only the connectivity of the nearest neighbours is kept as calculated
@@ -72,7 +70,7 @@ def spatial_neighbors(adata: anndata.AnnData,
     if cutoff is None:
         raise ValueError("`cutoff` must be provided!")
     assert spatial_key in adata.obsm
-    families = ['gaussian', 'spatialdm', 'exponential', 'linear', 'misty_rbf']
+    families = ['gaussian', 'exponential', 'linear', 'misty_rbf']
     if kernel not in families:
         raise AssertionError(f"{kernel} must be a member of {families}")
     if bandwidth is None:

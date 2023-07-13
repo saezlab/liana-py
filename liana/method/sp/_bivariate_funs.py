@@ -51,25 +51,9 @@ def _wcorr(x, y, w, wsum, rank):
     return numerator / (denominator**0.5)
 
 
-@nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:], nb.float32, nb.int8), cache=True)
-def _wcoex(x, y, w, wsum, method):
-    if method == 0: # pearson
-        c = _wcorr(x, y, w, wsum, False)
-    elif method == 1: # spearman
-        c = _wcorr(x, y, w, wsum, True)
-        ## Any other method
-    elif method == 2: # cosine
-        c = _wcossim(x, y, w)
-    elif method == 3: # jaccard
-        c = _wjaccard(x, y, w)
-    else: 
-        raise ValueError("method not supported")
-    return c
-
-
 # 0 = pearson, 1 = spearman, 2 = cosine, 3 = jaccard
-@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:], nb.int8), parallel=True, cache=True)
-def _masked_coexpressions(x_mat, y_mat, weight, method):
+@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), parallel=True, cache=True)
+def _masked_spearman(x_mat, y_mat, weight):
     x_mat = np.ascontiguousarray(x_mat)
     y_mat = np.ascontiguousarray(y_mat)
     weight = np.ascontiguousarray(weight)
@@ -88,33 +72,12 @@ def _masked_coexpressions(x_mat, y_mat, weight, method):
             x = x_mat[:, j][msk]
             y = y_mat[:, j][msk]
             
-            local_corrs[i, j] = _wcoex(x, y, w[msk], wsum, method)
+            local_corrs[i, j] = _wcorr(x, y, w, wsum, True)
     
     # NOTE done due to numpy/numba sum imprecision, https://github.com/numba/numba/issues/8749
     local_corrs = np.clip(a=local_corrs, a_min=-1.0, a_max=1.0, out=local_corrs)
     
     return local_corrs.T
-
-
-@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), cache=True)
-def _masked_spearman(x_mat, y_mat, weight):
-    return _masked_coexpressions(x_mat, y_mat, weight, method=1)
-
-
-@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), cache=True)
-def _masked_pearson(x_mat, y_mat, weight):
-    return _masked_coexpressions(x_mat, y_mat, weight, method=0)
-
-
-@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), cache=True)
-def _masked_cosine(x_mat, y_mat, weight):
-    return _masked_coexpressions(x_mat, y_mat, weight, method=2)
-
-
-@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), cache=True)
-def _masked_jaccard(x_mat, y_mat, weight):
-    return _masked_coexpressions(x_mat, y_mat, weight, method=3)
-
 
 
 def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
@@ -257,26 +220,11 @@ _bivariate_functions = [
             "reveals cell-cell, communication patterns. bioRxiv, pp.2022-08."
         ),
         SpatialFunction(
-            name="masked_pearson",
-            metadata="masked & weighted Pearson correlation",
-            local_function=_masked_pearson,
-        ),
-        SpatialFunction(
             name= "masked_spearman",
             metadata="masked & weighted Spearman correlation",
             local_function=_masked_spearman,
             reference="Ghazanfar, S., Lin, Y., Su, X., Lin, D.M., Patrick, E., Han, Z.G., Marioni, J.C. and Yang, J.Y.H., 2020."
             "Investigating higher-order interactions in single-cell data with scHOT. Nature methods, 17(8), pp.799-806."
-        ),
-        SpatialFunction(
-            name="masked_cosine",
-            metadata="masked & weighted cosine similarity",
-            local_function=_masked_cosine,
-        ),
-        SpatialFunction(
-            name="masked_jaccard",
-            metadata="masked & weighted Jaccard similarity",
-            local_function=_masked_jaccard,
         ),
     ]
 
