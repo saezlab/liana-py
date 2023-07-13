@@ -76,61 +76,14 @@ def metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell', pass
 
     mask = mask.tocsr()
 
-    if (est_fun in est_fun_dict.keys()) or (est_fun == 'transport'):
+    if est_fun in est_fun_dict.keys():
+        
+        final_estimates, mask, metabolites_estimated = process_estimation(est_fun, est_fun_dict, me_res, adata, mask, metabolites, verbose, **kwargs)
 
-        if est_fun == 'transport':
-
-            fun = est_fun_dict['ulm']
-
-            me_res['weight'] = me_res['direction'].apply(lambda x: 1 if x == 'producing' else -1)
-            me_res.drop_duplicates(subset=['HMDB', 'GENE'], inplace=True) ## attention: decide on direction
-            df = DataFrame(adata.X.todense(), index = adata.obs_names, columns = adata.var_names)
-            estimates = fun(df, me_res, source = 'HMDB',  target = 'GENE', weight = 'weight', verbose=verbose, use_raw=False, **kwargs)
-            estimates = estimates[len(estimates) - 1]
-            estimates[estimates < 0] = 0
-            final_estimates = csr_matrix(estimates)
-            metabolites_estimated = estimates.columns
-            mask_pd = mask[in1d(metabolites, metabolites_estimated), :]
-
-            transport_out['weight'] = transport_out['direction'].apply(lambda x: 1 if x == 'producing' else -1)
-            transport_out.drop_duplicates(subset=['HMDB', 'GENE'], inplace=True) ## attention: decide on direction
-            df = DataFrame(adata.X.todense(), index = adata.obs_names, columns = adata.var_names)
-            estimates = fun(df, transport_out, source = 'HMDB',  target = 'GENE', weight = 'weight', verbose=verbose, use_raw=False, min_n = 1, **kwargs)
-            estimates = estimates[len(estimates) - 1]
-            estimates[estimates < 0] = 0
-            final_estimates_tout = csr_matrix(estimates)
-            metabolites_estimated_tout = estimates.columns
-            mask_tout = mask[in1d(metabolites, metabolites_estimated_tout), :]
-
-            transport_in['weight'] = transport_in['direction'].apply(lambda x: 1 if x == 'producing' else -1)
-            transport_in.drop_duplicates(subset=['HMDB', 'GENE'], inplace=True) ## attention: decide on direction
-            df = DataFrame(adata.X.todense(), index = adata.obs_names, columns = adata.var_names)
-            estimates = fun(df, transport_in, source = 'HMDB',  target = 'GENE', weight = 'weight', verbose=verbose, use_raw=False,min_n = 1, **kwargs)
-            estimates = estimates[len(estimates) - 1]
-            estimates[estimates < 0] = 0
-            final_estimates_tin = csr_matrix(estimates)
-            metabolites_estimated_tin = estimates.columns
-            mask_tin = mask[in1d(metabolites, metabolites_estimated_tin), :]
-
-            final_estimates = vstack([final_estimates, final_estimates_tout, final_estimates_tin])
-            mask = vstack([mask_pd, mask_tout, mask_tin])
-            metabolites_estimated = array([metabolites_estimated, metabolites_estimated_tout, metabolites_estimated_tin])
-
-        else:
-
-            fun = est_fun_dict[est_fun]
-
-            me_res['weight'] = me_res['direction'].apply(lambda x: 1 if x == 'producing' else -1)
-            me_res.drop_duplicates(subset=['HMDB', 'GENE'], inplace=True) ## attention: decide on direction
-            df = DataFrame(adata.X.todense(), index = adata.obs_names, columns = adata.var_names)
-            estimates = fun(df, me_res, source = 'HMDB',  target = 'GENE', weight = 'weight', verbose=verbose, use_raw=False, **kwargs)
-            estimates = estimates[len(estimates) - 1]
-            estimates[estimates < 0] = 0
-            final_estimates = csr_matrix(estimates)
-            metabolites_estimated = estimates.columns
-            mask = mask[in1d(metabolites, metabolites_estimated), :]
-
-
+    elif est_fun == 'transport':
+    
+        final_estimates, mask, metabolites_estimated = process_estimation(est_fun, est_fun_dict, me_res, adata, mask, metabolites, transport_out, transport_in, verbose, **kwargs)
+    
     else:
 
         estimates = adata.X.dot(mask.T)
@@ -147,3 +100,41 @@ def metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell', pass
 
     return final_estimates, metabolites_estimated, mask
 
+
+
+def process_estimation(est_fun, est_fun_dict, me_res, adata,  mask, metabolites, transport_out = None, transport_in = None, verbose=True, **kwargs):
+    def apply_weight(x):
+        return 1 if x == 'producing' else -1
+
+    def estimate_values(df, res, source, target, weight, verbose, use_raw, **kwargs):
+        estimates = fun(df, res, source=source, target=target, weight=weight, verbose=verbose, use_raw=use_raw, **kwargs)
+        estimates = estimates[len(estimates) - 1]
+        estimates[estimates < 0] = 0
+        return csr_matrix(estimates), estimates.columns
+
+    def process_data(df, res, source, target, verbose, use_raw, **kwargs):
+        res['weight'] = res['direction'].apply(apply_weight)
+        res.drop_duplicates(subset=['HMDB', 'GENE'], inplace=True)
+        final_estimates, metabolites_estimated = estimate_values(df, res, source=source, target=target, weight='weight', verbose=verbose, use_raw=use_raw, **kwargs)
+        mask_data = mask[in1d(metabolites, metabolites_estimated), :]
+        return final_estimates, metabolites_estimated, mask_data
+
+    if est_fun == 'transport':
+        fun = est_fun_dict['ulm']
+
+        df = DataFrame(adata.X.todense(), index=adata.obs_names, columns=adata.var_names)
+        final_estimates, metabolites_estimated, mask_pd = process_data(df, me_res, source='HMDB', target='GENE', verbose=verbose, use_raw=False, **kwargs)
+        final_estimates_tout, metabolites_estimated_tout, mask_tout = process_data(df, transport_out, source='HMDB', target='GENE', verbose=verbose, use_raw=False, min_n=1, **kwargs)
+        final_estimates_tin, metabolites_estimated_tin, mask_tin = process_data(df, transport_in, source='HMDB', target='GENE', verbose=verbose, use_raw=False, min_n=1, **kwargs)
+
+        final_estimates = vstack([final_estimates, final_estimates_tout, final_estimates_tin])
+        mask = vstack([mask_pd, mask_tout, mask_tin])
+        metabolites_estimated = array([metabolites_estimated, metabolites_estimated_tout, metabolites_estimated_tin])
+
+    else:
+        fun = est_fun_dict[est_fun]
+
+        df = DataFrame(adata.X.todense(), index=adata.obs_names, columns=adata.var_names)
+        final_estimates, metabolites_estimated, mask = process_data(df, me_res, source='HMDB', target='GENE', verbose=verbose, use_raw=False, **kwargs)
+
+    return final_estimates, mask, metabolites_estimated

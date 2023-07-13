@@ -4,7 +4,7 @@ import anndata
 from pandas import DataFrame, concat
 from ._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
-from ..resource import select_resource, explode_complexes, select_metabolite_sets
+from ..resource import select_resource, explode_complexes, select_metabolite_sets, select_metalinks
 from ._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
 from ._pipe_utils._aggregate import _aggregate
 from ._pipe_utils._pre import _get_props
@@ -40,13 +40,6 @@ def liana_pipe(adata: anndata.AnnData,
                est_only: bool = False,
                pass_mask: bool = True,
                correct_fdr: bool = False,
-               cellular_locations: list | None = None,
-               tissue_locations: list | None = None,
-               biospecimen_locations: list | None = None,
-               database_cutoff: int = None,
-               experiment_cutoff: int = None,
-               prediction_cutoff: int = None,
-               combined_cutoff: int = None,
                _key_cols: list = None,
                _score=None,
                _methods: list = None,
@@ -220,14 +213,11 @@ def liana_pipe(adata: anndata.AnnData,
         assert isinstance(mat_max, np.float32)
 
     if resource is None:
-        resource = select_resource(resource_name.lower(), 
-                                   cellular_locations_list=cellular_locations,
-                                   tissue_locations_list=tissue_locations,
-                                   biospecimen_locations_list=biospecimen_locations,
-                                   database_cutoff=database_cutoff,
-                                   experiment_cutoff=experiment_cutoff,
-                                   prediction_cutoff=prediction_cutoff,
-                                   combined_cutoff=combined_cutoff)
+        if _score is not None:
+            if _score.met:
+                resource = select_metalinks()
+        else:
+            resource = select_resource(resource_name.lower())
 
     # explode complexes/decomplexify
     if _score is not None:

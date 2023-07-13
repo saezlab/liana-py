@@ -324,21 +324,6 @@ class MetabMethod(MethodMeta):
                  pass_mask: bool = True,
                  est_only: bool = False,
                  correct_fdr: bool = False,
-                 cellular_locations: list = ['Extracellular'],
-                 tissue_locations: list = ['Adrenal Cortex', 'Brain', 'Epidermis', 'Fibroblasts', 'Kidney', 'Neuron',
-                                            'Placenta', 'Skeletal Muscle', 'Spleen', 'Testis', 'Adipose Tissue',
-                                            'Intestine' ,'Liver', 'Lung', 'Pancreas', 'Platelet', 'Prostate',
-                                            'Thyroid Gland', 'Adrenal Gland' ,'Adrenal Medulla', 'Bladder', 'Heart',
-                                            'Leukocyte' ,'Ovary', 'Eye Lens', 'All Tissues', 'Erythrocyte',
-                                            'Smooth Muscle', 'Semen', 'Hair' ,'Gall Bladder', 'Retina' ,'Basal Ganglia',
-                                            'Blood'], # maybe smarter way to do that
-                 biospecimen_locations: list = ['Blood', 'Cerebrospinal Fluid (CSF)' ,'Feces' ,'Saliva' ,'Urine',
-                                                'Amniotic Fluid', 'Sweat' ,'Breast Milk', 'Cellular Cytoplasm', 'Bile',
-                                                'Semen', 'Breath'],
-                 database_cutoff: int = 200,
-                 experiment_cutoff: int = 300,
-                 prediction_cutoff: int = 700,
-                 combined_cutoff: int = 900,
                  **kwargs):
         """
         Parameters
@@ -420,13 +405,6 @@ class MetabMethod(MethodMeta):
                         _score = self._method, 
                         pass_mask=pass_mask,
                         est_only=est_only,
-                        cellular_locations = cellular_locations,
-                        tissue_locations = tissue_locations,
-                        biospecimen_locations= biospecimen_locations,
-                        database_cutoff= database_cutoff,
-                        experiment_cutoff = experiment_cutoff,
-                        prediction_cutoff = prediction_cutoff,
-                        combined_cutoff = combined_cutoff,
                         correct_fdr=correct_fdr,
                         prop_missing_allowed=prop_missing_allowed,
                         **kwargs
