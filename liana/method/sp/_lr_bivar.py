@@ -183,14 +183,20 @@ class SpatialLR(_SpatialMeta):
                                  positive_only=positive_only,
                                  pos_msk=pos_msk
                                  )
+            
+        local_scores = obsm_to_adata(adata=adata, df=local_scores, obsm_key=None, _uns=adata.uns)
+        if positive_only:
+            local_scores.X = local_scores.X * pos_msk.T
         
         if inplace:
             adata.uns[key_added] = lr_res
-            adata.obsm[obsm_added] = obsm_to_adata(adata=adata, df=local_scores, obsm_key=None, _uns=adata.uns)
+            local_scores.uns[key_added] = lr_res
+            adata.obsm[obsm_added] = local_scores
+            
             if n_perms is not None:
-                adata.obsm[obsm_added].layers['pvals'] = csr_matrix(local_pvals.T)
+                local_scores.layers['pvals'] = csr_matrix(local_pvals.T)
             if add_categories:
-                adata.obsm[obsm_added].layers['cats'] = csr_matrix(local_cats.T)
+                local_scores.layers['cats'] = csr_matrix(local_cats.T)
 
         return None if inplace else (lr_res, local_scores, local_pvals, local_cats)
 
