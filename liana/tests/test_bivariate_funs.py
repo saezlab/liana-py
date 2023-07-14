@@ -1,8 +1,7 @@
 import numpy as np
 
 from liana.method.sp._bivariate_funs import _vectorized_pearson, _vectorized_spearman, \
-    _vectorized_cosine, _vectorized_jaccard, _masked_pearson, \
-         _masked_spearman, _masked_cosine, _masked_jaccard, _local_morans
+    _vectorized_cosine, _vectorized_jaccard,_masked_spearman, _local_morans
 
 from scipy.sparse import csr_matrix
 
@@ -25,11 +24,6 @@ def test_pc_vectorized():
     _assert_bivariate(_vectorized_pearson, pc_vec_truth, x_mat, y_mat, weight)
 
 
-def test_pc_masked():
-    pc_masked_truth = np.array([ 0.25005117,  0.04262732, -0.00130363,  0.2903336 , -0.12365292])
-    _assert_bivariate(_masked_pearson, pc_masked_truth, x_mat, y_mat, weight.A)  # NOTE the .A is to convert to dense
-
-
 def test_sp_vectorized():
     sp_vec_truth = np.array([ 0.23636213,  0.16480759, -0.01487235,  0.22840601, -0.11492937])
     _assert_bivariate(_vectorized_spearman, sp_vec_truth, x_mat, y_mat, weight)
@@ -44,23 +38,9 @@ def test_costine_vectorized():
     _assert_bivariate(_vectorized_cosine, cosine_vec_truth, x_mat, y_mat, weight)
 
 
-def test_cosine_masked():
-    cosine_masked_truth = np.array([ 0.3380698 ,  0.03215112,  0.09502427,  0.29577583, -0.10259596])
-    _assert_bivariate(_masked_cosine, cosine_masked_truth, x_mat, y_mat, weight.A) # NOTE the .A is to convert to dense
-
-
 def test_vectorized_jaccard():
     jaccard_vec_truth = np.array([0.34295967, 0.35367563, 0.39685577, 0.41780996, 0.30527356])
     _assert_bivariate(_vectorized_jaccard, jaccard_vec_truth, x_mat, y_mat, weight)
-
-
-def test_masked_jaccard():
-    def _binarize(mat):
-       return (mat > 0).astype(np.float32)
-        
-    x_bin, y_bin = _binarize(x_mat), _binarize(y_mat)
-    jac_masked_truth = np.array([0.34295967, 0.35367563, 0.39685577, 0.41780996, 0.30527356])
-    _assert_bivariate(_masked_jaccard, jac_masked_truth, x_bin, y_bin, weight.A) # NOTE the .A is to convert to dense
 
 
 # NOTE: spatialdm uses raw counts

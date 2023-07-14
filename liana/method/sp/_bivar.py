@@ -34,10 +34,12 @@ class SpatialBivariate(_SpatialMeta):
                  function_name='cosine',
                  interactions = None,
                  xy_separator = '^',
-                 connectivity_key = 'spatial_connectivities', # connectivity_key
+                 connectivity_key = 'spatial_connectivities',
                  mod_added = "local_scores",
                  key_added = 'global_res',
-                 positive_only=False, ## TODO change to categorical
+                 # TODO: this should not be positive_only
+                 # but rather remove low-low??
+                 positive_only=False,
                  add_categories = False,
                  n_perms: int = None,
                  seed = 1337,
@@ -183,13 +185,13 @@ class SpatialBivariate(_SpatialMeta):
             
         # save to uns
         mdata.uns[key_added] = xy_stats
-        
         # save as a modality
         mdata.mod[mod_added] = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
         
+        if positive_only:
+            mdata.mod[mod_added].X = mdata.mod[mod_added].X * pos_msk.T
         if local_cats is not None:
             mdata.mod[mod_added].layers['cats'] = csr_matrix(local_cats.T)
-        
         if local_pvals is not None: 
             mdata.mod[mod_added].layers['pvals'] = csr_matrix(local_pvals.T)
     
