@@ -3,6 +3,9 @@ from .sc._rank_aggregate import AggregateClass, _rank_aggregate_meta as aggregat
 from .sc import cellphonedb, connectome, logfc, natmi, singlecellsignalr, geometric_mean, cellchat, metalinks
 
 
+from .sp import bivar, lr_bivar, show_functions, genericMistyData, lrMistyData, MistyData
+from .sp._spatial_neighbors import spatial_neighbors
+
 import numpy as np
 
 # callable consensus instance

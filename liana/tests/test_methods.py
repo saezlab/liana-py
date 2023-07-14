@@ -1,9 +1,8 @@
-import pandas
-from numpy import max, min
+import pandas as pd
 from numpy.testing import assert_almost_equal
 
 from liana.method import cellphonedb, singlecellsignalr as sca, \
-    natmi, connectome, logfc, geometric_mean, cellchat, metalinks
+    natmi, connectome, logfc, geometric_mean, cellchat
     
 from liana.testing._toy_adata import get_toy_adata
 
@@ -19,7 +18,7 @@ def test_cellchat():
     assert 'liana_res' in adata.uns.keys()
 
     liana_res = adata.uns['liana_res']
-    assert isinstance(liana_res, pandas.DataFrame)
+    assert isinstance(liana_res, pd.DataFrame)
 
     assert 'lr_probs' in liana_res.columns
     assert 'cellchat_pvals' in liana_res.columns
@@ -35,7 +34,7 @@ def test_cellphonedb():
     assert 'liana_res' in adata.uns.keys()
 
     liana_res = adata.uns['liana_res']
-    assert isinstance(liana_res, pandas.DataFrame)
+    assert isinstance(liana_res, pd.DataFrame)
 
     assert 'lr_means' in liana_res.columns
     assert 'cellphone_pvals' in liana_res.columns
@@ -59,7 +58,7 @@ def test_geometric_mean():
     assert 'liana_res' in adata.uns.keys()
 
     liana_res = adata.uns['liana_res']
-    assert isinstance(liana_res, pandas.DataFrame)
+    assert isinstance(liana_res, pd.DataFrame)
 
     assert 'lr_gmeans' in liana_res.columns
     assert 'gmean_pvals' in liana_res.columns
@@ -75,7 +74,7 @@ def test_natmi():
     assert 'liana_res' in adata.uns.keys()
 
     liana_res = adata.uns['liana_res']
-    assert isinstance(liana_res, pandas.DataFrame)
+    assert isinstance(liana_res, pd.DataFrame)
 
     assert 'expr_prod' in liana_res.columns
     assert 'spec_weight' in liana_res.columns
@@ -92,7 +91,7 @@ def test_sca():
     assert 'liana_res' in adata.uns.keys()
 
     liana_res = adata.uns['liana_res']
-    assert isinstance(liana_res, pandas.DataFrame)
+    assert isinstance(liana_res, pd.DataFrame)
 
     assert 'lrscore' in liana_res.columns
     assert_almost_equal(max(liana_res[(liana_res.ligand == "TIMP1")].lrscore), 0.781133536891427, decimal=6)
@@ -106,7 +105,7 @@ def test_logfc():
     assert 'liana_res' in adata.uns.keys()
 
     liana_res = adata.uns['liana_res']
-    assert isinstance(liana_res, pandas.DataFrame)
+    assert isinstance(liana_res, pd.DataFrame)
 
     assert 'lr_logfc' in liana_res.columns
     assert_almost_equal(max(liana_res[(liana_res.ligand == "TIMP1")].lr_logfc), 1.4352725744247437, decimal=6)
@@ -119,7 +118,7 @@ def test_connectome():
     assert 'liana_res' in adata.uns.keys()
 
     liana_res = adata.uns['liana_res']
-    assert isinstance(liana_res, pandas.DataFrame)
+    assert isinstance(liana_res, pd.DataFrame)
 
     assert 'expr_prod' in liana_res.columns
     assert 'scaled_weight' in liana_res.columns

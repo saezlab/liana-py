@@ -1,9 +1,4 @@
-import pandas
-from numpy import max, min
-from numpy.testing import assert_almost_equal
-
 from liana.method import metalinks
-    
 from liana.testing._toy_adata import get_toy_adata
 
 # load toy adata

@@ -25,14 +25,19 @@ def select_resource(resource_name: str,
     resource_name = resource_name.lower()
 
     resource_path = pathlib.Path(__file__).parent.joinpath("omni_resource.csv")
+    
     resource = read_csv(resource_path, index_col=False)
+
+    if resource_name not in resource['resource'].unique():
+        raise ValueError(f"Resource {resource_name} not found. "
+                         f"Please choose from {resource['resource'].unique()}")
 
     resource = resource[resource['resource'] == resource_name]
 
     resource = resource[['source_genesymbol', 'target_genesymbol']]
     resource = resource.rename(columns={'source_genesymbol': 'ligand',
-                                        'target_genesymbol': 'receptor'})
-
+                                        'target_genesymbol': 'receptor'}
+                               )
     return resource
 
 
@@ -134,7 +139,6 @@ def query_metalinks(cellular_locations: list = ['Extracellular'],
     return resource
 
 
-
 def show_resources():
     """
     Show provided resources.
@@ -146,7 +150,51 @@ def show_resources():
     """
     resource_path = pathlib.Path(__file__).parent.joinpath("omni_resource.csv")
     resource = read_csv(resource_path, index_col=False)
-    return list(unique(resource.resource))
+    return list(unique(resource['resource']))
+
+
+def select_metabolite_sets(metsets_name: str = 'metalinksdb') -> DataFrame:
+    """
+    Read resource of choice from the pre-generated resources in LIANA.
+
+    Parameters
+    ----------
+    resource_name
+        Name of the resource to be loaded and use for ligand-receptor inference.
+
+    Returns
+    -------
+    A dataframe with ``['ligand', 'receptor']`` columns
+
+    """
+
+    metsets_name = metsets_name.lower()
+        
+    if metsets_name == 'metalinksdb':    
+
+        resource_path = pathlib.Path(__file__).parent.joinpath('PD_hmdb_recon_cut.csv') # will be removed, just for testing
+        metsets = read_csv(resource_path, sep=',')
+
+    elif metsets_name == 'transport':
+
+        resource_path = pathlib.Path(__file__).parent.joinpath('PD_t.csv') # will be removed, just for testing
+        metsets = read_csv(resource_path, sep=',')
+
+    return metsets
+
+
+def show_ml_resources():
+    """
+    Show provided resources.
+
+    Returns
+    -------
+    A list of resource names available via ``liana.resource.select_resource``
+
+    """
+    resource_path = pathlib.Path(__file__).parent.joinpath("omni_resource.csv")
+    resource = read_csv(resource_path, index_col=False)
+    return list(unique(resource['resource']))
 
 
 def select_metabolite_sets(metsets_name: str = 'metalinksdb') -> DataFrame:

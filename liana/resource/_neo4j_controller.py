@@ -25,7 +25,7 @@ class Neo4jController:
     experiment_cutoff, 
     prediction_cutoff,
     combined_cutoff
-):
+    ):
         with self.__driver.session() as session:
             result = session.read_transaction(
                 self.__get_subgraph,

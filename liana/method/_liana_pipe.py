@@ -103,8 +103,6 @@ def liana_pipe(adata: anndata.AnnData,
     A adata frame with ligand-receptor results
 
     """
-    from .sc import _natmi_score, _cpdb_score, _gmean_score
-
     # Check and Reformat Mat if needed
     assert groupby is not None
     adata = prep_check_adata(adata=adata,
@@ -116,64 +114,67 @@ def liana_pipe(adata: anndata.AnnData,
     
     if _score is not None:
         if _score.met:
-                fun_dict = {'cellphone': _cpdb_score,
-                            'natmi': _natmi_score,            
-                            'gmean': _gmean_score,
-                            }
-        
-                _score.fun = fun_dict[score_fun]
-                _key_cols = _key_cols = ['source', 'target']
+            # TODO why?
+            from .sc import _natmi_score, _cpdb_score, _gmean_score
+            fun_dict = {'cellphone': _cpdb_score,
+                        'natmi': _natmi_score,            
+                        'gmean': _gmean_score,
+                        }
+    
+            _score.fun = fun_dict[score_fun]
+            _key_cols = _key_cols = ['source', 'target']
 
-                if score_fun == 'gmean':
-                    _score. complex_cols=["ligand_means", "receptor_means"]
-                
-                elif score_fun == 'natmi':
-                    _score.complex_cols=["ligand_means", "receptor_means"]
-                    _score.add_cols = ['ligand_means_sums', 'receptor_means_sums', 'ligand_name']
+            if score_fun == 'gmean':
+                _score. complex_cols=["ligand_means", "receptor_means"]
+            
+            elif score_fun == 'natmi':
+                _score.complex_cols=["ligand_means", "receptor_means"]
+                _score.add_cols = ['ligand_means_sums', 'receptor_means_sums', 'ligand_name']
 
 
-                # Load metabolite resource
-                met_est_resource = select_metabolite_sets(metsets_name)
+            # NOTE: ???
+            # Load metabolite resource
+            met_est_resource = select_metabolite_sets(metsets_name)
 
-                # Estimate metabolite abundances, check if ocean etc with flags and if or run_method
-                met_est_result = metalinks_estimation(me_res=met_est_resource, 
-                                                        adata=adata, 
-                                                        est_fun = est_fun,
-                                                        verbose=verbose, 
-                                                        pass_mask=pass_mask, 
-                                                        **kwargs)
+            # Estimate metabolite abundances, check if ocean etc with flags and if or run_method
+            met_est_result = metalinks_estimation(me_res=met_est_resource, 
+                                                    adata=adata, 
+                                                    est_fun = est_fun,
+                                                    verbose=verbose, 
+                                                    pass_mask=pass_mask, 
+                                                    **kwargs)
 
-                if metsets_name == 'transport':
+            if metsets_name == 'transport':
 
-                    _score.add_cols = ['ligand_influx_score', 'ligand_efflux_score', 'ligand_name', 'ligand_pd_score']
+                _score.add_cols = ['ligand_influx_score', 'ligand_efflux_score', 'ligand_name', 'ligand_pd_score']
 
-                    adata.obsm['metabolite_abundance'] = met_est_result[0][0][0]
-                    adata.uns['met_index'] = met_est_result[1][0]
+                adata.obsm['metabolite_abundance'] = met_est_result[0][0][0]
+                adata.uns['met_index'] = met_est_result[1][0]
 
-                    mask = DataFrame(met_est_result[2][0][0].todense(), columns=adata.var_names, index=met_est_result[1][0])
+                mask = DataFrame(met_est_result[2][0][0].todense(), columns=adata.var_names, index=met_est_result[1][0])
 
-                    adata.obsm['metabolite_efflux'] = met_est_result[0][1][0]
-                    adata.uns['met_index_efflux'] = met_est_result[1][1]
+                adata.obsm['metabolite_efflux'] = met_est_result[0][1][0]
+                adata.uns['met_index_efflux'] = met_est_result[1][1]
 
-                    adata.obsm['metabolite_influx'] = met_est_result[0][2][0]
-                    adata.uns['met_index_influx'] = met_est_result[1][2]
+                adata.obsm['metabolite_influx'] = met_est_result[0][2][0]
+                adata.uns['met_index_influx'] = met_est_result[1][2]
 
-                else:
-                    #assign results to adata
-                    adata.obsm['metabolite_abundance'] = met_est_result[0]
-                    adata.uns['met_index'] = met_est_result[1]
+            else:
+                #assign results to adata
+                adata.obsm['metabolite_abundance'] = met_est_result[0]
+                adata.uns['met_index'] = met_est_result[1]
 
-                    mask = DataFrame(met_est_result[2].todense(), columns=adata.var_names, index=met_est_result[1])
+                mask = DataFrame(met_est_result[2].todense(), columns=adata.var_names, index=met_est_result[1])
 
-                # allow early exit e.g. for metabolite estimation benchmarking
-                if est_only:         
-                    if pass_mask:
-                        if est_fun == 'transport':
-                            return met_est_result[0], met_est_result[2], met_est_result[1]
-                        else:
-                            return met_est_result[0], mask.T, met_est_result[1]
+            # allow early exit e.g. for metabolite estimation benchmarking
+            if est_only:         
+                if pass_mask:
+                    if est_fun == 'transport':
+                        return met_est_result[0], met_est_result[2], met_est_result[1]
                     else:
-                        return met_est_result[0]
+                        return met_est_result[0], mask.T, met_est_result[1]
+                else:
+                    return met_est_result[0]
                 
                 
     if _key_cols is None:
@@ -189,8 +190,7 @@ def liana_pipe(adata: anndata.AnnData,
                      'ligand_zscores', 'receptor_zscores',
                      'ligand_logfc', 'receptor_logfc',
                      'ligand_trimean', 'receptor_trimean',
-                     'mat_mean', 'mat_max',
-                     ]
+                     'mat_mean', 'mat_max',]
         
     if n_perms is None:
         _consensus_opts = 'Magnitude'
@@ -209,15 +209,20 @@ def liana_pipe(adata: anndata.AnnData,
 
     # get mat max for CellChat
     if 'mat_max' in _add_cols:
-        mat_max = np.max(adata.X.data)
+        mat_max = adata.X.max()
         assert isinstance(mat_max, np.float32)
 
+    # TODO: just add metalinks as a resource in the csv
     if resource is None:
         if _score is not None:
             if _score.met:
                 resource = select_metalinks()
+            else:
+                resource = select_resource(resource_name)
         else:
-            resource = select_resource(resource_name.lower())
+            resource = select_resource(resource_name)
+    else:
+        resource = resource.copy()
 
     # explode complexes/decomplexify
     if _score is not None:
@@ -229,7 +234,8 @@ def liana_pipe(adata: anndata.AnnData,
     # Check overlap between resource and adata
     assert_covered(np.union1d(np.unique(resource["ligand"]),
                               np.unique(resource["receptor"])),
-                   adata.var_names, verbose=verbose, prop_missing_allowed=prop_missing_allowed)
+                   adata.var_names, verbose=verbose,
+                   prop_missing_allowed=prop_missing_allowed)
 
     # Filter Resource
     if _score is not None:
@@ -341,11 +347,16 @@ def liana_pipe(adata: anndata.AnnData,
             else:  # Return by method results as they are
                 return lrs
         else:  # Run the specific method in mind
-            lr_res = _run_method(lr_res=lr_res, adata=adata, expr_prop=expr_prop,
-                                 _score=_score, _key_cols=_key_cols, _complex_cols=_complex_cols,
-                                 _add_cols=_add_cols, n_perms=n_perms,
+            lr_res = _run_method(lr_res=lr_res,
+                                 adata=adata,
+                                 expr_prop=expr_prop,
+                                 _score=_score, _key_cols=_key_cols,
+                                 _complex_cols=_complex_cols,
+                                 _add_cols=_add_cols,
+                                 n_perms=n_perms,
                                  return_all_lrs=return_all_lrs,
-                                 verbose=verbose, seed=seed)
+                                 verbose=verbose,
+                                 seed=seed)
     else:  # Just return lr_res
         lr_res = filter_reassemble_complexes(lr_res=lr_res,
                                              _key_cols=_key_cols,
@@ -353,6 +364,12 @@ def liana_pipe(adata: anndata.AnnData,
                                              complex_cols=_complex_cols,
                                              return_all_lrs=return_all_lrs)
         
+    if _score is not None:
+        orderby, ascending =  (_score.magnitude, _score.magnitude_ascending) if _score.magnitude is not None \
+            else (_score.specificity, _score.specificity_ascending)
+            
+        lr_res = lr_res.sort_values(by=orderby, ascending=ascending)
+    
     if correct_fdr:
         lr_res[_score.specificity] = fdrcorrection(lr_res[_score.specificity])[1]
 
@@ -488,7 +505,6 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
                                         copy=True)
         
     if met:
-
         # initialize dict
         dedict_met = {}
 
@@ -572,13 +588,13 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
             dedict_gene[label]['trimean'] = _trimean(temp.X / mat_max)
 
     # Create df /w cell identity pairs
+    # pd.DataFrame(list(product(labels, labels))); TODO: check this
     pairs = (DataFrame(np.array(np.meshgrid(labels, labels))
                           .reshape(2, np.size(labels) * np.size(labels)).T)
              .rename(columns={0: "source", 1: "target"}))
     
 
     if met:
-
         if est_fun == 'transport':
             # Join Stats
             lr_res = concat(
@@ -603,6 +619,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
         assert isinstance(mat_mean, np.float32)
         lr_res['mat_mean'] = mat_mean
 
+    # NOTE: this is not needed
     if isinstance(mat_max, np.float32):
         lr_res['mat_max'] = mat_max
 
@@ -687,10 +704,11 @@ def _run_method(lr_res: DataFrame,
                 ) -> DataFrame:
     
     if _score.met:
-        lr_res = lr_res[(lr_res['ligand_means'] > 0) & (lr_res['ligand_props'] >= expr_prop)  & (lr_res['receptor_props'] >= expr_prop) & (lr_res['receptor_means'] > 0) ]
+        lr_res = lr_res[(lr_res['ligand_means'] > 0) & (lr_res['ligand_props'] >= expr_prop)  & 
+                        (lr_res['receptor_props'] >= expr_prop) & (lr_res['receptor_means'] > 0) ]
     else:
         # re-assemble complexes - specific for each method
-        if _score.met == False:
+        if _score.met == False: # NOTE ???
             lr_res = filter_reassemble_complexes(lr_res=lr_res,
                                                 _key_cols=_key_cols,
                                                 expr_prop=expr_prop,
@@ -709,7 +727,7 @@ def _run_method(lr_res: DataFrame,
 
     if ('mat_max' in _add_cols) & (_score.method_name == "CellChat"):
         # CellChat matrix_max
-        norm_factor = np.unique(lr_res['mat_max'].values).item()
+        norm_factor = np.unique(lr_res['mat_max'].values)[0]
         agg_fun = _trimean
     else:
         norm_factor = None
@@ -728,7 +746,6 @@ def _run_method(lr_res: DataFrame,
             if _score.met:
                 perms_ligand = perms[0]
                 perms_receptor = perms[1]
-
 
             # get tensor indexes for ligand, receptor, source, target
             ligand_idx, receptor_idx, source_idx, target_idx = _get_mat_idx(adata, lr_res, met=_score.met)
@@ -754,7 +771,7 @@ def _run_method(lr_res: DataFrame,
         
     lr_res.loc[:, _score.magnitude] = scores[0]
     lr_res.loc[:, _score.specificity] = scores[1]
-        
+    
 
     if return_all_lrs:
         # re-append rest of results

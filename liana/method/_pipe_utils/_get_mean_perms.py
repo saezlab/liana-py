@@ -39,7 +39,7 @@ def _get_means_perms(adata: anndata.AnnData,
         - labels_pos: Index of cell identities in the perms tensor
     """
 
-    if isinstance(norm_factor, np.float):
+    if isinstance(norm_factor, np.float32):
         adata.X /= norm_factor
 
     # define labels and masks
@@ -110,13 +110,13 @@ def _get_positions(adata, lr_res, met = False):
     
     # get positions of each entity in the matrix
     if met:
-        ligand_pos = {entity: np.where(adata.uns['met_index'] == entity)[0][0] for \
+        ligand_pos = {entity: np.where(adata.uns['met_index'] == entity)[0][0] for
                       entity in lr_res['ligand']}
     else:
-        ligand_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity \
-                  in lr_res['ligand']}
-    receptor_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity \
-                    in lr_res['receptor']}
+        ligand_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity
+                  in lr_res['ligand'].unique()}
+    receptor_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity 
+                    in lr_res['receptor'].unique()}
     labels_pos = {labels[pos]: pos for pos in range(labels.shape[0])}
     
     return ligand_pos, receptor_pos, labels_pos

@@ -65,6 +65,7 @@ def prep_check_adata(adata: AnnData,
                      min_cells: (int | None),
                      use_raw: Optional[bool] = False,
                      layer: Optional[str] = None,
+                     obsm = None,
                      verbose: Optional[bool] = False) -> AnnData:
     """
     Check if the anndata object is in the correct format and preprocess
@@ -84,9 +85,6 @@ def prep_check_adata(adata: AnnData,
         Use raw attribute of adata if present.
     layer
         Indicate whether to use any layer.
-    obsm_keys
-        Indicate whether to keep obsm with spatial info or to discard.
-        By default, False and discarded.
     verbose
         Verbosity flag.
 
@@ -109,14 +107,9 @@ def prep_check_adata(adata: AnnData,
                        obs=adata.obs.copy(),
                        dtype="float32",
                        var=var,
-                       obsp=adata.obsp
+                       obsp=adata.obsp,
+                       obsm=obsm
                        )
-
-    # convert to sparse csr matrix
-    if not isspmatrix_csr(adata.X):
-        if verbose:
-            print("Converting mat to CSR format")
-        adata.X = csr_matrix(adata.X)
 
     # Check for empty features
     msk_features = np.sum(adata.X, axis=0).A1 == 0
@@ -131,7 +124,7 @@ def prep_check_adata(adata: AnnData,
     msk_samples = np.sum(adata.X, axis=1).A1 == 0
     n_empty_samples = np.sum(msk_samples)
     if n_empty_samples > 0:
-        raise ValueError("{0} cells are empty, please remove those!")
+        raise ValueError(f"{n_empty_samples} cells are empty, please remove those!")
 
     # Check if log-norm
     _sum = np.sum(adata.X.data[0:100])
@@ -264,24 +257,31 @@ def _choose_mtx_rep(adata, use_raw=False, layer=None, verbose=False) -> csr_matr
     -------
         The matrix to be used by liana-py.
     """
-
     is_layer = layer is not None
     if is_layer & use_raw:
         raise ValueError("Cannot specify `layer` and have `use_raw=True`.")
     if is_layer:
         if verbose:
             print(f"Using the `{layer}` layer!")
-        return adata.layers[layer]
+        X = adata.layers[layer]
     elif use_raw:
         if adata.raw is None:
             raise ValueError("`.raw` is not initialized!")
         if verbose:
             print("Using `.raw`!")
-        return adata.raw.X
+        X = adata.raw.X
     else:
         if verbose:
             print("Using `.X`!")
-        return adata.X
+        X = adata.X
+        
+    # convert to sparse csr matrix
+    if not isspmatrix_csr(X):
+        if verbose:
+            print("Converting mat to CSR format")
+        X = csr_matrix(X)
+    
+    return X
 
 
 def _get_props(X_mask):

@@ -21,6 +21,8 @@ def dotplot(adata: anndata.AnnData = None,
             orderby_ascending: bool | None = None,
             filterby: bool | None = None,
             filter_lambda=None,
+            ligand_complex: str | None = None, 
+            receptor_complex: str | None = None,
             inverse_colour: bool = False,
             inverse_size: bool = False,
             size_range: tuple = (2, 9),
@@ -76,9 +78,12 @@ def dotplot(adata: anndata.AnnData = None,
                                 liana_res=liana_res, 
                                 source_labels=source_labels,
                                 target_labels=target_labels,
+                                ligand_complex = ligand_complex, 
+                                receptor_complex = receptor_complex,
                                 size=size,
                                 colour=colour,
-                                uns_key=uns_key,
+                                uns_key=uns_key
+                                ,
                                 met=met,)
 
     if filterby is not None:
@@ -98,13 +103,16 @@ def dotplot(adata: anndata.AnnData = None,
             how = 'max'
 
         if met:
+            # TODO: get rid of this redundancy
             top_lrs = _aggregate_scores(liana_res, what=orderby, how=how,
                                     entities=['interaction',
                                               'ligand_name',
                                               'receptor']
             )
         else:
-            top_lrs = _aggregate_scores(liana_res, what=orderby, how=how,
+            top_lrs = _aggregate_scores(liana_res,
+                                    what=orderby,
+                                    how=how,
                                     entities=['interaction',
                                               'ligand_complex',
                                               'receptor_complex']
@@ -151,16 +159,16 @@ def dotplot(adata: anndata.AnnData = None,
     
 def dotplot_by_sample(adata: anndata.AnnData  = None,
                       uns_key: str = 'liana_res',
-                      liana_res: pandas.DataFrame =None,
+                      liana_res: pandas.DataFrame = None,
                       sample_key: str = 'sample',
                       colour: str  = None,
                       size: str = None,
                       inverse_colour: bool = False,
                       inverse_size: bool = False,
-                      source_labels: str | None =None,
-                      target_labels: str | None =None,
-                      ligand_complex: str | None =None, 
-                      receptor_complex: str | None =None,
+                      source_labels: str | None = None,
+                      target_labels: str | None = None,
+                      ligand_complex: str | None = None, 
+                      receptor_complex: str | None = None,
                       size_range: tuple = (2, 9),
                       figure_size: tuple = (8, 6),
                       return_fig: bool = True
@@ -211,15 +219,11 @@ def dotplot_by_sample(adata: anndata.AnnData  = None,
                                 liana_res=liana_res, 
                                 source_labels=source_labels,
                                 target_labels=target_labels,
+                                ligand_complex=ligand_complex,
+                                receptor_complex=receptor_complex,
                                 size=size,
                                 colour=colour,
-                                uns_key=uns_key)
-    
-    if ligand_complex is not None:
-        liana_res = liana_res[np.isin(liana_res['ligand_complex'], ligand_complex)]
-    if receptor_complex is not None:
-        liana_res = liana_res[np.isin(liana_res['receptor_complex'], receptor_complex)]
-        
+                                uns_key=uns_key)    
         
     # inverse sc if needed
     if inverse_colour:
@@ -258,6 +262,8 @@ def _prep_liana_res(adata=None,
                     liana_res=None,
                     source_labels=None,
                     target_labels=None,
+                    ligand_complex=None,
+                    receptor_complex=None,
                     colour=None,
                     size=None,
                     uns_key='liana_res', 
@@ -281,10 +287,16 @@ def _prep_liana_res(adata=None,
     liana_res = _filter_labels(liana_res, labels=source_labels, label_type='source')
     liana_res = _filter_labels(liana_res, labels=target_labels, label_type='target')
     
+    # TODO: Get rid of this redundancy
     if met:
         liana_res['interaction'] = liana_res['ligand_name'] + ' -> ' + liana_res['receptor']
     else:
         liana_res['interaction'] = liana_res['ligand_complex'] + ' -> ' + liana_res['receptor_complex']
+    
+    if ligand_complex is not None:
+        liana_res = liana_res[np.isin(liana_res['ligand_complex'], ligand_complex)]
+    if receptor_complex is not None:
+        liana_res = liana_res[np.isin(liana_res['receptor_complex'], receptor_complex)]
 
     return liana_res
 
