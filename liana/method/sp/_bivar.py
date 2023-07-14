@@ -34,7 +34,7 @@ class SpatialBivariate(_SpatialMeta):
                  function_name='cosine',
                  interactions = None,
                  xy_separator = '^',
-                 connectivity_key = 'spatial_connectivities', # connectivity_key
+                 connectivity_key = 'spatial_connectivities',
                  mod_added = "local_scores",
                  key_added = 'global_res',
                  # TODO: this should not be positive_only
