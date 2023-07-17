@@ -34,6 +34,7 @@ class MistyData(MuData):
         """
         
         if isinstance(data, MuData):
+            # TODO: Might be easier if mu.MuData(mdata.mod) works
             temp = {}
             for view in list(data.mod.keys()):
                 temp[view] = data.mod[view]
