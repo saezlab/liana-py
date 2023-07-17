@@ -114,7 +114,7 @@ def liana_pipe(adata: anndata.AnnData,
     
     if _score is not None:
         if _score.met:
-            # TODO why?
+            # TODO REMOVE
             from .sc import _natmi_score, _cpdb_score, _gmean_score
             fun_dict = {'cellphone': _cpdb_score,
                         'natmi': _natmi_score,            
@@ -131,8 +131,6 @@ def liana_pipe(adata: anndata.AnnData,
                 _score.complex_cols=["ligand_means", "receptor_means"]
                 _score.add_cols = ['ligand_means_sums', 'receptor_means_sums', 'ligand_name']
 
-
-            # NOTE: ???
             # Load metabolite resource
             met_est_resource = select_metabolite_sets(metsets_name)
 
@@ -144,8 +142,10 @@ def liana_pipe(adata: anndata.AnnData,
                                                     pass_mask=pass_mask, 
                                                     **kwargs)
 
+            # NOTE: What is happening here?
             if metsets_name == 'transport':
-
+                # TODO: Check if efflux is on source; influx on target
+                # NOTE: try to keep this; see if it works?
                 _score.add_cols = ['ligand_influx_score', 'ligand_efflux_score', 'ligand_name', 'ligand_pd_score']
 
                 adata.obsm['metabolite_abundance'] = met_est_result[0][0][0]
@@ -167,6 +167,7 @@ def liana_pipe(adata: anndata.AnnData,
                 mask = DataFrame(met_est_result[2].todense(), columns=adata.var_names, index=met_est_result[1])
 
             # allow early exit e.g. for metabolite estimation benchmarking
+            # TODO: this should not be returned here
             if est_only:         
                 if pass_mask:
                     if est_fun == 'transport':
@@ -240,6 +241,7 @@ def liana_pipe(adata: anndata.AnnData,
     # Filter Resource
     if _score is not None:
         if _score.met:
+            # TODO: maybe easier to just move that one line here?
             resource = filter_resource(resource=resource, var_names=adata.var_names, metabolite_index=adata.uns['met_index'])
         else:
             resource = filter_resource(resource, adata.var_names)
@@ -374,6 +376,7 @@ def liana_pipe(adata: anndata.AnnData,
         lr_res[_score.specificity] = fdrcorrection(lr_res[_score.specificity])[1]
 
     if _score is not None:
+        #TODO this is not here
         if _score.met:
             if pass_mask:
                 if est_fun == 'transport':
@@ -412,8 +415,8 @@ def _join_stats(source, target, resource, dedict_gene, dedict_met = None, dedict
     if dedict_met:
         source_stats = dedict_met[source].copy()
 
+        # NOTE: what is happening here?
         if dedict_efflux:
-
             efflux_stats = dedict_efflux[source].copy()
             efflux_stats = efflux_stats.rename(columns={'means': 'efflux_score', 'props': 'efflux_props'})  
 
@@ -429,8 +432,6 @@ def _join_stats(source, target, resource, dedict_gene, dedict_met = None, dedict
 
             source_stats.rename(columns = {'means': 'pd_score'}, inplace = True)
             source_stats['means'] = est_scores['met_est']
-
-
 
     else: 
         source_stats = dedict_gene[source].copy()
@@ -505,6 +506,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
                                         copy=True)
         
     if met:
+        # NOTE: What is this?
         # initialize dict
         dedict_met = {}
 
@@ -588,12 +590,11 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
             dedict_gene[label]['trimean'] = _trimean(temp.X / mat_max)
 
     # Create df /w cell identity pairs
-    # pd.DataFrame(list(product(labels, labels))); TODO: check this
+    # pd.DataFrame(list(product(labels, labels))); TODO: change this
     pairs = (DataFrame(np.array(np.meshgrid(labels, labels))
                           .reshape(2, np.size(labels) * np.size(labels)).T)
              .rename(columns={0: "source", 1: "target"}))
     
-
     if met:
         if est_fun == 'transport':
             # Join Stats
@@ -619,10 +620,9 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
         assert isinstance(mat_mean, np.float32)
         lr_res['mat_mean'] = mat_mean
 
-    # NOTE: this is not needed
+    # NOTE: this is not needed??
     if isinstance(mat_max, np.float32):
         lr_res['mat_max'] = mat_max
-
 
     # subset to only relevant columns
     relevant_cols = np.intersect1d(relevant_cols, lr_res.columns)
@@ -744,6 +744,7 @@ def _run_method(lr_res: DataFrame,
                                      verbose=verbose, 
                                      met = _score.met)
             if _score.met:
+                # TODO: fix this, just call the function outside twice; don't change the function itself
                 perms_ligand = perms[0]
                 perms_receptor = perms[1]
 
@@ -751,6 +752,7 @@ def _run_method(lr_res: DataFrame,
             ligand_idx, receptor_idx, source_idx, target_idx = _get_mat_idx(adata, lr_res, met=_score.met)
             
             # ligand and receptor perms
+            # TODO: change this, why a second if?
             if _score.met:
                         ligand_stat_perms = perms_ligand[:, source_idx, ligand_idx]
                         receptor_stat_perms = perms_receptor[:, target_idx, receptor_idx]
@@ -772,7 +774,6 @@ def _run_method(lr_res: DataFrame,
     lr_res.loc[:, _score.magnitude] = scores[0]
     lr_res.loc[:, _score.specificity] = scores[1]
     
-
     if return_all_lrs:
         # re-append rest of results
         lr_res = concat([lr_res, rest_res], copy=False)

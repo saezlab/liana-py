@@ -171,7 +171,6 @@ def _append_replace(x: str, l: list):
     l.append(x)
     return x.replace('_', '')
 
-
 # format variable names
 def format_vars(var_names, verbose=False) -> list:
     """
@@ -219,8 +218,8 @@ def filter_resource(resource: DataFrame, var_names: Index, metabolite_index = No
     """
     if metabolite_index is not None:
         resource = resource[(np.isin(resource.ligand, metabolite_index)) & (np.isin(resource.receptor, var_names))]
- 
         return resource
+    
     # Remove those without any subunit
     resource = resource[(np.isin(resource.ligand, var_names)) &
                         (np.isin(resource.receptor, var_names))]

@@ -7,7 +7,8 @@ from decoupler import run_ulm, run_wmean
 
 def metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell', pass_mask = False, **kwargs) -> DataFrame: 
     """
-    Estimate metabolite abundances 
+    Estimate metabolite abundances
+    
     Parameters
     ----------
     me_res : pandas.core.frame.DataFrame
@@ -78,21 +79,26 @@ def metalinks_estimation(me_res, adata, verbose, est_fun = 'mean_per_cell', pass
 
     if est_fun in est_fun_dict.keys():
         
-        final_estimates, mask, metabolites_estimated = process_estimation(est_fun, est_fun_dict, me_res, adata, mask, metabolites, verbose, **kwargs)
+        final_estimates, mask, metabolites_estimated = process_estimation(est_fun, est_fun_dict,
+                                                                          me_res, adata, mask, 
+                                                                          metabolites, verbose, **kwargs)
 
     elif est_fun == 'transport':
     
-        final_estimates, mask, metabolites_estimated = process_estimation(est_fun, est_fun_dict, me_res, adata, mask, metabolites, transport_out, transport_in, verbose, **kwargs)
+        final_estimates, mask, metabolites_estimated = process_estimation(est_fun, est_fun_dict,
+                                                                          me_res, adata, mask, metabolites,
+                                                                          transport_out, transport_in,
+                                                                          verbose, **kwargs)
     
     else:
 
         estimates = adata.X.dot(mask.T)
-        estimates = estimates / mask.getnnz(1)
+        estimates = estimates / mask.getnnz(axis=1)
         estimates[estimates != estimates] = 0
         estimates[estimates < 0] = 0
         estimates = csr_matrix(estimates)
         metabolites_estimated = metabolites[estimates.getnnz(0) > 0]
-        mask = mask[ estimates.getnnz(0) > 0,:]
+        mask = mask[estimates.getnnz(0) > 0,:]
         final_estimates = estimates[:, estimates.getnnz(0) > 0]
 
     if verbose:
@@ -133,7 +139,6 @@ def process_estimation(est_fun, est_fun_dict, me_res, adata,  mask, metabolites,
 
     else:
         fun = est_fun_dict[est_fun]
-
         df = DataFrame(adata.X.todense(), index=adata.obs_names, columns=adata.var_names)
         final_estimates, metabolites_estimated, mask = process_data(df, me_res, source='HMDB', target='GENE', verbose=verbose, use_raw=False, **kwargs)
 

@@ -50,7 +50,7 @@ def _get_means_perms(adata: anndata.AnnData,
     for ct_idx, label in enumerate(labels):
         labels_mask[:, ct_idx] = adata.obs.label == label
 
-    # generate two cube for metabolites and genes
+    # TODO this should not be here
     if met:
         perms = _generate_perms_cube(adata.X, n_perms, labels_mask, seed, agg_fun, verbose, met=met, Y=adata.obsm['metabolite_abundance'])
         perms_ligand = perms[0]
@@ -73,6 +73,7 @@ def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fun, verbose, met=Fa
     # indexes to be shuffled
     idx = np.arange(X.shape[0])
 
+    # TODO this should not be here
     if met:
         perms_receptors = np.zeros((n_perms, labels_mask.shape[0], X.shape[1]))
         perms_ligands = np.zeros((n_perms, labels_mask.shape[0], Y.shape[1]))
@@ -84,6 +85,7 @@ def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fun, verbose, met=Fa
     for perm in tqdm(range(n_perms), disable=not verbose):
         perm_idx = rng.permutation(idx)
         perm_mat = X[perm_idx]
+            # TODO this should not be here
         if met:
             perm_mat2 = Y[perm_idx]
             # perms_receptors[perm] = np.squeeze(np.array([agg_fun(perm_mat[labels_mask[label]], axis=0) for label in labels_mask]))
@@ -93,6 +95,7 @@ def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fun, verbose, met=Fa
         # populate matrix /w permuted means
         for ct_idx in range(labels_mask.shape[1]):
             ct_mask = labels_mask[:, ct_idx]
+            # TODO this should not be here
             if met:
                 perms_receptors[perm, ct_idx] = agg_fun(perm_mat[ct_mask], axis=0)
                 perms_ligands[perm, ct_idx] = agg_fun(perm_mat2[ct_mask], axis=0)

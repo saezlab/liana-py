@@ -112,6 +112,7 @@ def explode_complexes(resource: pd.DataFrame,
 
     Parameters
     ----------
+    
     resource
         Ligand-receptor resource
     SOURCE
