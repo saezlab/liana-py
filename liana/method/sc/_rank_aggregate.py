@@ -69,8 +69,8 @@ class AggregateClass(MethodMeta):
                  n_perms: int | None = 1000 ,
                  seed: int = 1337,
                  resource: Optional[DataFrame] = None,
-                 # TODO: add interactions
-                 # add params to documentation
+                 interactions=None,
+                 # TODO: add params to documentation
                  mod_x = None,
                  mod_y = None,
                  transform = None,
@@ -145,6 +145,7 @@ class AggregateClass(MethodMeta):
                                groupby=groupby,
                                resource_name=resource_name,
                                resource=resource,
+                               interactions=interactions,
                                expr_prop=expr_prop,
                                min_cells=min_cells,
                                base=base,

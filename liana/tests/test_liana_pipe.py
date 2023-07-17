@@ -23,7 +23,7 @@ use_raw = True
 layer = None
 n_perms = 5
 seed = 1337
-
+interactions=None
 
 # Test ALL Default parameters
 def test_liana_pipe_defaults():
@@ -41,7 +41,8 @@ def test_liana_pipe_defaults():
                               supp_columns=[],
                               resource=resource,
                               use_raw=use_raw,
-                              layer=layer
+                              layer=layer,
+                              interactions=interactions,
                               )
 
     assert 1288 == all_defaults.shape[0]
@@ -71,7 +72,8 @@ def test_liana_pipe_not_defaults():
                               resource=resource,
                               use_raw=use_raw,
                               layer=layer,
-                              return_all_lrs=True
+                              return_all_lrs=True,
+                              interactions=interactions,
                               )
 
     assert 4200 == not_defaults.shape[0]

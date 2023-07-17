@@ -66,8 +66,23 @@ def test_aggregate_no_perms():
     assert adata.uns['all_res'].shape == (4200, 12)
     
     
-# def test_aggregate_on_mdata():
-#     from liana.testing._sample_anndata import generate_toy_mdata
-#     mdata = generate_toy_mdata()
-#     mdata.mod['adata_y'].var.index = 'scaled:' + mdata.mod['adata_y'].var.index
-#     assert mdata.uns['all_res'].shape == (4200, 15)
+def test_aggregate_on_mdata():
+    from liana.testing._sample_anndata import generate_toy_mdata
+    from itertools import product
+    
+    mdata = generate_toy_mdata()
+    mdata.mod['adata_y'].var.index = 'scaled:' + mdata.mod['adata_y'].var.index
+    interactions = list(product(mdata.mod['adata_x'].var.index, mdata.mod['adata_y'].var.index))
+    interactions = interactions[0:10]
+    
+    rank_aggregate(mdata,
+                   groupby='bulk_labels',
+                   n_perms=None,
+                   mod_x='adata_x',
+                   mod_y='adata_y',
+                   use_raw=False,
+                   interactions=interactions,
+                   verbose=True, 
+                   transform=None)
+    
+    assert mdata.uns['liana_res'].shape == (132, 12)

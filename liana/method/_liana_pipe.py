@@ -5,7 +5,7 @@ import pandas
 
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
-from ..resource import select_resource, explode_complexes
+from liana.resource import _handle_resource, explode_complexes
 from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
 from liana.method._pipe_utils._aggregate import _aggregate
 from ._pipe_utils._pre import _get_props
@@ -20,6 +20,7 @@ def liana_pipe(adata: anndata.AnnData,
                groupby: str,
                resource_name: str,
                resource: pd.DataFrame | None,
+               interactions,
                expr_prop: float,
                min_cells: int,
                base: float,
@@ -136,11 +137,12 @@ def liana_pipe(adata: anndata.AnnData,
     if 'mat_max' in _add_cols:
         mat_max = adata.X.max()
         assert isinstance(mat_max, np.float32)
-
-    if resource is None:
-        resource = select_resource(resource_name)
-    else:
-        resource = resource.copy()
+    
+    resource = _handle_resource(interactions=interactions,
+                                resource=resource,
+                                resource_name=resource_name,
+                                verbose=verbose)
+    
     # explode complexes/decomplexify
     resource = explode_complexes(resource)
 
