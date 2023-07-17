@@ -9,8 +9,6 @@ from liana.method import rank_aggregate
 from liana.method.sc._rank_aggregate import AggregateClass
 from liana.testing._toy_adata import get_toy_adata
 
-
-
 test_path = pathlib.Path(__file__).parent
 
 adata = get_toy_adata()
@@ -66,3 +64,10 @@ def test_aggregate_by_sample():
 def test_aggregate_no_perms():
     rank_aggregate(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, key_added='all_res', n_perms=None)
     assert adata.uns['all_res'].shape == (4200, 12)
+    
+    
+# def test_aggregate_on_mdata():
+#     from liana.testing._sample_anndata import generate_toy_mdata
+#     mdata = generate_toy_mdata()
+#     mdata.mod['adata_y'].var.index = 'scaled:' + mdata.mod['adata_y'].var.index
+#     assert mdata.uns['all_res'].shape == (4200, 15)

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from ._liana_pipe import liana_pipe
+from liana.funcomics import mdata_to_anndata
 
-from anndata import AnnData
+import anndata as an
+from mudata import MuData
 from pandas import DataFrame, concat
 from typing import Optional
 from tqdm import tqdm
@@ -166,7 +168,7 @@ class Method(MethodMeta):
         self._method = _method
 
     def __call__(self,
-                 adata: AnnData,
+                 adata: an.AnnData,
                  groupby: str,
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.1,
@@ -182,6 +184,9 @@ class Method(MethodMeta):
                  n_perms: int = 1000,
                  seed: int = 1337,
                  resource: Optional[DataFrame] = None,
+                 mod_x = None,
+                 mod_y = None,
+                 transform = False,
                  inplace=True):
         """
         Parameters
@@ -242,8 +247,18 @@ class Method(MethodMeta):
         """
         if supp_columns is None:
             supp_columns = []
+        
+        # TODO embed this into a helper function that calls mdata_to_anndata?
+        # TODO: add warnings for mod_x, mod_y, transform (if passed that they will be ignored)
+        if isinstance(adata, MuData):
+            ad = mdata_to_anndata(adata,
+                                   mod_x=mod_x,
+                                   mod_y=mod_y,
+                                   transform=transform)
+        else:
+            ad = adata
 
-        liana_res = liana_pipe(adata=adata,
+        liana_res = liana_pipe(adata=ad,
                                groupby=groupby,
                                resource_name=resource_name,
                                resource=resource,

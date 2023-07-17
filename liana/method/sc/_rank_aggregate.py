@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from liana.method._Method import MethodMeta
 from liana.method._liana_pipe import liana_pipe
+from liana.funcomics import mdata_to_anndata
+from mudata import MuData
 
-from anndata import AnnData
+import anndata as an
 from pandas import DataFrame
 from typing import Optional
 
@@ -50,7 +52,7 @@ class AggregateClass(MethodMeta):
         )
 
     def __call__(self,
-                 adata: AnnData,
+                 adata: an.AnnData,
                  groupby: str,
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.1,
@@ -67,6 +69,11 @@ class AggregateClass(MethodMeta):
                  n_perms: int | None = 1000 ,
                  seed: int = 1337,
                  resource: Optional[DataFrame] = None,
+                 # TODO: add interactions
+                 # add params to documentation
+                 mod_x = None,
+                 mod_y = None,
+                 transform = None,
                  inplace=True
                  ):
         """
@@ -125,7 +132,16 @@ class AggregateClass(MethodMeta):
         Otherwise, modifies the ``adata`` object with the following key:
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
         """
-        liana_res = liana_pipe(adata=adata,
+        
+        if isinstance(adata, MuData):
+            ad = mdata_to_anndata(adata,
+                                  mod_x=mod_x,
+                                  mod_y=mod_y,
+                                  transform=transform)
+        else:
+            ad = adata
+        
+        liana_res = liana_pipe(adata=ad,
                                groupby=groupby,
                                resource_name=resource_name,
                                resource=resource,
@@ -144,8 +160,9 @@ class AggregateClass(MethodMeta):
                                _aggregate_method=aggregate_method,
                                _consensus_opts=consensus_opts
                                )
-        adata.uns[key_added] = liana_res
-
+        
+        if inplace:
+            adata.uns[key_added] = liana_res
         return None if inplace else liana_res
 
 _rank_aggregate_meta = \
