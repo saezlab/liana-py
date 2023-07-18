@@ -56,7 +56,7 @@ def test_resource_exception_none():
 
 def test_resource_exception_xy():
     with pytest.raises(ValueError):
-        _handle_resource(interactions=None,
+        _handle_resource(interactions=None, 
                          resource=select_resource("consensus"),
                          resource_name=None,
                          x_key='x',

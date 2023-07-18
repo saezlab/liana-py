@@ -185,9 +185,7 @@ class Method(MethodMeta):
                  seed: int = 1337,
                  resource: Optional[DataFrame] = None,
                  interactions=None,
-                 mod_x = None,
-                 mod_y = None,
-                 transform = False,
+                 multi_kwargs = dict(),
                  inplace=True):
         """
         Parameters
@@ -249,13 +247,8 @@ class Method(MethodMeta):
         if supp_columns is None:
             supp_columns = []
         
-        # TODO embed this into a helper function that calls mdata_to_anndata?
-        # TODO: add warnings for mod_x, mod_y, transform (if passed that they will be ignored)
         if isinstance(adata, MuData):
-            ad = mdata_to_anndata(adata,
-                                   mod_x=mod_x,
-                                   mod_y=mod_y,
-                                   transform=transform)
+            ad = mdata_to_anndata(adata, **multi_kwargs)
         else:
             ad = adata
 

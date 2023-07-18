@@ -70,10 +70,7 @@ class AggregateClass(MethodMeta):
                  seed: int = 1337,
                  resource: Optional[DataFrame] = None,
                  interactions=None,
-                 # TODO: add params to documentation
-                 mod_x = None,
-                 mod_y = None,
-                 transform = None,
+                 multi_kwargs = dict(),
                  inplace=True
                  ):
         """
@@ -134,10 +131,7 @@ class AggregateClass(MethodMeta):
         """
         
         if isinstance(adata, MuData):
-            ad = mdata_to_anndata(adata,
-                                  mod_x=mod_x,
-                                  mod_y=mod_y,
-                                  transform=transform)
+            ad = mdata_to_anndata(adata, **multi_kwargs)
         else:
             ad = adata
         

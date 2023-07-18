@@ -78,11 +78,14 @@ def test_aggregate_on_mdata():
     rank_aggregate(mdata,
                    groupby='bulk_labels',
                    n_perms=None,
-                   mod_x='adata_x',
-                   mod_y='adata_y',
+                   multi_kwargs=dict(
+                       x_mod='adata_x',
+                       y_mod='adata_y', 
+                       x_transform=False, 
+                       y_transform=False
+                       ),
                    use_raw=False,
                    interactions=interactions,
-                   verbose=True, 
-                   transform=None)
+                   verbose=True)
     
     assert mdata.uns['liana_res'].shape == (132, 12)

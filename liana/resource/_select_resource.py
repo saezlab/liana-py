@@ -18,7 +18,6 @@ def select_resource(resource_name: str = 'consensus') -> DataFrame:
     A dataframe with ``['ligand', 'receptor']`` columns
 
     """
-
     resource_name = resource_name.lower()
 
     resource_path = pathlib.Path(__file__).parent.joinpath("omni_resource.csv")

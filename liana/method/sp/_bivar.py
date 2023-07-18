@@ -37,8 +37,6 @@ class SpatialBivariate(_SpatialMeta):
                  connectivity_key = 'spatial_connectivities',
                  mod_added = "local_scores",
                  key_added = 'global_res',
-                 # TODO: this should not be positive_only
-                 # but rather remove low-low??
                  positive_only=False,
                  add_categories = False,
                  n_perms: int = None,
@@ -119,6 +117,7 @@ class SpatialBivariate(_SpatialMeta):
         local_fun = _handle_functions(function_name)
         weight = _connectivity_to_weight(connectivity, local_fun)
         
+        # TODO: Move this to mdata_to_anndata
         if isinstance(mdata, MuData):
             xdata = mdata[x_mod]
             xdata.X = _choose_mtx_rep(xdata, use_raw = x_use_raw, layer = x_layer)
@@ -126,6 +125,9 @@ class SpatialBivariate(_SpatialMeta):
             ydata = mdata[y_mod]
             ydata.X = _choose_mtx_rep(ydata, use_raw = y_use_raw, layer = y_layer)
         
+        # TODO require that this is passed, don't do this...
+        # If this is required, it would prevent from RAM explosions
+        # replace with _handle_resource_
         if interactions is None:
             interactions = list(product(xdata.var_names, ydata.var_names))
         
@@ -144,6 +146,7 @@ class SpatialBivariate(_SpatialMeta):
         
         xy_stats['interaction'] = xy_stats['x_entity'] + xy_separator + xy_stats['y_entity']
         
+        # TODO: is this really needed???
         if remove_self_interactions:
             xy_stats = xy_stats[xy_stats['x_entity'] != xy_stats['y_entity']]
         

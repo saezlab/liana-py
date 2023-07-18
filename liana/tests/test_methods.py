@@ -158,11 +158,15 @@ def test_methods_on_mdata():
     sca(mdata,
         groupby='bulk_labels',
         n_perms=None,
-        mod_x='adata_x',
-        mod_y='adata_y',
         use_raw=False,
         interactions=interactions,
-        verbose=True, 
-        transform=False)
+        verbose=True,
+        multi_kwargs=dict(
+            x_mod='adata_x',
+            y_mod='adata_y', 
+            x_transform=False, 
+            y_transform=False
+            ),
+        )
     
     assert mdata.uns['liana_res'].shape == (132, 12)
