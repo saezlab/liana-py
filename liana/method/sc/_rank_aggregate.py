@@ -131,7 +131,7 @@ class AggregateClass(MethodMeta):
         """
         
         if isinstance(adata, MuData):
-            ad = mdata_to_anndata(adata, **multi_kwargs)
+            ad = mdata_to_anndata(adata, **multi_kwargs, verbose=verbose)
         else:
             ad = adata
         

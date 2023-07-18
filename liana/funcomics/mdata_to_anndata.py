@@ -6,8 +6,8 @@ def mdata_to_anndata(mdata,
                      x_mod, y_mod,
                      x_layer=None, y_layer=None,
                      x_use_raw=False, y_use_raw=False, 
-                     x_transform=False,
-                     y_transform=False,
+                     x_transform=None,
+                     y_transform=None,
                      cutoff=0.25,
                      verbose=True):
     
