@@ -1,16 +1,37 @@
 from liana.testing._sample_anndata import generate_toy_mdata
-from liana.funcomics import mdata_to_anndata
+from liana.funcomics import mdata_to_anndata, zi_minmax, neg_to_zero
 from numpy.testing import assert_almost_equal
 
+mdata = generate_toy_mdata()
+
 def test_m_to_adata():
-    mdata = generate_toy_mdata()
+    adata = mdata_to_anndata(mdata, x_mod='adata_x', y_mod='adata_y',
+                            x_transform=False, y_transform=False, verbose=True)
+    assert adata.shape == mdata.shape
+    assert_almost_equal(adata.X.max(), 3.431)
+
+
+def test_mdata_transformations():
+    
+    # test minmax
     adata = mdata_to_anndata(mdata, x_mod='adata_x', y_mod='adata_y', 
                              x_transform=None, y_transform=None, verbose=False)
-    assert adata.shape == mdata.shape
     assert adata.X.max() == 1
+    assert_almost_equal(adata.X.sum(), 2120.704, decimal=3)
     
-    # Test with minmax transform
+    
+    # test cutoff
+    adata = mdata_to_anndata(mdata, x_mod='adata_x', y_mod='adata_y', 
+                            x_transform=None, y_transform=None, verbose=False, cutoff=0.5)
+    assert_almost_equal(adata.X.sum(), 1497.3386, decimal=4)
+    
+    # test non-negative
+    from scanpy.pp import scale
+    scale(mdata.mod['adata_x'])
+    
     adata = mdata_to_anndata(mdata, x_mod='adata_x', y_mod='adata_y',
-                             x_transform=False, y_transform=False, verbose=True)
-    assert_almost_equal(adata.X.max(), 3.431)
+                             x_transform=neg_to_zero, y_transform=False, verbose=False)
+    assert_almost_equal(adata.X.max(), 7.8755016, decimal=5)
+    assert_almost_equal(adata.X.min(), 0, decimal=5)
+
 

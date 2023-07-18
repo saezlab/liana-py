@@ -36,23 +36,22 @@ def mdata_to_anndata(mdata,
 def _handle_mdata(mdata, x_mod, y_mod, x_layer, y_layer, x_use_raw, y_use_raw, x_transform, y_transform, verbose):
     if x_mod is None or y_mod is None:
         raise ValueError("Both `x_mod` and `y_mod` must be provided!")
-    if x_mod not in mdata.mod.keys():
-        raise ValueError(f'`x_mod: {x_mod}` is not in the mdata!')
-    if y_mod not in mdata.mod.keys():
-        raise ValueError(f'`y_mod: {y_mod}` is not in the mdata!')
     
-    xdata = mdata.mod[x_mod]
-    ydata = mdata.mod[y_mod]
-    
-    xdata.X = _choose_mtx_rep(xdata, use_raw = x_use_raw, layer = x_layer, verbose=verbose)
-    ydata.X = _choose_mtx_rep(ydata, use_raw = y_use_raw, layer = y_layer, verbose=verbose)
-    
-    # NOTE: if we transform, we copy the data
-    if x_transform:
-        xdata = xdata.copy()
-        xdata.X = x_transform(xdata.X)
-    if y_transform:
-        ydata = ydata.copy()
-        ydata.X = y_transform(ydata.X)
+    xdata = _handle_mod(mdata, x_mod, x_use_raw, x_layer, x_transform, verbose)
+    ydata = _handle_mod(mdata, y_mod, y_use_raw, y_layer, y_transform, verbose)
     
     return xdata, ydata
+
+def _handle_mod(mdata, mod, use_raw, layer, transform, verbose):
+    if mod not in mdata.mod.keys():
+        raise ValueError(f'`{mod}` is not in the mdata!')
+    
+    md = mdata.mod[mod]
+    md.X = _choose_mtx_rep(md, use_raw = use_raw, layer = layer, verbose=verbose)
+    
+    if transform:
+        if verbose:
+            print(f'Transforming {mod} using {transform.__name__}')
+        md = md.copy()
+        md.X = transform(md.X)
+    return md
