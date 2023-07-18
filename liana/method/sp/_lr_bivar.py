@@ -42,11 +42,11 @@ class SpatialLR(_SpatialMeta):
                  add_categories: bool = False,
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
-                 verbose: Optional[bool] = False,
                  seed: int = 1337,
                  connectivity = None,
                  resource: Optional[pd.DataFrame] = None,
-                 inplace=True
+                 inplace=True,
+                 verbose: Optional[bool] = False,
                  ):
         """
         Parameters
@@ -181,7 +181,8 @@ class SpatialLR(_SpatialMeta):
                                  seed=seed,
                                  n_perms=n_perms,
                                  positive_only=positive_only,
-                                 pos_msk=pos_msk
+                                 pos_msk=pos_msk,
+                                 verbose=verbose,
                                  )
             
         local_scores = obsm_to_adata(adata=adata, df=local_scores, obsm_key=None, _uns=adata.uns)

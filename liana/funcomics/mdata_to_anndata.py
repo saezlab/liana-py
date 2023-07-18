@@ -1,5 +1,4 @@
 import anndata as an
-from .transform import zi_minmax
 from liana.method._pipe_utils._pre import _choose_mtx_rep
 
 def mdata_to_anndata(mdata,
@@ -8,17 +7,10 @@ def mdata_to_anndata(mdata,
                      x_use_raw=False, y_use_raw=False, 
                      x_transform=None,
                      y_transform=None,
-                     cutoff=0.25,
-                     verbose=True):
-    
-    if x_transform is None:
-        print('`x_mod` will be transformed to zero-inflated min-max scale.')
-        x_transform=lambda x: zi_minmax(x, cutoff=cutoff)
-        
-    if y_transform is None:
-        print('`y_mod` will be transformed to zero-inflated min-max scale.')
-        y_transform=lambda x: zi_minmax(x, cutoff=cutoff)
-    
+                     cutoff=None,
+                     verbose=True
+                     ):
+
     xdata, ydata = _handle_mdata(mdata, 
                                  x_mod, y_mod,
                                  x_layer, y_layer,
@@ -33,7 +25,12 @@ def mdata_to_anndata(mdata,
     return adata
 
 
-def _handle_mdata(mdata, x_mod, y_mod, x_layer, y_layer, x_use_raw, y_use_raw, x_transform, y_transform, verbose):
+def _handle_mdata(mdata, 
+                  x_mod, y_mod,
+                  x_layer, y_layer,
+                  x_use_raw, y_use_raw,
+                  x_transform, y_transform, 
+                  verbose):
     if x_mod is None or y_mod is None:
         raise ValueError("Both `x_mod` and `y_mod` must be provided!")
     

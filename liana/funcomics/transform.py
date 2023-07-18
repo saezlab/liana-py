@@ -1,7 +1,7 @@
 from scipy.sparse import csr_matrix, isspmatrix_csr
 import numpy as np
 
-def zi_minmax(X, cutoff):    
+def zi_minmax(X, cutoff=0.25):    
     X = X.copy()
     if not isspmatrix_csr(X):
         X = csr_matrix(X)
@@ -18,9 +18,9 @@ def zi_minmax(X, cutoff):
 
     return X
 
-def neg_to_zero(X):
+def neg_to_zero(X, cutoff=0):
     X = X.copy()
     if not isspmatrix_csr(X):
-        matrix = csr_matrix(X)
-    X.data[X.data < 0] = 0
+        X = csr_matrix(X)
+    X.data[X.data < cutoff] = 0
     return X
