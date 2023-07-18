@@ -66,7 +66,9 @@ def test_global_permutation_pvals():
                                       seed=seed,  
                                       n_perms=n_perms,
                                       positive_only=positive_only,
-                                      weight = weight)
+                                      weight = weight,
+                                      verbose=False
+                                      )
     assert pvals.shape == (10, )
     assert pvals.sum().round(3)==4.65
     
@@ -84,7 +86,8 @@ def test_local_permutation_pvals():
                                      n_perms = n_perms,
                                      seed = seed,
                                      positive_only=positive_only,
-                                     pos_msk=np.ones((10, 10), dtype=bool)
+                                     pos_msk=np.ones((10, 10), dtype=bool),
+                                     verbose=False
                                      )
     assert pvals.shape == (10, 10)
 

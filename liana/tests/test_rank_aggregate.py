@@ -78,7 +78,7 @@ def test_aggregate_on_mdata():
     rank_aggregate(mdata,
                    groupby='bulk_labels',
                    n_perms=None,
-                   multi_kwargs=dict(
+                   mdata_kwargs=dict(
                        x_mod='adata_x',
                        y_mod='adata_y', 
                        x_transform=False, 

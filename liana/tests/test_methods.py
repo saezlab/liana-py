@@ -161,7 +161,7 @@ def test_methods_on_mdata():
         use_raw=False,
         interactions=interactions,
         verbose=True,
-        multi_kwargs=dict(
+        mdata_kwargs=dict(
             x_mod='adata_x',
             y_mod='adata_y', 
             x_transform=False, 

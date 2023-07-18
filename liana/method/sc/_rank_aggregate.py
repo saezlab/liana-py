@@ -70,7 +70,7 @@ class AggregateClass(MethodMeta):
                  seed: int = 1337,
                  resource: Optional[DataFrame] = None,
                  interactions=None,
-                 multi_kwargs = dict(),
+                 mdata_kwargs = dict(),
                  inplace=True
                  ):
         """
@@ -119,9 +119,13 @@ class AggregateClass(MethodMeta):
             Parameter to enable external resources to be passed. Expects a pandas dataframe
             with [`ligand`, `receptor`] columns. None by default. If provided will overrule
             the resource requested via `resource_name`
+        interactions
+            List of tuples with ligand-receptor pairs `[(ligand, receptor), ...]` to be used for the analysis.
+            If passed, it will overrule the resource requested via `resource` and `resource_name`.
+        mdata_kwargs
+            Keyword arguments to be passed to `li.fun.mdata_to_anndata` if `adata` is an instance of `MuData`.
         inplace
             If true return `DataFrame` with results, else assign inplace to `.uns`.
-
 
         Returns
         -------
@@ -131,7 +135,7 @@ class AggregateClass(MethodMeta):
         """
         
         if isinstance(adata, MuData):
-            ad = mdata_to_anndata(adata, **multi_kwargs, verbose=verbose)
+            ad = mdata_to_anndata(adata, **mdata_kwargs, verbose=verbose)
         else:
             ad = adata
         

@@ -15,7 +15,8 @@ def test_mdata_transformations():
     
     # test minmax
     adata = mdata_to_anndata(mdata, x_mod='adata_x', y_mod='adata_y', 
-                             x_transform=zi_minmax, y_transform=zi_minmax, verbose=False)
+                             x_transform=zi_minmax, y_transform=zi_minmax,
+                             verbose=False)
     assert adata.X.max() == 1
     assert_almost_equal(adata.X.sum(), 2120.704, decimal=3)
     
@@ -26,7 +27,8 @@ def test_mdata_transformations():
         return x
     
     adata = mdata_to_anndata(mdata, x_mod='adata_x', y_mod='adata_y', 
-                            x_transform=zi_minmax_cutoff, y_transform=zi_minmax_cutoff, verbose=False)
+                             x_transform=zi_minmax_cutoff, y_transform=zi_minmax_cutoff, 
+                             verbose=False)
     assert_almost_equal(adata.X.sum(), 1497.3386, decimal=4)
     
     # test non-negative
