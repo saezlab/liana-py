@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from liana.method._Method import MethodMeta
 from liana.method._liana_pipe import liana_pipe
+from liana.funcomics import mdata_to_anndata
+from mudata import MuData
 
-from anndata import AnnData
+import anndata as an
 from pandas import DataFrame
 from typing import Optional
 
@@ -50,7 +52,7 @@ class AggregateClass(MethodMeta):
         )
 
     def __call__(self,
-                 adata: AnnData,
+                 adata: an.AnnData,
                  groupby: str,
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.1,
@@ -67,6 +69,8 @@ class AggregateClass(MethodMeta):
                  n_perms: int | None = 1000 ,
                  seed: int = 1337,
                  resource: Optional[DataFrame] = None,
+                 interactions=None,
+                 mdata_kwargs = dict(),
                  inplace=True
                  ):
         """
@@ -115,9 +119,13 @@ class AggregateClass(MethodMeta):
             Parameter to enable external resources to be passed. Expects a pandas dataframe
             with [`ligand`, `receptor`] columns. None by default. If provided will overrule
             the resource requested via `resource_name`
+        interactions
+            List of tuples with ligand-receptor pairs `[(ligand, receptor), ...]` to be used for the analysis.
+            If passed, it will overrule the resource requested via `resource` and `resource_name`.
+        mdata_kwargs
+            Keyword arguments to be passed to `li.fun.mdata_to_anndata` if `adata` is an instance of `MuData`.
         inplace
             If true return `DataFrame` with results, else assign inplace to `.uns`.
-
 
         Returns
         -------
@@ -125,10 +133,17 @@ class AggregateClass(MethodMeta):
         Otherwise, modifies the ``adata`` object with the following key:
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
         """
-        liana_res = liana_pipe(adata=adata,
+        
+        if isinstance(adata, MuData):
+            ad = mdata_to_anndata(adata, **mdata_kwargs, verbose=verbose)
+        else:
+            ad = adata
+        
+        liana_res = liana_pipe(adata=ad,
                                groupby=groupby,
                                resource_name=resource_name,
                                resource=resource,
+                               interactions=interactions,
                                expr_prop=expr_prop,
                                min_cells=min_cells,
                                base=base,
@@ -144,8 +159,9 @@ class AggregateClass(MethodMeta):
                                _aggregate_method=aggregate_method,
                                _consensus_opts=consensus_opts
                                )
-        adata.uns[key_added] = liana_res
-
+        
+        if inplace:
+            adata.uns[key_added] = liana_res
         return None if inplace else liana_res
 
 _rank_aggregate_meta = \

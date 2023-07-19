@@ -15,6 +15,7 @@ from liana.method.sp._spatial_pipe import _categorize, \
     _connectivity_to_weight, _handle_connectivity
     
 from liana.funcomics.obsm_to_adata import obsm_to_adata
+from liana.funcomics.mdata_to_anndata import _handle_mdata
 
 from liana.method.sp._bivariate_funs import _handle_functions
 
@@ -37,8 +38,6 @@ class SpatialBivariate(_SpatialMeta):
                  connectivity_key = 'spatial_connectivities',
                  mod_added = "local_scores",
                  key_added = 'global_res',
-                 # TODO: this should not be positive_only
-                 # but rather remove low-low??
                  positive_only=False,
                  add_categories = False,
                  n_perms: int = None,
@@ -48,9 +47,12 @@ class SpatialBivariate(_SpatialMeta):
                  connectivity = None,
                  x_use_raw = False,
                  x_layer = None,
+                 x_transform = False,
                  y_use_raw=False,
                  y_layer = None,
+                 y_transform = False,
                  inplace = True,
+                 verbose=False,
                  ):
         """
         Global Bivariate analysis pipeline
@@ -119,13 +121,19 @@ class SpatialBivariate(_SpatialMeta):
         local_fun = _handle_functions(function_name)
         weight = _connectivity_to_weight(connectivity, local_fun)
         
+        # TODO: Move this to mdata_to_anndata
         if isinstance(mdata, MuData):
-            xdata = mdata[x_mod]
-            xdata.X = _choose_mtx_rep(xdata, use_raw = x_use_raw, layer = x_layer)
-            
-            ydata = mdata[y_mod]
-            ydata.X = _choose_mtx_rep(ydata, use_raw = y_use_raw, layer = y_layer)
+            xdata, ydata = _handle_mdata(mdata, 
+                                         x_mod=x_mod, y_mod=y_mod,
+                                         x_use_raw=x_use_raw, x_layer=x_layer,
+                                         y_use_raw=y_use_raw, y_layer=y_layer,
+                                         x_transform=x_transform, y_transform=y_transform,
+                                         verbose=verbose,
+                                         )
         
+        # TODO require that this is passed, don't do this...
+        # If this is required, it would prevent from RAM explosions
+        # replace with _handle_resource_
         if interactions is None:
             interactions = list(product(xdata.var_names, ydata.var_names))
         
@@ -144,6 +152,7 @@ class SpatialBivariate(_SpatialMeta):
         
         xy_stats['interaction'] = xy_stats['x_entity'] + xy_separator + xy_stats['y_entity']
         
+        # TODO: is this really needed???
         if remove_self_interactions:
             xy_stats = xy_stats[xy_stats['x_entity'] != xy_stats['y_entity']]
         
@@ -178,6 +187,7 @@ class SpatialBivariate(_SpatialMeta):
                                  n_perms=n_perms,
                                  positive_only=positive_only,
                                  pos_msk=pos_msk,
+                                 verbose=verbose,
                                  )
         
         if not inplace:

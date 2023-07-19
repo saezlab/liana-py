@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from ._liana_pipe import liana_pipe
+from liana.funcomics import mdata_to_anndata
 
-from anndata import AnnData
+import anndata as an
+from mudata import MuData
 from pandas import DataFrame, concat
 from typing import Optional
 from tqdm import tqdm
@@ -166,7 +168,7 @@ class Method(MethodMeta):
         self._method = _method
 
     def __call__(self,
-                 adata: AnnData,
+                 adata: an.AnnData,
                  groupby: str,
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.1,
@@ -182,6 +184,8 @@ class Method(MethodMeta):
                  n_perms: int = 1000,
                  seed: int = 1337,
                  resource: Optional[DataFrame] = None,
+                 interactions=None,
+                 mdata_kwargs = dict(),
                  inplace=True):
         """
         Parameters
@@ -231,6 +235,12 @@ class Method(MethodMeta):
             Parameter to enable external resources to be passed. Expects a pandas dataframe
             with [`ligand`, `receptor`] columns. None by default. If provided will overrule
             the resource requested via `resource_name`
+        interactions
+            List of tuples with ligand-receptor pairs `[(ligand, receptor), ...]` to be used for the analysis.
+            If passed, it will overrule the resource requested via `resource` and `resource_name`.
+        mdata_kwargs
+            Keyword arguments to be passed to `li.fun.mdata_to_anndata` if `adata` is an instance of `MuData`.
+            If an AnnData object is passed, these arguments are ignored.
         inplace
             If true return `DataFrame` with results, else assign to `.uns`.
 
@@ -242,11 +252,17 @@ class Method(MethodMeta):
         """
         if supp_columns is None:
             supp_columns = []
+        
+        if isinstance(adata, MuData):
+            ad = mdata_to_anndata(adata, **mdata_kwargs, verbose=verbose)
+        else:
+            ad = adata
 
-        liana_res = liana_pipe(adata=adata,
+        liana_res = liana_pipe(adata=ad,
                                groupby=groupby,
                                resource_name=resource_name,
                                resource=resource,
+                               interactions=interactions,
                                expr_prop=expr_prop,
                                min_cells=min_cells,
                                supp_columns=supp_columns,

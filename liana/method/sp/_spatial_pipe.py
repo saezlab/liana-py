@@ -22,7 +22,7 @@ def _local_to_dataframe(array, idx, columns):
 
 
 def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_perms, seed,
-                             positive_only, pos_msk, **kwargs):
+                             positive_only, pos_msk, verbose):
     """
     Calculate local pvalues for a given local score function.
 
@@ -57,9 +57,9 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_per
     local_pvals = np.zeros((xy_n, spot_n))
 
     # shuffle the matrix
-    for i in tqdm(range(n_perms)):
+    for i in tqdm(range(n_perms), disable=not verbose):
         _idx = rng.permutation(spot_n)
-        perm_score = local_fun(x_mat=x_mat[_idx, :], y_mat=y_mat, weight=weight, **kwargs)
+        perm_score = local_fun(x_mat=x_mat[_idx, :], y_mat=y_mat, weight=weight)
         if positive_only:
             local_pvals += np.array(perm_score >= local_truth, dtype=int)
         else:
@@ -129,7 +129,7 @@ def _simplify_cats(cats):
     return cats.astype(int)
     
 
-def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, positive_only, seed):
+def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, positive_only, seed, verbose):
     """
     Calculate permutation pvals
 
@@ -164,7 +164,7 @@ def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, positive_
     # permutation mat /w n_permss x LR_n
     perm_mat = np.zeros((n_perms, global_r.shape[0]))
 
-    for perm in tqdm(range(n_perms)):
+    for perm in tqdm(range(n_perms), disable=not verbose):
         _idx = rng.permutation(idx)
         perm_mat[perm, :] = ((x_mat[:, _idx] @ weight) * y_mat).sum(axis=1)  # flipped x_mat
 
@@ -295,7 +295,8 @@ def _global_spatialdm(x_mat,
                       weight,
                       seed,
                       n_perms,
-                      positive_only
+                      positive_only,
+                      verbose
                       ):
     """
     Global Moran's Bivariate I as implemented in SpatialDM
@@ -344,7 +345,8 @@ def _global_spatialdm(x_mat,
                                                  global_r=global_r,
                                                  n_perms=n_perms,
                                                  positive_only=positive_only,
-                                                 seed=seed
+                                                 seed=seed,
+                                                 verbose=verbose
                                                  )
     elif n_perms==0:
         global_pvals = _global_zscore_pvals(weight=weight,
@@ -355,7 +357,7 @@ def _global_spatialdm(x_mat,
 
 
 def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, pos_msk,
-                         weight, positive_only, n_perms, seed):
+                         weight, positive_only, n_perms, seed, verbose):
     local_scores, local_pvals = _get_local_scores(x_mat=x_mat.T,
                                                   y_mat=y_mat.T,
                                                   local_fun=local_fun,
@@ -364,6 +366,7 @@ def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, pos_msk,
                                                   n_perms=n_perms,
                                                   positive_only=positive_only,
                                                   pos_msk=pos_msk,
+                                                  verbose=verbose
                                                   )
 
     # global scores fun
@@ -375,7 +378,8 @@ def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, pos_msk,
                                   seed=seed,
                                   n_perms=n_perms,
                                   positive_only=positive_only,
-                                  local_scores=local_scores
+                                  local_scores=local_scores,
+                                  verbose=verbose
                                   )
 
     # convert to DataFrames
@@ -394,6 +398,7 @@ def _get_local_scores(x_mat,
                       seed,
                       positive_only,
                       pos_msk,
+                      verbose
                       ):
     """
     Local Moran's Bivariate I as implemented in SpatialDM
@@ -430,7 +435,8 @@ def _get_local_scores(x_mat,
                                                n_perms=n_perms,
                                                seed=seed,
                                                positive_only=positive_only,
-                                               pos_msk=pos_msk
+                                               pos_msk=pos_msk,
+                                               verbose=verbose
                                                )
     elif n_perms == 0:
         local_pvals = _local_zscore_pvals(x_mat=x_mat,
@@ -445,7 +451,7 @@ def _get_local_scores(x_mat,
 
 
 def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, positive_only,
-                       n_perms, seed, local_scores):
+                       n_perms, seed, local_scores, verbose):
     if local_fun.__name__ == "_local_morans":
         xy_stats.loc[:, ['global_r', 'global_pvals']] = \
             _global_spatialdm(x_mat=_zscore(x_mat, local=False, axis=1),
@@ -453,7 +459,8 @@ def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, positive_only,
                               weight=weight,
                               seed=seed,
                               n_perms=n_perms,
-                              positive_only=positive_only
+                              positive_only=positive_only,
+                              verbose=verbose
                               ).T
     else:
         # any other local score
