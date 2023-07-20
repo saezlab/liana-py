@@ -195,7 +195,7 @@ def search_causalnet(
         input_node_scores,
         output_node_scores,
         node_weights=None,
-        node_cutoff=0.25,
+        node_cutoff=0.1,
         min_penalty=0.01, 
         max_penalty=1.0,
         missing_penalty=10,
