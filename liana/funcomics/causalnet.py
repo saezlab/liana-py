@@ -13,18 +13,19 @@ def _check_if_corneto():
     return corneto
 
 
-def build_prior_network(ppis, input_nodes, output_nodes, lr_sep="^", verbose=True):
+def build_prior_network(ppis, input_nodes, output_nodes, lr_sep=None, verbose=True):
     v = verbose
     cn = _check_if_corneto()
 
-    if any(lr_sep in k for k in input_nodes.keys()):
-        _print(f"Input nodes are in the format Ligand{lr_sep}Receptor. Extracting only the receptor...", v=v)
-        # Print only at most the first 3 entries
-        for k, v in list(input_nodes.items())[:3]:
-            _print(f" - {k} -> {v}", v=v)
-        _print(" - ...", v=v)
-        # Do the split only if ^ is present, otherwise get the same key:
-        input_nodes = {k.split(lr_sep)[-1]: v for k, v in input_nodes.items()}
+    if lr_sep is not None:
+        if any(lr_sep in k for k in input_nodes.keys()):
+            _print(f"Input nodes are in the format Ligand{lr_sep}Receptor. Extracting only the receptor...", v=v)
+            # Print only at most the first 3 entries
+            for k, v in list(input_nodes.items())[:3]:
+                _print(f" - {k} -> {v}", v=v)
+            _print(" - ...", v=v)
+            # Do the split only if lr_sep is present, otherwise get the same key:
+            input_nodes = {k.split(lr_sep)[-1]: v for k, v in input_nodes.items()}
 
     _print("Importing network...", end='', v=v)
     if isinstance(ppis, list):
@@ -155,7 +156,6 @@ def _print(*args, **kwargs):
         kwargs.pop('v')
         print(*args, **kwargs)
 
-
 def _get_scores(d):
     return (
        [v for v in d.values() if v < 0],
@@ -196,7 +196,7 @@ def search_causalnet(
         output_node_scores,
         node_weights=None,
         node_cutoff=0.25,
-        min_penalty=0.0, 
+        min_penalty=0.01, 
         max_penalty=1.0,
         missing_penalty=10,
         edge_penalty=1e-2,
@@ -212,8 +212,8 @@ def search_causalnet(
         solver = _select_solver()
 
     # If keys are Ligand^Receptor, create a new dict only with the receptor part:
-    _input = {k.split("^")[1]: v for k, v in input_node_scores.items()}
-    measured_nodes = set(_input.keys()) | set(output_node_scores.keys())
+    # _input = {k.split("^")[1]: v for k, v in input_node_scores.items()}
+    measured_nodes = set(input_node_scores.keys()) | set(output_node_scores.keys())
  
     _print("Total positive/negative scores of the inputs and outputs:", v=verbose)
     w_neg_in, w_pos_in = _get_scores(input_node_scores)
@@ -240,7 +240,7 @@ def search_causalnet(
     _print("Building CORNETO problem...", v=v)
     P, G = _create_corneto_problem(
         prior_graph,
-        _input,
+        input_node_scores,
         output_node_scores,
         node_penalties=c_node_penalties,
         edge_penalty=edge_penalty
@@ -265,26 +265,23 @@ def search_causalnet(
 
 
 def _weights_to_penalties(props, 
-                          cutoff=0.25,
-                          min_penalty=0.1, 
-                          max_penalty=1.0):
+                          cutoff,
+                          min_penalty, 
+                          max_penalty):
     if any(p < 0 or p > 1 for p in props.values()):
         raise ValueError("Node weights were not between 0 and 1. Consider minmax or another normalization.")
     
     return {k: max_penalty if v < cutoff else min_penalty for k, v in props.items()}
 
 
-def _export_results(P, Gf, ip_d, out_d):
+def _export_results(P, G, ip_d, out_d):
     # Get results
     nodes = P.symbols['species_activated_c0'].value - P.symbols['species_inhibited_c0'].value
     edges = P.symbols['reaction_sends_activation_c0'].value - P.symbols['reaction_sends_inhibition_c0'].value
-    
-    _rec = {k.split("^")[1]: v for k, v in ip_d.items()}
-    _lig = {k.split("^")[0]: v for k, v in ip_d.items()}
 
     # For all edges
-    E = Gf.edges
-    V = {v: i for i, v in enumerate(Gf.vertices)}
+    E = G.edges
+    V = {v: i for i, v in enumerate(G.vertices)}
 
     df_rows = []
     for i, e in enumerate(E):
@@ -299,19 +296,16 @@ def _export_results(P, Gf, ip_d, out_d):
             t = ''
         if abs(edges[i]) > 0.5:
             # Get value of source/target
-            edge_type = Gf.edge_properties[i].get('interaction', 0)
+            edge_type = G.edge_properties[i].get('interaction', 0)
             s_val = nodes[V[s]] if s in V else 0
             t_val = nodes[V[t]] if t in V else 0
             s_type = 'unmeasured'
             s_weight = 0
             t_type = 'unmeasured'
             t_weight = 0
-            if s in _rec:
+            if s in ip_d:
                 s_type = 'input'
                 s_weight = ip_d.get(s)
-            if s in _lig:
-                s_type = 'input_ligand'
-                s_weight = 0
             if t in out_d:
                 t_type = 'output'
                 t_weight = out_d.get(t)
@@ -337,5 +331,3 @@ def _export_results(P, Gf, ip_d, out_d):
                                         'edge_type', 'edge_pred_val']
                       )
     return df
-
-
