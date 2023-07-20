@@ -8,7 +8,7 @@ def _check_if_corneto():
         import corneto
     except Exception as e:
         raise ImportError("CORNETO is not correctly installed. Please install it with: "
-                          "'pip install git+https://github.com/saezlab/corneto.git@0.9.1-alpha.0 cvxpy==1.3.1 cylp==0.91.5 gurobipy'. "
+                          "'pip install git+https://github.com/saezlab/corneto.git@0.9.1-alpha.0 cvxpy==1.3.1 cylp==0.91.5'. "
                           "GUROBI solver is recommended, free academic licenses are available at https://www.gurobi.com/academia/academic-program-and-licenses/.", str(e))
     return corneto
 
@@ -29,7 +29,7 @@ def select_top_n(d, n=None):
 
 
 def _print(*args, **kwargs):
-    # To be replaced by a loggger?
+    # To be replaced by a logger?
     v = kwargs.get('v', None)
     if v is not None:
         kwargs.pop('v')
