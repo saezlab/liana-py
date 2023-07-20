@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import anndata
-import numpy as np
 import pandas
 
 from plotnine import ggplot, geom_point, aes, \
     facet_grid, labs, theme_bw, theme, element_text, element_rect, scale_size_continuous
     
-from liana.plotting._common import _prep_liana_res, _check_size_colour, _get_top_n, _filter_by, _inverse_scores
+from liana.plotting._common import _prep_liana_res, _check_var, _get_top_n, _filter_by, _inverse_scores
 
 
 def dotplot(adata: anndata.AnnData = None,
@@ -86,13 +85,11 @@ def dotplot(adata: anndata.AnnData = None,
                                 receptor_complex = receptor_complex,
                                 uns_key=uns_key
                                 )
-    _check_size_colour(liana_res, colour=colour, size=size)
+    _check_var(liana_res, var=colour, var_name='colour')
+    _check_var(liana_res, var=size, var_name='size')
 
-    if filterby is not None:
-        liana_res = _filter_by(liana_res, filterby, filter_lambda)
-
-    if top_n is not None:
-        liana_res = _get_top_n(liana_res, top_n, orderby, orderby_ascending, orderby_absolute)
+    liana_res = _filter_by(liana_res, filterby, filter_lambda)
+    liana_res = _get_top_n(liana_res, top_n, orderby, orderby_ascending, orderby_absolute)
         
     # inverse sc if needed
     if inverse_colour:
@@ -194,7 +191,8 @@ def dotplot_by_sample(adata: anndata.AnnData  = None,
                                 ligand_complex=ligand_complex,
                                 receptor_complex=receptor_complex,
                                 uns_key=uns_key)
-    _check_size_colour(liana_res, colour=colour, size=size)
+    _check_var(liana_res, var=colour, var_name='colour')
+    _check_var(liana_res, var=size, var_name='size')
         
     # inverse sc if needed
     if inverse_colour:

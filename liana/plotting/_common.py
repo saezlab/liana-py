@@ -1,15 +1,11 @@
 import numpy as np
-
-
-def _check_size_colour(liana_res, colour=None, size=None):
-    if colour is None:
-        raise ValueError('`colour` must be provided!')
-    if size is None:
-        raise ValueError('`size` must be provided!')
-    if colour not in liana_res.columns:
-        raise ValueError(f'`colour` must be one of {liana_res.columns}')
-    if size not in liana_res.columns:
-        raise ValueError(f'`size` must be one of {liana_res.columns}')
+    
+# generalize check_size_colour to any parameter
+def _check_var(liana_res, var_name, var):
+    if var is None:
+        raise ValueError(f'`{var_name}` must be provided!')
+    if var not in liana_res.columns:
+        raise ValueError(f'`{var}` ({var_name}) must be one of {liana_res.columns}')
 
 
 def _prep_liana_res(adata=None,
@@ -65,7 +61,6 @@ def _aggregate_scores(res, what, how, entities):
 def _inverse_scores(score):
     return -np.log10(score + np.finfo(float).eps)
 
-        
 
 def _filter_by(liana_res, filterby, filter_lambda):
     if filterby is not None:
