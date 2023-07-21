@@ -120,7 +120,7 @@ def tileplot(adata: ad.AnnData = None,
     p.draw()
     
 def _entity_stats(liana_res, entity, entity_type, relevant_cols):
-    entity_stats = liana_res[['interaction', entity, entity_type, *relevant_cols]].copy()
+    entity_stats = liana_res[['interaction', f"{entity}_complex", entity_type, *relevant_cols]].copy()
     entity_stats = entity_stats.rename(columns={entity_type: 'cell_type'}).assign(type=entity_type.capitalize())
     entity_stats.columns = entity_stats.columns.str.replace(entity + '_', '')
     return entity_stats

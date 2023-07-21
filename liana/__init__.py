@@ -1,4 +1,4 @@
-__version__ = '0.1.9'
+__version__ = '0.2.0'
 __version_info__ = tuple([int(num) for num in __version__.split('.')])
 
 from liana import method as mt, plotting as pl, resource as rs, multi as mu, funcomics as fun, testing

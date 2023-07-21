@@ -123,6 +123,7 @@ def dea_to_lr(adata,
             assign(label=label).sort_values('names')
             
         # merge DEA results to props & means
+        dea_df.index.name = None
         df = dea_df[dea_df[groupby] == label].drop(groupby, axis=1). \
             reset_index().rename(columns={'index': "names"})
         
