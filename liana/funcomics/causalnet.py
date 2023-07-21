@@ -1,6 +1,4 @@
-import warnings
 import pandas as pd
-import numpy as np
 
 
 def _check_if_corneto():
@@ -8,7 +6,7 @@ def _check_if_corneto():
         import corneto
     except Exception as e:
         raise ImportError("CORNETO is not correctly installed. Please install it with: "
-                          "'pip install git+https://github.com/saezlab/corneto.git@0.9.1-alpha.0 cvxpy==1.3.1 cylp==0.91.5'. "
+                          "'pip install git+https://github.com/saezlab/corneto.git@0.9.1-alpha.3 cvxpy==1.3.1 cylp==0.91.5'. "
                           "GUROBI solver is recommended, free academic licenses are available at https://www.gurobi.com/academia/academic-program-and-licenses/.", str(e))
     return corneto
 
