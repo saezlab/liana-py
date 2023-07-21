@@ -1,6 +1,5 @@
 import pandas as pd
 
-
 def _check_if_corneto():
     try:
         import corneto
@@ -75,7 +74,7 @@ def _get_scores(d):
     )
 
 
-def search_causalnet(
+def find_causalnet(
         prior_graph,
         input_node_scores,
         output_node_scores,
@@ -90,7 +89,7 @@ def search_causalnet(
         show_solver_output=False,
         max_seconds=None,
         **kwargs
-    ):
+        ):
     v = verbose
     cn = _check_if_corneto()
 
