@@ -64,8 +64,8 @@ html_context = dict(
     conf_py_path='/docs/source/',
 )
 html_show_sphinx = True
-html_logo = 'logo.png'
-html_favicon = 'logo.png'
+html_logo = '_static/logo.png'
+html_favicon = '_static/logo.png'
 html_css_files = ['custom.css']
 
 # -- Options for EPUB output
