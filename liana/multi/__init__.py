@@ -1,5 +1,5 @@
-from ._getters import get_factor_scores, get_variable_loadings
-from .dea_to_lr import dea_to_lr
-from .to_tensor_c2c import to_tensor_c2c
-from .to_mudata import adata_to_views, lrs_to_views
-from ._nmf import nmf, estimate_elbow
+from liana.multi._getters import get_factor_scores, get_variable_loadings
+from liana.multi.df_to_lr import df_to_lr
+from liana.multi.to_tensor_c2c import to_tensor_c2c
+from liana.multi.to_mudata import adata_to_views, lrs_to_views
+from liana.multi._nmf import nmf, estimate_elbow

@@ -1,5 +1,5 @@
 from liana.testing import get_toy_adata, _sample_dea
-from liana.multi import dea_to_lr
+from liana.multi import df_to_lr
 
 
 # Create a toy AnnData object
@@ -9,7 +9,7 @@ dea_df = _sample_dea(adata, groupby)
 
 
 def test_dea_to_lr():
-    lr_res = dea_to_lr(adata,
+    lr_res = df_to_lr(adata,
                        dea_df=dea_df,
                        resource_name='consensus',
                        expr_prop=0.1,
@@ -30,7 +30,7 @@ def test_dea_to_lr():
     assert lr_res['interaction_padjusted'].mean() == 0.5540001846991026
         
 def test_dea_to_lr_params():
-    lr_res = dea_to_lr(adata,
+    lr_res = df_to_lr(adata,
                     dea_df=dea_df,
                     expr_prop=0.1,
                     groupby='bulk_labels',
