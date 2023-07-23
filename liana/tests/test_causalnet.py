@@ -1,4 +1,4 @@
-from liana.funcomics import find_causalnet, build_prior_network
+from liana.utils import find_causalnet, build_prior_network
 
 input_pkn = [
     ("I1", 1, "N1"),

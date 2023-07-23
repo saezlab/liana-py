@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ._liana_pipe import liana_pipe
-from liana.funcomics import mdata_to_anndata
+from liana.utils import mdata_to_anndata
 
 import anndata as an
 from mudata import MuData

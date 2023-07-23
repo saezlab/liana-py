@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from liana.method._Method import MethodMeta
 from liana.method._liana_pipe import liana_pipe
-from liana.funcomics import mdata_to_anndata
+from liana.utils import mdata_to_anndata
 from mudata import MuData
 
 import anndata as an

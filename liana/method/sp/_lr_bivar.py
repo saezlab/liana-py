@@ -17,7 +17,7 @@ from liana.method.sp._spatial_pipe import _rename_means, _categorize, \
     _run_scores_pipeline, _connectivity_to_weight, _handle_connectivity, \
         _add_complexes_to_var
 from liana.method.sp._bivariate_funs import _handle_functions
-from liana.funcomics.obsm_to_adata import obsm_to_adata
+from liana.utils.obsm_to_adata import obsm_to_adata
 
 class SpatialLR(_SpatialMeta):
     def __init__(self, _method, _complex_cols):

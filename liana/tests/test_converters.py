@@ -1,5 +1,5 @@
 from liana.testing._sample_anndata import generate_toy_mdata
-from liana.funcomics import mdata_to_anndata, zi_minmax, neg_to_zero
+from liana.utils import mdata_to_anndata, zi_minmax, neg_to_zero
 from numpy.testing import assert_almost_equal
 
 mdata = generate_toy_mdata()

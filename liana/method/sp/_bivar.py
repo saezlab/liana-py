@@ -14,8 +14,8 @@ from liana.method.sp._spatial_pipe import _categorize, \
     _rename_means, _run_scores_pipeline, \
     _connectivity_to_weight, _handle_connectivity
     
-from liana.funcomics.obsm_to_adata import obsm_to_adata
-from liana.funcomics.mdata_to_anndata import _handle_mdata
+from liana.utils.obsm_to_adata import obsm_to_adata
+from liana.utils.mdata_to_anndata import _handle_mdata
 
 from liana.method.sp._bivariate_funs import _handle_functions
 
