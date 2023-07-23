@@ -1,4 +1,4 @@
-from liana.method._Method import Method, MethodMeta
+from liana.method.sc._Method import Method, MethodMeta
 from numpy import mean
 
 

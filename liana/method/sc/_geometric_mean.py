@@ -1,7 +1,6 @@
-import numpy as np
 from scipy.stats import gmean
 
-from liana.method._Method import Method, MethodMeta
+from liana.method.sc._Method import Method, MethodMeta
 from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
 
 

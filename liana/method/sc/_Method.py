@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ._liana_pipe import liana_pipe
+from liana.method.sc._liana_pipe import liana_pipe
 from liana.utils import mdata_to_anndata
 
 import anndata as an

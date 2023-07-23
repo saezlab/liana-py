@@ -5,7 +5,8 @@ from itertools import product
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
 from liana.resource import _handle_resource, explode_complexes
-from liana.method._liana_pipe import _get_props, _join_stats
+# TODO: these should then be moved to pipe_utils
+from liana.method.sc._liana_pipe import _get_props, _join_stats
 
 def df_to_lr(adata,
               dea_df,

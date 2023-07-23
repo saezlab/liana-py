@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from liana.method._Method import MethodMeta
-from liana.method._liana_pipe import liana_pipe
+from liana.method.sc._Method import MethodMeta
+from liana.method.sc._liana_pipe import liana_pipe
 from liana.utils import mdata_to_anndata
 from mudata import MuData
 

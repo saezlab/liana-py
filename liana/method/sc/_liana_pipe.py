@@ -8,7 +8,7 @@ from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_re
 from liana.resource import _handle_resource, explode_complexes
 from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
 from liana.method._pipe_utils._aggregate import _aggregate
-from ._pipe_utils._pre import _get_props
+from .._pipe_utils._pre import _get_props
 
 import scanpy as sc
 import pandas as pd
