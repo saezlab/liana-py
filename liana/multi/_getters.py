@@ -12,6 +12,7 @@ def get_factor_scores(adata, obsm_key=None, obs_keys=None):
         Key to use when extracting factor scores from `adata.obsm`
     obs_keys: list
         List of keys to use when extracting metadata from `adata.obs`
+        If None, no metadata is extracted. Default is None.
     Returns
     -------
     Returns a pandas DataFrame with the factor scores.
