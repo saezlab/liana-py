@@ -1,5 +1,5 @@
 from liana.resource import select_resource
-from liana.funcomics import generate_lr_geneset
+from liana.resource._resource_utils import generate_lr_geneset
 
 import decoupler as dc
 

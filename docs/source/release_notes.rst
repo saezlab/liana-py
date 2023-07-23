@@ -7,7 +7,10 @@ Release notes
 
 LIANA becomes LIANA+.
 
-Major changes have been made to the repository, however the API visible to the user should be consistent.
+Major changes have been made to the repository, however the API visible to the user should be largely consistent, with minor exceptions:
+- `li.fun.generate_lr_geneset` is now called via `li.rs.generate_lr_geneset`
+- the old 'li.funcomics' model is now renamed to something more general: `li.utils`
+
 
 LIANA+ includes the following new features:
 
@@ -57,6 +60,8 @@ thus creating a multi-condition dataframe in the format of LIANA.
 - A Causal Network inference function has been added to infer downstream signalling networks. This is currently placed in the tutorial with PyDESeq2.
 
 - An elbow approximation approach has been added to the NMF module, to help with the selection of the number of patterns.
+
+- Various utility functions to simplify AnnData extraction/conversion, Matrix transformations, etc (added to `li.ut`)
 
 Note: this is just an overview of the new features, for details please refer to the tutorials, API, and documentation.
 
