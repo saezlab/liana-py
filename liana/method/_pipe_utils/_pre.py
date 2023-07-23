@@ -278,7 +278,3 @@ def _choose_mtx_rep(adata, use_raw=False, layer=None, verbose=False) -> csr_matr
         X = csr_matrix(X)
     
     return X
-
-
-def _get_props(X_mask):
-    return X_mask.getnnz(axis=0) / X_mask.shape[0]

@@ -3,9 +3,8 @@ from .sc._rank_aggregate import AggregateClass, _rank_aggregate_meta as aggregat
 from .sc import cellphonedb, connectome, logfc, natmi, singlecellsignalr, geometric_mean, cellchat
 
 from .sp import bivar, lr_bivar, show_functions, genericMistyData, lrMistyData, MistyData
-from .sp._spatial_neighbors import spatial_neighbors
 
-from .fun.causalnet import find_causalnet, build_prior_network
+from .fun._causalnet import find_causalnet, build_prior_network
 
 import numpy as np
 

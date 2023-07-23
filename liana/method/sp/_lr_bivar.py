@@ -10,7 +10,7 @@ from scipy.sparse import csr_matrix
 
 from liana.resource import select_resource
 from liana.method._pipe_utils import prep_check_adata, assert_covered
-from liana.method._pipe_utils._pre import _get_props
+from liana.method._pipe_utils._common import _get_props
 
 from liana.method.sp._SpatialMethod import _SpatialMeta
 from liana.method.sp._spatial_pipe import _rename_means, _categorize, \

@@ -3,11 +3,12 @@ import pandas as pd
 from anndata import AnnData
 
 from types import ModuleType
+from liana.method._pipe_utils._common import _get_props
 
 from liana.method.sp._Misty import MistyData
 
-from liana.method.sp._spatial_neighbors import spatial_neighbors
-from liana.method._pipe_utils._pre import _choose_mtx_rep, _get_props
+from liana.utils._spatial_neighbors import spatial_neighbors
+from liana.method._pipe_utils._pre import _choose_mtx_rep
 
 from liana.resource import select_resource
 from liana.method._pipe_utils import prep_check_adata

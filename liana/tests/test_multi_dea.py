@@ -1,9 +1,10 @@
-from liana.testing import get_toy_adata, _sample_dea
+from liana.testing import _sample_dea
 from liana.multi import df_to_lr
+from liana.testing._sample_anndata import generate_toy_adata
 
 
 # Create a toy AnnData object
-adata = get_toy_adata()
+adata = generate_toy_adata()
 groupby = 'bulk_labels'
 dea_df = _sample_dea(adata, groupby)
 

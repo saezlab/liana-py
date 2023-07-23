@@ -7,11 +7,11 @@ from pandas.testing import assert_frame_equal
 
 from liana.method import rank_aggregate
 from liana.method.sc._rank_aggregate import AggregateClass
-from liana.testing._toy_adata import get_toy_adata
+from liana.testing._sample_anndata import generate_toy_adata
 
 test_path = pathlib.Path(__file__).parent
 
-adata = get_toy_adata()
+adata = generate_toy_adata()
 
 
 def test_consensus():

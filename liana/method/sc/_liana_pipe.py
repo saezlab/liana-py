@@ -5,10 +5,11 @@ import pandas
 
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes
+from liana.method._pipe_utils._common import _join_stats
 from liana.resource import _handle_resource, explode_complexes
 from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
 from liana.method._pipe_utils._aggregate import _aggregate
-from .._pipe_utils._pre import _get_props
+from liana.method._pipe_utils._common import _get_props
 
 import scanpy as sc
 import pandas as pd
@@ -243,43 +244,6 @@ def liana_pipe(adata: anndata.AnnData,
         lr_res = lr_res.sort_values(by=orderby, ascending=ascending)
     
     return lr_res
-
-
-def _join_stats(source, target, dedict, resource):
-    """
-    Joins and renames source-ligand and target-receptor stats to the ligand-receptor resource
-
-    Parameters
-    ----------
-    source
-        Source/Sender cell type
-    target
-        Target/Receiver cell type
-    dedict
-        dictionary
-    resource
-        Ligand-receptor Resource
-
-    Returns
-    -------
-    Ligand-Receptor stats
-
-    """
-    source_stats = dedict[source].copy()
-    source_stats.columns = source_stats.columns.map(
-        lambda x: 'ligand_' + str(x))
-    source_stats = source_stats.rename(
-        columns={'ligand_names': 'ligand', 'ligand_label': 'source'})
-
-    target_stats = dedict[target].copy()
-    target_stats.columns = target_stats.columns.map(
-        lambda x: 'receptor_' + str(x))
-    target_stats = target_stats.rename(
-        columns={'receptor_names': 'receptor', 'receptor_label': 'target'})
-
-    bound = resource.merge(source_stats).merge(target_stats)
-
-    return bound
 
 
 def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, verbose):

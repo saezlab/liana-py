@@ -5,10 +5,10 @@ from numpy.testing import assert_almost_equal
 from liana.method import cellphonedb, singlecellsignalr as sca, \
     natmi, connectome, logfc, geometric_mean, cellchat
     
-from liana.testing._toy_adata import get_toy_adata
+from liana.testing._sample_anndata import generate_toy_adata
 
 # load toy adata
-adata = get_toy_adata()
+adata = generate_toy_adata()
 expected_shape = adata.shape
 
 

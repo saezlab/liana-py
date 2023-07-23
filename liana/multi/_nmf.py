@@ -4,15 +4,42 @@ import pandas as pd
 import plotnine as p9
 from tqdm import tqdm
 
+from liana.method._pipe_utils._pre import _choose_mtx_rep
 
-def nmf(adata, n_components=None, k_range=range(1, 10), inplace=True, verbose=False, **kwargs):
+def nmf(adata, n_components=None, k_range=range(1, 10), use_raw=False, layer=None, inplace=True, verbose=False, **kwargs):
+    """
+    Fits NMF to an AnnData object.
+    
+    Parameters
+    ----------
+    adata : AnnData
+        AnnData object.
+    n_components : int, None
+        Number of components to use. If None, the number of components is estimated using the elbow method.
+    k_range : range
+        Range of components to test. Default: range(1, 10).
+    use_raw : bool
+        Whether to use ``.raw`` attribute of ``adata``.
+    layer : str, None
+        ``.layers`` key to use. If None, ``.X`` is used.
+    inplace : bool
+        If ``False``, return a copy. Otherwise, do operation inplace and return ``None``.
+    **kwargs : dict
+        Keyword arguments to pass to ``sklearn.decomposition.NMF``.
+    
+    Returns
+    -------
+    If inplace is True, it will add ``NMF_W`` and ``NMF_H`` to the ``adata.obsm`` and ``adata.varm`` AnnData objects.
+    
+    """
     
     if n_components is None:
         errors, n_components = estimate_elbow(adata.X, k_range=k_range, verbose=verbose, **kwargs)
         _plot_elbow(errors, n_components)
     
     nmf = NMF(n_components=n_components, **kwargs)
-    W = nmf.fit_transform(adata.X)
+    X = _choose_mtx_rep(adata, layer=layer, use_raw=use_raw)
+    W = nmf.fit_transform(X)
     H = nmf.components_.T
     
     if inplace:

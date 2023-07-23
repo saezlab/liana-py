@@ -5,9 +5,7 @@ import pandas as pd
 from itertools import product
 from scipy.sparse import csr_matrix
 from mudata import MuData
-
-from liana.method._pipe_utils._pre import _choose_mtx_rep, _get_props
-
+from liana.method._pipe_utils._common import _get_props
 from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
 
 from liana.method.sp._spatial_pipe import _categorize, \
