@@ -42,12 +42,4 @@ class _SpatialMeta:
             )
         
         return meta
-
-
-_basis_meta = _SpatialMeta(
-    method_name="Bivariate Relationships in Space",
-    key_cols=[],
-    reference=""
-)
-
  

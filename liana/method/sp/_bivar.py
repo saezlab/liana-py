@@ -5,7 +5,6 @@ import pandas as pd
 from scipy.sparse import csr_matrix
 from mudata import MuData
 from liana.method._pipe_utils._common import _get_props
-from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
 
 from liana.method.sp._spatial_pipe import _categorize, \
     _rename_means, _run_scores_pipeline, \
@@ -17,17 +16,12 @@ from liana.resource._select_resource import _handle_resource
 
 from liana.method._pipe_utils import prep_check_adata, assert_covered
 
-from liana.method.sp._bivariate_funs import _handle_functions
+from liana.method.sp._bivariate_funs import _handle_functions, _bivariate_functions
 
 
-class SpatialBivariate(_SpatialMeta):
-    def __init__(self, _method):
-        super().__init__(method_name=_method.method_name,
-                         key_cols=_method.key_cols,
-                         reference=_method.reference,
-                         )
-        self._method = _method
-
+class SpatialBivariate():
+    def __init__(self):
+        pass
     def __call__(self,
                  mdata,
                  x_mod,
@@ -36,8 +30,6 @@ class SpatialBivariate(_SpatialMeta):
                  interactions = None,
                  resource=None,
                  resource_name=None,
-                 remove_self_interactions=True,
-                 xy_separator = '^',
                  connectivity_key = 'spatial_connectivities',
                  mod_added = "local_scores",
                  key_added = 'global_res',
@@ -45,7 +37,7 @@ class SpatialBivariate(_SpatialMeta):
                  add_categories = False,
                  n_perms: int = None,
                  seed = 1337,
-                 nz_threshold = 0,
+                 nz_threshold = 0, # NOTE: do I rename this?
                  x_use_raw = False,
                  x_layer = None,
                  x_transform = False,
@@ -55,6 +47,8 @@ class SpatialBivariate(_SpatialMeta):
                  x_name='x_entity',
                  y_name='y_entity',
                  complex_sep='_',
+                 xy_separator = '^',
+                 remove_self_interactions=True,
                  inplace = True,
                  verbose=False,
                  ):
@@ -108,7 +102,7 @@ class SpatialBivariate(_SpatialMeta):
         resource = resource[(np.isin(resource[x_name], temp.var_names)) &
                             (np.isin(resource[y_name], temp.var_names))]
         
-        # TODO: Should I just get rid of remove_self_interactions?
+        # NOTE: Should I just get rid of remove_self_interactions?
         self_interactions = resource[x_name] == resource[y_name]
         if self_interactions.any() & remove_self_interactions:
             if verbose:
@@ -132,7 +126,7 @@ class SpatialBivariate(_SpatialMeta):
         xy_stats = resource.merge(_rename_means(xy_stats, entity=x_name)).merge(
             _rename_means(xy_stats, entity=y_name))
         
-        # TODO: nz_threshold to nz_prop!!! For consistency with other methods
+        # TODO: nz_threshold to nz_prop? For consistency with other methods
         # filter according to props
         xy_stats = xy_stats[(xy_stats[f'{x_name}_props'] >= nz_threshold) &
                             (xy_stats[f'{y_name}_props'] >= nz_threshold)]
@@ -187,21 +181,21 @@ class SpatialBivariate(_SpatialMeta):
             mdata.mod[mod_added].layers['cats'] = csr_matrix(local_cats.T)
         if local_pvals is not None: 
             mdata.mod[mod_added].layers['pvals'] = csr_matrix(local_pvals.T)
+
+
+    def show_functions():
+        """
+        Print information about all bivariate local metrics.
+        """
+        funs = dict()
+        for function in _bivariate_functions:
+            funs[function.name] = {
+                "metadata":function.metadata,
+                "reference":function.reference,
+                }
+            
+            return pd.DataFrame(funs).T.reset_index().rename(columns={"index":"name"})
     
 
+bivar = SpatialBivariate()
 
-bivar = SpatialBivariate(_basis_meta)
-
-
-def _anndata_to_stats(adata, nz_thr=0.1):
-    adata.X = csr_matrix(adata.X, dtype=np.float32) ## TODO change to ~prep_check_adata (but not for gene expression alone)
-    
-    global_stats = pd.DataFrame({'means': adata.X.mean(axis=0).A.flatten(),
-                                 'non_zero': _get_props(adata.X)},
-                                index=adata.var_names)
-    
-    global_stats.index.name = None
-    global_stats = global_stats.reset_index().rename(columns={'index': 'entity'})
-    global_stats = global_stats[global_stats['non_zero'] >= nz_thr]
-
-    return global_stats

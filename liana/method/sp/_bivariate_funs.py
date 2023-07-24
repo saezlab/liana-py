@@ -228,20 +228,6 @@ _bivariate_functions = [
         ),
     ]
 
-# TODO: this should be part of the bivariate class
-def show_functions():
-    """
-    Print information about all available functions in this package.
-    """
-    funs = dict()
-    for function in _bivariate_functions:
-        funs[function.name] = {
-            "metadata":function.metadata,
-            "reference":function.reference,
-            }
-        
-    return pd.DataFrame(funs).T.reset_index().rename(columns={"index":"name"})
-
 
 def _get_method_names():
     return [function.name for function in _bivariate_functions]
