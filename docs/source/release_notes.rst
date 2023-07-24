@@ -10,6 +10,7 @@ LIANA becomes LIANA+.
 Major changes have been made to the repository, however the API visible to the user should be largely consistent, with minor exceptions:
 - `li.fun.generate_lr_geneset` is now called via `li.rs.generate_lr_geneset`
 - the old 'li.funcomics' model is now renamed to something more general: `li.utils`
+- `get_factor_scores` and `get_variable_loadings` were moved to `li.utils`
 
 
 LIANA+ includes the following new features:
