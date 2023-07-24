@@ -10,6 +10,8 @@ interactions = list(product(mdata.mod['adata_x'].var.index,
 ones = np.ones((mdata.shape[0], mdata.shape[0]), dtype=np.float64)
 mdata.obsp['ones'] = ones
 
+
+
 def test_bivar_morans():
     # default
     bivar(mdata,
@@ -19,14 +21,14 @@ def test_bivar_morans():
           interactions=interactions
           )
     assert 'local_scores' in mdata.mod.keys()
-    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -9.947859, decimal=5)
+    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -45.86797, decimal=5)
     
     # with perms
     bivar(mdata, x_mod='adata_x', y_mod='adata_y', 
           function_name='morans', n_perms=2, 
           interactions=interactions)
     
-    np.testing.assert_almost_equal(np.mean(mdata.mod['local_scores'].layers['pvals']), 0.604936507, decimal=6)
+    np.testing.assert_almost_equal(np.mean(mdata.mod['local_scores'].layers['pvals']), 0.6112173202614387, decimal=6)
 
 
 def test_bivar_nondefault():
@@ -44,7 +46,7 @@ def test_bivar_nondefault():
     local_pvals.shape == (700, 100)
     np.testing.assert_almost_equal(np.min(np.min(local_pvals)), 0.5, decimal=2)
     
-    assert local_categories.sum() == -22400
+    assert local_categories.sum() == -8160
     
     
 
@@ -64,14 +66,14 @@ def test_masked_spearman():
     
     # check local
     assert 'local_scores' in mdata.mod.keys()
-    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.mean(), 0.22955093, decimal=5)
+    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.mean(), 0.18438724, decimal=5)
     
     # check global
     assert 'global_res' in mdata.uns.keys()
     global_res = mdata.uns['global_res']
     assert set(['global_mean','global_sd']).issubset(global_res.columns)
-    np.testing.assert_almost_equal(global_res['global_mean'].mean(), 0.229551, decimal=5)
-    np.testing.assert_almost_equal(global_res['global_sd'].mean(), 1.0779696e-06, decimal=5)
+    np.testing.assert_almost_equal(global_res['global_mean'].mean(), 0.18438746, decimal=5)
+    np.testing.assert_almost_equal(global_res['global_sd'].mean(), 8.498836e-07, decimal=5)
     
 
 def test_vectorized_pearson():
@@ -83,13 +85,13 @@ def test_vectorized_pearson():
     # check local
     assert 'local_scores' in mdata.mod.keys()
     adata = mdata.mod['local_scores']
-    np.testing.assert_almost_equal(adata.X.mean(), 0.009908355, decimal=5)
-    np.testing.assert_almost_equal(adata.layers['pvals'].mean(), 0.754255396825397, decimal=5)
+    np.testing.assert_almost_equal(adata.X.mean(), 0.0011550441, decimal=5)
+    np.testing.assert_almost_equal(adata.layers['pvals'].mean(), 0.755160947712419, decimal=5)
     
     # check global
     assert 'global_res' in mdata.uns.keys()
     global_res = mdata.uns['global_res']
     assert set(['global_mean','global_sd']).issubset(global_res.columns)
-    np.testing.assert_almost_equal(global_res['global_mean'].mean(), 0.009908353887100166, decimal=5)
-    np.testing.assert_almost_equal(global_res['global_sd'].mean(), 0.3175441555765978, decimal=5)
+    np.testing.assert_almost_equal(global_res['global_mean'].mean(), 0.0011550438183169959, decimal=5)
+    np.testing.assert_almost_equal(global_res['global_sd'].mean(), 0.3227660823917939, decimal=5)
     

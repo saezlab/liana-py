@@ -38,7 +38,7 @@ def test_mdata_transformations():
     adata = mdata_to_anndata(mdata, x_mod='adata_x', y_mod='adata_y',
                              x_transform=neg_to_zero, y_transform=False,
                              verbose=False)
-    assert_almost_equal(adata.X.max(), 7.8755016, decimal=5)
+    assert_almost_equal(adata.X.max(), 7.760507, decimal=5)
     assert_almost_equal(adata.X.min(), 0, decimal=5)
 
 

@@ -120,11 +120,10 @@ def prep_check_adata(adata: AnnData,
         adata = adata[:, ~msk_features]
 
     # Check for empty samples
-    msk_samples = np.sum(adata.X, axis=1).A1 == 0
+    msk_samples = adata.X.sum(axis=1).A1 == 0
     n_empty_samples = np.sum(msk_samples)
     if n_empty_samples > 0:
-        print(f"{n_empty_samples} cells are empty, they will be removed.")
-        adata = adata[~msk_samples, :]
+        raise ValueError(f"{n_empty_samples} samples of mat are empty, please remove them.")
 
     # Check if log-norm
     _sum = np.sum(adata.X.data[0:100])

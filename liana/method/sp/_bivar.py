@@ -85,16 +85,14 @@ class SpatialBivariate(_SpatialMeta):
                                     verbose=verbose,
                                     )
         temp.var_names_make_unique()
-        
-        # NOTE, there will be a diff in tests because of this.
-        # TODO: UNCOMMENT!!!
-        # temp = prep_check_adata(adata=temp,
-        #                         use_raw=False,
-        #                         layer=None,
-        #                         verbose=verbose,
-        #                         groupby=None,
-        #                         min_cells=None
-        #                         )
+
+        temp = prep_check_adata(adata=temp,
+                                use_raw=False,
+                                layer=None,
+                                verbose=verbose,
+                                groupby=None,
+                                min_cells=None
+                                )
         connectivity = _handle_connectivity(adata=temp, connectivity_key=connectivity_key)
         weight = _connectivity_to_weight(connectivity=connectivity, local_fun=local_fun)
         

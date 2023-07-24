@@ -23,6 +23,7 @@ def generate_toy_mdata():
     adata = generate_toy_spatial()
     adata = adata.raw.to_adata()
     adata = adata[:, 0:10]
+    sc.pp.filter_cells(adata, min_counts=1)
     
     adata.layers['scaled'] = sc.pp.scale(adata.X, zero_center=True, max_value=5)
     
