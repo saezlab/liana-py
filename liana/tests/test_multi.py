@@ -1,5 +1,5 @@
 from liana.multi import to_tensor_c2c, adata_to_views, lrs_to_views
-from liana.multi._getters import get_factor_scores, get_variable_loadings
+from liana.utils._getters import get_factor_scores, get_variable_loadings
 from liana.testing import sample_lrs
 
 import numpy as np
