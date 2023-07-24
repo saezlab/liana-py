@@ -46,8 +46,8 @@ class SpatialBivariate():
                  y_layer = None,
                  y_transform = False,
                  # TODO: move some of these to self
-                 x_name='x_entity',
-                 y_name='y_entity',
+                 x_name='x',
+                 y_name='y',
                  complex_sep='_',
                  xy_sep = '^',
                  remove_self_interactions=True,

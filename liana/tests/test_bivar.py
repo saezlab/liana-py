@@ -2,14 +2,13 @@ import numpy as np
 from itertools import product
 
 from liana.testing._sample_anndata import generate_toy_mdata
-from liana.method.sp._bivar import bivar
+from liana.method.sp._SpatialBivariate import bivar
 
 mdata = generate_toy_mdata()
 interactions = list(product(mdata.mod['adata_x'].var.index,
                             mdata.mod['adata_y'].var.index))
 ones = np.ones((mdata.shape[0], mdata.shape[0]), dtype=np.float64)
 mdata.obsp['ones'] = ones
-
 
 
 def test_bivar_morans():

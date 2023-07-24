@@ -4,7 +4,7 @@ from anndata import AnnData
 import pandas as pd
 from typing import Optional
 
-from liana.method.sp._bivar import SpatialBivariate
+from liana.method.sp._SpatialBivariate import SpatialBivariate
 
 
 class SpatialLR(SpatialBivariate):
