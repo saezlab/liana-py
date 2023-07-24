@@ -19,7 +19,7 @@ def get_version(rel_path: str) -> str:
             return line.split(delim)[1]
     raise RuntimeError("Unable to find version string.")
 
-
+# TODO, Change this to poetry version
 project = 'liana-py'
 copyright = '2022, Saezlab'
 author = 'Daniel Dimitrov'

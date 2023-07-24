@@ -192,7 +192,7 @@ class SpatialBivariate():
         mdata.mod[mod_added] = local_scores
 
 
-    def show_functions():
+    def show_functions(self):
         """
         Print information about all bivariate local metrics.
         """
