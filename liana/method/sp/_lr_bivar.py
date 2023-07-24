@@ -43,10 +43,10 @@ class SpatialLR(_SpatialMeta):
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
                  seed: int = 1337,
-                 connectivity = None,
                  resource: Optional[pd.DataFrame] = None,
                  inplace=True,
                  verbose: Optional[bool] = False,
+                 lr_sep='^',
                  ):
         if n_perms is not None:
             if not isinstance(n_perms, int) or n_perms < 0:
@@ -56,7 +56,7 @@ class SpatialLR(_SpatialMeta):
         if resource is None:
             resource = select_resource(resource_name)
 
-        connectivity = _handle_connectivity(adata, connectivity, connectivity_key)
+        connectivity = _handle_connectivity(adata=adata, connectivity_key=connectivity_key)
         local_fun = _handle_functions(function_name)
         weight = _connectivity_to_weight(connectivity, local_fun)
 
@@ -102,7 +102,7 @@ class SpatialLR(_SpatialMeta):
         lr_res = lr_res[(lr_res['ligand_props'] >= expr_prop) &
                         (lr_res['receptor_props'] >= expr_prop)]
         # create interaction column
-        lr_res['interaction'] = lr_res['ligand'] + '&' + lr_res['receptor']
+        lr_res['interaction'] = lr_res['ligand'] + lr_sep + lr_res['receptor']
         
         x_mat = temp[:, lr_res['ligand']].X.T
         y_mat = temp[:, lr_res['receptor']].X.T
@@ -113,7 +113,7 @@ class SpatialLR(_SpatialMeta):
                                      y_mat=y_mat,
                                      weight=weight,
                                      idx=adata.obs.index,
-                                     columns=lr_res.interaction,
+                                     columns=lr_res['interaction'],
                                      )
             pos_msk = local_cats > 0
         else:

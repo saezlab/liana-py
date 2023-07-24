@@ -54,11 +54,14 @@ def test_bivar_nondefault():
 
 def test_bivar_external():
     ones = np.ones((mdata.shape[0], mdata.shape[0]), dtype=np.float64)
+    mdata.obsp['ones'] = ones
 
-    bivar(mdata, x_mod='adata_x',
+    bivar(mdata,
+          x_mod='adata_x',
           y_mod='adata_y',
           function_name='morans', 
-          connectivity=ones, interactions=interactions)
+          connectivity_key='ones',
+          interactions=interactions)
     
     
 def test_masked_spearman():

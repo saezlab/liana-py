@@ -13,7 +13,7 @@ from liana.method.sp._spatial_pipe import _categorize, \
     _connectivity_to_weight, _handle_connectivity
     
 from liana.utils.obsm_to_adata import obsm_to_adata
-from liana.utils.mdata_to_anndata import _handle_mdata
+from liana.utils.mdata_to_anndata import _handle_mdata, mdata_to_anndata
 from liana.resource._select_resource import _handle_resource
 
 from liana.method.sp._bivariate_funs import _handle_functions
@@ -35,6 +35,7 @@ class SpatialBivariate(_SpatialMeta):
                  interactions = None,
                  resource=None,
                  resource_name=None,
+                 remove_self_interactions=True,
                  xy_separator = '^',
                  connectivity_key = 'spatial_connectivities',
                  mod_added = "local_scores",
@@ -44,14 +45,14 @@ class SpatialBivariate(_SpatialMeta):
                  n_perms: int = None,
                  seed = 1337,
                  nz_threshold = 0,
-                 remove_self_interactions=True,
-                 connectivity = None,
                  x_use_raw = False,
                  x_layer = None,
                  x_transform = False,
                  y_use_raw=False,
                  y_layer = None,
                  y_transform = False,
+                 x_name='x_entity',
+                 y_name='y_entity',
                  inplace = True,
                  verbose=False,
                  ):
@@ -59,9 +60,15 @@ class SpatialBivariate(_SpatialMeta):
             if not isinstance(n_perms, int) or n_perms < 0:
                 raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")
         
-        connectivity = _handle_connectivity(mdata, connectivity, connectivity_key)
+        connectivity = _handle_connectivity(adata=mdata, connectivity_key=connectivity_key)
         local_fun = _handle_functions(function_name)
         weight = _connectivity_to_weight(connectivity, local_fun)
+        
+        resource = _handle_resource(interactions=interactions,
+                                    resource=resource,
+                                    resource_name=resource_name,
+                                    x_name=x_name, y_name=y_name,
+                                    verbose=verbose)
         
         # TODO: change this to mdata_to_anndata
         if isinstance(mdata, MuData):
@@ -72,14 +79,9 @@ class SpatialBivariate(_SpatialMeta):
                                          x_transform=x_transform, y_transform=y_transform,
                                          verbose=verbose,
                                          )
-            
-        interactions = _handle_resource(interactions=interactions,
-                                        resource=resource,
-                                        resource_name=resource_name,
-                                        x_key='x_entity', y_key='y_entity',
-                                        verbose=verbose)
         
         # TODO: Handle complexes
+        
         
         # change index names to entity
         xdata.var_names.rename('entity', inplace=True)
@@ -89,13 +91,16 @@ class SpatialBivariate(_SpatialMeta):
         y_stats = _rename_means(_anndata_to_stats(ydata, nz_threshold), entity='y')
         
         # join global stats to LRs from resource
-        xy_stats = interactions.merge(x_stats).merge(y_stats)
+        xy_stats = resource.merge(x_stats).merge(y_stats)
         
         xy_stats['interaction'] = xy_stats['x_entity'] + xy_separator + xy_stats['y_entity']
         
-        # TODO: is this really needed???
-        if remove_self_interactions:
-            xy_stats = xy_stats[xy_stats['x_entity'] != xy_stats['y_entity']]
+        # TODO: Should I just get rid of remove_self_interactions?
+        self_interactions = xy_stats['x_entity'] == xy_stats['y_entity']
+        if self_interactions.any() & remove_self_interactions:
+            if verbose:
+                print(f"Removing {self_interactions.sum()} self-interactions")
+            xy_stats = xy_stats[~self_interactions]
         
         # reorder columns
         xy_stats = xy_stats.reindex(columns=sorted(xy_stats.columns))
@@ -109,7 +114,7 @@ class SpatialBivariate(_SpatialMeta):
                                      y_mat=y_mat,
                                      weight=weight,
                                      idx=mdata.obs.index,
-                                     columns=xy_stats.interaction,
+                                     columns=xy_stats['interaction'],
                                      )
             pos_msk = local_cats > 0
         else:

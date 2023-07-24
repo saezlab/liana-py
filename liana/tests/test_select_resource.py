@@ -6,8 +6,8 @@ def test_select_interactions():
     interactions = [('a', 'b'), ('c', 'd')]
     
     resource = _handle_resource(interactions=interactions,
-                                x_key='x',
-                                y_key='y',
+                                x_name='x',
+                                y_name='y',
                                 verbose=True,
                                 # These should be ignored
                                 resource=select_resource("consensus"), 
@@ -19,8 +19,8 @@ def test_select_interactions():
 
 def test_select_resource():
     resource = _handle_resource(interactions=None,
-                                x_key='ligand',
-                                y_key='receptor',
+                                x_name='ligand',
+                                y_name='receptor',
                                 verbose=True,
                                 resource=select_resource("consensus"), 
                                 # This should be ignored
@@ -35,8 +35,8 @@ def test_select_resource_name():
     resource = _handle_resource(interactions=None,
                                 resource=None,
                                 resource_name='cellchatdb',
-                                x_key='x',
-                                y_key='y',
+                                x_name='x',
+                                y_name='y',
                                 verbose=True,
                                 )
     
@@ -49,8 +49,8 @@ def test_resource_exception_none():
         _handle_resource(interactions=None,
                          resource=None,
                          resource_name=None,
-                         x_key='x',
-                         y_key='y',
+                         x_name='x',
+                         y_name='y',
                          verbose=True,)
         
 
@@ -59,8 +59,8 @@ def test_resource_exception_xy():
         _handle_resource(interactions=None, 
                          resource=select_resource("consensus"),
                          resource_name=None,
-                         x_key='x',
-                         y_key='y',
+                         x_name='x',
+                         y_name='y',
                          verbose=True,
                          )
     

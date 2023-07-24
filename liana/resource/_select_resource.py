@@ -52,7 +52,7 @@ def show_resources():
     return list(unique(resource['resource']))
 
 
-def _handle_resource(interactions=None, resource=None, resource_name=None, x_key='ligand', y_key='receptor', verbose=True):
+def _handle_resource(interactions=None, resource=None, resource_name=None, x_name='ligand', y_name='receptor', verbose=True):
     if interactions is None:
         if resource is None:
             if resource_name is None:
@@ -64,15 +64,15 @@ def _handle_resource(interactions=None, resource=None, resource_name=None, x_key
         else:
             if verbose:
                 print("Using provided `resource`.")
-            if not isinstance(resource, DataFrame) or x_key not in resource.columns or y_key not in resource.columns:
+            if not isinstance(resource, DataFrame) or x_name not in resource.columns or y_name not in resource.columns:
                 raise ValueError("If 'interactions' is None, 'resource' must be a valid DataFrame "
-                                 "with columns '{}' and '{}'.".format(x_key, y_key))
+                                 "with columns '{}' and '{}'.".format(x_name, y_name))
             resource = resource.copy()
     else:
         if verbose:
             print("Using provided `interactions`.")
         if not isinstance(interactions, list) or any(len(item) != 2 for item in interactions):
             raise ValueError("'interactions' should be a list of tuples in the format [(x1, y1), (x2, y2), ...].")
-        resource = DataFrame(interactions, columns=[x_key, y_key])
+        resource = DataFrame(interactions, columns=[x_name, y_name])
 
     return resource

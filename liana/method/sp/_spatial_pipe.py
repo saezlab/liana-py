@@ -454,11 +454,10 @@ def _connectivity_to_weight(connectivity, local_fun):
         return csr_matrix(connectivity)
 
 
-def _handle_connectivity(adata, connectivity, connectivity_key):
-    if connectivity is None:
-        if adata.obsp[connectivity_key] is None:
-            raise ValueError(f'No connectivity matrix founds in mdata.obsp[{connectivity_key}]')
-        connectivity = adata.obsp[connectivity_key]
+def _handle_connectivity(adata, connectivity_key):
+    if connectivity_key not in adata.obsp.keys():
+        raise ValueError(f'No connectivity matrix founds in mdata.obsp[{connectivity_key}]')
+    connectivity = adata.obsp[connectivity_key]
         
     if not isspmatrix_csr(connectivity):
         connectivity = csr_matrix(connectivity, dtype=np.float32)
