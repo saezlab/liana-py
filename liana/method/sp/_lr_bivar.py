@@ -48,56 +48,6 @@ class SpatialLR(_SpatialMeta):
                  inplace=True,
                  verbose: Optional[bool] = False,
                  ):
-        """
-        Parameters
-        ----------
-        adata
-            Annotated data object.
-        resource_name
-            Name of the resource to be loaded and use for ligand-receptor inference.
-        connectivity_key: str
-            Key to use to retrieve the connectivity matrix from adata.obsp.
-        key_added : str
-            Key to use to store the results in adata.uns.
-        obsm_added : str
-            Key to use to store the results in adata.obsm.
-        expr_prop
-            Minimum expression proportion for the ligands/receptors (and their subunits).
-             Set to `0` to return unfiltered results.
-        n_perms
-            Number of permutations to be performed if `pvalue_method`=='permutation'
-        positive_only
-            Whether to calculate p-values only for positive correlations. `True` by default.
-        use_raw
-            Use raw attribute of adata if present.
-        layer
-            Layer in anndata.AnnData.layers to use. If None, use anndata.AnnData.X.
-        verbose
-            Verbosity flag
-        seed
-            Random seed for reproducibility.
-        resource
-            Parameter to enable external resources to be passed. Expects a pandas dataframe
-            with [`ligand`, `receptor`] columns. None by default. If provided will overrule
-            the resource requested via `resource_name`
-        connectivity : np.array 
-            connectivity matrix to be used to calculate bivariate relationships, should be with shape (n_obs, n_obs).
-            If provided, will overrule the connectivities provided via `connectivity_key`.
-        inplace
-            If true return `DataFrame` with results, else assign to `.uns`.
-
-        Returns
-        -------
-        If ``inplace = False``, returns:
-        - 1) a `DataFrame` with ligand-receptor correlations for the whole slide (global)
-        - 2) a `DataFrame` with ligand-receptor Moran's I for each spot
-        - 3) a `DataFrame` with ligand-receptor correlations p-values for each spot
-        Otherwise, modifies the ``adata`` object with the following keys:
-        - :attr:`anndata.AnnData.uns` ``['global_res']`` with `1)`
-        - :attr:`anndata.AnnData.obsm` ``['local_r']`` with  `2)`
-        - :attr:`anndata.AnnData.obsm` ``['local_pvals']`` with  `3)`
-
-        """        
         if n_perms is not None:
             if not isinstance(n_perms, int) or n_perms < 0:
                 raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")

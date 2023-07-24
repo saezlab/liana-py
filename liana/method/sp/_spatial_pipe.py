@@ -298,39 +298,6 @@ def _global_spatialdm(x_mat,
                       positive_only,
                       verbose
                       ):
-    """
-    Global Moran's Bivariate I as implemented in SpatialDM
-
-    Parameters
-    ----------
-    x_mat
-        Gene expression matrix for entity x (e.g. ligand)
-    y_mat
-        Gene expression matrix for entity y (e.g. receptor)
-    x_pos
-        Index positions of entity x (e.g. ligand) in `mat`
-    y_pos
-        Index positions of entity y (e.g. receptor) in `mat`
-    xy_dataframe
-        a dataframe with x,y relationships to be estimated, for example `lr_res`.
-    weight
-        connectivity weight matrix, obtained e.g. via `liana.method.get_spatial_connectivity`.
-        Note that for spatialDM/Morans'I `weight` has to be weighed by n / sum(W).
-    seed
-        Reproducibility seed
-    n_perms
-        Method to estimate pseudo p-value, must be in ['permutation', 'analytical']
-    positive_only
-        Whether to return only p-values for positive spatial correlations.
-        By default, `True`.
-
-    Returns
-    -------
-    Tupple of 2 1D Numpy arrays of size xy_dataframe.shape[1],
-    or in other words calculates global_I and global_pval for
-    each interaction in `xy_dataframe`
-
-    """
     # Get global r
     global_r = ((x_mat @ weight) * y_mat).sum(axis=1)
 
@@ -472,7 +439,6 @@ def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, positive_only,
 
 
 def _connectivity_to_weight(connectivity, local_fun):
-    ## TODO add tests for this
     connectivity = csr_matrix(connectivity, dtype=np.float32)
     
     if local_fun.__name__ == "_local_morans":
@@ -481,8 +447,8 @@ def _connectivity_to_weight(connectivity, local_fun):
         
         return csr_matrix(connectivity)
     
-    elif (connectivity.shape[0] < 5000) | local_fun.__name__.__contains__("masked"):
     # NOTE vectorized is faster with non-sparse, masked_scores won't work with sparse
+    elif (connectivity.shape[0] < 5000) | local_fun.__name__.__contains__("masked"):
             return connectivity.A
     else:
         return csr_matrix(connectivity)
@@ -493,20 +459,23 @@ def _handle_connectivity(adata, connectivity, connectivity_key):
         if adata.obsp[connectivity_key] is None:
             raise ValueError(f'No connectivity matrix founds in mdata.obsp[{connectivity_key}]')
         connectivity = adata.obsp[connectivity_key]
-    connectivity = csr_matrix(connectivity, dtype=np.float32)
+        
+    if not isspmatrix_csr(connectivity):
+        connectivity = csr_matrix(connectivity, dtype=np.float32)
+        
     return connectivity
 
 
-def _add_complexes_to_var(adata, entities):
+def _add_complexes_to_var(adata, entities, complex_sep='_'):
     """
     Generate an AnnData object with complexes appended as variables.
     """
-    complexes = entities[Series(entities).str.contains('_')]
+    complexes = entities[Series(entities).str.contains(complex_sep)]
     
     X = None
 
     for comp in complexes:
-        subunits = comp.split('_')
+        subunits = comp.split(complex_sep)
         
         # keep only complexes, the subunits of which are in var
         if all([subunit in adata.var.index for subunit in subunits]):

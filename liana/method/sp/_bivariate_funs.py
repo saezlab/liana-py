@@ -228,6 +228,7 @@ _bivariate_functions = [
         ),
     ]
 
+# TODO: this should be part of the bivariate class
 def show_functions():
     """
     Print information about all available functions in this package.

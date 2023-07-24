@@ -1,4 +1,4 @@
-from liana.resource import _handle_resource, select_resource
+from liana.resource._select_resource import _handle_resource, select_resource
 import pytest
 
 def test_select_interactions():

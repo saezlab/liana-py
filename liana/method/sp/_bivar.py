@@ -14,6 +14,7 @@ from liana.method.sp._spatial_pipe import _categorize, \
     
 from liana.utils.obsm_to_adata import obsm_to_adata
 from liana.utils.mdata_to_anndata import _handle_mdata
+from liana.resource._select_resource import _handle_resource
 
 from liana.method.sp._bivariate_funs import _handle_functions
 
@@ -32,6 +33,8 @@ class SpatialBivariate(_SpatialMeta):
                  y_mod,
                  function_name='cosine',
                  interactions = None,
+                 resource=None,
+                 resource_name=None,
                  xy_separator = '^',
                  connectivity_key = 'spatial_connectivities',
                  mod_added = "local_scores",
@@ -52,65 +55,6 @@ class SpatialBivariate(_SpatialMeta):
                  inplace = True,
                  verbose=False,
                  ):
-        """
-        Global Bivariate analysis pipeline
-        
-        Parameters
-        ----------
-        mdata : anndata
-            MuData object containing two modalities of interest
-        function_name : str
-            Name of the function to use for the local analysis.
-        x_mod : str
-            Name of the modality to use as x
-        y_mod : str
-            Name of the modality to use as y
-        interactions : list of tuples
-            Interactions to use for the local analysis. If None, all pairwise combinations of all variables in x and y will be used.
-            Note that this may be very computationally expensive when working with modalities with many variables.
-        connectivity_key : str
-            Key to use to retrieve the connectivity matrix from adata.obsp.
-        mod_added : str
-            Name of the modality to add to the MuData object (in case of inplace=True)
-        add_categories : bool
-            Whether to add_categories about the local scores or not
-        positive_only : bool
-            Whether to calculate p-values only for positive correlations. `True` by default.
-        n_perms : int
-            Number of permutations to use for the p-value calculation (when > 1). If -1, will use the analytical solution.
-            If None (default), will not calculate p-values (only local scores).
-        seed : int
-            Seed to use for the permutation
-        nz_threshold : int
-            Threshold to use to remove zero-inflated features from the data
-        remove_self_interactions : bool
-            Whether to remove self-interactions from the data (i.e. x & y have the same name).
-            Current metrics implemented here do not make sense for self-interactions.
-        connectivity : np.ndarray
-            connectivity matrix to use for the local analysis. If None, will use the one stored in adata.obsp[connectivity_key].
-        x_use_raw : bool
-            Whether to use the raw data for the x modality (By default it will use the .X matrix)
-        x_layer : str
-            Layer to use for the x modality
-        y_use_raw : bool
-            Whether to use the raw data for the y modality (By default it will use the .X matrix)
-        y_layer : str
-            Layer to use for the y modality
-        inplace : bool
-            Whether to add the results as modalities to to the MuData object
-            or return them as a pandas.DataFrame, and local_scores/local_pvalues as a pandas.DataFrame
-            
-        Returns
-        -------
-        If inplace is True, it will add `mod_added` to the MuData object.
-            If add_categories is True, `cats` will be added as a layer to the `mod_added` AnnData object.
-            If n_perms is not None, `local_pvalues` will be added as a layer to the `mod_added` AnnData object.
-        if inplace is False, it will return:
-            - global_scores: pandas.DataFrame with the global scores
-            - local_scores: pandas.DataFrame with the local scores
-            - local_pvalues: pandas.DataFrame with the local p-values (if n_perms is not None)
-        
-        """
         if n_perms is not None:
             if not isinstance(n_perms, int) or n_perms < 0:
                 raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")
@@ -119,7 +63,7 @@ class SpatialBivariate(_SpatialMeta):
         local_fun = _handle_functions(function_name)
         weight = _connectivity_to_weight(connectivity, local_fun)
         
-        # TODO: Move this to mdata_to_anndata
+        # TODO: change this to mdata_to_anndata
         if isinstance(mdata, MuData):
             xdata, ydata = _handle_mdata(mdata, 
                                          x_mod=x_mod, y_mod=y_mod,
@@ -128,14 +72,14 @@ class SpatialBivariate(_SpatialMeta):
                                          x_transform=x_transform, y_transform=y_transform,
                                          verbose=verbose,
                                          )
+            
+        interactions = _handle_resource(interactions=interactions,
+                                        resource=resource,
+                                        resource_name=resource_name,
+                                        x_key='x_entity', y_key='y_entity',
+                                        verbose=verbose)
         
-        # TODO require that this is passed, don't do this...
-        # If this is required, it would prevent from RAM explosions
-        # replace with _handle_resource_
-        if interactions is None:
-            interactions = list(product(xdata.var_names, ydata.var_names))
-        
-        interactions = pd.DataFrame(interactions, columns=['x_entity', 'y_entity'])
+        # TODO: Handle complexes
         
         # change index names to entity
         xdata.var_names.rename('entity', inplace=True)
@@ -143,7 +87,6 @@ class SpatialBivariate(_SpatialMeta):
         
         x_stats = _rename_means(_anndata_to_stats(xdata, nz_threshold), entity='x')
         y_stats = _rename_means(_anndata_to_stats(ydata, nz_threshold), entity='y')
-        
         
         # join global stats to LRs from resource
         xy_stats = interactions.merge(x_stats).merge(y_stats)
@@ -190,12 +133,13 @@ class SpatialBivariate(_SpatialMeta):
         
         if not inplace:
             return xy_stats, local_scores, local_pvals, local_cats
-            
+        
         # save to uns
         mdata.uns[key_added] = xy_stats
         # save as a modality
         mdata.mod[mod_added] = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
         
+        # TODO to a function, passed to .mod if mdata; or obsm if adata
         if positive_only:
             mdata.mod[mod_added].X = mdata.mod[mod_added].X * pos_msk.T
         if local_cats is not None:

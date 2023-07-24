@@ -4,23 +4,30 @@ from itertools import product
 from liana.testing._sample_anndata import generate_toy_mdata
 from liana.method.sp._bivar import bivar
 
+mdata = generate_toy_mdata()
+interactions = list(product(mdata.mod['adata_x'].var.index,
+                            mdata.mod['adata_y'].var.index))
+
 def test_bivar_morans():
-    mdata = generate_toy_mdata()    
-    
     # default
-    bivar(mdata, x_mod='adata_x', y_mod='adata_y', function_name='morans')
+    bivar(mdata,
+          x_mod='adata_x',
+          y_mod='adata_y',
+          function_name='morans', 
+          interactions=interactions
+          )
     assert 'local_scores' in mdata.mod.keys()
     np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -9.947859, decimal=5)
     
     # with perms
     bivar(mdata, x_mod='adata_x', y_mod='adata_y', 
-          function_name='morans', n_perms=2)
+          function_name='morans', n_perms=2, 
+          interactions=interactions)
     
     np.testing.assert_almost_equal(np.mean(mdata.mod['local_scores'].layers['pvals']), 0.604936507, decimal=6)
 
 
 def test_bivar_nondefault():
-    mdata = generate_toy_mdata()   
     # test different params, inplace = False
     proximity = np.ones((mdata.shape[0], mdata.shape[0]))
     # proximity = np.zeros((mdata.shape[0], mdata.shape[0]))
@@ -32,7 +39,7 @@ def test_bivar_nondefault():
                 function_name='morans', n_perms=0,
                 connectivity_key='ones', remove_self_interactions=False,
                 x_layer = "scaled", y_layer = "scaled", inplace=False, 
-                add_categories=True
+                add_categories=True, interactions=interactions
                 )
     
     # if all are the same weights, then everything is close to 0?
@@ -46,20 +53,18 @@ def test_bivar_nondefault():
     
 
 def test_bivar_external():
-    mdata = generate_toy_mdata()
     ones = np.ones((mdata.shape[0], mdata.shape[0]), dtype=np.float64)
-    
-    x_vars = mdata.mod['adata_x'].var.index[-3:]
-    y_vars = mdata.mod['adata_y'].var.index[0:3]
-    interactions = list(product(x_vars, y_vars))
-    
-    bivar(mdata, x_mod='adata_x', y_mod='adata_y', function_name='morans', connectivity=ones, interactions=interactions)
+
+    bivar(mdata, x_mod='adata_x',
+          y_mod='adata_y',
+          function_name='morans', 
+          connectivity=ones, interactions=interactions)
     
     
 def test_masked_spearman():
-    mdata = generate_toy_mdata()
     mdata.obsp['spatial_connectivities'] = np.ones([mdata.shape[0], mdata.shape[0]])
-    bivar(mdata, x_mod='adata_x', y_mod='adata_y', function_name='masked_spearman')
+    bivar(mdata, x_mod='adata_x', y_mod='adata_y',
+          function_name='masked_spearman', interactions=interactions)
     
     # check local
     assert 'local_scores' in mdata.mod.keys()
@@ -74,8 +79,11 @@ def test_masked_spearman():
     
 
 def test_vectorized_pearson():
-    mdata = generate_toy_mdata()
-    bivar(mdata, x_mod='adata_x', y_mod='adata_y', function_name='pearson', n_perms=100)
+    # NOTE: something is modifying the mdata object here...
+    bivar(mdata, x_mod='adata_x',
+          y_mod='adata_y',
+          function_name='pearson', n_perms=100,
+          interactions=interactions)
     
     # check local
     assert 'local_scores' in mdata.mod.keys()
