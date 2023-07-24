@@ -203,6 +203,6 @@ class SpatialBivariate():
                 "reference":function.reference,
                 }
             
-            return pd.DataFrame(funs).T.reset_index().rename(columns={"index":"name"})
+        return pd.DataFrame(funs).T.reset_index().rename(columns={"index":"name"})
     
 bivar = SpatialBivariate()

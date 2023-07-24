@@ -14,17 +14,16 @@ def read(rel_path: str) -> str:
 
 def get_version(rel_path: str) -> str:
     for line in read(rel_path).splitlines():
-        if line.startswith("__version__"):
+        if line.startswith("version ="):
             delim = '"' if '"' in line else "'"
             return line.split(delim)[1]
     raise RuntimeError("Unable to find version string.")
 
-# TODO, Change this to poetry version
-project = 'liana-py'
+project = 'liana'
 copyright = '2022, Saezlab'
 author = 'Daniel Dimitrov'
-release = get_version("../../liana/__init__.py")
-version = get_version("../../liana/__init__.py")
+release = get_version("../../../pyproject.toml")
+version = release
 
 # -- General configuration
 extensions = [
