@@ -4175,4 +4175,4 @@ full = ["cell2cell", "decoupler", "mofax", "muon", "omnipath", "pydeseq2", "squi
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8"
-content-hash = "8d48478dcb77829fffc7fdb97de884e21ac4c88bdf8ece006a4858ff00b671bc"
+content-hash = "4d255fb3a19c7745b11280db8a3c4b9159349bb936cbc4c42a05d176403222f7"
