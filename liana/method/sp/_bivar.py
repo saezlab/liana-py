@@ -44,6 +44,7 @@ class SpatialBivariate():
                  y_use_raw=False,
                  y_layer = None,
                  y_transform = False,
+                 # TODO: move some of these to self
                  x_name='x_entity',
                  y_name='y_entity',
                  complex_sep='_',
@@ -165,22 +166,21 @@ class SpatialBivariate():
                                  pos_msk=pos_msk,
                                  verbose=verbose,
                                  )
+        local_scores = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
+        local_scores.uns[key_added] = xy_stats
         
-        if not inplace:
-            return xy_stats, local_scores, local_pvals, local_cats
-        
-        # save to uns
-        mdata.uns[key_added] = xy_stats
-        # save as a modality
-        mdata.mod[mod_added] = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
-        
-        # TODO to a function, passed to .mod if mdata; or obsm if adata
         if positive_only:
-            mdata.mod[mod_added].X = mdata.mod[mod_added].X * pos_msk.T
+            local_scores.X = local_scores.X * pos_msk.T
         if local_cats is not None:
-            mdata.mod[mod_added].layers['cats'] = csr_matrix(local_cats.T)
-        if local_pvals is not None: 
-            mdata.mod[mod_added].layers['pvals'] = csr_matrix(local_pvals.T)
+            local_scores.layers['cats'] = csr_matrix(local_cats.T)
+        if local_pvals is not None:
+            local_scores.layers['pvals'] = csr_matrix(local_pvals.T)
+
+        if not inplace:
+            return xy_stats, local_scores
+        
+        mdata.uns[key_added] = xy_stats
+        mdata.mod[mod_added] = local_scores
 
 
     def show_functions():

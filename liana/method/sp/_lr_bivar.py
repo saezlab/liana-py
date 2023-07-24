@@ -136,12 +136,13 @@ class SpatialLR(_SpatialMeta):
                                  )
             
         local_scores = obsm_to_adata(adata=adata, df=local_scores, obsm_key=None, _uns=adata.uns)
+        local_scores.uns[key_added] = lr_res
+        
         if positive_only:
             local_scores.X = local_scores.X * pos_msk.T
         
         if inplace:
             adata.uns[key_added] = lr_res
-            local_scores.uns[key_added] = lr_res
             adata.obsm[obsm_added] = local_scores
             
             if n_perms is not None:
