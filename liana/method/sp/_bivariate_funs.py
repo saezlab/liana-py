@@ -5,19 +5,6 @@ from scipy.stats import rankdata
 
 
 @nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:]), cache=True)
-def _wcossim(x, y, w):
-    dot = np.dot(x * w, y)
-    x_dot = np.dot(x * w, x)
-    y_dot = np.dot(y * w, y)
-    denominator = (x_dot * y_dot)
-    
-    if denominator == 0:
-        return 0.0
-    
-    return dot / (denominator**0.5)
-
-
-@nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:]), cache=True)
 def _wjaccard(x, y , w):
     # intersect and union
     numerator = np.sum(np.minimum(x, y) * w)
@@ -203,7 +190,7 @@ _bivariate_functions = [
         ),
         SpatialFunction(
             name="cosine",
-            metadata="weighted cosine similarity",
+            metadata="weighted Cosine similarity",
             local_function = _vectorized_cosine,
         ),
         SpatialFunction(
@@ -217,7 +204,7 @@ _bivariate_functions = [
             local_function=_local_morans,
             reference="Li, Z., Wang, T., Liu, P. and Huang, Y., 2022. SpatialDM:"
             "Rapid identification of spatially co-expressed ligand-receptor"
-            "reveals cell-cell, communication patterns. bioRxiv, pp.2022-08."
+            "reveals cell-cell communication patterns. bioRxiv, pp.2022-08."
         ),
         SpatialFunction(
             name= "masked_spearman",
@@ -231,8 +218,6 @@ _bivariate_functions = [
 
 def _get_method_names():
     return [function.name for function in _bivariate_functions]
-
-
 
 def _handle_functions(method_name):
     method_name = method_name.lower()

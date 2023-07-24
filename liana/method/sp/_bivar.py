@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
+from anndata import AnnData
 from mudata import MuData
 from liana.method._pipe_utils._common import _get_props
 
@@ -48,7 +49,7 @@ class SpatialBivariate():
                  x_name='x_entity',
                  y_name='y_entity',
                  complex_sep='_',
-                 xy_separator = '^',
+                 xy_sep = '^',
                  remove_self_interactions=True,
                  inplace = True,
                  verbose=False,
@@ -66,42 +67,50 @@ class SpatialBivariate():
                                     y_name=y_name,
                                     verbose=verbose)
         
-        # TODO: change this to mdata_to_anndata
         if isinstance(mdata, MuData):
-            temp = mdata_to_anndata(mdata,
-                                    x_mod=x_mod,
-                                    y_mod=y_mod,
-                                    x_use_raw=x_use_raw,
-                                    x_layer=x_layer,
-                                    y_use_raw=y_use_raw,
-                                    y_layer=y_layer,
-                                    x_transform=x_transform,
-                                    y_transform=y_transform,
-                                    verbose=verbose,
-                                    )
-        temp.var_names_make_unique()
-
-        temp = prep_check_adata(adata=temp,
-                                use_raw=False,
-                                layer=None,
-                                verbose=verbose,
-                                groupby=None,
-                                min_cells=None
+            adata = mdata_to_anndata(mdata,
+                                     x_mod=x_mod,
+                                     y_mod=y_mod,
+                                     x_use_raw=x_use_raw,
+                                     x_layer=x_layer,
+                                     y_use_raw=y_use_raw,
+                                     y_layer=y_layer,
+                                     x_transform=x_transform,
+                                     y_transform=y_transform,
+                                     verbose=verbose,
+                                     )
+            use_raw = False
+            layer = None
+        elif isinstance(mdata, AnnData):
+            adata = mdata
+            use_raw = x_use_raw
+            layer = x_layer
+        else:
+            raise ValueError("Invalid type, `adata/mdata` must be an AnnData/MuData object")
+            
+        adata = prep_check_adata(adata=adata,
+                                 use_raw=use_raw,
+                                 layer=layer,
+                                 verbose=verbose,
+                                 groupby=None,
+                                 min_cells=None
                                 )
-        connectivity = _handle_connectivity(adata=temp, connectivity_key=connectivity_key)
+
+
+        connectivity = _handle_connectivity(adata=adata, connectivity_key=connectivity_key)
         weight = _connectivity_to_weight(connectivity=connectivity, local_fun=local_fun)
         
         if complex_sep is not None:
-            temp = _add_complexes_to_var(temp,
-                                        np.union1d(resource[x_name].astype(str),
-                                                    resource[y_name].astype(str)
-                                                    ),
+            adata = _add_complexes_to_var(adata,
+                                          np.union1d(resource[x_name].astype(str),
+                                                     resource[y_name].astype(str)
+                                                     ),
                                         complex_sep=complex_sep
                                         )
         
         # filter_resource
-        resource = resource[(np.isin(resource[x_name], temp.var_names)) &
-                            (np.isin(resource[y_name], temp.var_names))]
+        resource = resource[(np.isin(resource[x_name], adata.var_names)) &
+                            (np.isin(resource[y_name], adata.var_names))]
         
         # NOTE: Should I just get rid of remove_self_interactions?
         self_interactions = resource[x_name] == resource[y_name]
@@ -114,14 +123,14 @@ class SpatialBivariate():
         entities = np.union1d(np.unique(resource[x_name]),
                                 np.unique(resource[y_name]))
         # Check overlap between resource and adata TODO check if this works
-        assert_covered(entities, temp.var_names, verbose=verbose)
+        assert_covered(entities, adata.var_names, verbose=verbose)
 
         # Filter to only include the relevant features
-        temp = temp[:, np.intersect1d(entities, temp.var.index)]
+        adata = adata[:, np.intersect1d(entities, adata.var.index)]
         
-        xy_stats = pd.DataFrame({'means': temp.X.mean(axis=0).A.flatten(),
-                                 'props': _get_props(temp.X)},
-                                index=temp.var_names
+        xy_stats = pd.DataFrame({'means': adata.X.mean(axis=0).A.flatten(),
+                                 'props': _get_props(adata.X)},
+                                index=adata.var_names
                                 ).reset_index().rename(columns={'index': 'gene'})
         # join global stats to LRs from resource
         xy_stats = resource.merge(_rename_means(xy_stats, entity=x_name)).merge(
@@ -132,10 +141,10 @@ class SpatialBivariate():
         xy_stats = xy_stats[(xy_stats[f'{x_name}_props'] >= nz_threshold) &
                             (xy_stats[f'{y_name}_props'] >= nz_threshold)]
         # create interaction column
-        xy_stats['interaction'] = xy_stats[x_name] + xy_separator + xy_stats[y_name]
+        xy_stats['interaction'] = xy_stats[x_name] + xy_sep + xy_stats[y_name]
         
-        x_mat = temp[:, xy_stats[x_name]].X.T
-        y_mat = temp[:, xy_stats[y_name]].X.T
+        x_mat = adata[:, xy_stats[x_name]].X.T
+        y_mat = adata[:, xy_stats[y_name]].X.T
         
         # reorder columns, NOTE: why?
         xy_stats = xy_stats.reindex(columns=sorted(xy_stats.columns))
@@ -196,6 +205,4 @@ class SpatialBivariate():
             
             return pd.DataFrame(funs).T.reset_index().rename(columns={"index":"name"})
     
-
 bivar = SpatialBivariate()
-

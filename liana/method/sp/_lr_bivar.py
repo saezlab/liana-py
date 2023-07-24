@@ -1,165 +1,65 @@
 from __future__ import annotations
 
-import numpy as np
-
 from anndata import AnnData
 import pandas as pd
 from typing import Optional
-from scipy.sparse import csr_matrix
+
+from liana.method.sp._bivar import SpatialBivariate
 
 
-from liana.resource import select_resource
-from liana.method._pipe_utils import prep_check_adata, assert_covered
-from liana.method._pipe_utils._common import _get_props
-
-from liana.method.sp._SpatialMethod import _SpatialMeta
-from liana.method.sp._spatial_pipe import _rename_means, _categorize, \
-    _run_scores_pipeline, _connectivity_to_weight, _handle_connectivity, \
-        _add_complexes_to_var
-from liana.method.sp._bivariate_funs import _handle_functions
-from liana.utils.obsm_to_adata import obsm_to_adata
-
-class SpatialLR(_SpatialMeta):
-    def __init__(self, _method, _complex_cols):
-        super().__init__(method_name=_method.method_name,
-                         key_cols=_method.key_cols,
-                         reference=_method.reference,
-                         )
-
-        self._method = _method # TODO change to method_meta
-        self._complex_cols = _complex_cols
+class SpatialLR(SpatialBivariate):
+    def __init__(self):
+        super().__init__()
 
     def __call__(self,
                  adata: AnnData,
                  function_name: str,
-                 connectivity_key = 'spatial_connectivities',
-                 key_added='global_res',
-                 obsm_added='local_scores',
                  resource_name: str = 'consensus',
+                 resource: Optional[pd.DataFrame] = None,
+                 interactions=None,
                  expr_prop: float = 0.05,
                  n_perms: int = None,
-                 positive_only: bool = False, # TODO: False, and apply to scores?
+                 positive_only: bool = False,
+                 seed: int = 1337,
                  add_categories: bool = False,
                  use_raw: Optional[bool] = True,
                  layer: Optional[str] = None,
-                 seed: int = 1337,
-                 resource: Optional[pd.DataFrame] = None,
+                 connectivity_key = 'spatial_connectivities',
                  inplace=True,
-                 verbose: Optional[bool] = False,
+                 key_added='global_res',
+                 obsm_added='local_scores',
                  lr_sep='^',
+                 verbose: Optional[bool] = False,
                  ):
-        if n_perms is not None:
-            if not isinstance(n_perms, int) or n_perms < 0:
-                raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")
         
-        # select & process resource
-        if resource is None:
-            resource = select_resource(resource_name)
-
-        connectivity = _handle_connectivity(adata=adata, connectivity_key=connectivity_key)
-        local_fun = _handle_functions(function_name)
-        weight = _connectivity_to_weight(connectivity, local_fun)
-
-        # prep adata
-        temp = prep_check_adata(adata=adata,
-                                use_raw=use_raw,
-                                layer=layer,
-                                verbose=verbose,
-                                groupby=None,
-                                min_cells=None
-                                )
-        temp = _add_complexes_to_var(temp,
-                                     np.union1d(resource['receptor'].astype(str),
-                                                resource['ligand'].astype(str)
-                                                )
-                                     )
-
-        # filter_resource
-        resource = resource[(np.isin(resource.ligand, temp.var_names)) &
-                            (np.isin(resource.receptor, temp.var_names))]
-
-        # get entities
-        entities = np.union1d(np.unique(resource["ligand"]),
-                              np.unique(resource["receptor"]))
-        # Check overlap between resource and adata TODO check if this works
-        assert_covered(entities, temp.var_names, verbose=verbose)
-
-        # Filter to only include the relevant features
-        temp = temp[:, np.intersect1d(entities, temp.var.index)]
-
-        # global_stats
-        lr_res = pd.DataFrame({'means': temp.X.mean(axis=0).A.flatten(),
-                               'props': _get_props(temp.X)},
-                              index=temp.var_names
-                              ).reset_index().rename(columns={'index': 'gene'})
-
-        # join global stats to LRs from resource
-        lr_res = resource.merge(_rename_means(lr_res, entity='ligand')).merge(
-            _rename_means(lr_res, entity='receptor'))
-
-        # get lr_res /w relevant x,y (lig, rec) and filter acc to expr_prop
-        # filter according to ligand_props and receptor_props >= expr_prop
-        lr_res = lr_res[(lr_res['ligand_props'] >= expr_prop) &
-                        (lr_res['receptor_props'] >= expr_prop)]
-        # create interaction column
-        lr_res['interaction'] = lr_res['ligand'] + lr_sep + lr_res['receptor']
+        lr_res, local_scores = super().__call__(
+            mdata=adata,
+            function_name=function_name,
+            connectivity_key=connectivity_key,
+            resource_name=resource_name,
+            resource=resource,
+            interactions=interactions,
+            nz_threshold=expr_prop,
+            n_perms=n_perms,
+            positive_only=positive_only,
+            add_categories=add_categories,
+            x_mod=True,
+            y_mod=True,
+            x_use_raw=use_raw,
+            x_layer=layer,
+            seed=seed,
+            verbose=verbose,
+            xy_sep=lr_sep,
+            x_name='ligand',
+            y_name='receptor',
+            inplace=False
+            )
+                     
         
-        x_mat = temp[:, lr_res['ligand']].X.T
-        y_mat = temp[:, lr_res['receptor']].X.T
-        
-        # add categories
-        if add_categories or positive_only:
-            local_cats = _categorize(x_mat=x_mat,
-                                     y_mat=y_mat,
-                                     weight=weight,
-                                     idx=adata.obs.index,
-                                     columns=lr_res['interaction'],
-                                     )
-            pos_msk = local_cats > 0
-        else:
-            local_cats = None
-            pos_msk = None
-        
-        # get local scores
-        lr_res, local_scores, local_pvals = \
-            _run_scores_pipeline(xy_stats=lr_res,
-                                 x_mat=x_mat,
-                                 y_mat=y_mat,
-                                 idx=temp.obs.index,
-                                 local_fun=local_fun,
-                                 weight=weight,
-                                 seed=seed,
-                                 n_perms=n_perms,
-                                 positive_only=positive_only,
-                                 pos_msk=pos_msk,
-                                 verbose=verbose,
-                                 )
+        if not inplace:
+            return lr_res, local_scores
             
-        local_scores = obsm_to_adata(adata=adata, df=local_scores, obsm_key=None, _uns=adata.uns)
-        local_scores.uns[key_added] = lr_res
-        
-        if positive_only:
-            local_scores.X = local_scores.X * pos_msk.T
-        
-        if inplace:
-            adata.uns[key_added] = lr_res
-            adata.obsm[obsm_added] = local_scores
-            
-            if n_perms is not None:
-                local_scores.layers['pvals'] = csr_matrix(local_pvals.T)
-            if add_categories:
-                local_scores.layers['cats'] = csr_matrix(local_cats.T)
+        adata.uns[key_added] = lr_res
+        adata.obsm[obsm_added] = local_scores
 
-        return None if inplace else (lr_res, local_scores, local_pvals, local_cats)
-
-
-# initialize instance
-_spatial_lr = _SpatialMeta(
-    method_name="SpatialDM",
-    key_cols=['ligand_complex', 'receptor_complex'],
-    reference=""
-    )
-
-lr_bivar = SpatialLR(_method=_spatial_lr,
-                     _complex_cols=['ligand_means', 'receptor_means'],
-                     )
+lr_bivar = SpatialLR()

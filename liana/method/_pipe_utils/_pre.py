@@ -92,8 +92,6 @@ def prep_check_adata(adata: AnnData,
     -------
     Anndata object to be used downstream
     """
-    # simplify adata
-
     X = _choose_mtx_rep(adata=adata, use_raw=use_raw,
                         layer=layer, verbose=verbose)
 
@@ -110,6 +108,7 @@ def prep_check_adata(adata: AnnData,
                        obsp=adata.obsp,
                        obsm=obsm
                        )
+    adata.var_names_make_unique()
 
     # Check for empty features
     msk_features = np.sum(adata.X, axis=0).A1 == 0
