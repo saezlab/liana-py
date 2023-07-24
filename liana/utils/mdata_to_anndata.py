@@ -7,9 +7,39 @@ def mdata_to_anndata(mdata,
                      x_use_raw=False, y_use_raw=False, 
                      x_transform=None,
                      y_transform=None,
-                     cutoff=None,
                      verbose=True
                      ):
+    """
+    Convert a MultiData object to an AnnData object.
+    
+    Parameters
+    ----------
+    mdata
+        MuData object to be converted.
+    x_mod
+        Name of the modality to be used as x.
+    y_mod
+        Name of the modality to be used as y.
+    x_layer
+        Layer to be used for modality x.
+    y_layer
+        Layer to be used for modality y.
+    x_use_raw
+        Whether to use raw counts for modality x.
+    y_use_raw
+        Whether to use raw counts for modality y.
+    x_transform
+        Transformation function to be applied to modality x.
+    y_transform
+        Transformation function to be applied to modality y.
+    verbose
+        Whether to print progress.
+    
+    Returns
+    -------
+    An AnnData object with the two modalities concatenated.
+    Information related to observations (obs, obsp, obsm) and `.uns` are copied from the original MuData object.
+    """
 
     xdata, ydata = _handle_mdata(mdata, 
                                  x_mod, y_mod,
@@ -20,11 +50,18 @@ def mdata_to_anndata(mdata,
                                  verbose=verbose,
                                  )
     
-    adata = an.concat([xdata, ydata], join='outer', axis=1, merge='first', label='modality')
+    adata = an.concat([xdata, ydata], axis=1, label='modality')
+    
+    adata.obs = mdata.obs.copy()
+    adata.obsp = mdata.obsp.copy()
+    adata.obsm = mdata.obsm.copy()
+    adata.uns = mdata.uns.copy()
     
     return adata
 
 
+# TODO: Do I still use this anywhere?
+# If not, merge with mdata_to_anndata & _handle_mod
 def _handle_mdata(mdata, 
                   x_mod, y_mod,
                   x_layer, y_layer,
@@ -43,12 +80,12 @@ def _handle_mod(mdata, mod, use_raw, layer, transform, verbose):
     if mod not in mdata.mod.keys():
         raise ValueError(f'`{mod}` is not in the mdata!')
     
-    md = mdata.mod[mod]
+    # NOTE, maybe instead of copying I can just create a minimal AnnData?
+    md = mdata.mod[mod].copy()
     md.X = _choose_mtx_rep(md, use_raw = use_raw, layer = layer, verbose=verbose)
     
     if transform:
         if verbose:
             print(f'Transforming {mod} using {transform.__name__}')
-        md = md.copy()
         md.X = transform(md.X)
     return md

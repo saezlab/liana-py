@@ -33,6 +33,7 @@ def generate_toy_mdata():
     mdata.obsp = adata.obsp
     mdata.uns = adata.uns
     mdata.obsm = adata.obsm
+    mdata.obs = adata.obs
     
     return mdata
 

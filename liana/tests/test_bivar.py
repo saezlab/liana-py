@@ -7,6 +7,8 @@ from liana.method.sp._bivar import bivar
 mdata = generate_toy_mdata()
 interactions = list(product(mdata.mod['adata_x'].var.index,
                             mdata.mod['adata_y'].var.index))
+ones = np.ones((mdata.shape[0], mdata.shape[0]), dtype=np.float64)
+mdata.obsp['ones'] = ones
 
 def test_bivar_morans():
     # default
@@ -28,12 +30,6 @@ def test_bivar_morans():
 
 
 def test_bivar_nondefault():
-    # test different params, inplace = False
-    proximity = np.ones((mdata.shape[0], mdata.shape[0]))
-    # proximity = np.zeros((mdata.shape[0], mdata.shape[0]))
-    # np.fill_diagonal(proximity, 1)
-    mdata.obsp['ones'] = proximity
-    
     global_stats, local_scores, local_pvals, local_categories = \
           bivar(mdata, x_mod='adata_x', y_mod='adata_y', 
                 function_name='morans', n_perms=0,
@@ -53,10 +49,7 @@ def test_bivar_nondefault():
     
 
 def test_bivar_external():
-    ones = np.ones((mdata.shape[0], mdata.shape[0]), dtype=np.float64)
-    mdata.obsp['ones'] = ones
-
-    bivar(mdata,
+    bivar(mdata=mdata,
           x_mod='adata_x',
           y_mod='adata_y',
           function_name='morans', 
@@ -65,9 +58,9 @@ def test_bivar_external():
     
     
 def test_masked_spearman():
-    mdata.obsp['spatial_connectivities'] = np.ones([mdata.shape[0], mdata.shape[0]])
     bivar(mdata, x_mod='adata_x', y_mod='adata_y',
-          function_name='masked_spearman', interactions=interactions)
+          function_name='masked_spearman', interactions=interactions,
+          connectivity_key='ones')
     
     # check local
     assert 'local_scores' in mdata.mod.keys()
@@ -82,7 +75,6 @@ def test_masked_spearman():
     
 
 def test_vectorized_pearson():
-    # NOTE: something is modifying the mdata object here...
     bivar(mdata, x_mod='adata_x',
           y_mod='adata_y',
           function_name='pearson', n_perms=100,

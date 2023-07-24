@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from itertools import product
 from scipy.sparse import csr_matrix
 from mudata import MuData
 from liana.method._pipe_utils._common import _get_props
@@ -10,11 +9,13 @@ from liana.method.sp._SpatialMethod import _SpatialMeta, _basis_meta
 
 from liana.method.sp._spatial_pipe import _categorize, \
     _rename_means, _run_scores_pipeline, \
-    _connectivity_to_weight, _handle_connectivity
+    _connectivity_to_weight, _handle_connectivity, _add_complexes_to_var
     
 from liana.utils.obsm_to_adata import obsm_to_adata
-from liana.utils.mdata_to_anndata import _handle_mdata, mdata_to_anndata
+from liana.utils.mdata_to_anndata import mdata_to_anndata
 from liana.resource._select_resource import _handle_resource
+
+from liana.method._pipe_utils import prep_check_adata, assert_covered
 
 from liana.method.sp._bivariate_funs import _handle_functions
 
@@ -53,6 +54,7 @@ class SpatialBivariate(_SpatialMeta):
                  y_transform = False,
                  x_name='x_entity',
                  y_name='y_entity',
+                 complex_sep='_',
                  inplace = True,
                  verbose=False,
                  ):
@@ -60,55 +62,91 @@ class SpatialBivariate(_SpatialMeta):
             if not isinstance(n_perms, int) or n_perms < 0:
                 raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")
         
-        connectivity = _handle_connectivity(adata=mdata, connectivity_key=connectivity_key)
         local_fun = _handle_functions(function_name)
-        weight = _connectivity_to_weight(connectivity, local_fun)
         
         resource = _handle_resource(interactions=interactions,
                                     resource=resource,
                                     resource_name=resource_name,
-                                    x_name=x_name, y_name=y_name,
+                                    x_name=x_name,
+                                    y_name=y_name,
                                     verbose=verbose)
         
         # TODO: change this to mdata_to_anndata
         if isinstance(mdata, MuData):
-            xdata, ydata = _handle_mdata(mdata, 
-                                         x_mod=x_mod, y_mod=y_mod,
-                                         x_use_raw=x_use_raw, x_layer=x_layer,
-                                         y_use_raw=y_use_raw, y_layer=y_layer,
-                                         x_transform=x_transform, y_transform=y_transform,
-                                         verbose=verbose,
-                                         )
+            temp = mdata_to_anndata(mdata,
+                                    x_mod=x_mod,
+                                    y_mod=y_mod,
+                                    x_use_raw=x_use_raw,
+                                    x_layer=x_layer,
+                                    y_use_raw=y_use_raw,
+                                    y_layer=y_layer,
+                                    x_transform=x_transform,
+                                    y_transform=y_transform,
+                                    verbose=verbose,
+                                    )
+        temp.var_names_make_unique()
         
-        # TODO: Handle complexes
+        # NOTE, there will be a diff in tests because of this.
+        # TODO: UNCOMMENT!!!
+        # temp = prep_check_adata(adata=temp,
+        #                         use_raw=False,
+        #                         layer=None,
+        #                         verbose=verbose,
+        #                         groupby=None,
+        #                         min_cells=None
+        #                         )
+        connectivity = _handle_connectivity(adata=temp, connectivity_key=connectivity_key)
+        weight = _connectivity_to_weight(connectivity=connectivity, local_fun=local_fun)
         
+        if complex_sep is not None:
+            temp = _add_complexes_to_var(temp,
+                                        np.union1d(resource[x_name].astype(str),
+                                                    resource[y_name].astype(str)
+                                                    ),
+                                        complex_sep=complex_sep
+                                        )
         
-        # change index names to entity
-        xdata.var_names.rename('entity', inplace=True)
-        ydata.var_names.rename('entity', inplace=True)
-        
-        x_stats = _rename_means(_anndata_to_stats(xdata, nz_threshold), entity='x')
-        y_stats = _rename_means(_anndata_to_stats(ydata, nz_threshold), entity='y')
-        
-        # join global stats to LRs from resource
-        xy_stats = resource.merge(x_stats).merge(y_stats)
-        
-        xy_stats['interaction'] = xy_stats['x_entity'] + xy_separator + xy_stats['y_entity']
+        # filter_resource
+        resource = resource[(np.isin(resource[x_name], temp.var_names)) &
+                            (np.isin(resource[y_name], temp.var_names))]
         
         # TODO: Should I just get rid of remove_self_interactions?
-        self_interactions = xy_stats['x_entity'] == xy_stats['y_entity']
+        self_interactions = resource[x_name] == resource[y_name]
         if self_interactions.any() & remove_self_interactions:
             if verbose:
                 print(f"Removing {self_interactions.sum()} self-interactions")
-            xy_stats = xy_stats[~self_interactions]
+            resource = resource[~self_interactions]
+
+        # get entities
+        entities = np.union1d(np.unique(resource[x_name]),
+                                np.unique(resource[y_name]))
+        # Check overlap between resource and adata TODO check if this works
+        assert_covered(entities, temp.var_names, verbose=verbose)
+
+        # Filter to only include the relevant features
+        temp = temp[:, np.intersect1d(entities, temp.var.index)]
         
-        # reorder columns
+        xy_stats = pd.DataFrame({'means': temp.X.mean(axis=0).A.flatten(),
+                                 'props': _get_props(temp.X)},
+                                index=temp.var_names
+                                ).reset_index().rename(columns={'index': 'gene'})
+        # join global stats to LRs from resource
+        xy_stats = resource.merge(_rename_means(xy_stats, entity=x_name)).merge(
+            _rename_means(xy_stats, entity=y_name))
+        
+        # TODO: nz_threshold to nz_prop!!! For consistency with other methods
+        # filter according to props
+        xy_stats = xy_stats[(xy_stats[f'{x_name}_props'] >= nz_threshold) &
+                            (xy_stats[f'{y_name}_props'] >= nz_threshold)]
+        # create interaction column
+        xy_stats['interaction'] = xy_stats[x_name] + xy_separator + xy_stats[y_name]
+        
+        x_mat = temp[:, xy_stats[x_name]].X.T
+        y_mat = temp[:, xy_stats[y_name]].X.T
+        
+        # reorder columns, NOTE: why?
         xy_stats = xy_stats.reindex(columns=sorted(xy_stats.columns))
         
-        # TODO get rid of transpose
-        x_mat = mdata[x_mod][:, xy_stats['x_entity']].X.T
-        y_mat = mdata[y_mod][:, xy_stats['y_entity']].X.T
-            
         if add_categories or positive_only:
             local_cats = _categorize(x_mat=x_mat,
                                      y_mat=y_mat,
