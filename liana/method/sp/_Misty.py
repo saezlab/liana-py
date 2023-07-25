@@ -34,11 +34,7 @@ class MistyData(MuData):
         """
         
         if isinstance(data, MuData):
-            # TODO: Might be easier if mu.MuData(mdata.mod) works
-            temp = {}
-            for view in list(data.mod.keys()):
-                temp[view] = data.mod[view]
-            data = temp
+            data = data.mod
         
         super().__init__(data, **kwargs)
         self.view_names = list(self.mod.keys())
@@ -285,6 +281,7 @@ def _concat_dataframes(targets_list, importances_list, view_str):
     
     # drop intra and extra group columns if they are all None
     importances = importances.dropna(axis=1, how='all')
+    importances = importances.dropna(axis=0)
     
     return target_metrics, importances
 
@@ -313,8 +310,6 @@ def _single_view_model(y, view, intra_obs_msk, predictors, model, k_cv, seed, n_
                                         )
         # NOTE: I use ols t-values for feature importances
         importances = sm.OLS(y, X).fit().tvalues
-        # importances = model.fit(X=X, y=y).coef_
-        # importances = sm.OLS(y, X).fit().params
         
     else:
         raise ValueError(f"model {model} is not supported")

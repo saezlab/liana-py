@@ -79,8 +79,8 @@ def test_misty_groups():
     # assert that there are self interactions = var_n * var_n
     interactions = misty.uns['interactions']
     self_interactions = interactions[(interactions['target']==interactions['predictor'])]
-    # 11 vars * 4 envs * 3 views = 132
-    assert self_interactions.shape == (132, 6)
+    # 11 vars * 4 envs * 3 views = 132; NOTE: However, I drop NAs -> to be refactored...
+    assert self_interactions.shape == (88, 6)
     assert self_interactions[self_interactions['view']=='intra']['importances'].isna().all()
 
 
@@ -117,3 +117,17 @@ def test_misty_mudata():
     misty = genericMistyData(adata, bandwidth=10, set_diag=False, cutoff=0)
     misty = MistyData(misty)
     assert misty.shape == (100, 33)
+
+def test_misty_multivew():
+    adata = generate_toy_spatial()
+    # keep first 10 vars
+    xdata = adata[:, :10].copy()
+    xdata.var.index = 'x' + xdata.var.index
+    
+    ydata = adata[:, -10:].copy()
+    ydata.var.index = 'y' + ydata.var.index
+    intra = adata[:, 25:30].copy()
+    misty = MistyData({'intra': intra, 'xdata': xdata, 'ydata': ydata}, verbose=True)
+    misty(model='linear')
+    
+    misty.uns['interactions'].shape == (120, 4)
