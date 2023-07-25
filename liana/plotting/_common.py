@@ -95,10 +95,10 @@ def _get_top_n(liana_res, top_n, orderby, orderby_ascending, orderby_absolute):
                                     entities=['interaction',
                                               'ligand_complex',
                                               'receptor_complex']
-                                    )
+                                    ).copy()
         top_lrs = top_lrs.sort_values('score', ascending=orderby_ascending, key=key).head(top_n).interaction
         
         # Filter liana_res to the interactions in top_lrs
-        liana_res = liana_res[liana_res.interaction.isin(top_lrs)]
+        liana_res = liana_res[liana_res['interaction'].isin(top_lrs)]
         
     return liana_res
