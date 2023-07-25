@@ -48,7 +48,7 @@ class SpatialBivariate():
                  # TODO: move some of these to self
                  x_name='x',
                  y_name='y',
-                 complex_sep='_',
+                 complex_sep=None,
                  xy_sep = '^',
                  remove_self_interactions=True,
                  inplace = True,
@@ -105,8 +105,8 @@ class SpatialBivariate():
                                           np.union1d(resource[x_name].astype(str),
                                                      resource[y_name].astype(str)
                                                      ),
-                                        complex_sep=complex_sep
-                                        )
+                                          complex_sep=complex_sep
+                                          )
         
         # filter_resource
         resource = resource[(np.isin(resource[x_name], adata.var_names)) &

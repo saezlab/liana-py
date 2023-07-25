@@ -52,7 +52,8 @@ class SpatialLR(SpatialBivariate):
             xy_sep=lr_sep,
             x_name='ligand',
             y_name='receptor',
-            inplace=False
+            inplace=False,
+            complex_sep='_'
             )
                      
         
