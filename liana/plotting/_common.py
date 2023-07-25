@@ -54,8 +54,10 @@ def _filter_labels(liana_res, labels, label_type):
     return liana_res
         
 
-def _aggregate_scores(res, what, how, entities):
-    return res.groupby(entities).agg(score=(what, how)).reset_index()
+def _aggregate_scores(res, what, how, absolute, entities):
+    res['score'] = np.absolute(res[what]) if absolute else res[what]
+    res = res.groupby(entities).agg(score=('score', how)).reset_index()
+    return res
 
 
 def _inverse_scores(score):
@@ -83,20 +85,16 @@ def _get_top_n(liana_res, top_n, orderby, orderby_ascending, orderby_absolute):
             how = 'min'
         else:
             how = 'max'
-            
-        if orderby_absolute:
-            key = abs
-        else:
-            key = None    
         
         top_lrs = _aggregate_scores(liana_res,
                                     what=orderby,
                                     how=how,
+                                    absolute=orderby_absolute,
                                     entities=['interaction',
                                               'ligand_complex',
                                               'receptor_complex']
                                     ).copy()
-        top_lrs = top_lrs.sort_values('score', ascending=orderby_ascending, key=key).head(top_n).interaction
+        top_lrs = top_lrs.sort_values('score', ascending=orderby_ascending).head(top_n).interaction
         
         # Filter liana_res to the interactions in top_lrs
         liana_res = liana_res[liana_res['interaction'].isin(top_lrs)]
