@@ -86,47 +86,23 @@ def _zscore(mat, local=True, axis=0):
     return mat
 
 
-def _encode_as_char(a, weight):
+def _encode_cats(a, weight):
     # if only positive
     if np.all(a >= 0):
         a = _zscore(a.T).T
-    
-    # to get a sign for each spot, we multiply by connectivities
     a = a @ weight
-    
-    a = np.where(a > 0, 'P', np.where(a < 0, 'N', 'Z'))
+    a = np.where(a > 0, 1, np.where(a < 0, -1, np.nan))
     return a
 
-
 def _categorize(x_mat, y_mat, weight, idx, columns):
-    x_cats = _encode_as_char(x_mat.A, weight)
-    y_cats = _encode_as_char(y_mat.A, weight)
+    x_cats = _encode_cats(x_mat.A, weight)
+    y_cats = _encode_cats(y_mat.A, weight)
     
     # add the two categories, and simplify them to ints
-    cats = np.core.defchararray.add(x_cats, y_cats)
-    cats = _simplify_cats(cats)
+    cats = x_cats + y_cats
+    cats = np.where(cats == 2, 1, np.where(cats == 0, -1, 0))
     
     return cats
-
-
-def _simplify_cats(cats):
-    """
-    This function simplifies the categories of the co-expression matrix.
-    
-    Any combination of 'P' and 'N' is replaced by '-1' (negative co-expression).
-    Any string containing 'Z' or 'NN' is replace by 0 (undefined or absence-absence)
-    A 'PP' is replaced by 1 (positive co-expression)
-    
-    Note that  absence-absence is not definitive, but rather indicates that the 
-    co-expression is between two genes expressed lower than their means
-    """
-    cats = np.char.replace(cats, 'PP', '1')
-    cats = np.char.replace(cats, 'PN', '-1')
-    cats = np.char.replace(cats, 'NP', '-1')
-    msk = (cats!='1') * (cats!='-1')
-    cats[msk] = '0'
-    
-    return cats.astype(int)
     
 
 def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, positive_only, seed, verbose):

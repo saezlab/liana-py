@@ -66,6 +66,7 @@ def prep_check_adata(adata: AnnData,
                      use_raw: Optional[bool] = False,
                      layer: Optional[str] = None,
                      obsm = None,
+                     complex_sep='_',
                      verbose: Optional[bool] = False) -> AnnData:
     """
     Check if the anndata object is in the correct format and preprocess
@@ -100,14 +101,13 @@ def prep_check_adata(adata: AnnData,
     else:
         var = DataFrame(index=adata.var_names)
 
-
     adata = sc.AnnData(X=X,
                        obs=adata.obs.copy(),
                        dtype="float32",
                        var=var,
-                       obsp=adata.obsp,
+                       obsp=adata.obsp.copy(),
                        obsm=obsm
-                       )
+                       ).copy()
     adata.var_names_make_unique()
 
     # Check for empty features
@@ -154,45 +154,33 @@ def prep_check_adata(adata: AnnData,
             if verbose:
                 print("The following cell identities were excluded: {0}".format(
                     ", ".join(lowly_abundant_idents)))
+                
+    check_vars(adata.var_names,
+               complex_sep=complex_sep,
+               verbose=verbose)
 
     # Re-order adata vars alphabetically
     adata = adata[:, np.sort(adata.var_names)]
 
-    # Remove underscores from gene names
-    adata.var_names = format_vars(adata.var_names)
-
     return adata
 
 
-# Helper function to replace a substring in string and append to list
-def _append_replace(x: str, l: list):
-    l.append(x)
-    return x.replace('_', '')
-
-
 # format variable names
-def format_vars(var_names, verbose=False) -> list:
+def check_vars(var_names, complex_sep, verbose=False) -> list:
     """
-    Format Variable names
+    Raise a warning if `complex_sep` is part of any variable name.
+    """ 
+    var_issues = []
+    if complex_sep is not None:
+        for name in var_names:
+            if complex_sep in name:
+                var_issues.append(name)
+    else:
+        pass
     
-    Parameters
-    ----------
-    var_names
-        list of variable names (e.g. adata.var_names)
-    verbose
-        Verbosity flag
+    if verbose:
+        print(f"Warning: {var_issues} contain `{complex_sep}`. Consider replacing those!")
 
-    Returns
-    -------
-        Formatted Variable names list
-
-    """
-    changed = []
-    var_names = [_append_replace(x, changed) if ('_' in x) else x for x in var_names]
-    changed = ' ,'.join(changed)
-    if verbose & (len(changed) > 0):
-        print(f"Replace underscores (_) with blank in {changed}", )
-    return var_names
 
 
 def filter_resource(resource: DataFrame, var_names: Index) -> DataFrame:

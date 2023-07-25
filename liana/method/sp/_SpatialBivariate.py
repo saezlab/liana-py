@@ -93,7 +93,8 @@ class SpatialBivariate():
                                  layer=layer,
                                  verbose=verbose,
                                  groupby=None,
-                                 min_cells=None
+                                 min_cells=None,
+                                 complex_sep=complex_sep,
                                 )
 
 
