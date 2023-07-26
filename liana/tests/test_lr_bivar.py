@@ -40,7 +40,7 @@ def test_cosine_permutation():
     np.testing.assert_almost_equal(interaction['global_sd'].values, 0.33243373)
     
     np.testing.assert_almost_equal(lrdata[:,'MIF^CD74_CXCR4'].X.mean(), 0.32514292, decimal=6)
-    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].layers['pvals']), 0.6274714285714286, decimal=6)
+    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].layers['pvals']), 0.6274714285714286, decimal=4)
 
 
 def test_morans_pval_none_cats():

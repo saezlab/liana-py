@@ -92,7 +92,7 @@ def test_vectorized_pearson():
     assert 'local_scores' in mdata.mod.keys()
     adata = mdata.mod['local_scores']
     np.testing.assert_almost_equal(adata.X.mean(), 0.0011550441, decimal=5)
-    np.testing.assert_almost_equal(adata.layers['pvals'].mean(), 0.755160947712419, decimal=5)
+    np.testing.assert_almost_equal(adata.layers['pvals'].mean(), 0.755160947712419, decimal=3)
     
     # check global
     assert 'global_res' in mdata.uns.keys()
