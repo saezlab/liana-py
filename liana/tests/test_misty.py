@@ -31,7 +31,7 @@ def test_misty_para():
         (interactions['predictor']=='protE')
     np.testing.assert_almost_equal(interactions[interaction_msk]['importances'].values,
                                 np.array([0.0015018, 0.0732367]))
-    assert target_metrics['gain_R2'].mean() == -0.0006017023721442239
+    np.testing.assert_almost_equal(target_metrics['gain_R2'].mean(), -0.0006017023721442239)
     
 
 def test_misty_bypass():    
@@ -104,7 +104,7 @@ def test_linear_misty():
     
     misty(model='linear')
     assert misty.uns['target_metrics'].shape == (11, 7)
-    assert misty.uns['target_metrics']['gain_R2'].sum() == -0.09727229653770031
+    np.testing.assert_almost_equal(misty.uns['target_metrics']['gain_R2'].sum(), -0.09727229653770031)
     
     assert misty.uns['interactions'].shape == (330, 4)
     actual = misty.uns['interactions'].loc[(misty.uns['interactions']['target']=='ECM') &

@@ -124,7 +124,6 @@ def find_causalnet(
         Additional arguments to pass to the solver.
     """
     
-    
     cn = _check_if_corneto()
 
     if solver is None:

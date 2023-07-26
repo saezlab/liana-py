@@ -26,7 +26,8 @@ def test_caulsalnet():
                                      output_scores, 
                                      node_weights=node_weights,
                                      verbose=False,
-                                     show_solver_output=False
+                                     show_solver_output=False,
+                                     solver='scipy'
                                      )
 
     assert problem.weights == [1.0, 0.01, 1.0]

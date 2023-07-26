@@ -265,7 +265,6 @@ def _get_local_var(x_sigma, y_sigma, weight, spot_n):
 
     return std.T
 
-
 def _global_spatialdm(x_mat,
                       y_mat,
                       weight,
@@ -278,7 +277,6 @@ def _global_spatialdm(x_mat,
     global_r = ((x_mat @ weight) * y_mat).sum(axis=1)
 
     # calc p-values
-    
     if n_perms is None:
         global_pvals = None
     elif n_perms > 0:
@@ -296,7 +294,7 @@ def _global_spatialdm(x_mat,
                                             global_r=global_r,
                                             positive_only=positive_only)
 
-    return np.array((global_r, global_pvals))
+    return global_r, global_pvals
 
 
 def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, pos_msk,
@@ -398,7 +396,7 @@ def _get_local_scores(x_mat,
 def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, positive_only,
                        n_perms, seed, local_scores, verbose):
     if local_fun.__name__ == "_local_morans":
-        xy_stats.loc[:, ['global_r', 'global_pvals']] = \
+        global_r, global_pvals = \
             _global_spatialdm(x_mat=_zscore(x_mat, local=False, axis=1),
                               y_mat=_zscore(y_mat, local=False, axis=1),
                               weight=weight,
@@ -406,7 +404,9 @@ def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, positive_only,
                               n_perms=n_perms,
                               positive_only=positive_only,
                               verbose=verbose
-                              ).T
+                              )
+        xy_stats['global_r'] = global_r
+        xy_stats['global_pvals'] = global_pvals        
     else:
         # any other local score
         xy_stats.loc[:, ['global_mean', 'global_sd']] = np.vstack(

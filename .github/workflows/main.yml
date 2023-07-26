@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.8", "3.9"]
+        python-version: ["3.8", "3.10"]
 
     steps:
     - uses: actions/checkout@v3
@@ -53,8 +53,8 @@ jobs:
         python-version: 3.9
     - name: Install Poetry
       run: |
-        curl -sSL https://install.python-poetry.org | python -
-      # Note: Ensure you have a lock file 'poetry.lock' committed to the repository
+        python -m pip install --upgrade pip
+        python -m pip install poetry
     - name: Install dependencies
       run: |
         poetry install --extras "full"
