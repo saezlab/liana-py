@@ -41,8 +41,6 @@ gene expression programmes across samples and conditions, as done in [Ramirez et
 
 - We also refer users to the [Cell-cell communication chapter](https://www.sc-best-practices.org/mechanisms/cell_cell_communication.html) in the [best-practices guide from Theis lab](https://www.nature.com/articles/s41576-023-00586-w). There we provide an overview of the common limitations and assumptions in CCC inference from (dissociated single-cell) transcriptomics data.
 
-- A set of in-depth tutorials [combining LIANA and Tensor-cell2cell](https://ccc-protocols.readthedocs.io/en/latest/), where we describe how to obtain intercellular communication programmes across samples and conditions in detail.
-
 
 ## API
 For further information please check LIANA's [API documentation](https://liana-py.readthedocs.io/en/latest/api.html).
