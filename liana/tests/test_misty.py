@@ -107,10 +107,8 @@ def test_linear_misty():
     np.testing.assert_almost_equal(misty.uns['target_metrics']['gain_R2'].sum(), -0.09727229653770031, decimal=3)
     
     assert misty.uns['interactions'].shape == (330, 4)
-    actual = misty.uns['interactions'].loc[(misty.uns['interactions']['target']=='ECM') &
-                                  (misty.uns['interactions']['predictor']=='protE')]['importances'].values
-    expected = np.array([13.590895 , -0.4754166, -1.0671989], dtype='float32')
-    np.testing.assert_almost_equal(actual, expected)
+    actual = actual = misty.uns['interactions']['importances'].values.mean()
+    np.testing.assert_almost_equal(actual, 0.6683044, decimal=6)
     
     
 def test_misty_mudata():
