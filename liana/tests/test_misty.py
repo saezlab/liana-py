@@ -41,7 +41,7 @@ def test_misty_bypass():
     assert np.isin(['juxta', 'para'], misty.uns['target_metrics'].columns).all()
     assert ~np.isin(['intra'], misty.uns['target_metrics'].columns).all()
     assert misty.uns['target_metrics'].shape == (11, 6)
-    np.testing.assert_almost_equal(misty.uns['target_metrics']['multi_R2'].sum(), -3.6771450967285975, decimals=5)
+    np.testing.assert_almost_equal(misty.uns['target_metrics']['multi_R2'].sum(), -3.6771450967285975, decimal=5)
     
     interactions = misty.uns['interactions']
     assert interactions.shape == (220, 4)
@@ -104,7 +104,7 @@ def test_linear_misty():
     
     misty(model='linear')
     assert misty.uns['target_metrics'].shape == (11, 7)
-    np.testing.assert_almost_equal(misty.uns['target_metrics']['gain_R2'].sum(), -0.09727229653770031, decimals=3)
+    np.testing.assert_almost_equal(misty.uns['target_metrics']['gain_R2'].sum(), -0.09727229653770031, decimal=3)
     
     assert misty.uns['interactions'].shape == (330, 4)
     actual = misty.uns['interactions'].loc[(misty.uns['interactions']['target']=='ECM') &
