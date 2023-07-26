@@ -41,6 +41,7 @@ cylp = {version = "0.91.5", optional = true}
 [tool.poetry.dev-dependencies]
 pytest = ">=6.0"
 pytest-cov = "*"
+flake8 = "*"
 sphinx = "^4.0"
 nbsphinx = "^0.8"
 sphinx_automodapi = "^0.14"
