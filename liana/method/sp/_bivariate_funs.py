@@ -3,7 +3,7 @@ import numpy as np
 from scipy.stats import rankdata
 
 
-@nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:], nb.float32), cache=False)
+@nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:], nb.float32), cache=True)
 def _wcorr(x, y, w, wsum):
     
     x = np.argsort(x).argsort().astype(nb.float32)
@@ -24,7 +24,7 @@ def _wcorr(x, y, w, wsum):
     return numerator / (denominator**0.5)
 
 
-@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), parallel=True, cache=False)
+@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), parallel=True, cache=True)
 def _masked_spearman(x_mat, y_mat, weight):
     spot_n = x_mat.shape[0]
     xy_n = x_mat.shape[1]

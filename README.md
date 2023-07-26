@@ -10,7 +10,7 @@
 
 LIANA+ is an efficient framework that integrates and extends existing methods and knowledge to study cell-cell communication in single-cell, spatially-resolved, and multi-modal omics data. 
 
-<img src="docs/source/_static/abstract.png?raw=true" width="500">
+<img src="docs/source/_static/abstract.png?raw=true" width="700" align="center">
 
 
 ## Tutorials
