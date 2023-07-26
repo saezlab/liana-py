@@ -40,7 +40,7 @@ def _masked_spearman(x_mat, y_mat, weight):
             x = x_mat[:, j][msk]
             y = y_mat[:, j][msk]
             
-            local_corrs[i, j] = _wcorr(x, y, w, wsum)
+            local_corrs[i, j] = _wcorr(x, y, w[msk], wsum)
     
     # NOTE done due to numpy/numba sum imprecision, https://github.com/numba/numba/issues/8749
     local_corrs = np.clip(a=local_corrs, a_min=-1.0, a_max=1.0, out=local_corrs)
