@@ -1,27 +1,13 @@
 import numba as nb
 import numpy as np
-import pandas as pd
 from scipy.stats import rankdata
 
 
-@nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:]), cache=True)
-def _wjaccard(x, y , w):
-    # intersect and union
-    numerator = np.sum(np.minimum(x, y) * w)
-    denominator = np.sum(np.maximum(x, y) * w)
+@nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:], nb.float32), cache=False)
+def _wcorr(x, y, w, wsum):
     
-    if denominator == 0:
-        return 0.0
-    
-    return numerator / denominator
-
-
-@nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:], nb.float32, nb.boolean), cache=True)
-def _wcorr(x, y, w, wsum, rank):
-    
-    if rank:
-        x = np.argsort(x).argsort().astype(nb.float32)
-        y = np.argsort(y).argsort().astype(nb.float32)
+    x = np.argsort(x).argsort().astype(nb.float32)
+    y = np.argsort(y).argsort().astype(nb.float32)
     
     wx = w * x
     wy = w * y
@@ -38,13 +24,8 @@ def _wcorr(x, y, w, wsum, rank):
     return numerator / (denominator**0.5)
 
 
-# 0 = pearson, 1 = spearman, 2 = cosine, 3 = jaccard
-@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), parallel=True, cache=True)
+@nb.njit(nb.float32[:,:](nb.float32[:,:], nb.float32[:,:], nb.float32[:,:]), parallel=True, cache=False)
 def _masked_spearman(x_mat, y_mat, weight):
-    x_mat = np.ascontiguousarray(x_mat)
-    y_mat = np.ascontiguousarray(y_mat)
-    weight = np.ascontiguousarray(weight)
-    
     spot_n = x_mat.shape[0]
     xy_n = x_mat.shape[1]
     
@@ -59,7 +40,7 @@ def _masked_spearman(x_mat, y_mat, weight):
             x = x_mat[:, j][msk]
             y = y_mat[:, j][msk]
             
-            local_corrs[i, j] = _wcorr(x, y, w, wsum, True)
+            local_corrs[i, j] = _wcorr(x, y, w, wsum)
     
     # NOTE done due to numpy/numba sum imprecision, https://github.com/numba/numba/issues/8749
     local_corrs = np.clip(a=local_corrs, a_min=-1.0, a_max=1.0, out=local_corrs)

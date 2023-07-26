@@ -354,6 +354,8 @@ def _get_local_scores(x_mat,
     """
 
     if local_fun.__name__ == '_local_morans':
+        # TODO: probably just get rid of this
+        # and leave it to the user
         x_mat = _zscore(x_mat, local=True, axis=0)
         y_mat = _zscore(y_mat, local=True, axis=0)
         

@@ -178,7 +178,7 @@ def check_vars(var_names, complex_sep, verbose=False) -> list:
     else:
         pass
     
-    if verbose:
+    if verbose & (len(var_issues) > 0):
         print(f"Warning: {var_issues} contain `{complex_sep}`. Consider replacing those!")
 
 
