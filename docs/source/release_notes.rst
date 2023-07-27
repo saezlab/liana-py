@@ -4,7 +4,6 @@ Release notes
 1.0.0a0 (27.07.2023) LIANA+ Release
 ---------------------------------------------------------
 
-
 LIANA becomes LIANA+.
 
 Major changes have been made to the repository, however the API visible to the user should be largely consistent with previous versions, except minor exceptions:
@@ -18,7 +17,7 @@ Major changes have been made to the repository, however the API visible to the u
 LIANA+ includes the following new features:
 
 Spatial
-=========================================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - A sklearn-based implementation to learn spatially-informed multi-view models, i.e. [MISTy](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-022-02663-5) models.
 
@@ -34,7 +33,7 @@ It mirrors [squidpy's](https://squidpy.readthedocs.io/en/stable/) `sq.gr.spatial
 
 
 Handling multiple modalities
-=========================================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - LIANA+ will now work with multi-modal data, i.e. it additionally support MuData objects as well as AnnData objects.
 The API visible to the user is the same, but the underlying implementation is different.
@@ -45,7 +44,7 @@ The API visible to the user is the same, but the underlying implementation is di
 
 
 Multi-conditions
-=========================================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - A utility function has been added that will take any dataframe with various statistics and append it to information from AnnData objects;
 thus creating a multi-condition dataframe in the format of LIANA.
@@ -53,7 +52,7 @@ thus creating a multi-condition dataframe in the format of LIANA.
 - A new tutorial that shows how to use PyDESeq2 together with this utility function has been added, essentially a tutorial on "Hypothesis-driven CCC".
 
 Visualizations
-=========================================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - A tileplot (`li.pl.tileplot`) has been added to better visualize ligands and receptors independently.
 
@@ -62,7 +61,7 @@ Visualizations
 - A simple plot `li.pl.connectivity` is added to show spatial connectivities 
 
 Others
-=========================================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - A Causal Network inference function has been added to infer downstream signalling networks. This is currently placed in the tutorial with PyDESeq2.
 
