@@ -14,7 +14,7 @@ from anndata import AnnData
 from mudata import MuData
 
 class MistyData(MuData):
-    # TODO: change to SpatialData when Squidpy is also updated
+    """MistyData Class used to construct multi-view objects"""
     def __init__(self, data, obs=None, spatial_key='spatial', **kwargs):
         """
         Construct a MistyData object from a dictionary of views (anndatas).
@@ -59,8 +59,6 @@ class MistyData(MuData):
     def _get_conn(self, view_name):
         return self.mod[view_name].obsp[f"{self.spatial_key}_connectivities"]
     
-    # NOTE: having this as a call fun would mean that it would only work when a misty object is created
-    # but not when a mudata object in misty format is loaded from disk
     def __call__(self,
                  model='rf',
                  bypass_intra = False,
@@ -89,10 +87,10 @@ class MistyData(MuData):
             Whether to bypass modeling the intraview features importances via LOFO
         intra_groupby : `str`, optional (default: None)
             Column in the .obs attribute used to group cells in the intra-view
-            If None, all cells are considered as one group
+            If None, all cells are considered as one group. (EXPERIMENTAL)
         extra_groupby : `str`, optional (default: None)
             Column in the .obs attribute used to group cells in the extra-view(s)
-            If None, all cells are considered as one group.
+            If None, all cells are considered as one group. (EXPERIMENTAL)
         alphas : `list`, optional (default: [0.1, 1, 10])
             List of alpha values used to choose from, that control the strength of the ridge regression,
             used for the multi-view part of the model

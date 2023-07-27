@@ -151,7 +151,7 @@ class MethodMeta:
 
 class Method(MethodMeta):
     """
-    liana's Method Class
+    Ligand-Receptor Method Class
     """
     def __init__(self, _method):
         super().__init__(method_name=_method.method_name,

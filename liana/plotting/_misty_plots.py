@@ -3,6 +3,28 @@ import plotnine as p9
 
 
 def target_metrics(misty, stat, top_n=None, figure_size=(7,5), return_fig=True):
+    """
+    Plot target metrics.
+    
+    Parameters
+    ----------
+    misty : MistyData
+        MistyData object
+    stat : str
+        Statistic to plot
+    top_n : int
+        Number of targets to plot
+    figure_size : tuple
+        Figure size
+    return_fig : bool
+        Whether to return the plot or draw it. Default: True.
+        
+    Returns
+    -------
+    
+    Returns a plotnine plot.
+    
+    """
     target_metrics = misty.uns['target_metrics'].copy()
     
     if top_n is not None:
@@ -29,6 +51,28 @@ def target_metrics(misty, stat, top_n=None, figure_size=(7,5), return_fig=True):
     
     
 def contributions(misty, figure_size=(7, 5), stat=None, top_n=None, return_fig=True):
+    """
+    Plot view contributions.
+    
+    Parameters
+    ----------
+    
+    misty : MistyData
+        MistyData object
+    figure_size : tuple
+        Figure size
+    stat : str
+        Statistic to plot
+    top_n : int
+        Number of targets to plot
+    return_fig : bool
+        Whether to return the plot or draw it. Default: True.
+        
+    Returns
+    -------
+    A plotnine plot.
+    
+    """
     target_metrics = misty.uns['target_metrics'].copy()
     
     if top_n is not None:
@@ -56,6 +100,32 @@ def contributions(misty, figure_size=(7, 5), stat=None, top_n=None, return_fig=T
 
 
 def interactions(misty, view, top_n = None, ascending=False, key=None, figure_size=(7,5), return_fig=True):
+    """
+    Plot interaction importances.
+    
+    Parameters
+    ----------
+    
+    misty : MistyData
+        MistyData object
+    view : str
+        A view to plot
+    top_n : int
+        Number of interactions to plot
+    ascending : bool
+        Whether to sort interactions in ascending order
+    key : str
+        Key to use when sorting interactions
+    figure_size : tuple
+        Figure size
+    return_fig : bool
+        Whether to return the plot or draw it. Default: True.
+    
+    Returns
+    -------
+    A plotnine plot.
+    
+    """
     interactions = misty.uns['interactions'].copy()
     interactions = interactions[interactions['view'] == view]
     grouped = interactions.groupby('predictor')['importances'].apply(lambda x: x.isna().all())

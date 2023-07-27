@@ -21,6 +21,7 @@ from liana.method.sp._bivariate_funs import _handle_functions, _bivariate_functi
 
 
 class SpatialBivariate():
+    """ A class for bivariate local spatial metrics. """
     def __init__(self):
         pass
     def __call__(self,
@@ -54,6 +55,78 @@ class SpatialBivariate():
                  inplace = True,
                  verbose=False,
                  ):
+        """
+        A method for bivariate local spatial metrics.
+        
+        Parameters
+        ----------
+        
+        mdata: MuData or AnnData
+            MuData or AnnData object with spatial coordinates.
+        x_mod: str
+            Name of the modality to use for the x-axis.
+        y_mod: str
+            Name of the modality to use for the y-axis.
+        function_name: str
+            Name of the function to use for the analysis.
+        interactions: list
+            List of tuples with ligand-receptor pairs `[(ligand, receptor), ...]` to be used for the analysis.
+            If passed, it will overrule the resource requested via `resource` and `resource_name`.
+        resource: pd.DataFrame
+            Resource to use for the analysis. If None, `resource_name` is used.
+        resource_name: str
+            Name of the resource to use for the analysis. If None, the default resource ('consensus') is used.
+        connectivity_key: str
+            Key in `mdata.uns` where the spatial connectivities are stored.
+        mod_added: str
+            Key in `mdata.mod` where the local scores are stored.
+        key_added: str
+            Key in `mdata.uns` where the global scores are stored.
+        positive_only: bool
+            Whether to mask non-positive interactions.
+        add_categories: bool
+            Whether to add categories about the local scores
+        n_perms: int
+            Number of permutations to use for the analysis. If None, no p-values are computed. If 0 analytical p-values are computed.
+        seed: int
+            Seed for the random number generator.
+        nz_threshold: float
+            Minimum proportion of cells expressing the ligand and receptor.
+        x_use_raw: bool
+            Whether to use the raw counts for the x-mod.
+        x_layer: str
+            Layer to use for x-mod.
+        x_transform: bool
+            Function to transform the x-mod.
+        y_use_raw: bool
+            Whether to use the raw counts for y-mod.
+        y_layer: str
+            Layer to use for y-mod.
+        y_transform: bool
+            Function to transform the y-mod.
+        x_name: str
+            Name of the x-mod.
+        y_name: str
+            Name of the y-mod.
+        complex_sep: str
+            Separator to use for complex names.
+        xy_sep: str
+            Separator to use for interaction names.
+        remove_self_interactions: bool
+            Whether to remove self-interactions. `True` by default.
+        inplace: bool
+            Whether to add the results to `mdata` or return them.
+        verbose: bool
+            Verbosity flag.
+        
+        Returns
+        -------
+        
+        If `inplace` is `True`, the results are added to `mdata` and `None` is returned.
+        If `inplace` is `False`, the results are returned.
+        """
+        
+        
         if n_perms is not None:
             if not isinstance(n_perms, int) or n_perms < 0:
                 raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")

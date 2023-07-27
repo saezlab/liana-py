@@ -1,36 +1,23 @@
-.. LiAna API Documentation
-   ===============================
+API
+===============================
 
 Import liana as::
 
    import liana as li
 
+
 Single-cell
 ----------------------------------
 
-Ligand-Receptor Methods
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. module:: liana
+.. currentmodule:: liana
 
-Methods are implemented as instances of the same Method class.
-Each instance provides helper functions and consistent attributes,
-to describe each method instance.
 
-.. autosummary::
-   :toctree: api
-
-   liana.method.cellchat
-   liana.method.cellphonedb
-   liana.method.connectome
-   liana.method.logfc
-   liana.method.natmi
-   liana.method.singlecellsignalr
-   liana.method.geometric_mean
-   liana.method.rank_aggregate
-
-Callable Method instances
+Callable Ligand-Receptor Method instances
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With each Method (instance of class Method) being callable:
+Ligand-receptor method instances provide helper functions and consistent attributes,
+to describe each method instance, and are callable:
 
 .. autosummary::
    :toctree: api
@@ -44,6 +31,7 @@ With each Method (instance of class Method) being callable:
    liana.method.geometric_mean.__call__
    liana.method.rank_aggregate.__call__
 
+
 Spatial
 ----------------------------------
 
@@ -52,19 +40,21 @@ Local bivariate metrics
 
 .. autosummary::
    :toctree: api
-   
+
    liana.method.bivar
    liana.method.lr_bivar
+
 
 Learn Spatial Relationships
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: api
-   
+
    liana.method.MistyData
    liana.method.genericMistyData
    liana.method.lrMistyData
+
 
 Multi-Sample
 ----------------------------------
@@ -72,12 +62,13 @@ Multi-Sample
 .. autosummary::
    :toctree: api
 
-   liana.plotting.df_to_lr
-   liana.plotting.to_tensor_c2c
-   liana.plotting.adata_to_views
-   liana.plotting.lrs_to_views
-   liana.plotting.nmf
-   liana.plotting.estimate_elbow
+   liana.multi.df_to_lr
+   liana.multi.to_tensor_c2c
+   liana.multi.adata_to_views
+   liana.multi.lrs_to_views
+   liana.multi.nmf
+   liana.multi.estimate_elbow
+
 
 Visualization options
 ----------------------------------
@@ -92,6 +83,7 @@ Visualization options
    liana.plotting.target_metrics
    liana.plotting.contributions
    liana.plotting.interactions
+
 
 Utility functions
 ----------------------------------
@@ -123,4 +115,5 @@ Intracellular
 .. autosummary::
    :toctree: api
 
-   liana.method.causalnet
+   liana.method.find_causalnet
+   liana.method.build_prior_network

@@ -1,4 +1,4 @@
-LIANA: a LIgand-receptor ANalysis frAmework
+LIANA: a one-stop-shop framework for cell-cell communication
 ===========================================
 
 |MainBuild| |Issues| |Docs| |Codecov|
@@ -20,11 +20,10 @@ LIANA+ is an efficient framework that integrates and extends existing
 methods and knowledge to study cell-cell communication in single-cell,
 spatially-resolved, and multi-modal omics data. 
 
-![image info](LINK_TO_IMAGE)
-
-## Cite LIANA+:
-
-Dimitrov, D. ... Saez-Rodriguez, J.
+.. image:: https://raw.githubusercontent.com/saezlab/liana-py/dev/docs/source/_static/abstract.png
+   :width: 75%
+   :align: center
+   :height: 75%
 
 
 .. toctree::
@@ -40,12 +39,36 @@ Dimitrov, D. ... Saez-Rodriguez, J.
 .. toctree::
    :maxdepth: 1
    :hidden:
-   :caption: Vignettes
+   :caption: Single-cell Vignettes
 
-   notebooks/basic_usage
+   notebooks/basic_usage 
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+   :caption: Multi-Sample Vignettes
 
    notebooks/liana_c2c
 
    notebooks/mofacellular
 
    notebooks/mofatalk
+
+   notebooks/targeted
+
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+   :caption: Spatial Vignettes
+
+   notebooks/misty
+
+   notebooks/bivariate
+
+
+Cite LIANA+
+-----------
+
+Dimitrov, D. ... Saez-Rodriguez, J.
+

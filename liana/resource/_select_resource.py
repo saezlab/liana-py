@@ -40,7 +40,7 @@ def select_resource(resource_name: str = 'consensus') -> DataFrame:
 
 def show_resources():
     """
-    Show provided resources.
+    Show available resources.
 
     Returns
     -------

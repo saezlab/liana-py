@@ -3,7 +3,8 @@ import pandas as pd
 
 def get_factor_scores(adata, obsm_key=None, obs_keys=None):
     """
-    A helper function to extract factor scores from a MuData object.
+    Extract factor scores from an AnnData object.
+    
     Parameters
     ----------
     adata: :class:`~mudata.MuData` or :class:`~anndata.AnnData`
@@ -13,9 +14,12 @@ def get_factor_scores(adata, obsm_key=None, obs_keys=None):
     obs_keys: list
         List of keys to use when extracting metadata from `adata.obs`
         If None, no metadata is extracted. Default is None.
+    
     Returns
     -------
+    
     Returns a pandas DataFrame with the factor scores.
+    
     """
 
     if obsm_key not in adata.obsm.keys():
@@ -44,9 +48,11 @@ def get_variable_loadings(adata,
                           drop_columns = True
                           ):
     """
-    A helper function to extract variable loadings from a MuData object.
+    Extract variable loadings from an AnnData object.
+    
     Parameters
     ----------
+    
     adata: :class:`~mudata.MuData` or :class:`~anndata.AnnData`
         AnnData or MuData object
     varm_key: str
@@ -59,8 +65,10 @@ def get_variable_loadings(adata,
         Separator to use when splitting view names into `pair_names` ('source' and 'target' by default)
     drop_columns: bool
         If True, drop the `view:variable` column
+        
     Returns
     -------
+    
     Returns a pandas DataFrame with the variable loadings for the specified index.
     """
     if varm_key not in adata.varm.keys():

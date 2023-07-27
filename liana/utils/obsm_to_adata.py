@@ -4,11 +4,11 @@ from anndata import AnnData
 
 def obsm_to_adata(adata, obsm_key, df = None, _uns=None, _obsm=None):
     """
-    Extracts activities as AnnData object.
-    From an AnnData object with source activities stored in `.obsm`, generates a new AnnData object with activities in `X`.
-    This allows to re-use many scanpy processing and visualization functions.
+    Extracts a dataframe from adata.obsm and returns a new AnnData object with the values stored in X.
+    
     Parameters
     ----------
+    
     adata : AnnData
         Annotated data matrix with activities stored in .obsm.
     obsm_key
@@ -19,8 +19,10 @@ def obsm_to_adata(adata, obsm_key, df = None, _uns=None, _obsm=None):
         Dictionary with uns data. If None, it will be extracted from adata.uns.
     _obsm : AxisArrays
         Dictionary with obsm data. If None, it will be extracted from adata.obsm.
+        
     Returns
     -------
+    
     acts : AnnData
         New AnnData object with activities in X.
     """

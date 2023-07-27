@@ -33,8 +33,10 @@ def spatial_neighbors(adata: anndata.AnnData,
                       ):
     """
     Generate spatial connectivity weights using Euclidean distance.
+    
     Parameters
     ----------
+    
     adata
         `AnnData` object with spatial coordinates (in 'spatial') in `adata.obsm`.
     bandwidth
@@ -54,17 +56,20 @@ def spatial_neighbors(adata: anndata.AnnData,
         Key to add to `adata.obsm` if `inplace = True`.
     inplace
         If true return `DataFrame` with results, else assign to `.obsm`.
+        
     Notes
     -----
     This function is adapted from mistyR, and is set to be consistent with
     the `squidpy.gr.spatial_neighbors` function in the `squidpy` package. 
     It is intended to be a minimalist implementation of spatial connectivity weights,
     for non-generic use cases, it should be replaced by `squidpy.gr.spatial_neighbors`.
+    
     Returns
     -------
     If ``inplace = False``, returns an `np.array` with spatial connectivity weights.
     Otherwise, modifies the ``adata`` object with the following key:
         - :attr:`anndata.AnnData.obsp` ``['{key_added}_connectivities']`` with the aforementioned array
+        
     """
 
     if cutoff is None:
