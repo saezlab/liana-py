@@ -1,4 +1,4 @@
-# LIANA+: a one-stop-shop framework for cell-cell communication <img src="docs/source/_static/logo.png?raw=true" align="right" height="125">
+# LIANA+: a one-stop-shop framework for cell-cell communication <img src="https://raw.githubusercontent.com/saezlab/liana-py/dev/docs/source/_static/logo.png?raw=true" align="right" height="125">
 
 <!-- badges: start -->
 [![main](https://github.com/saezlab/liana-py/actions/workflows/main.yml/badge.svg)](https://github.com/saezlab/liana-py/actions)
@@ -17,7 +17,7 @@ LIANA+ is an efficient framework that integrates and extends existing methods an
 
 LIANA+ is currently at it's alpha stage - i.e. we are actively working on improving it.
 
-The API visible to the user should remain unchanged, but some differences in terms of secondary parameters, or default settings are possible; except in any of the single-cell modules - i.e. `liana.method.sc` -> these will remain stable.
+The API visible to the user should be stable, specifically `liana.method.sc`, but some differences in terms of secondary parameters, or default settings are possible.
 
 More importantly, we welcome suggestions, ideas, and contributions! Please use do not hesitate to contact us, or use the issues or the [LIANA+ Development project](https://github.com/orgs/saezlab/projects/16) to make suggestions.
 

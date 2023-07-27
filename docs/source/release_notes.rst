@@ -1,13 +1,13 @@
 Release notes
 =============
 
-0.2.0 (04.08.2023)
+1.0.0a0 (27.07.2023)
 ---------------------------------------------------------
 ## LIANA+ Release
 
 LIANA becomes LIANA+.
 
-Major changes have been made to the repository, however the API visible to the user should be largely consistent, with minor exceptions:
+Major changes have been made to the repository, however the API visible to the user should be largely consistent with previous versions, except minor exceptions:
 - `li.fun.generate_lr_geneset` is now called via `li.rs.generate_lr_geneset`
 
 - the old 'li.funcomics' model is now renamed to something more general: `li.utils`
