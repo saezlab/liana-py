@@ -13,6 +13,15 @@ LIANA+ is an efficient framework that integrates and extends existing methods an
 <img src="https://raw.githubusercontent.com/saezlab/liana-py/dev/docs/source/_static/abstract.png?raw=true" width="700" align="center">
 
 
+## Contributions & Development
+
+LIANA+ is currently at it's alpha stage - i.e. we are actively working on improving it.
+
+The API visible to the user should remain unchanged, but some differences in terms of secondary parameters, or default settings are possible; except in any of the single-cell modules - i.e. `liana.method.sc` -> these will remain stable.
+
+More importantly, we welcome suggestions, ideas, and contributions! Please use do not hesitate to contact us, or use the issues or the [LIANA+ Development project](https://github.com/orgs/saezlab/projects/16) to make suggestions.
+
+
 ## Tutorials
 
 ### Single-cell/Dissociated Data
@@ -50,5 +59,7 @@ For further information please check LIANA's [API documentation](https://liana-p
 ## Cite LIANA+:
 
 Dimitrov, D. ... Saez-Rodriguez, J.
+
+Dimitrov, D., Türei, D., Garrido-Rodriguez M., Burmedi P.L., Nagai, J.S., Boys, C., Flores, R.O.R., Kim, H., Szalai, B., Costa, I.G., Valdeolivas, A., Dugourd, A. and Saez-Rodriguez, J. Comparison of methods and resources for cell-cell communication inference from single-cell RNA-Seq data. Nat Commun 13, 3224 (2022). https://doi.org/10.1038/s41467-022-30755-0
 
 Similarly, please consider citing any of the methods and/or resources implemented in liana, that were particularly relevant for your research!
