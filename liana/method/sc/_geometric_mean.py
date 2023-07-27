@@ -1,7 +1,6 @@
-import numpy as np
 from scipy.stats import gmean
 
-from liana.method._Method import Method, MethodMeta
+from liana.method.sc._Method import Method, MethodMeta
 from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
 
 
@@ -44,4 +43,4 @@ _geometric_mean = MethodMeta(method_name="Geometric Mean",
                              )
 
 # Initialize callable Method instance
-geometric_mean = Method(_SCORE=_geometric_mean)
+geometric_mean = Method(_method=_geometric_mean)

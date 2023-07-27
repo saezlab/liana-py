@@ -1,6 +1,6 @@
 import numpy as np
 
-from liana.method._Method import Method, MethodMeta
+from liana.method.sc._Method import Method, MethodMeta
 
 
 def _sca_score(x):
@@ -41,4 +41,4 @@ _singlecellsignalr = MethodMeta(method_name="SingleCellSignalR",
                                 )
 
 # Initialize callable Method instance
-singlecellsignalr = Method(_SCORE=_singlecellsignalr)
+singlecellsignalr = Method(_method=_singlecellsignalr)

@@ -2,6 +2,7 @@
 Preprocessing functions.
 Functions to preprocess the anndata object prior to running any method.
 """
+from __future__ import annotations
 
 import numpy as np
 from anndata import AnnData
@@ -54,15 +55,18 @@ def assert_covered(
             f"Too few features from the resource were found in the data."
         )
         raise ValueError(msg + f" [{x_missing}] missing from {superset_name}")
+
     if verbose & (prop_missing > 0):
         print(f"{prop_missing:.2f} of entities in the resource are missing from the data.")
 
 
 def prep_check_adata(adata: AnnData,
-                     groupby: str,
-                     min_cells: int,
+                     groupby: (str | None),
+                     min_cells: (int | None),
                      use_raw: Optional[bool] = False,
                      layer: Optional[str] = None,
+                     obsm = None,
+                     complex_sep='_',
                      verbose: Optional[bool] = False) -> AnnData:
     """
     Check if the anndata object is in the correct format and preprocess
@@ -72,9 +76,12 @@ def prep_check_adata(adata: AnnData,
     adata
         Un-formatted Anndata.
     groupby
-        column to groupby
+        column to groupby. None if the ligand-receptor pipe
+        calling this function does not rely on cell labels.
+        For example, if ligand-receptor stats are needed
+        for the whole sample (global).
     min_cells
-        minimum cells per cell identity
+        minimum cells per cell identity. None if groupby is not passed.
     use_raw
         Use raw attribute of adata if present.
     layer
@@ -86,45 +93,36 @@ def prep_check_adata(adata: AnnData,
     -------
     Anndata object to be used downstream
     """
-    # simplify adata
-
     X = _choose_mtx_rep(adata=adata, use_raw=use_raw,
                         layer=layer, verbose=verbose)
 
     if use_raw & (layer is None):
-        var = adata.raw.var.copy()
+        var = DataFrame(index=adata.raw.var_names)
     else:
-        var = adata.var.copy()
+        var = DataFrame(index=adata.var_names)
 
     adata = sc.AnnData(X=X,
                        obs=adata.obs.copy(),
                        dtype="float32",
-                       var=var
-                       )
-
-    # convert to sparse csr matrix
-    if not isspmatrix_csr(adata.X):
-        if verbose:
-            print("Converting mat to CSR format")
-        adata.X = csr_matrix(adata.X)
+                       var=var,
+                       obsp=adata.obsp.copy(),
+                       obsm=obsm
+                       ).copy()
+    adata.var_names_make_unique()
 
     # Check for empty features
     msk_features = np.sum(adata.X, axis=0).A1 == 0
     n_empty_features = np.sum(msk_features)
     if n_empty_features > 0:
         if verbose:
-            print("{0} features of mat are empty, they will be removed.".format(
-                n_empty_features))
+            print(f"{n_empty_features} features of mat are empty, they will be removed.")
         adata = adata[:, ~msk_features]
 
     # Check for empty samples
-    msk_samples = np.sum(adata.X, axis=1).A1 == 0
+    msk_samples = adata.X.sum(axis=1).A1 == 0
     n_empty_samples = np.sum(msk_samples)
     if n_empty_samples > 0:
-        if verbose:
-            print("{0} samples of mat are empty, they will be removed.".format(
-                n_empty_samples))
-        adata = adata[~msk_samples, :]
+        raise ValueError(f"{n_empty_samples} samples of mat are empty, please remove them.")
 
     # Check if log-norm
     _sum = np.sum(adata.X.data[0:100])
@@ -139,61 +137,50 @@ def prep_check_adata(adata: AnnData,
             to 0 or remove them.""")
 
     # Define idents col name
-    if groupby not in adata.obs.columns:
-        raise AssertionError(f"`{groupby}` not found in `adata.obs.columns`.")
-    adata.obs.loc[:, 'label'] = adata.obs[groupby]
+    if groupby is not None:
+        if groupby not in adata.obs.columns:
+            raise AssertionError(f"`{groupby}` not found in `adata.obs.columns`.")
+        adata.obs.loc[:, 'label'] = adata.obs[groupby]
+
+        # Remove any cell types below X number of cells per cell type
+        count_cells = adata.obs.groupby(groupby)[groupby].size().reset_index(name='count').copy()
+        count_cells['keep'] = count_cells['count'] >= min_cells
+
+        if not all(count_cells.keep):
+            lowly_abundant_idents = list(count_cells[~count_cells.keep][groupby])
+            # remove lowly abundant identities
+            msk = ~np.isin(adata.obs[[groupby]], lowly_abundant_idents)
+            adata = adata[msk]
+            if verbose:
+                print("The following cell identities were excluded: {0}".format(
+                    ", ".join(lowly_abundant_idents)))
+                
+    check_vars(adata.var_names,
+               complex_sep=complex_sep,
+               verbose=verbose)
 
     # Re-order adata vars alphabetically
     adata = adata[:, np.sort(adata.var_names)]
 
-    # Remove any cell types below X number of cells per cell type
-    count_cells = adata.obs.groupby(groupby)[groupby].size().reset_index(name='count').copy()
-    count_cells['keep'] = count_cells['count'] >= min_cells
-
-    if not all(count_cells.keep):
-        lowly_abundant_idents = list(count_cells[~count_cells.keep][groupby])
-        # remove lowly abundant identities
-        msk = ~np.isin(adata.obs[[groupby]], lowly_abundant_idents)
-        adata = adata[msk]
-        if verbose:
-            print("The following cell identities were excluded: {0}".format(
-                ", ".join(lowly_abundant_idents)))
-
-    # Remove underscores from gene names
-    adata.var_names = format_vars(adata.var_names)
-
     return adata
 
 
-# Helper function to replace a substring in string and append to list
-def _append_replace(x: str, l: list):
-    l.append(x)
-    return x.replace('_', '')
-
-
 # format variable names
-def format_vars(var_names, verbose=False) -> list:
+def check_vars(var_names, complex_sep, verbose=False) -> list:
     """
-    Format Variable names
+    Raise a warning if `complex_sep` is part of any variable name.
+    """ 
+    var_issues = []
+    if complex_sep is not None:
+        for name in var_names:
+            if complex_sep in name:
+                var_issues.append(name)
+    else:
+        pass
     
-    Parameters
-    ----------
-    var_names
-        list of variable names (e.g. adata.var_names)
-    verbose
-        Verbosity flag
+    if verbose & (len(var_issues) > 0):
+        print(f"Warning: {var_issues} contain `{complex_sep}`. Consider replacing those!")
 
-    Returns
-    -------
-        Formatted Variable names list
-
-    """
-    changed = []
-    var_names = [_append_replace(x, changed) if ('_' in x) else x for x in var_names]
-    changed = ' ,'.join(changed)
-    if verbose & (len(changed) > 0):
-        print(f"Replace underscores (_) with blank in {changed}", )
-    return var_names
 
 
 def filter_resource(resource: DataFrame, var_names: Index) -> DataFrame:
@@ -221,7 +208,7 @@ def filter_resource(resource: DataFrame, var_names: Index) -> DataFrame:
                         (np.isin(resource.receptor, var_names))]
 
     # Only keep interactions /w complexes for which all subunits are present
-    missing_comps = resource[['_' in x for x in resource['interaction']]].copy()
+    missing_comps = resource[resource.interaction.str.contains('_')].copy()
     missing_comps['all_units'] = \
         missing_comps['ligand_complex'] + '_' + missing_comps[
             'receptor_complex']
@@ -252,21 +239,28 @@ def _choose_mtx_rep(adata, use_raw=False, layer=None, verbose=False) -> csr_matr
     -------
         The matrix to be used by liana-py.
     """
-
     is_layer = layer is not None
     if is_layer & use_raw:
         raise ValueError("Cannot specify `layer` and have `use_raw=True`.")
     if is_layer:
         if verbose:
             print(f"Using the `{layer}` layer!")
-        return adata.layers[layer]
+        X = adata.layers[layer]
     elif use_raw:
         if adata.raw is None:
             raise ValueError("`.raw` is not initialized!")
         if verbose:
             print("Using `.raw`!")
-        return adata.raw.X
+        X = adata.raw.X
     else:
         if verbose:
             print("Using `.X`!")
-        return adata.X
+        X = adata.X
+        
+    # convert to sparse csr matrix
+    if not isspmatrix_csr(X):
+        if verbose:
+            print("Converting mat to CSR format")
+        X = csr_matrix(X)
+    
+    return X

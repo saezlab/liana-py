@@ -1,4 +1,4 @@
-from liana.method._Method import Method, MethodMeta
+from liana.method.sc._Method import Method, MethodMeta
 
 
 def _spec_weight(ligand_means, ligand_means_sums, receptor_means, receptor_means_sums):
@@ -47,5 +47,5 @@ _natmi = MethodMeta(method_name="NATMI",
                     )
 
 # Initialize callable Method instance
-natmi = Method(_SCORE=_natmi)
+natmi = Method(_method=_natmi)
 

@@ -1,8 +1,76 @@
 Release notes
 =============
 
+1.0.0a0 (27.07.2023)
+---------------------------------------------------------
+## LIANA+ Release
+
+LIANA becomes LIANA+.
+
+Major changes have been made to the repository, however the API visible to the user should be largely consistent with previous versions, except minor exceptions:
+- `li.fun.generate_lr_geneset` is now called via `li.rs.generate_lr_geneset`
+
+- the old 'li.funcomics' model is now renamed to something more general: `li.utils`
+
+- `get_factor_scores` and `get_variable_loadings` were moved to `li.utils`
+
+
+LIANA+ includes the following new features:
+
+### Spatial
+
+- A sklearn-based implementation to learn spatially-informed multi-view models, i.e. [MISTy](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-022-02663-5) models.
+
+- A new tutorial that shows how to use LIANA+ to build and run MISTy models.
+
+- Five vectorized local spatially-informed bivariate clustering and similarity metrics, such as [Moran's R](https://www.biorxiv.org/content/10.1101/2022.08.19.504616v1.full), Cosine, Jaccard, Pearson, Spearman. As well as a numba-compiled [Masked Spearman](https://www.nature.com/articles/s41592-020-0885-x) local score.
+
+- A new tutorial that shows how to use LIANA+ to compute spatially-informed bivariate metrics, permutations-based p-values, interaction categoriez, as well as 
+how to summarize those into patterns using NMF.
+
+- A radial basis kernel is implemented to calculate spot/cell connectivities (spatial connectivities); this is used by the spatially-informed bivariate metrics and MISTy.
+It mirrors [squidpy's](https://squidpy.readthedocs.io/en/stable/) `sq.gr.spatial_neighbors` function, and is hence interchangeable with it. 
+
+
+### Handling multiple modalities
+
+- LIANA+ will now work with multi-modal data, i.e. it additionally support MuData objects as well as AnnData objects.
+The API visible to the user is the same, but the underlying implementation is different.
+
+- These come with a new tutorial that shows how to use LIANA+ with multi-modal (CITE-Seq) data, along with inbuilt transformations.
+
+- The same API is also adapted by the local bivariate metrics, i.e. they can also be used with multi-modal data.
+
+
+### Multi-conditions
+
+- A utility function has been added that will take any dataframe with various statistics and append it to information from AnnData objects;
+thus creating a multi-condition dataframe in the format of LIANA.
+
+- A new tutorial that shows how to use PyDESeq2 together with this utility function has been added, essentially a tutorial on "Hypothesis-driven CCC".
+
+### Visualizations
+
+- A tileplot (`li.pl.tileplot`) has been added to better visualize ligands and receptors independently.
+
+- MISTy-related visualizations have been added to vislualize view contributions and performance, and interaction coefficients/importances.
+
+- A simple plot `li.pl.connectivity` is added to show spatial connectivities 
+
+### Others
+
+- A Causal Network inference function has been added to infer downstream signalling networks. This is currently placed in the tutorial with PyDESeq2.
+
+- An elbow approximation approach has been added to the NMF module, to help with the selection of the number of patterns.
+
+- Various utility functions to simplify AnnData extraction/conversion, Matrix transformations, etc (added to `li.ut`)
+
+Note: this is just an overview of the new features, for details please refer to the tutorials, API, and documentation.
+
+
+
 0.1.9 (06.06.2023)
-------------------
+-----------------------------------------------------------------
 
 - Fixed issues with deprecated params of pandas.DataFrame.to_csv & .assert_frame_equal in tests
 
@@ -27,7 +95,7 @@ Release notes
 
 
 0.1.8 (24.03.2023)
-------------------
+------------------------------------------------------------------------------------------------------------------------------
 
 - Removed walrus operator to support Python 3.7
 
@@ -41,7 +109,7 @@ Release notes
 
 
 0.1.7 (08.02.2023)
-------------------
+------------------------------------------------------------------------------------------------------------------------------
 
 - Fixed an edge case where subunits within the same complex with identical values resulted in duplicates. These are now arbitrarily removed according to random order.
 
@@ -55,7 +123,7 @@ Release notes
 
 
 0.1.6 (23.01.2023)
------
+-----------------------------------------
 - Fixed issue with duplicate subunits for non-expressed LRs when `return_all_lrs` is True
 
 - `min_prop` when working with `return_all_lrs` is now filled with 0s
@@ -76,13 +144,13 @@ Release notes
 
 
 0.1.5 (11.01.2023)
------
+-----------------------------------------
 - Hotfix `return_all_lrs` specificity_rank being assigned to NaN
 
 - Add test to check that `specificity_rank` of `lrs_to_keep` is equal to min(specificity_rank)
 
 0.1.4 (11.01.2023)
------
+-----------------------------------------
 
 - `rank_aggregate` will now sort interactions according to `magnitude_rank`.
 
@@ -94,22 +162,23 @@ Release notes
 
 
 0.1.3 (07.12.2022)
------
+-----------------------------------------
 - Added `supp_columns` parameter to allow any column from liana to be returned.
 
 - Added `return_all_lrs` parameter to allow all interactions to be returned with a `lrs_to_filter` flag for the interaction that do not pass the `expr_prop`, and each of those interactions is assigned to the worst **present** score from the ones that do pass the threshold.
 
 - Fixed a bug where an exception was not thrown by `assert_covered`
+
 - Raise explicit exceptions as text in multiple places.
 
 - Changed cellphonedb p-values column name from "pvals" to "cellphone_pvals".
 
 0.1.2
------
+-----------------------------------------
 - Added CellChat and GeometricMean methods
 
 0.1.1
------
+-----------------------------------------
 - Add progress bar to permutations
 
 - Deal with adata copies to optimize RAM
@@ -120,14 +189,14 @@ Release notes
 
 
 0.1.0
------
+-----------------------------------------
 - Restructure API further
 
 - Submit to PIP
 
 
 0.0.3
------
+-----------------------------------------
 - Added a filter according to `min_cells` per cell identity
 
 - prep_check_adata will now assert that `groupby` exists
@@ -137,23 +206,28 @@ Release notes
 - restructured the API to be more scverse-like
 
 0.0.2
------
+-----------------------------------------
 
 - Added `dotplot` as a visualization option
 
 - Added `basic_usage` tutorial
 
 0.0.1
------
+-----------------------------------------
 
 First release alpha version of **liana-py**
 
 - Re-implementations of:
     - CellPhoneDB
+
     - NATMI
+
     - SingleCellSignalR
+
     - Connectome
+
     - logFC
+
     - Robust aggregate rank
 
 - Ligand-receptor resources as generated via OmniPathR.

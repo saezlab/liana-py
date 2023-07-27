@@ -1,4 +1,4 @@
-LIANA: a LIgand-receptor ANalysis frAmework
+LIANA: a one-stop-shop framework for cell-cell communication
 ===========================================
 
 |MainBuild| |Issues| |Docs| |Codecov|
@@ -16,17 +16,14 @@ LIANA: a LIgand-receptor ANalysis frAmework
    :target: https://codecov.io/gh/saezlab/liana-py
 
 
-This is its faster and memory efficient Python implementation, an R version is also available `here <https://saezlab.github.io/liana/>`_.
+LIANA+ is an efficient framework that integrates and extends existing
+methods and knowledge to study cell-cell communication in single-cell,
+spatially-resolved, and multi-modal omics data. 
 
-Check out the `Usage <https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html>`_ or any other tutorial for further information.
-
-
-Cite LIANA
-----------
-Dimitrov, D., Türei, D., Garrido-Rodriguez M., Burmedi P.L., Nagai, J.S., Boys, C., Flores, R.O.R., Kim, H., Szalai, B., Costa, I.G., Valdeolivas, A., Dugourd, A. and Saez-Rodriguez, J. Comparison of methods and resources for cell-cell communication inference from single-cell RNA-Seq data. Nat Commun 13, 3224 (2022). https://doi.org/10.1038/s41467-022-30755-0
-
-Also, if you use the OmniPath CCC Resource for your analysis, please cite:
-Türei, D., Valdeolivas, A., Gul, L., Palacio‐Escat, N., Klein, M., Ivanova, O., Ölbei, M., Gábor, A., Theis, F., Módos, D. and Korcsmáros, T., 2021. Integrated intra‐and intercellular signaling knowledge for multicellular omics analysis. Molecular systems biology, 17(3), p.e9923. https://doi.org/10.15252/msb.20209923
+.. image:: https://raw.githubusercontent.com/saezlab/liana-py/dev/docs/source/_static/abstract.png
+   :width: 75%
+   :align: center
+   :height: 75%
 
 
 .. toctree::
@@ -42,12 +39,30 @@ Türei, D., Valdeolivas, A., Gul, L., Palacio‐Escat, N., Klein, M., Ivanova, O
 .. toctree::
    :maxdepth: 1
    :hidden:
-   :caption: Vignettes
+   :caption: Single-cell Vignettes
 
-   notebooks/basic_usage
+   notebooks/basic_usage 
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+   :caption: Multi-Sample Vignettes
 
    notebooks/liana_c2c
 
    notebooks/mofacellular
 
    notebooks/mofatalk
+
+   notebooks/targeted
+
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+   :caption: Spatial Vignettes
+
+   notebooks/misty
+
+   notebooks/bivariate
+

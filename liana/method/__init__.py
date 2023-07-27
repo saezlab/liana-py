@@ -1,6 +1,10 @@
-from ._Method import Method, MethodMeta, _show_methods
-from .sc._rank_aggregate import AggregateClass, _rank_aggregate_meta as aggregate_meta
-from .sc import cellphonedb, connectome, logfc, natmi, singlecellsignalr, geometric_mean, cellchat
+from liana.method.sc._Method import Method, MethodMeta, _show_methods
+from liana.method.sc._rank_aggregate import AggregateClass, _rank_aggregate_meta as aggregate_meta
+from liana.method.sc import cellphonedb, connectome, logfc, natmi, singlecellsignalr, geometric_mean, cellchat
+
+from liana.method.sp import bivar, lr_bivar, genericMistyData, lrMistyData, MistyData
+
+from liana.method.fun._causalnet import find_causalnet, build_prior_network
 
 import numpy as np
 

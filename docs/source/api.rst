@@ -1,152 +1,119 @@
 API
-====================================================
-   
+===============================
+
 Import liana as::
+
    import liana as li
 
-Methods:
-------------------------------------------------------------
+
+Single-cell
+----------------------------------
+
+.. module:: liana
+.. currentmodule:: liana
 
 
-Callable Method instances
+Callable Ligand-Receptor Method instances
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With each Method (instance of class Method) being callable:
-
-.. module:: liana
-.. currentmodule:: liana
+Ligand-receptor method instances provide helper functions and consistent attributes,
+to describe each method instance, and are callable:
 
 .. autosummary::
    :toctree: api
 
-   method.cellchat.__call__
-   method.cellphonedb.__call__
-   method.connectome.__call__
-   method.logfc.__call__
-   method.natmi.__call__
-   method.singlecellsignalr.__call__
-   method.geometric_mean.__call__
+   liana.method.cellchat.__call__
+   liana.method.cellphonedb.__call__
+   liana.method.connectome.__call__
+   liana.method.logfc.__call__
+   liana.method.natmi.__call__
+   liana.method.singlecellsignalr.__call__
+   liana.method.geometric_mean.__call__
+   liana.method.rank_aggregate.__call__
 
 
-Callable Rank Aggregate Instance
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-LIANA's RankAggregate Class is a child of the Method class,
-and hence shares the same attributes and functions.
+Spatial
+----------------------------------
 
-The RankAggregate Class can be used to generate a consensus
-for any of the methods in LIANA. Similarly to any other
-Method instance, it is also callable:
+Local bivariate metrics
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: api
 
-   method.rank_aggregate.__call__
+   liana.method.bivar
+   liana.method.lr_bivar
 
 
-
-Visualization options:
-------------------------------------------------------------
-.. module:: liana.plotting
-.. currentmodule:: liana
+Learn Spatial Relationships
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: api
 
-   plotting.dotplot
-   plotting.dotplot_by_sample
+   liana.method.MistyData
+   liana.method.genericMistyData
+   liana.method.lrMistyData
 
 
-General utils:
----------------------------------------------------------------
-
-.. autosummary::
-   :toctree: api
-
-   resource.select_resource
-   resource.show_resources
-   method.show_methods
-
-
-Multi-sample utils:
----------------------------------------------------------------
-liana also provides utilities to work with multiple samples,
-such as running any method by sample using the `by_sample` function:
-
-.. module:: liana
-.. currentmodule:: liana
-
+Multi-Sample
+----------------------------------
 
 .. autosummary::
    :toctree: api
 
-   method.Method.by_sample
+   liana.multi.df_to_lr
+   liana.multi.to_tensor_c2c
+   liana.multi.adata_to_views
+   liana.multi.lrs_to_views
+   liana.multi.nmf
+   liana.multi.estimate_elbow
 
 
-and converting the output of this function to Tensor-cell2cell format:
-
-.. autosummary::
-   :toctree: api
-
-   multi.to_tensor_c2c
-
-as well as to a MuData for the application of MOFA on ligand-receptors across contexts:
-
-.. autosummary::
-   :toctree: api
-
-   multi.lrs_to_views
-
-liana also enables the conversion of adata objects to mdata objects with cell types as views via:
+Visualization options
+----------------------------------
 
 .. autosummary::
    :toctree: api
 
-   multi.adata_to_views
-
-and provides simple helper functions to extract the factor scores and variable loadings:
-
-.. autosummary::
-   :toctree: api
-
-   multi.get_factor_scores
-   multi.get_variable_loadings
+   liana.plotting.dotplot
+   liana.plotting.dotplot_by_sample
+   liana.plotting.tileplot
+   liana.plotting.connectivity
+   liana.plotting.target_metrics
+   liana.plotting.contributions
+   liana.plotting.interactions
 
 
-
-Functional utils:
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-LIANA also utility function to convert e.g. geneset resources
-to a format that can be used to do enrichment analysis at 
-the ligand-receptor space.
-
-.. module:: liana
-.. currentmodule:: liana
-
+Utility functions
+----------------------------------
 
 .. autosummary::
    :toctree: api
 
-   funcomics.generate_lr_geneset
+   liana.utils.obsm_to_adata
+   liana.utils.mdata_to_anndata
+   liana.utils.zi_minmax
+   liana.utils.neg_to_zero
+   liana.utils.spatial_neighbors
+   liana.utils.get_factor_scores
+   liana.utils.get_variable_loadings
 
-
-
-All instances of Method Class
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Methods are implemented as instances of the same Method class.
-Each instance provides helper functions and consistent attributes,
-to describe each method instance.
-
-.. module:: liana
-.. currentmodule:: liana
+Prior knowledge
+----------------------------------
 
 .. autosummary::
    :toctree: api
 
-   method.cellchat
-   method.cellphonedb
-   method.connectome
-   method.logfc
-   method.natmi
-   method.singlecellsignalr
-   method.geometric_mean
-   method.rank_aggregate
+   liana.resource.select_resource
+   liana.resource.show_resources
+   liana.resource.generate_lr_geneset
+
+Intracellular
+----------------------------------
+
+.. autosummary::
+   :toctree: api
+
+   liana.method.find_causalnet
+   liana.method.build_prior_network

@@ -1,10 +1,8 @@
 # Configuration file for the Sphinx documentation builder.
-
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('../..'))
-
+sys.path.insert(0, os.path.abspath('../../'))
 
 def read(rel_path: str) -> str:
     here = os.path.abspath(os.path.dirname(__file__))
@@ -14,17 +12,16 @@ def read(rel_path: str) -> str:
 
 def get_version(rel_path: str) -> str:
     for line in read(rel_path).splitlines():
-        if line.startswith("__version__"):
+        if line.startswith("version ="):
             delim = '"' if '"' in line else "'"
             return line.split(delim)[1]
     raise RuntimeError("Unable to find version string.")
 
-
-project = 'liana-py'
+project = 'liana'
 copyright = '2022, Saezlab'
 author = 'Daniel Dimitrov'
-release = get_version("../../liana/__init__.py")
-version = get_version("../../liana/__init__.py")
+release = get_version("../../pyproject.toml")
+version = release
 
 # -- General configuration
 extensions = [
@@ -64,8 +61,8 @@ html_context = dict(
     conf_py_path='/docs/source/',
 )
 html_show_sphinx = True
-html_logo = 'logo.png'
-html_favicon = 'logo.png'
+html_logo = '_static/logo.png'
+html_favicon = '_static/logo.png'
 html_css_files = ['custom.css']
 
 # -- Options for EPUB output

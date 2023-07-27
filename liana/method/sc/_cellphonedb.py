@@ -1,5 +1,5 @@
 import numpy as np
-from liana.method._Method import Method, MethodMeta
+from liana.method.sc._Method import Method, MethodMeta
 from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
 
 # Internal Function to calculate CellPhoneDB LR_mean and p-values
@@ -46,4 +46,4 @@ _cellphonedb = MethodMeta(method_name="CellPhoneDB",
                           )
 
 # Initialize callable Method instance
-cellphonedb = Method(_SCORE=_cellphonedb)
+cellphonedb = Method(_method=_cellphonedb)

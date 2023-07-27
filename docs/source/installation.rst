@@ -1,19 +1,22 @@
 Installation
 ============
 
-**liana** requires Python version >= 3.7 to run.
+**liana** requires Python version >= 3.8 to run.
 
 Development Version
 -------------------
 
-To stay up-to-date with the newest version, run:
+To install the most up-to-date version, run:
 
 .. code-block:: console
 
    pip install git+https://github.com/saezlab/liana-py
 
 
-To update stable version from pip, run:
+Stable Version
+-------------------
+
+To install the latest stable version from pip, run:
 
 .. code-block:: console
 

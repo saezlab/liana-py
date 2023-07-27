@@ -1,12 +1,15 @@
-from liana.multi import to_tensor_c2c, adata_to_views, lrs_to_views, get_variable_loadings, get_factor_scores
-from liana.testing import sample_lrs, get_toy_adata
+from liana.multi import to_tensor_c2c, adata_to_views, lrs_to_views
+from liana.utils._getters import get_factor_scores, get_variable_loadings
+from liana.testing import sample_lrs
 
 import numpy as np
 import pandas as pd
 
 import cell2cell as c2c
 
-adata = get_toy_adata()
+from liana.testing._sample_anndata import generate_toy_adata
+
+adata = generate_toy_adata()
 
 
 def test_to_tensor_c2c():
@@ -111,19 +114,24 @@ def test_get_funs():
     # generate random loadings
     mdata.varm['LFs'] = np.random.rand(mdata.shape[1], 5)
     
-    loadings = get_variable_loadings(mdata, view_separator=':', variable_separator='^', pair_separator='&')
+    loadings = get_variable_loadings(mdata,
+                                     varm_key='LFs',
+                                     view_separator=':',
+                                     variable_separator='^',
+                                     pair_separator='&')
     assert isinstance(loadings, pd.DataFrame)
     assert loadings.shape == (16, 9)
     
     # dont drop columns & and don't separate
-    loadings = get_variable_loadings(mdata, drop_columns=False)
+    loadings = get_variable_loadings(mdata,
+                                     varm_key='LFs',
+                                     drop_columns=False)
     assert isinstance(loadings, pd.DataFrame)
     assert loadings.shape == (16, 6)
-    
     
     # generate random factor scores
     mdata.obsm['X_mofa'] = np.random.rand(mdata.shape[0], 5)
     
-    scores = get_factor_scores(mdata)
+    scores = get_factor_scores(mdata, obsm_key='X_mofa')
     assert isinstance(scores, pd.DataFrame)
     assert scores.shape == (4, 6)

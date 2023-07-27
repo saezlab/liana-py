@@ -1,104 +1,126 @@
-"""
-Utility functions to query OmniPath.
-Functions to retrieve resources from the meta-database OmniPath.
-"""
-
-from json import loads
-import pandas as pd
+import numpy as np
 
 
-def check_if_omnipath():
+def generate_lr_geneset(resource,
+                        net,
+                        ligand_key='ligand',
+                        receptor_key='receptor',
+                        lr_separator='^',
+                        source='source',
+                        target='target',
+                        weight='weight'):
     """
-    Function to check if available and return OmniPath
-    
-    Returns
-    -------
-    OmniPath package
+    Generate a ligand-receptor gene set from a resource and a network.
 
-    """
-    try:
-        import omnipath as op
-    except Exception:
-        raise ImportError('omnipath is not installed. Please install it with: pip install omnipath')
-    return op
-
-
-# Function to explode complexes (decomplexify Resource)
-def explode_complexes(resource: pd.DataFrame,
-                      SOURCE='ligand',
-                      TARGET='receptor') -> pd.DataFrame:
-    """
-    Function to explode ligand-receptor complexes
+    Specifically, it works with weighted bipartite networks, where the weight represents the importance of the genes 
+    to a given geneset. The function will assign a weight to each ligand-receptor interaction, based on the mean.
+    It does so by first assigning a weight to each ligand-receptor subunit, checking for sign coherence and completeness
+    of the ligand-receptor complex.
 
     Parameters
     ----------
-    resource
-        Ligand-receptor resource
-    SOURCE
-        Name of the source (typically ligand) column
-    TARGET
-        Name of the target (typically receptor) column
+    resource : pandas.DataFrame
+        Ligand-receptor resource.
+    net : pandas.DataFrame
+        Prior knowledge network in bipartite or decoupler format.
+    ligand : str, optional
+        Name of the ligand column in the resource, by default 'ligand'
+    receptor : str, optional
+        Name of the receptor column in the resource, by default 'receptor'
+    lr_separator : str, optional
+        Separator to use when joining ligand and receptor, by default '&'
+    source : str, optional
+        Name of the source column in the network, by default 'source'
+    weight : str, optional
+        Name of the weight column in the network, by default 'weight'. If None, all weights are set to 1.
 
     Returns
     -------
-    A resource with exploded complexes
-
+    Returns ligand-receptor geneset resource as a pandas.DataFrame with the following columns:
+    - interaction: ligand-receptor interaction
+    - weight: mean weight of the interaction
+    - source: source of the interaction
     """
-    resource['interaction'] = resource[SOURCE] + '|' + resource[TARGET]
-    resource = (resource.set_index('interaction')
-                .apply(lambda x: x.str.split('_'))
-                .explode([TARGET])
-                .explode(SOURCE)
-                .reset_index()
-                )
-    resource[[f'{SOURCE}_complex', f'{TARGET}_complex']] = resource[
-        'interaction'].str.split('|', expand=True)
+    if weight is None:
+        weight = 'weight'
+        net[weight] = 1
+
+    # supp keys
+    ligand_weight = ligand_key + '_' + weight
+    receptor_weight = receptor_key + '_' + weight
+    ligand_source = ligand_key + '_' + source
+    receptor_source = receptor_key + '_' + source
+
+    # assign weights to each entity
+    ligand_weights = _assign_entity_weights(resource, net, source=source, target=target, entity_key=ligand_key)
+    ligand_weights.rename(columns={weight: ligand_weight, source:ligand_source}, inplace=True)
+    receptor_weights = _assign_entity_weights(resource, net, source=source, target=target, entity_key=receptor_key)
+    receptor_weights.rename(columns={weight: receptor_weight, source: receptor_source}, inplace=True)
+
+    # join weights to the the ligand-receptor resource
+    resource = resource.merge(ligand_weights, on=ligand_key, how='inner')
+    resource = resource.merge(receptor_weights, on=receptor_key, how='inner')
+
+    # keep only coherent ligand and receptor sources
+    resource = resource[resource[ligand_source] == resource[receptor_source]]
+    # mean of sign-coherent ligand-receptor weights
+    resource.loc[:, weight] = resource.apply(lambda x: _sign_coherent_mean(np.array([x[ligand_weight], x[receptor_weight]])), axis=1)
+
+    # unite ligand-receptor columns
+    resource = resource.assign(interaction = lambda x: x[ligand_key] + lr_separator + x[receptor_key])
+
+    # keep only relevant columns
+    resource = resource[[ligand_source, 'interaction', weight]].rename(columns={ligand_source: source})
+
+    # drop nan weights
+    resource = resource.dropna()
 
     return resource
 
-# """Functions to obtain additional OmniPath resources"""
-# def obtain_extra_resource(databases,
-#                           blocklist,
-#                           allowlist
-#                           ):
-#     omnipath = check_if_omnipath()
-#
-#     # Obtain resource
-#     add = omnipath.interactions.PostTranslational.get(databases=databases,
-#                                                       genesymbols=True,
-#                                                       entity_types=['protein', 'complex'],
-#                                                       fields={"extra_attrs"}
-#                                                       )
-#     add = add[~add[['source', 'target']].duplicated()]
-#
-#     block_keys = blocklist.keys()
-#     allow_keys = allowlist.keys()  # union of relevant checks
-#     union_keys = block_keys ^ allow_keys
-#
-#     # explode relevant attributes and join them to database
-#     explode_attrs = add['extra_attrs'].apply(_json_intersect_serialize, union_keys=union_keys)
-#     add = pd.concat([add, explode_attrs], axis=1).drop('extra_attrs', axis=1)
-#
-#     # Convert blocklist to mask & remove unwanted rows
-#     for k in block_keys:
-#         add[k + '_msk'] = [
-#             any([block in att for block in blocklist[k]]) if type(att) is not float else True
-#             for att in add[k]]
-#         # iter
-#         add = add[~add[k + '_msk']]
-#
-#     # Convert allowlist to mask & keep only relevant rows
-#     for k in allow_keys:
-#         add[k + '_msk'] = [
-#             any([allow in att for allow in allowlist[k]]) if type(att) is not float else False
-#             for att in add[k]]
-#         add = add[add[k + '_msk']]
-#
-#     return add
-#
-#
-# # Function to format extra_attributes
-# def _json_intersect_serialize(att, union_keys):
-#     att = loads(att)
-#     att = {k: att[k] for k in union_keys if k in att.keys()}
-#     return pd.Series(att)
+
+import numpy as np
+
+def _assign_entity_weights(resource, net, entity_key='receptor', source='source', target='target', weight='weight'):
+    # only keep relevant columns
+    net = net[[source, target, weight]]
+    
+    # process ligand-receptor resource
+    # assign receptor complex as entity
+    entity_resource = resource[[entity_key]].drop_duplicates().set_index(entity_key)
+    entity_resource['subunit'] =  entity_resource.index
+    # explode complexes, keeping the complex as a key
+    entity_resource = entity_resource.apply(lambda x: x.str.split('_')).explode(['subunit'])
+    
+    # join weights to subunits
+    entity_resource = entity_resource.reset_index()
+    entity_resource = entity_resource.merge(net, left_on='subunit', right_on=target)
+    
+    # check for sign and set consistency
+    # count expected subunits separated by _
+    entity_resource = entity_resource.assign(subunit_expected = entity_resource[entity_key].str.count('_')+1)
+    # count subunits by receptor complex & source
+    entity_resource['subunit_count'] = entity_resource.groupby([source, entity_key])[[weight]].transform('count')
+    # check if all subunits are present
+    entity_resource = entity_resource.assign(subunit_complete = lambda x: x['subunit_expected'] == x['subunit_count'])
+    # assign flag to sign-coherent subunits
+    entity_resource['sing_coherent'] = entity_resource.groupby([source, entity_key])[[weight]].transform(lambda x: np.all(x > 0) | np.all(x < 0))
+    
+    # keep only relevant targets
+    entity_resource = entity_resource[entity_resource['subunit_complete']] # keep only complete complexes
+    entity_resource = entity_resource[entity_resource['sing_coherent']] # keep only sign-coherent complexes
+    
+    # get mean weight per complex & source
+    entity_resource = entity_resource.groupby([source, entity_key])[[weight]].mean().reset_index()
+    
+    return entity_resource
+
+
+# function that returns the mean only if all values are sign coherent
+def _sign_coherent_mean(x):
+    if np.all(x > 0) | np.all(x < 0):
+        return np.mean(x)
+    else:
+        return np.nan
+    
+    
+    

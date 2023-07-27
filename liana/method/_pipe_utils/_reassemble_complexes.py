@@ -35,7 +35,7 @@ def filter_reassemble_complexes(lr_res,
 
     Return
     -----------
-    :return: lr_res: a reduced long-format pandas dataframe
+    lr_res: a reduced long-format pandas dataframe
     """
     # Filter by expr_prop (inner join only complexes where all subunits are expressed)
     expressed = (lr_res[_key_cols + ['ligand_props', 'receptor_props']]
@@ -87,30 +87,6 @@ def _reduce_complexes(col: str,
                       key_cols: list,
                       aggs: (dict | str)
                       ):
-    """
-    Reduce the complexes
-
-    Parameters
-    ------------
-
-    col
-        column by which we are reducing the complexes
-    lr_res
-     liana_pipe generated long DataFrame
-    key_cols
-        a list of columns that define each row as unique
-    aggs
-        dictionary with the way(s) by which we aggregate. Note 'min' should be there -
-        we need the miniumum to find the lowest expression subunits, which are then used
-        to reduce the exploded complexes
-
-    Return
-    -----------
-    :returns:
-        lr_res with exploded complexes reduced to only the minimum (default) subunit
-
-    """    
-    # Group by keys
     lr_res = lr_res.groupby(key_cols)
 
     # Get min cols by which we will join
@@ -126,3 +102,36 @@ def _reduce_complexes(col: str,
     lr_res = lr_res[lr_res[col] == lr_res[join_key]].drop(join_key, axis=1)
 
     return lr_res
+
+
+def explode_complexes(resource: pd.DataFrame,
+                      SOURCE='ligand',
+                      TARGET='receptor') -> pd.DataFrame:
+    """
+    Function to explode ligand-receptor complexes
+
+    Parameters
+    ----------
+    resource
+        Ligand-receptor resource
+    SOURCE
+        Name of the source (typically ligand) column
+    TARGET
+        Name of the target (typically receptor) column
+
+    Returns
+    -------
+    A resource with exploded complexes
+
+    """
+    resource['interaction'] = resource[SOURCE] + '&' + resource[TARGET]
+    resource = (resource.set_index('interaction')
+                .apply(lambda x: x.str.split('_'))
+                .explode([TARGET])
+                .explode(SOURCE)
+                .reset_index()
+                )
+    resource[[f'{SOURCE}_complex', f'{TARGET}_complex']] = resource[
+        'interaction'].str.split('&', expand=True)
+
+    return resource

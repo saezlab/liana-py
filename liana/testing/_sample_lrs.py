@@ -17,7 +17,7 @@ def sample_lrs(by_sample=False):
     df["target"] = rng.choice(label_vector, row_num)
     df["ligand_complex"] = rng.choice(entity_vector, row_num)
     df["receptor_complex"] = rng.choice(entity_vector, row_num)
-    df["specificity_rank"] = rng.random((200, 1))        
+    df["specificity_rank"] = rng.random((row_num, 1))       
 
     # deduplicate
     df = df.loc[~df.duplicated()]
@@ -25,5 +25,12 @@ def sample_lrs(by_sample=False):
     if by_sample:
         df['sample'] = rng.choice(['A', 'B', 'C', 'D'], row_num)
         df['sample'] = df['sample'].astype('category')
+        
+    # add some metrics by entity
+    row_num = df.shape[0]
+    df['ligand_means'] = rng.random((row_num, 1))
+    df['receptor_means'] = rng.random((row_num, 1))
+    df['ligand_pvals'] = rng.random((row_num, 1))
+    df['receptor_pvals'] = rng.random((row_num, 1)) 
 
     return df

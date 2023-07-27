@@ -12,7 +12,7 @@ def kang_2018():
     Returns a largely pre-processed AnnData object with the following attributes:
     Raw counts for ~25k cells; ~15k genes; 16 samples; 2 conditions.
     """
-    ## TODO adapt when the CCC chapter one changes
+    # NOTE: this URL was processed in pertpy
     # load data as from CCC chapter
     adata = sc.read("kang_counts_25k.h5ad", backup_url="https://figshare.com/ndownloader/files/34464122")
     

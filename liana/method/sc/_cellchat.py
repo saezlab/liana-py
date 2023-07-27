@@ -1,5 +1,5 @@
 import numpy as np
-from liana.method._Method import Method, MethodMeta
+from liana.method.sc._Method import Method, MethodMeta
 from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
 
 
@@ -50,6 +50,4 @@ _cellchat = MethodMeta(method_name="CellChat",
                        )
 
 # Initialize callable Method instance
-cellchat = Method(_SCORE=_cellchat)
-
-
+cellchat = Method(_method=_cellchat)

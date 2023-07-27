@@ -1,4 +1,4 @@
-from liana.method._Method import Method, MethodMeta
+from liana.method.sc._Method import Method, MethodMeta
 from numpy import mean
 
 
@@ -43,4 +43,4 @@ _connectome = MethodMeta(method_name="Connectome",
                          )
 
 # Initialize callable Method instance
-connectome = Method(_SCORE=_connectome)
+connectome = Method(_method=_connectome)
