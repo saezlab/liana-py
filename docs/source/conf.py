@@ -1,5 +1,4 @@
 # Configuration file for the Sphinx documentation builder.
-
 import os
 import sys
 
@@ -22,7 +21,7 @@ def get_version(rel_path: str) -> str:
 project = 'liana'
 copyright = '2022, Saezlab'
 author = 'Daniel Dimitrov'
-release = get_version("../../../pyproject.toml")
+release = get_version("../../pyproject.toml")
 version = release
 
 # -- General configuration

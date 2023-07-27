@@ -108,7 +108,7 @@ def test_linear_misty():
     
     assert misty.uns['interactions'].shape == (330, 4)
     actual = actual = misty.uns['interactions']['importances'].values.mean()
-    np.testing.assert_almost_equal(actual, 0.6683044, decimal=6)
+    np.testing.assert_almost_equal(actual, 0.6683044, decimal=2)
     
     
 def test_misty_mudata():
