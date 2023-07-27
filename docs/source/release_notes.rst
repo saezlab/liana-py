@@ -1,9 +1,8 @@
 Release notes
 =============
 
-1.0.0a0 (27.07.2023)
+1.0.0a0 (27.07.2023) LIANA+ Release
 ---------------------------------------------------------
-## LIANA+ Release
 
 LIANA becomes LIANA+.
 
@@ -17,7 +16,8 @@ Major changes have been made to the repository, however the API visible to the u
 
 LIANA+ includes the following new features:
 
-### Spatial
+Spatial
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - A sklearn-based implementation to learn spatially-informed multi-view models, i.e. [MISTy](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-022-02663-5) models.
 
@@ -32,7 +32,8 @@ how to summarize those into patterns using NMF.
 It mirrors [squidpy's](https://squidpy.readthedocs.io/en/stable/) `sq.gr.spatial_neighbors` function, and is hence interchangeable with it. 
 
 
-### Handling multiple modalities
+Handling multiple modalities
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - LIANA+ will now work with multi-modal data, i.e. it additionally support MuData objects as well as AnnData objects.
 The API visible to the user is the same, but the underlying implementation is different.
@@ -42,14 +43,16 @@ The API visible to the user is the same, but the underlying implementation is di
 - The same API is also adapted by the local bivariate metrics, i.e. they can also be used with multi-modal data.
 
 
-### Multi-conditions
+Multi-conditions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - A utility function has been added that will take any dataframe with various statistics and append it to information from AnnData objects;
 thus creating a multi-condition dataframe in the format of LIANA.
 
 - A new tutorial that shows how to use PyDESeq2 together with this utility function has been added, essentially a tutorial on "Hypothesis-driven CCC".
 
-### Visualizations
+Visualizations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - A tileplot (`li.pl.tileplot`) has been added to better visualize ligands and receptors independently.
 
@@ -57,7 +60,8 @@ thus creating a multi-condition dataframe in the format of LIANA.
 
 - A simple plot `li.pl.connectivity` is added to show spatial connectivities 
 
-### Others
+Others
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - A Causal Network inference function has been added to infer downstream signalling networks. This is currently placed in the tutorial with PyDESeq2.
 

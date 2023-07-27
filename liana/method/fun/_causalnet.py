@@ -11,6 +11,28 @@ def _check_if_corneto():
 
 
 def build_prior_network(ppis, input_nodes, output_nodes, lr_sep=None, verbose=True):
+    """
+    Build Prior Network from PPIs and input/output nodes.
+    
+    Parameters
+    ----------
+    ppis : list of tuples or pandas DataFrame
+        The PPIs to use for the prior network. If a pandas DataFrame is provided, it must have the columns
+    input_nodes : dict
+        A dictionary of input nodes. The keys are the node names, the values are the node scores.
+    output_nodes : dict
+        A dictionary of output nodes. The keys are the node names, the values are the node scores.
+    lr_sep : str, optional
+        The separator to use to split the input nodes into ligand and receptor. If None, the input nodes will be used as is.
+    verbose : bool, optional
+        Whether to print progress information. Default: True
+        
+    Returns
+    -------
+    corneto.Graph
+        
+    """
+    
     cn = _check_if_corneto()
 
     if lr_sep is not None:
