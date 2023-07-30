@@ -22,7 +22,7 @@ def _local_to_dataframe(array, idx, columns):
 
 
 def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_perms, seed,
-                             positive_only, pos_msk, verbose):
+                             mask_negatives, local_msk, verbose):
     """
     Calculate local pvalues for a given local score function.
 
@@ -40,7 +40,7 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_per
         number of permutations
     seed
         Reproducibility seed
-    positive_only
+    mask_negatives
         Whether to mask negative correlations pvalue
 
     Returns
@@ -60,15 +60,15 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_per
     for i in tqdm(range(n_perms), disable=not verbose):
         _idx = rng.permutation(spot_n)
         perm_score = local_fun(x_mat=x_mat[_idx, :], y_mat=y_mat, weight=weight)
-        if positive_only:
+        if mask_negatives:
             local_pvals += np.array(perm_score >= local_truth, dtype=int)
         else:
             local_pvals += (np.array(np.abs(perm_score) >= np.abs(local_truth), dtype=int))
 
     local_pvals = local_pvals / n_perms
 
-    if positive_only:
-        local_pvals[~pos_msk] = 1
+    if mask_negatives:
+        local_pvals[~local_msk] = 1
 
     return local_pvals
 
@@ -105,7 +105,7 @@ def _categorize(x_mat, y_mat, weight, idx, columns):
     return cats
     
 
-def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, positive_only, seed, verbose):
+def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, mask_negatives, seed, verbose):
     """
     Calculate permutation pvals
 
@@ -121,7 +121,7 @@ def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, positive_
         Global Moran's I, 1D array
     n_perms
         Number of permutations
-    positive_only
+    mask_negatives
         Whether to mask negative p-values
     seed
         Reproducibility seed
@@ -144,7 +144,7 @@ def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, positive_
         _idx = rng.permutation(idx)
         perm_mat[perm, :] = ((x_mat[:, _idx] @ weight) * y_mat).sum(axis=1)  # flipped x_mat
 
-    if positive_only:
+    if mask_negatives:
         global_pvals = 1 - (global_r > perm_mat).sum(axis=0) / n_perms
     else:
         # TODO Proof this makes sense
@@ -153,7 +153,7 @@ def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, positive_
     return global_pvals
 
 
-def _global_zscore_pvals(weight, global_r, positive_only):
+def _global_zscore_pvals(weight, global_r, mask_negatives):
     """
 
     Parameters
@@ -162,7 +162,7 @@ def _global_zscore_pvals(weight, global_r, positive_only):
         connectivity weight matrix (spot_n x spot_n)
     global_r
         Array with
-    positive_only: bool
+    mask_negatives: bool
         whether to mask negative correlation p-values
 
     Returns
@@ -182,7 +182,7 @@ def _global_zscore_pvals(weight, global_r, positive_only):
 
     global_zscores = global_r / weight_var_sq
 
-    if positive_only:
+    if mask_negatives:
         global_zpvals = norm.sf(global_zscores)
     else:
         global_zpvals = norm.sf(np.abs(global_zscores)) * 2
@@ -190,7 +190,7 @@ def _global_zscore_pvals(weight, global_r, positive_only):
     return global_zpvals
 
 
-def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, positive_only, pos_msk):
+def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, mask_negatives, local_msk):
     """
 
     Parameters
@@ -203,7 +203,7 @@ def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, positive_only, pos_ms
         2D array with Local Moran's I
     weight
         connectivity weights
-    positive_only
+    mask_negatives
         Whether to mask negative correlations pvalue
 
     Returns
@@ -225,9 +225,9 @@ def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, positive_only, pos_ms
     std = _get_local_var(x_sigma, y_sigma, weight, spot_n)
     local_zscores = local_truth / std
 
-    if positive_only:
+    if mask_negatives:
         local_zpvals = norm.sf(local_zscores)
-        local_zpvals[~pos_msk] = 1
+        local_zpvals[~local_msk] = 1
     else:
         local_zpvals = norm.sf(np.abs(local_zscores))
 
@@ -270,7 +270,7 @@ def _global_spatialdm(x_mat,
                       weight,
                       seed,
                       n_perms,
-                      positive_only,
+                      mask_negatives,
                       verbose
                       ):
     # Get global r
@@ -285,28 +285,28 @@ def _global_spatialdm(x_mat,
                                                  weight=weight,
                                                  global_r=global_r,
                                                  n_perms=n_perms,
-                                                 positive_only=positive_only,
+                                                 mask_negatives=mask_negatives,
                                                  seed=seed,
                                                  verbose=verbose
                                                  )
     elif n_perms==0:
         global_pvals = _global_zscore_pvals(weight=weight,
                                             global_r=global_r,
-                                            positive_only=positive_only)
+                                            mask_negatives=mask_negatives)
 
     return global_r, global_pvals
 
 
-def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, pos_msk,
-                         weight, positive_only, n_perms, seed, verbose):
+def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, local_msk,
+                         weight, mask_negatives, n_perms, seed, verbose):
     local_scores, local_pvals = _get_local_scores(x_mat=x_mat.T,
                                                   y_mat=y_mat.T,
                                                   local_fun=local_fun,
                                                   weight=weight,
                                                   seed=seed,
                                                   n_perms=n_perms,
-                                                  positive_only=positive_only,
-                                                  pos_msk=pos_msk,
+                                                  mask_negatives=mask_negatives,
+                                                  local_msk=local_msk,
                                                   verbose=verbose
                                                   )
 
@@ -318,7 +318,7 @@ def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, pos_msk,
                                   weight=weight,
                                   seed=seed,
                                   n_perms=n_perms,
-                                  positive_only=positive_only,
+                                  mask_negatives=mask_negatives,
                                   local_scores=local_scores,
                                   verbose=verbose
                                   )
@@ -337,8 +337,8 @@ def _get_local_scores(x_mat,
                       weight,
                       n_perms,
                       seed,
-                      positive_only,
-                      pos_msk,
+                      mask_negatives,
+                      local_msk,
                       verbose
                       ):
     """
@@ -377,8 +377,8 @@ def _get_local_scores(x_mat,
                                                local_fun=local_fun,
                                                n_perms=n_perms,
                                                seed=seed,
-                                               positive_only=positive_only,
-                                               pos_msk=pos_msk,
+                                               mask_negatives=mask_negatives,
+                                               local_msk=local_msk,
                                                verbose=verbose
                                                )
     elif n_perms == 0:
@@ -386,14 +386,14 @@ def _get_local_scores(x_mat,
                                           y_mat=y_mat,
                                           local_truth=local_scores,
                                           weight=weight,
-                                          positive_only=positive_only,
-                                          pos_msk=pos_msk
+                                          mask_negatives=mask_negatives,
+                                          local_msk=local_msk
                                           )
 
     return local_scores, local_pvals
 
 
-def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, positive_only,
+def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, mask_negatives,
                        n_perms, seed, local_scores, verbose):
     if local_fun.__name__ == "_local_morans":
         global_r, global_pvals = \
@@ -402,7 +402,7 @@ def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, positive_only,
                               weight=weight,
                               seed=seed,
                               n_perms=n_perms,
-                              positive_only=positive_only,
+                              mask_negatives=mask_negatives,
                               verbose=verbose
                               )
         xy_stats['global_r'] = global_r
