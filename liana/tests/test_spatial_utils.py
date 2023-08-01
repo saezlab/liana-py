@@ -54,7 +54,7 @@ weight = csr_matrix(norm_factor * dist)
 x_mat = rng.normal(size=(10, 10))
 y_mat = rng.normal(size=(10, 10))
 n_perms = 100
-positive_only = True
+mask_negatives = True
     
 
 def test_global_permutation_pvals():
@@ -65,7 +65,7 @@ def test_global_permutation_pvals():
                                       global_r=global_truth,
                                       seed=seed,  
                                       n_perms=n_perms,
-                                      positive_only=positive_only,
+                                      mask_negatives=mask_negatives,
                                       weight = weight,
                                       verbose=False
                                       )
@@ -76,7 +76,7 @@ def test_global_permutation_pvals():
 
 def test_local_permutation_pvals():
     local_truth = rng.normal(size=(10, 10))
-    positive_only = True
+    mask_negatives = True
 
     pvals = _local_permutation_pvals(x_mat = x_mat,
                                      y_mat = y_mat,
@@ -85,8 +85,8 @@ def test_local_permutation_pvals():
                                      weight = weight,
                                      n_perms = n_perms,
                                      seed = seed,
-                                     positive_only=positive_only,
-                                     pos_msk=np.ones((10, 10), dtype=bool),
+                                     mask_negatives=mask_negatives,
+                                     local_msk=np.ones((10, 10), dtype=bool),
                                      verbose=False
                                      )
     assert pvals.shape == (10, 10)
@@ -96,7 +96,7 @@ def test_global_zscore_pvals():
     global_truth = rng.normal(size=(10))
     pvals = _global_zscore_pvals(global_r=global_truth,
                                  weight=weight,
-                                 positive_only=positive_only
+                                 mask_negatives=mask_negatives
     )
     assert pvals.shape == (10, )
 
@@ -104,6 +104,6 @@ def test_global_zscore_pvals():
 def test_local_zscore_pvals():
     local_truth = rng.normal(size=(10, 10))
     pvals = _local_zscore_pvals(x_mat=x_mat, y_mat=y_mat, weight=weight,
-                                local_truth=local_truth, positive_only=positive_only,
-                                pos_msk=np.ones((10, 10), dtype=bool))
+                                local_truth=local_truth, mask_negatives=mask_negatives,
+                                local_msk=np.ones((10, 10), dtype=bool))
     assert pvals.shape == (10, 10)

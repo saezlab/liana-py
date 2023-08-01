@@ -2,7 +2,7 @@ import pandas as pd
 import plotnine as p9
 
 
-def target_metrics(misty, stat, top_n=None, figure_size=(7,5), return_fig=True):
+def target_metrics(misty, stat, top_n=None, ascending=False, key=None, figure_size=(7,5), return_fig=True):
     """
     Plot target metrics.
     
@@ -14,6 +14,10 @@ def target_metrics(misty, stat, top_n=None, figure_size=(7,5), return_fig=True):
         Statistic to plot
     top_n : int
         Number of targets to plot
+    ascending : bool
+        Whether to sort in ascending order
+    key : callable
+        Function to use to sort the dataframe
     figure_size : tuple
         Figure size
     return_fig : bool
@@ -28,7 +32,7 @@ def target_metrics(misty, stat, top_n=None, figure_size=(7,5), return_fig=True):
     target_metrics = misty.uns['target_metrics'].copy()
     
     if top_n is not None:
-        target_metrics = target_metrics.sort_values(stat).head(top_n)
+        target_metrics = target_metrics.sort_values(stat, ascending=ascending, key=key).head(top_n)
     
     # get order of target by decreasing intra.R2
     targets = target_metrics.sort_values(by=stat, ascending=False)['target'].values
@@ -50,7 +54,7 @@ def target_metrics(misty, stat, top_n=None, figure_size=(7,5), return_fig=True):
     p.draw()
     
     
-def contributions(misty, figure_size=(7, 5), stat=None, top_n=None, return_fig=True):
+def contributions(misty, figure_size=(7, 5), stat=None, top_n=None, ascending=False, key=None, return_fig=True):
     """
     Plot view contributions.
     
@@ -65,6 +69,10 @@ def contributions(misty, figure_size=(7, 5), stat=None, top_n=None, return_fig=T
         Statistic to plot
     top_n : int
         Number of targets to plot
+    ascending : bool
+        Whether to sort in ascending order
+    key : callable
+        Function to use to sort the dataframe
     return_fig : bool
         Whether to return the plot or draw it. Default: True.
         
@@ -76,7 +84,7 @@ def contributions(misty, figure_size=(7, 5), stat=None, top_n=None, return_fig=T
     target_metrics = misty.uns['target_metrics'].copy()
     
     if top_n is not None:
-        target_metrics = target_metrics.sort_values(stat).head(top_n)
+        target_metrics = target_metrics.sort_values(stat, ascending=ascending, key=key).head(top_n)
 
     view_names = misty.view_names.copy()
     if 'intra' not in target_metrics.columns:
