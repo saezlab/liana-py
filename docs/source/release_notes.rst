@@ -8,7 +8,9 @@ Release notes
 
 - Replaced MSigDB with transcription factor activities in MISTy's tutorial
 
-- Minor Readme improvements.
+- Enable sorting according to ascending order in misty-related plots
+
+- Minor Readme & tutorial improvements.
 
 
 1.0.0a0 (27.07.2023) LIANA+ Release

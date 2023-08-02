@@ -29,7 +29,7 @@ We welcome suggestions, ideas, and contributions! Please use do not hesitate to 
 
 - [Learn spatially-informed relationships with MISTy](https://liana-py.readthedocs.io/en/latest/notebooks/misty.html) across (multi-) views.
 
-- Estimate local spatially-informed bivariate metrics with [LIANA's bivariate scores](https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html).
+- [Estimate local spatially-informed bivariate metrics](https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html). This tutorial shows how to estimate local spatially-informed bivariate metrics, such as the spatially-informed Pearson correlation coefficient or Cosine similarity.
 
 ### Multi-condition
 
