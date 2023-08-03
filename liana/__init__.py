@@ -1,5 +1,5 @@
-import importlib.metadata
-__version__ = importlib.metadata.version("liana")
+# import importlib.metadata
+# __version__ = importlib.metadata.version("liana")
 
 from liana import method as mt, plotting as pl, resource as rs, multi as mu, utils as ut, testing
 
