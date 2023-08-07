@@ -31,27 +31,22 @@ def estimate_metalinks(adata, resource, fun=dc.run_ulm, met_net=None, transport_
     """
 
     if met_net is None:
-        met_net = _get_met_sets() # put functions to resources later
+        met_net = _get_met_sets() # needs configuration with get_resource .. 
     
     fun(adata, net = met_net, use_raw = False, source = 'HMDB', target = 'Symbol', weight = 'Direction')
-    met_est = adata.obsm['ulm_estimate'] #problem with how to call, maybe you now better solution
-    #met_est = obsm_to_adata(met_est, 'metabolite_estimate') 
+    met_est = adata.obsm['ulm_estimate']
 
     if transport_sets is None:
-        t_in_net, t_out_net = _transport_sets() # put functions to resources later
+        t_out_net = _transport_sets()
     else:
-        t_in_net, t_out_net = _split_transport(transport_sets)
-    
-    fun(adata, t_in_net,  use_raw = False, source = 'HMDB', target = 'Symbol', weight = 'Direction')
-    in_est = adata.obsm['ulm_estimate']
+        t_out_net = transport_sets
 
     fun(adata, t_out_net,  use_raw = False, source = 'HMDB', target = 'Symbol', weight = 'Direction')
     out_est = adata.obsm['ulm_estimate']
 
-    in_mask = in_est > 0
     out_mask = out_est > 0
 
-    t_mask = out_mask #* in_mask
+    t_mask = out_mask # connection with import ? 
     mask = DataFrame(1, index = met_est.index, columns = met_est.columns)
     mask[t_mask == 0] = 0
 
@@ -64,38 +59,13 @@ def estimate_metalinks(adata, resource, fun=dc.run_ulm, met_net=None, transport_
 
     return mdata
 
-
 def _get_met_sets():
-    met_sets= read_csv("/home/efarr/Documents/GitHub/metalinks/metalinksDB/PD_20230802.csv")
-    met_net = met_sets[met_sets['Reversibility'] != 'reversible']
-    met_net = met_net[~met_net['T_direction'].isin(['out', 'in'])]
-    met_net['Direction'].replace({'degrading': -1, 'producing': 1}, inplace=True)
-    met_net['Direction'] = met_net['Direction'].astype(int)
+    met_sets= read_csv("../../resource/PD_processed.csv")
+    met_net = met_sets[met_sets['Type'] == 'met_est']
 
     return met_net
 
-def _transport_sets(): # can be made more beautiful
-    met_sets = read_csv("/home/efarr/Documents/GitHub/metalinks/metalinksDB/PD_20230802.csv")
-    t_net = met_sets[met_sets['T_direction'].isin(['out', 'in'])]
-    t_net['Direction'] = where(t_net['Reversibility'] == 'reversible', 1, t_net['Direction'])
-
-    t_in = t_net.copy()  # Make a copy to avoid modifying the original DataFrame
-    t_in.loc[(t_in['T_direction'] == 'in') & (t_in['Reversibility'] == 'irreversible'), 'Direction'] = 1
-    t_in.loc[(t_in['T_direction'] == 'out') & (t_in['Reversibility'] == 'irreversible'), 'Direction'] = -1
-    t_in['Direction'] = t_in['Direction'].astype(int)
-
-    t_out = t_net.copy()  # Make a copy to avoid modifying the original DataFrame
-    t_out.loc[(t_out['T_direction'] == 'out') & (t_out['Reversibility'] == 'irreversible'), 'Direction'] = 1
-    t_out.loc[(t_out['T_direction'] == 'in') & (t_out['Reversibility'] == 'irreversible'), 'Direction'] = -1
-    t_out['Direction'] = t_out['Direction'].astype(int)
-
-
-    return t_in, t_out
-
-
-def _split_transport(transport_sets):
-    t_in_net = transport_sets.copy()
-    t_out_net = transport_sets.copy()
-    t_in_net = t_in_net[t_in_net['direction'] == 'in']
-    t_out_net = t_out_net[t_out_net['direction'] == 'out']
-    return t_in_net, t_out_net
+def _transport_sets(): 
+    met_sets = read_csv("../../resource/PD_processed.csv")
+    t_out = met_sets[met_sets['Type'] == 'export']
+    return t_out
