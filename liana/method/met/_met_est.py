@@ -54,18 +54,19 @@ def estimate_metalinks(adata, resource, fun=dc.run_ulm, met_net=None, transport_
 
     mmat = met_est * mask
     mmat[mmat < 0] = 0
-    mmat = AnnData(mmat)
+    adata.obsm['mmat'] = mmat
+    mmat = obsm_to_adata(adata, 'mmat')
     mdata = MuData({'metabolite':mmat, 'rna':receptor_expr})
 
     return mdata
 
 def _get_met_sets():
-    met_sets= read_csv("../../resource/PD_processed.csv")
+    met_sets= read_csv("liana/resource/PD_processed.csv")
     met_net = met_sets[met_sets['Type'] == 'met_est']
 
     return met_net
 
 def _transport_sets(): 
-    met_sets = read_csv("../../resource/PD_processed.csv")
+    met_sets = read_csv("liana/resource/PD_processed.csv")
     t_out = met_sets[met_sets['Type'] == 'export']
     return t_out
