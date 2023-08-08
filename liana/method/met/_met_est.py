@@ -7,7 +7,7 @@ from numpy import where
 from scanpy import AnnData
 
 
-def estimate_metalinks(adata, resource, fun=dc.run_ulm, met_net=None, transport_sets=None, **kwargs):
+def estimate_metalinks(adata, resource, fun=dc.run_ulm, met_net=None, transport_sets=None, consider_transport = True, **kwargs):
     """
     Estimate metalinks from anndata object.
 
@@ -36,24 +36,32 @@ def estimate_metalinks(adata, resource, fun=dc.run_ulm, met_net=None, transport_
     fun(adata, net = met_net, use_raw = False, source = 'HMDB', target = 'Symbol', weight = 'Direction')
     met_est = adata.obsm['ulm_estimate']
 
-    if transport_sets is None:
-        t_out_net = _transport_sets()
+    if consider_transport:
+
+        if transport_sets is None:
+            t_out_net = _transport_sets()
+        else:
+            t_out_net = transport_sets
+
+        fun = dc.run_wmean
+
+        fun(adata, t_out_net,  use_raw = False, source = 'HMDB', target = 'Symbol', weight = 'Direction', times=0)
+        out_est = adata.obsm['ulm_estimate']
+
+        out_mask = out_est > 0
+
+        mask = DataFrame(1, index = met_est.index, columns = met_est.columns)
+        mask[out_mask == 0] = 0
+
+        mmat = met_est * mask
+       
+
     else:
-        t_out_net = transport_sets
+        mmat = met_est
 
-    fun(adata, t_out_net,  use_raw = False, source = 'HMDB', target = 'Symbol', weight = 'Direction')
-    out_est = adata.obsm['ulm_estimate']
-
-    out_mask = out_est > 0
-
-    t_mask = out_mask # connection with import ? 
-    mask = DataFrame(1, index = met_est.index, columns = met_est.columns)
-    mask[t_mask == 0] = 0
-
+    mmat[mmat < 0] = 0
     receptor_expr = adata[:, adata.var.index.isin(resource['receptor'])]
 
-    mmat = met_est * mask
-    mmat[mmat < 0] = 0
     adata.obsm['mmat'] = mmat
     mmat = obsm_to_adata(adata, 'mmat')
     mdata = MuData({'metabolite':mmat, 'rna':receptor_expr})
