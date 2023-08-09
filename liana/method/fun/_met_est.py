@@ -47,7 +47,7 @@ def estimate_metalinks(adata, resource, fun=None, met_net=None, transport_sets=N
 
         out_mask = out_est > 0
 
-        mask = np.ones(met_est.shape)
+        mask = np.ones(out_est.shape)
         mask[out_mask == 0] = 0
 
         mmat = met_est * mask
@@ -69,5 +69,5 @@ def estimate_metalinks(adata, resource, fun=None, met_net=None, transport_sets=N
 
     return mdata
 
-def _get_met_sets():
+def _get_met_sets(type):
     return read_csv("liana/resource/PD_processed.csv")
