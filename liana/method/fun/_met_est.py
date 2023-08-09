@@ -1,6 +1,6 @@
 from muon import MuData
 import numpy as np
-from pandas import read_csv, DataFrame
+from pandas import read_csv, DataFrame, concat
 from liana.utils import obsm_to_adata
 
 
@@ -50,7 +50,12 @@ def estimate_metalinks(adata, resource, fun=None, met_net=None, transport_sets=N
         mask = np.ones(out_est.shape)
         mask[out_mask == 0] = 0
 
-        mmat = met_est * mask
+        # mask those with transporters
+        mmat = met_est[out_est.columns] * mask
+        
+        # concat the rest
+        coldiff = np.setdiff1d(met_est.columns, mmat.columns)
+        mmat = concat([mmat, met_est[coldiff]], axis = 1)
        
     else:
         mmat = met_est
@@ -69,5 +74,5 @@ def estimate_metalinks(adata, resource, fun=None, met_net=None, transport_sets=N
 
     return mdata
 
-def _get_met_sets(type):
+def _get_met_sets():
     return read_csv("liana/resource/PD_processed.csv")
