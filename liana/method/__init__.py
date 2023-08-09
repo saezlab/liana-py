@@ -6,7 +6,7 @@ from liana.method.sp import bivar, lr_bivar, genericMistyData, lrMistyData, Mist
 
 from liana.method.fun._causalnet import find_causalnet, build_prior_network
 
-from liana.method.met._met_est import estimate_metalinks
+from liana.method.fun._met_est import estimate_metalinks
 
 import numpy as np
 

@@ -1,13 +1,10 @@
-# Dont name it metalinks on purpose
 from muon import MuData
-import decoupler as dc
+import numpy as np
 from pandas import read_csv, DataFrame
 from liana.utils import obsm_to_adata
-from numpy import where
-from scanpy import AnnData
 
 
-def estimate_metalinks(adata, resource, fun=dc.run_ulm, met_net=None, transport_sets=None, consider_transport = True, **kwargs):
+def estimate_metalinks(adata, resource, fun=None, met_net=None, transport_sets=None, consider_transport = True, **kwargs):
     """
     Estimate metalinks from anndata object.
 
@@ -15,8 +12,8 @@ def estimate_metalinks(adata, resource, fun=dc.run_ulm, met_net=None, transport_
     ----------
     adata
         Annotated data matrix.
-    dc.fun
-        Decoupling function to use.
+    fun
+        decoupler-py function to use.
     met_net
         Metabolic network to use.
     transport_set
@@ -26,36 +23,35 @@ def estimate_metalinks(adata, resource, fun=dc.run_ulm, met_net=None, transport_
 
     Returns
     -------
-    A MuData object with ``adata.metalinks.mmat`` and ``adata.metalinks.rmat``.
+    A MuData object with metabolite & receptor assays.
 
     """
 
     if met_net is None:
         met_net = _get_met_sets() # needs configuration with get_resource .. 
+        met_net = met_net[met_net['HMDB'].isin(np.unique(resource['ligand']))]
     
-    fun(adata, net = met_net, use_raw = False, source = 'HMDB', target = 'Symbol', weight = 'Direction')
+    net = met_net[met_net['Type'] == 'met_est']
+    fun(adata, net = net, use_raw = False, source = 'HMDB', target = 'Symbol', weight = 'Direction', **kwargs)
     met_est = adata.obsm['ulm_estimate']
 
     if consider_transport:
 
         if transport_sets is None:
-            t_out_net = _transport_sets()
+            net = met_net[met_net['Type'] == 'export']
         else:
-            t_out_net = transport_sets
+            net = transport_sets
 
-        fun = dc.run_wmean
-
-        fun(adata, t_out_net,  use_raw = False, source = 'HMDB', target = 'Symbol', weight = 'Direction', times=0)
+        fun(adata, net,  use_raw = False, source = 'HMDB', target = 'Symbol', weight = 'Direction', **kwargs)
         out_est = adata.obsm['ulm_estimate']
 
         out_mask = out_est > 0
 
-        mask = DataFrame(1, index = met_est.index, columns = met_est.columns)
+        mask = np.ones(met_est.shape)
         mask[out_mask == 0] = 0
 
         mmat = met_est * mask
        
-
     else:
         mmat = met_est
 
@@ -64,17 +60,14 @@ def estimate_metalinks(adata, resource, fun=dc.run_ulm, met_net=None, transport_
 
     adata.obsm['mmat'] = mmat
     mmat = obsm_to_adata(adata, 'mmat')
+    
     mdata = MuData({'metabolite':mmat, 'rna':receptor_expr})
+    
+    mdata.obsp = adata.obsp
+    mdata.uns = adata.uns
+    mdata.obsm = adata.obsm
 
     return mdata
 
 def _get_met_sets():
-    met_sets= read_csv("liana/resource/PD_processed.csv")
-    met_net = met_sets[met_sets['Type'] == 'met_est']
-
-    return met_net
-
-def _transport_sets(): 
-    met_sets = read_csv("liana/resource/PD_processed.csv")
-    t_out = met_sets[met_sets['Type'] == 'export']
-    return t_out
+    return read_csv("liana/resource/PD_processed.csv")
