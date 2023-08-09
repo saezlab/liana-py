@@ -1,10 +1,11 @@
 from muon import MuData
+import decoupler as dc
 import numpy as np
 from pandas import read_csv, DataFrame, concat
 from liana.utils import obsm_to_adata
 
 
-def estimate_metalinks(adata, resource, fun=None, met_net=None, transport_sets=None, consider_transport = True, **kwargs):
+def estimate_metalinks(adata, resource, met_net=None, consider_transport = True, **kwargs):
     """
     Estimate metalinks from anndata object.
 
@@ -29,21 +30,22 @@ def estimate_metalinks(adata, resource, fun=None, met_net=None, transport_sets=N
 
     if met_net is None:
         met_net = _get_met_sets() # needs configuration with get_resource .. 
-        met_net = met_net[met_net['HMDB'].isin(np.unique(resource['ligand']))]
+    met_net = met_net[met_net['HMDB'].isin(np.unique(resource['ligand']))]
     
-    net = met_net[met_net['Type'] == 'met_est']
-    fun(adata, net = net, use_raw = False, source = 'HMDB', target = 'Symbol', weight = 'Direction', **kwargs)
+    net = met_net[met_net['Type'] == 'met_est'].drop_duplicates(['HMDB', 'Symbol']).copy()
+    
+    dc.run_ulm(adata, net = net, use_raw = False, source = 'HMDB', target = 'Symbol', weight = 'Direction', **kwargs)
     met_est = adata.obsm['ulm_estimate']
 
     if consider_transport:
 
-        if transport_sets is None:
-            net = met_net[met_net['Type'] == 'export']
-        else:
-            net = transport_sets
+        net = met_net[met_net['Type'] == 'export'].drop_duplicates(['HMDB', 'Symbol', 'Direction'])
 
-        fun(adata, net,  use_raw = False, source = 'HMDB', target = 'Symbol', weight = 'Direction', **kwargs)
-        out_est = adata.obsm['ulm_estimate']
+        dc.run_wmean(adata, net, source = 'HMDB', target = 'Symbol', weight = 'Direction', times=0, min_n=3)
+        
+        out_est = adata.obsm['wmean_estimate']
+        intersect = np.intersect1d(met_est.columns, out_est.columns)
+        out_est = out_est[intersect]
 
         out_mask = out_est > 0
 
@@ -51,7 +53,7 @@ def estimate_metalinks(adata, resource, fun=None, met_net=None, transport_sets=N
         mask[out_mask == 0] = 0
 
         # mask those with transporters
-        mmat = met_est[out_est.columns] * mask
+        mmat = met_est[intersect] * mask
         
         # concat the rest
         coldiff = np.setdiff1d(met_est.columns, mmat.columns)
