@@ -10,6 +10,8 @@ Release notes
 
 - Enable sorting according to ascending order in misty-related plots
 
+- Enable `cmap` to be passed to tileplot & dotplots
+
 - Minor Readme & tutorial improvements.
 
 

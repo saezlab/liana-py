@@ -89,7 +89,7 @@ def _calculate_error(X, n_components, **kwargs):
     H = nmf.components_
     
     Xhat = np.dot(W, H)
-    error = np.mean(np.sqrt((X - Xhat) ** 2))
+    error = np.mean(np.abs(X - Xhat))
     
     return error
 
