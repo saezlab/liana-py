@@ -1,4 +1,4 @@
-LIANA: a one-stop-shop framework for cell-cell communication
+LIANA: an all-in-one framework for cell-cell communication
 ===========================================
 
 |MainBuild| |Issues| |Docs| |Codecov|
