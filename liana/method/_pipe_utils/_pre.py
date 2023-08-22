@@ -122,7 +122,8 @@ def prep_check_adata(adata: AnnData,
     msk_samples = adata.X.sum(axis=1).A1 == 0
     n_empty_samples = np.sum(msk_samples)
     if n_empty_samples > 0:
-        raise ValueError(f"{n_empty_samples} samples of mat are empty, please remove them.")
+        if verbose:
+            print(f"{n_empty_samples} samples of mat are empty, please remove them.")
 
     # Check if log-norm
     _sum = np.sum(adata.X.data[0:100])
@@ -133,8 +134,7 @@ def prep_check_adata(adata: AnnData,
     # Check for non-finite values
     if np.any(~np.isfinite(adata.X.data)):
         raise ValueError(
-            """mat contains non finite values (nan or inf), please set them 
-            to 0 or remove them.""")
+            "mat contains non finite values (nan or inf), please set them to 0 or remove them.")
 
     # Define idents col name
     if groupby is not None:

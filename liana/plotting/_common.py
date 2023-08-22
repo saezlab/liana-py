@@ -19,7 +19,7 @@ def _prep_liana_res(adata=None,
     if (liana_res is None) & (adata is None):
         raise AttributeError(f'Ambiguous! One of `liana_res` or `adata.uns[{uns_key}]` should be provided.')
     if adata is not None:
-        assert uns_key in adata.uns_keys()
+        assert uns_key in adata.uns.keys()
         liana_res = adata.uns[uns_key].copy()
     if liana_res is not None:
         liana_res = liana_res.copy()

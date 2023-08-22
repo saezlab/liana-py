@@ -6,14 +6,14 @@ def kang_2018():
     The data contains ~25k PBMCs cells from 8 pooled patient lupus samples, each before and after IFN-beta stimulation.
     Kang, H., Subramaniam, M., Targ, S. et al. Multiplexed droplet single-cell RNA-sequencing using natural genetic variation. Nat Biotechnol 36, 89–94 (2018). https://doi.org/10.1038/nbt.4042
     
+    The dataset was preprocessed for and is available via pertpy (https://github.com/theislab/pertpy; Heumos et al., In prep.).
+    
     Returns
     -------
     
     Returns a largely pre-processed AnnData object with the following attributes:
     Raw counts for ~25k cells; ~15k genes; 16 samples; 2 conditions.
     """
-    # NOTE: this URL was processed in pertpy
-    # load data as from CCC chapter
     adata = sc.read("kang_counts_25k.h5ad", backup_url="https://figshare.com/ndownloader/files/34464122")
     
     # Store the counts for later use

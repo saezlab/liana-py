@@ -8,7 +8,7 @@ adata = generate_toy_spatial()
 
 def test_morans_analytical():
     adata = generate_toy_spatial()
-    lr_bivar(adata, function_name='morans', n_perms=0, use_raw=True, positive_only=True)
+    lr_bivar(adata, function_name='morans', n_perms=0, use_raw=True, mask_negatives=True)
     assert 'local_scores' in adata.obsm_keys()
     lrdata = adata.obsm['local_scores']
 
@@ -21,8 +21,8 @@ def test_morans_analytical():
     np.testing.assert_almost_equal(interaction['global_r'].values, 0.0994394)
     np.testing.assert_almost_equal(interaction['global_pvals'].values, 3.4125671e-07)
 
-    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].X), 0.005853, decimal=6)
-    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].layers['pvals']), 0.8947058566671323, decimal=6)
+    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].X), -0.008322, decimal=6)
+    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].layers['pvals']), 0.6546573748814639, decimal=6)
 
 
 def test_cosine_permutation():

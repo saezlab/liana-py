@@ -22,6 +22,7 @@ def tileplot(adata: ad.AnnData = None,
              orderby_absolute: bool = True,
              filterby: str = None,
              filter_lambda: Callable = None,
+             cmap: str = 'viridis',
              figure_size: Tuple[float, float] = (5, 5),
              return_fig: bool = True
              ):
@@ -58,6 +59,8 @@ def tileplot(adata: ad.AnnData = None,
         If `top_n` is not `None`, specify how to order the interactions
     orderby_absolute
         If `top_n` is not `None`, whether to order by the absolute value of the `orderby` column
+    cmap
+        Color map to use for the tiles. Default is `viridis`
     figure_size
         Size of the figure
     return_fig
@@ -111,6 +114,7 @@ def tileplot(adata: ad.AnnData = None,
             figure_size=figure_size,
             strip_background=p9.element_rect(colour="black", fill="#fdfff4"),
         ) +
+        p9.scale_fill_cmap(cmap) +
         p9.labs(x='Cell type', y='Interaction', fill=str.capitalize(fill))
     )
     

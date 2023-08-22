@@ -35,7 +35,7 @@ class SpatialBivariate():
                  connectivity_key = 'spatial_connectivities',
                  mod_added = "local_scores",
                  key_added = 'global_res',
-                 positive_only=False,
+                 mask_negatives=False,
                  add_categories = False,
                  n_perms: int = None,
                  seed = 1337,
@@ -82,8 +82,8 @@ class SpatialBivariate():
             Key in `mdata.mod` where the local scores are stored.
         key_added: str
             Key in `mdata.uns` where the global scores are stored.
-        positive_only: bool
-            Whether to mask non-positive interactions.
+        mask_negatives: bool
+            Whether to mask negative-negative (low-low) or uncategorized interactions.
         add_categories: bool
             Whether to add categories about the local scores
         n_perms: int
@@ -223,17 +223,17 @@ class SpatialBivariate():
         # reorder columns, NOTE: why?
         xy_stats = xy_stats.reindex(columns=sorted(xy_stats.columns))
         
-        if add_categories or positive_only:
+        if add_categories or mask_negatives:
             local_cats = _categorize(x_mat=x_mat,
                                      y_mat=y_mat,
                                      weight=weight,
                                      idx=mdata.obs.index,
                                      columns=xy_stats['interaction'],
                                      )
-            pos_msk = local_cats > 0
+            local_msk = local_cats != 0
         else:
             local_cats = None
-            pos_msk = None
+            local_msk = None
         
         # get local scores
         xy_stats, local_scores, local_pvals = \
@@ -245,15 +245,15 @@ class SpatialBivariate():
                                  weight=weight,
                                  seed=seed,
                                  n_perms=n_perms,
-                                 positive_only=positive_only,
-                                 pos_msk=pos_msk,
+                                 mask_negatives=mask_negatives,
+                                 local_msk=local_msk,
                                  verbose=verbose,
                                  )
         local_scores = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
         local_scores.uns[key_added] = xy_stats
         
-        if positive_only:
-            local_scores.X = local_scores.X * pos_msk.T
+        if mask_negatives:
+            local_scores.X = local_scores.X * local_msk.T
         if local_cats is not None:
             local_scores.layers['cats'] = csr_matrix(local_cats.T)
         if local_pvals is not None:

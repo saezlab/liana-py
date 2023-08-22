@@ -1,6 +1,20 @@
 Release notes
 =============
 
+1.0.0a1 (30.07.2023)
+---------------------------------------------------------
+
+- `positive_only` in bivariate metrics was renamed to `mask_negatives` will now mask only negative-negative/low-low interactions, and not negative-positive interactions.
+
+- Replaced MSigDB with transcription factor activities in MISTy's tutorial
+
+- Enable sorting according to ascending order in misty-related plots
+
+- Enable `cmap` to be passed to tileplot & dotplots
+
+- Minor Readme & tutorial improvements.
+
+
 1.0.0a0 (27.07.2023) LIANA+ Release
 ---------------------------------------------------------
 

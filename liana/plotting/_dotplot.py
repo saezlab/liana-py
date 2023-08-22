@@ -4,7 +4,7 @@ import anndata
 import pandas
 
 from plotnine import ggplot, geom_point, aes, \
-    facet_grid, labs, theme_bw, theme, element_text, element_rect, scale_size_continuous
+    facet_grid, labs, theme_bw, theme, element_text, element_rect, scale_size_continuous, scale_color_cmap
     
 from liana.plotting._common import _prep_liana_res, _check_var, _get_top_n, _filter_by, _inverse_scores
 
@@ -26,6 +26,7 @@ def dotplot(adata: anndata.AnnData = None,
             receptor_complex: str | None = None,
             inverse_colour: bool = False,
             inverse_size: bool = False,
+            cmap: str = 'viridis',
             size_range: tuple = (2, 9),
             figure_size: tuple = (8, 6),
             return_fig=True) -> ggplot:
@@ -67,6 +68,8 @@ def dotplot(adata: anndata.AnnData = None,
         Whether to -log10 the `size` column for plotting. `False` by default.
     size_range
         Define size range - (min, max). Default is (2, 9)
+    cmap
+        Colour map to use for plotting. Default is 'viridis'
     figure_size
         Figure x,y size
     return_fig
@@ -102,6 +105,7 @@ def dotplot(adata: anndata.AnnData = None,
          + geom_point()
          + facet_grid('~source')
          + scale_size_continuous(range=size_range)
+         + scale_color_cmap(cmap)
          + labs(color=str.capitalize(colour),
                 size=str.capitalize(size),
                 y="Interactions (Ligand -> Receptor)",
@@ -139,6 +143,7 @@ def dotplot_by_sample(adata: anndata.AnnData  = None,
                       ligand_complex: str | None = None, 
                       receptor_complex: str | None = None,
                       size_range: tuple = (2, 9),
+                      cmap: str = 'viridis',
                       figure_size: tuple = (8, 6),
                       return_fig: bool = True
                       ):
@@ -204,6 +209,7 @@ def dotplot_by_sample(adata: anndata.AnnData  = None,
             + geom_point()
             + facet_grid(f'interaction~{sample_key}', space='free', scales='free')
             + scale_size_continuous(range=size_range)
+            + scale_color_cmap(name=cmap)
             + labs(color=str.capitalize(colour),
                    size=str.capitalize(size),
                    y="Source",
