@@ -8,7 +8,7 @@
 [![Downloads](https://static.pepy.tech/badge/liana)](https://pepy.tech/project/liana)
 <!-- badges: end -->
 
-LIANA+ is an efficient framework that integrates and extends existing methods and knowledge to study cell-cell communication in single-cell, spatially-resolved, and multi-modal omics data. It works in conjunction with the [scverse ecosystem](https://github.com/scverse), and it relies on [AnnData](https://github.com/scverse/anndata) & [MuData](https://github.com/scverse/mudata) objects as input.
+LIANA+ is a scalable framework that integrates and extends existing methods and knowledge to study cell-cell communication in single-cell, spatially-resolved, and multi-modal omics data. It works in conjunction with the [scverse ecosystem](https://github.com/scverse), and it relies on [AnnData](https://github.com/scverse/anndata) & [MuData](https://github.com/scverse/mudata) objects as input.
 
 <img src="https://raw.githubusercontent.com/saezlab/liana-py/main/docs/source/_static/abstract.png" width="700" align="center">
 
