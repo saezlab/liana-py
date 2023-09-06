@@ -3,7 +3,7 @@ Release notes
 
 1.0.0 (09.09.2023)
 
-- Interactions in `tileplot` and `dotplot` will now be sorted according to `orderby` when used.
+- Interactions names in `tileplot` and `dotplot` will now be sorted according to `orderby` when used.
 
 - Minor Readme & tutorial text improvements.
 
