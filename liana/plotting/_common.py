@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
     
 # generalize check_size_colour to any parameter
 def _check_var(liana_res, var_name, var):
@@ -98,5 +99,7 @@ def _get_top_n(liana_res, top_n, orderby, orderby_ascending, orderby_absolute):
         
         # Filter liana_res to the interactions in top_lrs
         liana_res = liana_res[liana_res['interaction'].isin(top_lrs)]
+        # set categories to the order of top_lrs
+        liana_res['interaction'] = pd.Categorical(liana_res['interaction'], categories=top_lrs)
         
     return liana_res

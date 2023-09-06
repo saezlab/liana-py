@@ -1,7 +1,14 @@
 Release notes
 =============
 
-1.0.0a1 (30.07.2023)
+1.0.0 (09.09.2023)
+
+- Interactions in `tileplot` and `dotplot` will now be sorted according to `orderby` when used.
+
+- Minor Readme & tutorial text improvements.
+
+
+1.0.0a1 Biorxiv (30.07.2023)
 ---------------------------------------------------------
 
 - `positive_only` in bivariate metrics was renamed to `mask_negatives` will now mask only negative-negative/low-low interactions, and not negative-positive interactions.
