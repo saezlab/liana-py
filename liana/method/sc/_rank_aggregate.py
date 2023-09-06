@@ -46,7 +46,7 @@ class AggregateClass(MethodMeta):
     def describe(self):
         """Briefly described the method"""
         print(
-            f"{self.method_name} returns `{self.magnitude}`, `{self.specificity}`."
+            f"{self.method_name} returns `{self.magnitude}`, `{self.specificity}`. "
             f"{self.magnitude} and {self.specificity} respectively represent an aggregate of the "
             f"`magnitude`- and `specificity`-related scoring functions from the different methods."
         )
