@@ -323,7 +323,7 @@ def _remove_mod_var(mdata, markers, view_separator, hvg_column):
             #keep negative_markers not in markers[current_mod] and add view_separator
             negative_markers = [current_mod + view_separator + marker for marker in negative_markers if marker not in markers[current_mod]]
         
-        if 'hvg_column' is None:
+        if hvg_column is None:
             # remove negative_markers from current_mod
             mdata.mod[current_mod] = mdata.mod[current_mod][:, ~mdata.mod[current_mod].var_names.isin(negative_markers)]
         else:
