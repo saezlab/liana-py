@@ -312,15 +312,37 @@ def _dataframe_to_anndata(df):
     
     return AnnData(X=X, obs=obs, var=var, dtype=np.float32)
 
+def _remove_mod_var(mdata, markers, view_separator, hvg_column):
+    for current_mod in mdata.mod.keys():
+        # markers in markers dict for each modality except for current_mod
+        negative_markers = [marker for mod in markers.keys() if mod != current_mod for marker in markers[mod]]
+
+        if current_mod not in list(markers.keys()):
+            warnings.warn('no markers in dict for view: {0}'.format(current_mod), Warning)
+        else:
+            #keep negative_markers not in markers[current_mod] and add view_separator
+            negative_markers = [current_mod + view_separator + marker for marker in negative_markers if marker not in markers[current_mod]]
+        
+        if 'hvg_column' is None:
+            # remove negative_markers from current_mod
+            mdata.mod[current_mod] = mdata.mod[current_mod][:, ~mdata.mod[current_mod].var_names.isin(negative_markers)]
+        else:
+            # set negative_markers to False in current_mod
+            mdata.mod[current_mod].var.loc[mdata.mod[current_mod].var_names.isin(negative_markers), hvg_column] = False
+
+    mdata.update()
+    
+
 def remove_hvg_marker_genes(mdata,
                             markers,
                             view_separator=':',
                             hvg_column='highly_variable',
-                            hvg_filtered='filtered_highly_variable'
+                            inplace=False
                            ):
     """
-    In each view, sets highly variable genes to False if they are in the markers dict for another view, but not if they are in the markers for the same view.
     Used for removing potential cell type marker genes found in the background of other views and thought to be contamination.
+    In each view, sets highly variable genes to False if they are in the markers dict for another view, but not if they are in the markers for the same view. 
+
 
     Parameters
     ----------
@@ -331,9 +353,9 @@ def remove_hvg_marker_genes(mdata,
     view_separator :class:`str`, optional
         Separator between view and gene names. Defaults to ':'.
     hvg_column :class:`str`, optional
-        Column in mdata.mod['some_view'].var that contains the highly variable genes. Defaults to 'highly_variable'.
-    hvg_filtered :class:`str`, optional
-        Column in mdata.mod['some_view'].var where filtered highly variable genes will be stored. Defaults to 'filtered_highly_variable'.
+        Column in mdata.mod['some_view'].var that contains the highly variable genes. Defaults to 'highly_variable'. If set to ``None``, instead of setting the hvg genes to False, the hvg genes will be removed from the view.
+    inplace :class:`bool`, optional
+        If True, update mdata in place, else makes a copy. Defaults to False.
     """
     # check if markers is a dict
     if not isinstance(markers, dict):
@@ -347,22 +369,13 @@ def remove_hvg_marker_genes(mdata,
     if not all(hvg_column in mdata.mod[mod].var.columns for mod in mdata.mod.keys()):
         raise ValueError('{0} is not in the columns of .var for all modalities'.format(hvg_column))
 
-    for current_mod in mdata.mod.keys():
-        # markers in markers dict for each modality except for current_mod
-        negative_markers = [marker for mod in markers.keys() if mod != current_mod for marker in markers[mod]]
+    if inplace:
+        _remove_mod_var(mdata, markers, view_separator, hvg_column)
+    else:
+        cdata = mdata.copy()
+        _remove_mod_var(cdata, markers, view_separator, hvg_column)
+        return cdata
 
-        if current_mod not in list(markers.keys()):
-            warnings.warn('no markers in dict for view: {0}'.format(current_mod), Warning)
-        else:
-            #keep negative_markers not in markers[current_mod] and add view_separator
-            negative_markers = [current_mod + view_separator + marker for marker in negative_markers if marker not in markers[current_mod]]
-        
-        # duplicate hvg_column to hvg_filtered
-        mdata.mod[current_mod].var[hvg_filtered] = mdata.mod[current_mod].var[hvg_column]
-        # set negative_markers to False in current_mod
-        mdata.mod[current_mod].var.loc[mdata.mod[current_mod].var_names.isin(negative_markers), hvg_filtered] = False
-
-    mdata.update()
 
 
 
