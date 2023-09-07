@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def generate_lr_geneset(resource,
                         net,
                         ligand_key='ligand',
@@ -114,8 +113,6 @@ def _assign_entity_weights(resource, net, entity_key='receptor', source='source'
     
     return entity_resource
 
-
-# function that returns the mean only if all values are sign coherent
 def _sign_coherent_mean(x):
     if np.all(x > 0) | np.all(x < 0):
         return np.mean(x)

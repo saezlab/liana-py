@@ -49,5 +49,4 @@ _cellchat = MethodMeta(method_name="CellChat",
                                  "CellChat. Nature communications, 12(1), pp.1-20. "
                        )
 
-# Initialize callable Method instance
 cellchat = Method(_method=_cellchat)

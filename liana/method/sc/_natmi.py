@@ -46,6 +46,5 @@ _natmi = MethodMeta(method_name="NATMI",
                               'NATMI. Nature communications, 11(1), pp.1-11. '
                     )
 
-# Initialize callable Method instance
 natmi = Method(_method=_natmi)
 

@@ -5,6 +5,7 @@ import plotnine as p9
 from tqdm import tqdm
 
 from liana.method._pipe_utils._pre import _choose_mtx_rep
+from liana.logging import logg
 
 def nmf(adata, n_components=None, k_range=range(1, 10), use_raw=False, layer=None, inplace=True, verbose=False, **kwargs):
     """
@@ -72,8 +73,7 @@ def estimate_elbow(X, k_range, verbose=False, **kwargs):
                              )
     rank = kneedle.knee
     
-    if verbose:
-        print(f'Estimated rank: {rank}')
+    logg(f'Estimated rank: {rank}', verbose=verbose)
 
     errors = pd.DataFrame(errors,
                           index=list(k_range),

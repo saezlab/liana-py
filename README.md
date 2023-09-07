@@ -14,8 +14,6 @@ LIANA+ is a scalable framework that integrates and extends existing methods and 
 
 ## Development & Contributions
 
-LIANA+ is still under development. Nevertheless, the API visible to the user should be stable, specifically `liana.method.sc`.
-
 We welcome suggestions, ideas, and contributions! Please use do not hesitate to contact us, or use the issues or the [LIANA+ Development project](https://github.com/orgs/saezlab/projects/16) to make suggestions.
 
 ## Tutorials

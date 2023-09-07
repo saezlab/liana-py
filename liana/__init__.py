@@ -1,7 +1,7 @@
 import importlib.metadata
 __version__ = importlib.metadata.version("liana")
 
-from liana import method as mt, plotting as pl, resource as rs, multi as mu, utils as ut, testing
+from liana import method as mt, plotting as pl, resource as rs, multi as mu, utils as ut, testing, logging
 
 # done after everything has been imported (adapted from scanpy)
 import sys

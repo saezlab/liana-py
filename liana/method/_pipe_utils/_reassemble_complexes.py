@@ -4,8 +4,7 @@ Functions to deal with protein complexes
 from __future__ import annotations
 
 import pandas as pd
-import numpy as np
-
+from liana.logging import logg
 
 def filter_reassemble_complexes(lr_res,
                                 _key_cols,
@@ -73,9 +72,10 @@ def filter_reassemble_complexes(lr_res,
     if duplicate_mask.any():
         # check if there are any non-equal subunit values
         if not lr_res[duplicate_mask].groupby(_key_cols)[complex_cols].transform(lambda x: x.duplicated(keep=False)).all().all():
-            print('Warning: there were duplicated subunits in the complexes. ' + 
-                  'The subunits were reduced to only the minimum expression subunit. ' +
-                  'However, there were subunits that were not the same within a complex. ')
+            logg('There were duplicated subunits in the complexes. ' + 
+                 'The subunits were reduced to only the minimum expression subunit. ' +
+                 'However, there were subunits that were not the same within a complex. ',
+                 level='warn')
         lr_res = lr_res.drop_duplicates(subset=_key_cols, keep='first')
 
     return lr_res

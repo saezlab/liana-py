@@ -42,5 +42,4 @@ _connectome = MethodMeta(method_name="Connectome",
                                    'reports, 12(1), pp.1-12. '
                          )
 
-# Initialize callable Method instance
 connectome = Method(_method=_connectome)

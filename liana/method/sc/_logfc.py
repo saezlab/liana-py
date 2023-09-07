@@ -38,5 +38,4 @@ _logfc = MethodMeta(method_name="log2FC",
                               'RNA-Seq data. Nature Communications, 13(1), pp.1-13. '
                     )
 
-# Initialize callable Method instance
 logfc = Method(_method=_logfc)
