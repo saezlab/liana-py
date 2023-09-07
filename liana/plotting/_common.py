@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
     
-# generalize check_size_colour to any parameter
 def _check_var(liana_res, var_name, var):
     if var is None:
         raise ValueError(f'`{var_name}` must be provided!')

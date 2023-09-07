@@ -1,4 +1,4 @@
-from liana.multi import to_tensor_c2c, adata_to_views, lrs_to_views
+from liana.multi import to_tensor_c2c, adata_to_views, lrs_to_views, filter_view_markers
 from liana.utils._getters import get_factor_scores, get_variable_loadings
 from liana.testing import sample_lrs
 
@@ -78,7 +78,7 @@ def test_adata_to_views():
     assert 'case' not in mdata.obs.columns
     assert mdata.shape == (4, 6201)
     
-    #test feature level filtering (with default values)
+    # test feature level filtering (with default values)
     mdata = adata_to_views(adata,
                            groupby='bulk_labels',
                            sample_key='sample',
@@ -93,6 +93,28 @@ def test_adata_to_views():
     assert 'case' in mdata.obs.columns
     assert mdata.shape == (4, 1598)
     
+    
+def test_filter_view_markers():
+    mdata = adata_to_views(adata,
+                           groupby='bulk_labels',
+                           sample_key='sample',
+                           obs_keys = ['case'],
+                           mode='sum',
+                           verbose=True,
+                           use_raw=True,
+                           skip_checks=True
+                           )
+    
+    rng = np.random.default_rng(42)
+    markers = {}
+    for cell_type in mdata.mod.keys():
+        markers[cell_type] = rng.choice(adata.var_names, 10).tolist()
+        
+    filter_view_markers(mdata, markers, inplace=True)
+    assert mdata.mod['Dendritic'].var['highly_variable'].sum() == 139
+    
+    filter_view_markers(mdata, markers, var_column=None, inplace=True)
+    assert mdata.shape == (4, 1471)
     
     
 def test_get_funs():

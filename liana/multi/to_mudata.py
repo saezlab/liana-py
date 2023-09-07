@@ -3,6 +3,7 @@ from types import ModuleType
 import numpy as np
 import pandas as pd
 import scanpy as sc
+import warnings as warnings
 
 from anndata import AnnData
 from tqdm import tqdm
@@ -36,7 +37,6 @@ def _check_if_decoupler() -> ModuleType:
             'decoupler is not installed. Please install it with: '
             'pip install decoupler'
         )
-
     return dc
 
 
@@ -310,6 +310,73 @@ def _dataframe_to_anndata(df):
     X = np.array(df.values).T
     
     return AnnData(X=X, obs=obs, var=var, dtype=np.float32)
+
+
+def _remove_mod_var(mdata, markers, view_separator, var_column):
+    for current_mod in mdata.mod.keys():
+        # markers in markers dict for each modality except for current_mod
+        negative_markers = [marker for mod in markers.keys() if mod != current_mod for marker in markers[mod]]
+
+        if current_mod not in list(markers.keys()):
+            warnings.warn('no markers in dict for view: {0}'.format(current_mod), Warning)
+        else:
+            #keep negative_markers not in markers[current_mod] and add view_separator
+            negative_markers = [current_mod + view_separator + marker for marker in negative_markers if marker not in markers[current_mod]]
+        
+        if var_column is None:
+            # remove negative_markers from current_mod
+            mdata.mod[current_mod] = mdata.mod[current_mod][:, ~mdata.mod[current_mod].var_names.isin(negative_markers)]
+        else:
+            # set negative_markers to False in current_mod
+            mdata.mod[current_mod].var.loc[mdata.mod[current_mod].var_names.isin(negative_markers), var_column] = False
+
+    mdata.update()
+
+def filter_view_markers(mdata,
+                        markers,
+                        view_separator=':',
+                        var_column='highly_variable',
+                        inplace=False
+                        ):
+    """
+    Used for removing potential cell type marker genes found in the background of other views and thought to be contamination.
+    In each view, sets highly variable genes to False if they are in the markers dict for another view, but not if they are in the markers for the same view. 
+
+
+    Parameters
+    ----------
+    mdata :class:`~mudata.MuData`
+        MuData object. Highly variable genes should be computed already in .var for each modality.
+    markers :class:`dict`
+        Dictionary with markers for each view. Keys are the views and values are lists of markers. Can contain markers for views that are not in mdata.mod.keys().
+    view_separator :class:`str`, optional
+        Separator between view and gene names. Defaults to ':'.
+    var_column :class:`str`, optional
+        Column in mdata.mod['some_view'].var that contains the highly variable genes. Defaults to 'highly_variable'.
+        If set to ``None``, instead of setting the hvg genes to False, the hvg genes will be removed from the view.
+    inplace :class:`bool`, optional
+        If True, update mdata in place, else makes a copy. Defaults to False.
+    """
+    # check if markers is a dict
+    if not isinstance(markers, dict):
+        raise TypeError('markers is not a dict')
+
+    # check that all keys in markers are lists
+    if not all(isinstance(markers[mod], list) for mod in markers.keys()):
+        raise TypeError('not all values in markers are lists')
+
+    # check that var_column is in var for all modalities
+    if var_column is not None:
+        if not all(var_column in mdata.mod[mod].var.columns for mod in mdata.mod.keys()):
+            raise ValueError('{0} is not in the columns of .var for all modalities'.format(var_column))
+
+    if inplace:
+        _remove_mod_var(mdata, markers, view_separator, var_column)
+    else:
+        cdata = mdata.copy()
+        _remove_mod_var(cdata, markers, view_separator, var_column)
+        return cdata
+
 
 
 def _process_meta(adata, mdata, sample_key, obs_keys):

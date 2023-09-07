@@ -5,6 +5,8 @@ Release notes
 
 - Interactions names in `tileplot` and `dotplot` will now be sorted according to `orderby` when used.
 
+- Added `filter_view_markers` function to filter view markers considered background.
+
 - Minor Readme & tutorial text improvements.
 
 
