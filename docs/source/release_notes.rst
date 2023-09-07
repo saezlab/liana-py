@@ -9,6 +9,8 @@ Release notes
 
 - Added `keep_stats` parameter to `adata_to_views` to enable pseudobulk stats to be kept.
 
+- Resolved logging and package import verbosity issues related to #43.
+
 - Minor Readme & tutorial text improvements.
 
 
