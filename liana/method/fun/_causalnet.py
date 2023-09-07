@@ -1,5 +1,5 @@
 import pandas as pd
-from liana.logging import logg
+from liana._logging import _logg
 
 def _check_if_corneto():
     try:
@@ -38,15 +38,15 @@ def build_prior_network(ppis, input_nodes, output_nodes, lr_sep=None, verbose=Tr
 
     if lr_sep is not None:
         if any(lr_sep in k for k in input_nodes.keys()):
-            logg(f"Input nodes are in the format Ligand{lr_sep}Receptor. Extracting only the receptor...", verbose=verbose)
+            _logg(f"Input nodes are in the format Ligand{lr_sep}Receptor. Extracting only the receptor...", verbose=verbose)
             # Print only at most the first 3 entries
             for k, v in list(input_nodes.items())[:3]:
-                logg(f" - {k} -> {v}", verbose=verbose)
-            logg(" - ...", verbose=verbose)
+                _logg(f" - {k} -> {v}", verbose=verbose)
+            _logg(" - ...", verbose=verbose)
             # Do the split only if lr_sep is present, otherwise get the same key:
             input_nodes = {k.split(lr_sep)[-1]: v for k, v in input_nodes.items()}
 
-    logg("Importing network...", verbose=verbose)
+    _logg("Importing network...", verbose=verbose)
     if isinstance(ppis, list):
         G = cn.Graph.from_sif_tuples(ppis)
     elif isinstance(ppis, pd.DataFrame):
@@ -54,25 +54,25 @@ def build_prior_network(ppis, input_nodes, output_nodes, lr_sep=None, verbose=Tr
         G = cn.Graph.from_sif_tuples(ppis)
     else:
         raise ValueError("PPIs must be a list of tuples or a pandas DataFrame.")
-    logg(f"done.", verbose=verbose)
+    _logg(f"done.", verbose=verbose)
     
     incl_inputs = set(G.vertices).intersection(set(input_nodes))
     incl_outputs = set(G.vertices).intersection(set(output_nodes))
 
-    logg(f" - Nodes x Edges: {G.num_vertices, G.num_edges}", verbose=verbose)
-    logg(f" - Provided inputs included in the prior network: {len(incl_inputs)}/{len(input_nodes)}", verbose=verbose)
-    logg(f" - Provided outputs included in the network: {len(incl_outputs)}/{len(output_nodes)}", verbose=verbose)
+    _logg(f" - Nodes x Edges: {G.num_vertices, G.num_edges}", verbose=verbose)
+    _logg(f" - Provided inputs included in the prior network: {len(incl_inputs)}/{len(input_nodes)}", verbose=verbose)
+    _logg(f" - Provided outputs included in the network: {len(incl_outputs)}/{len(output_nodes)}", verbose=verbose)
     
-    logg("Performing reachability analysis...", verbose=verbose)
+    _logg("Performing reachability analysis...", verbose=verbose)
     Gp = G.prune(list(incl_inputs), list(incl_outputs))
-    logg("done.", verbose=verbose)
+    _logg("done.", verbose=verbose)
     pruned_size = (Gp.num_vertices, Gp.num_edges)
     incl_inputs_pruned = set(Gp.vertices).intersection(incl_inputs)
     incl_outputs_pruned = set(Gp.vertices).intersection(incl_outputs)
     
-    logg(f" - Selected inputs: {len(incl_inputs_pruned)}/{len(incl_inputs)}.", verbose=verbose)
-    logg(f" - Selected outputs: {len(incl_outputs_pruned)}/{len(incl_outputs)}.", verbose=verbose)
-    logg(f" - Final size of the prior graph: {pruned_size}.", verbose=verbose)
+    _logg(f" - Selected inputs: {len(incl_inputs_pruned)}/{len(incl_inputs)}.", verbose=verbose)
+    _logg(f" - Selected outputs: {len(incl_outputs_pruned)}/{len(incl_outputs)}.", verbose=verbose)
+    _logg(f" - Final size of the prior graph: {pruned_size}.", verbose=verbose)
     
     if len(incl_outputs_pruned) == 0:
         raise ValueError("None of the output nodes can be reached from the provided input nodes in the PPI network.")
@@ -149,17 +149,17 @@ def find_causalnet(
 
     measured_nodes = set(input_node_scores.keys()) | set(output_node_scores.keys())
  
-    logg("Total positive/negative scores of the inputs and outputs:", verbose=verbose)
+    _logg("Total positive/negative scores of the inputs and outputs:", verbose=verbose)
     w_neg_in, w_pos_in = _get_scores(input_node_scores)
     w_neg_out, w_pos_out = _get_scores(output_node_scores)
-    logg(f" - (-) input nodes: {sum(w_neg_in)}", verbose=verbose)
-    logg(f" - (+) input nodes: {sum(w_pos_in)}", verbose=verbose)
-    logg(f" - (-) output nodes: {sum(w_neg_out)}", verbose=verbose)
-    logg(f" - (+) output nodes: {sum(w_pos_out)}", verbose=verbose)
+    _logg(f" - (-) input nodes: {sum(w_neg_in)}", verbose=verbose)
+    _logg(f" - (+) input nodes: {sum(w_pos_in)}", verbose=verbose)
+    _logg(f" - (-) output nodes: {sum(w_neg_out)}", verbose=verbose)
+    _logg(f" - (+) output nodes: {sum(w_pos_out)}", verbose=verbose)
     
     # Total weights
     total = abs(sum(w_neg_in)) + abs(sum(w_neg_out)) + sum(w_pos_in) + sum(w_pos_out)
-    logg(f" - abs total (inputs + outputs): {total}", verbose=verbose)
+    _logg(f" - abs total (inputs + outputs): {total}", verbose=verbose)
     
     if node_weights is None:
         node_weights = {}
@@ -172,7 +172,7 @@ def find_causalnet(
     # assign 0 penalties to input/output nodes, missing_penalty to missing nodes
     c_node_penalties = {k: node_penalties.get(k, missing_penalty) if k not in measured_nodes else 0.0 for k in prior_graph.vertices}
 
-    logg("Building CORNETO problem...", verbose=verbose)
+    _logg("Building CORNETO problem...", verbose=verbose)
     P, G = cn.methods.carnival._extended_carnival_problem(
         prior_graph,
         input_node_scores,
@@ -181,7 +181,7 @@ def find_causalnet(
         edge_penalty=edge_penalty
     )
 
-    logg(f"Solving with {solver}...", verbose=verbose)
+    _logg(f"Solving with {solver}...", verbose=verbose)
     ps = P.solve(
         solver=solver, 
         max_seconds=max_seconds, 
@@ -189,12 +189,12 @@ def find_causalnet(
         scipy_options=dict(disp='true'), 
         **kwargs)
     
-    logg("Done.", verbose=verbose)
+    _logg("Done.", verbose=verbose)
     
     obj_names = ["Loss (unfitted inputs/output)", "Edge penalty error", "Node penalty error"]
-    logg("Solution summary:", verbose=verbose)
+    _logg("Solution summary:", verbose=verbose)
     for s, o in zip(obj_names, P.objectives):
-        logg(f" - {s}: {o.value}", verbose=verbose)
+        _logg(f" - {s}: {o.value}", verbose=verbose)
     rows, cols = cn.methods.carnival.export_results(P, G, input_node_scores, output_node_scores)
     df = pd.DataFrame(rows, columns=cols)
     return df, P

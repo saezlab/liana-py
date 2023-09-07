@@ -1,5 +1,3 @@
-from types import ModuleType
-
 import numpy as np
 import pandas as pd
 import scanpy as sc
@@ -9,36 +7,7 @@ from anndata import AnnData
 from tqdm import tqdm
 
 from ._common import _process_scores
-
-
-def _check_if_mudata() -> ModuleType:
-
-    try:
-        from mudata import MuData
-
-    except Exception:
-
-        raise ImportError(
-            'mudata is not installed. Please install it with: '
-            'pip install mudata'
-        )
-
-    return MuData
-
-## TODO generalize these functions to work with any package
-def _check_if_decoupler() -> ModuleType:
-
-    try:
-        import decoupler as dc
-
-    except Exception:
-
-        raise ImportError(
-            'decoupler is not installed. Please install it with: '
-            'pip install decoupler'
-        )
-    return dc
-
+from liana._logging import _check_if_installed
 
 def adata_to_views(adata,
                    groupby,
@@ -89,8 +58,8 @@ def adata_to_views(adata,
     """
     
     # Check if MuData & decoupler are installed
-    MuData = _check_if_mudata()
-    dc = _check_if_decoupler()
+    mu = _check_if_installed(package_name="mudata")
+    dc = _check_if_installed(package_name="decoupler")
     
     views = adata.obs[groupby].unique()
     views = tqdm(views, disable=not verbose)
@@ -134,7 +103,7 @@ def adata_to_views(adata,
             padatas[view] = padata
 
     # Convert to MuData
-    mdata = MuData(padatas)
+    mdata = mu.MuData(padatas)
     
     # process metadata
     _process_meta(adata=adata, mdata=mdata, sample_key=sample_key, obs_keys=obs_keys)
@@ -224,7 +193,7 @@ def lrs_to_views(adata,
     """
     
     # Check if MuData is installed
-    MuData = _check_if_mudata()
+    mu = _check_if_installed(package_name='mudata')
     
     if (sample_key not in adata.obs.columns) or (sample_key not in adata.uns[uns_key].columns):
         raise ValueError(f'`{sample_key}` not found in `adata.obs` or `adata.uns[uns_key]`!' +
@@ -310,7 +279,7 @@ def lrs_to_views(adata,
                 lr_adatas[view] = temp
                 
     # to mdata
-    mdata = MuData(lr_adatas)
+    mdata = mu.MuData(lr_adatas)
     
     # process metadata
     _process_meta(adata=adata, mdata=mdata, sample_key=sample_key, obs_keys=obs_keys)

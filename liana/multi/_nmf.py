@@ -5,7 +5,7 @@ import plotnine as p9
 from tqdm import tqdm
 
 from liana.method._pipe_utils._pre import _choose_mtx_rep
-from liana.logging import logg
+from liana._logging import _logg, _check_if_installed
 
 def nmf(adata, n_components=None, k_range=range(1, 10), use_raw=False, layer=None, inplace=True, verbose=False, **kwargs):
     """
@@ -49,16 +49,8 @@ def nmf(adata, n_components=None, k_range=range(1, 10), use_raw=False, layer=Non
     return None if inplace else (W, H)
 
 
-def check_if_kneed():
-    try:
-        import kneed as kn
-    except Exception:
-        raise ImportError('kneed is not installed. Please install it with: pip install kneed')
-    return kn
-
-
 def estimate_elbow(X, k_range, verbose=False, **kwargs):
-    kn = check_if_kneed()
+    kn = _check_if_installed('kneed')
     errors = []
     for k in tqdm(k_range, disable=not verbose):
         error = _calculate_error(X, k, **kwargs)
@@ -73,7 +65,7 @@ def estimate_elbow(X, k_range, verbose=False, **kwargs):
                              )
     rank = kneedle.knee
     
-    logg(f'Estimated rank: {rank}', verbose=verbose)
+    _logg(f'Estimated rank: {rank}', verbose=verbose)
 
     errors = pd.DataFrame(errors,
                           index=list(k_range),

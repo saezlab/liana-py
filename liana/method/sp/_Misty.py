@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-import logging
+from liana._logging import _logg
 from tqdm import tqdm
 
 from scipy.sparse import isspmatrix_csr, csr_matrix
@@ -48,8 +48,8 @@ class MistyData(MuData):
         
         for view in self.view_names:
             if not isspmatrix_csr(self.mod[view].X):
-                 logging.warning(f"view {view} is not a csr_matrix. Converting to csr_matrix")
-                 self.mod[view].X = csr_matrix(self.mod[view].X)
+                _logg(f"view {view} is not a csr_matrix. Converting to csr_matrix", verbose=True, level='warn')
+                self.mod[view].X = csr_matrix(self.mod[view].X)
             if view=="intra":
                 continue
             if f"{self.spatial_key}_connectivities" not in self.mod[view].obsp.keys():
@@ -149,16 +149,17 @@ class MistyData(MuData):
                 
                 # model the intraview
                 if not bypass_intra:
-                    predictions_intra, importance_dict["intra"] = _single_view_model(y,
-                                                                                     intra,
-                                                                                     intra_obs_msk,
-                                                                                     predictors_nonself,
-                                                                                     model=model,
-                                                                                     k_cv=k_cv,
-                                                                                     seed=seed,
-                                                                                     n_jobs=n_jobs,
-                                                                                     **kwargs
-                                                                                     )
+                    predictions_intra, importance_dict["intra"] = \
+                    _single_view_model(y,
+                                       intra,
+                                       intra_obs_msk,
+                                       predictors_nonself,
+                                       model=model,
+                                       k_cv=k_cv,
+                                       seed=seed,
+                                       n_jobs=n_jobs,
+                                       **kwargs
+                                       )
                     if insert_index is not None and predict_self: 
                         # add self-interactions as nan
                         importance_dict["intra"][target] = np.nan
@@ -319,8 +320,8 @@ def _single_view_model(y, view, intra_obs_msk, predictors, model, k_cv, seed, n_
 
 def _multi_model(y, predictions, intra_group, bypass_intra, view_str, k_cv, alphas, seed):
     if predictions.shape[0] < k_cv:
-        logging.warn(f"Number of samples in {intra_group} is less than k_cv. "
-                     "{intra_group} values set to NaN")
+        _logg(f"Number of samples in {intra_group} is less than k_cv. "
+             "{intra_group} values set to NaN", verbose=True, level='warn')
         return np.nan, np.nan, np.repeat(np.nan, len(view_str))
         
     kf = KFold(n_splits=k_cv, shuffle=True, random_state=seed)

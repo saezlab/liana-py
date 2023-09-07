@@ -1,23 +1,9 @@
 from ..method import get_method_scores
 
 import numpy as np
-from types import ModuleType
 
 from ._common import _process_scores
-
-def _check_if_tensorc2c() -> ModuleType:
-
-    try:
-        import cell2cell as c2c
-
-    except Exception:
-
-        raise ImportError(
-            'cell2cell is not installed. Please install it with: '
-            'pip install cell2cell'
-        )
-
-    return c2c
+from liana._logging import _check_if_installed
 
 
 def to_tensor_c2c(adata=None,
@@ -76,7 +62,7 @@ def to_tensor_c2c(adata=None,
     """
     
     # check if cell2cell is installed
-    c2c = _check_if_tensorc2c()
+    c2c = _check_if_installed("cell2cell")
     
     if (liana_res is None) & (adata is None):
         raise AttributeError('Ambiguous! One of `liana_res` or `adata` should be provided.')

@@ -118,6 +118,3 @@ def _sign_coherent_mean(x):
         return np.mean(x)
     else:
         return np.nan
-    
-    
-    

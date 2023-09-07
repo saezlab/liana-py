@@ -3,7 +3,7 @@ from numpy import unique
 import pathlib
 from pandas import DataFrame
 
-from liana.logging import logg
+from liana._logging import _logg
 
 def select_resource(resource_name: str = 'consensus') -> DataFrame:
     """
@@ -59,7 +59,7 @@ def _handle_resource(interactions=None, resource=None, resource_name=None, x_nam
             if resource_name is None:
                 raise ValueError("If 'interactions' and 'resource' are both None, 'resource_name' must be provided.")
             else:
-                logg(f"Using resource `{resource_name}`.", verbose=verbose)
+                _logg(f"Using resource `{resource_name}`.", verbose=verbose)
                 resource = select_resource(resource_name)
         else:
             if verbose:
@@ -69,7 +69,7 @@ def _handle_resource(interactions=None, resource=None, resource_name=None, x_nam
                                  "with columns '{}' and '{}'.".format(x_name, y_name))
             resource = resource.copy()
     else:
-        logg("Using provided `interactions`.", verbose=verbose)
+        _logg("Using provided `interactions`.", verbose=verbose)
         if not isinstance(interactions, list) or any(len(item) != 2 for item in interactions):
             raise ValueError("'interactions' should be a list of tuples in the format [(x1, y1), (x2, y2), ...].")
         resource = DataFrame(interactions, columns=[x_name, y_name])
