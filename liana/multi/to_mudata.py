@@ -49,7 +49,7 @@ def adata_to_views(adata,
                    min_total_count=15,
                    large_n=10, 
                    min_prop=0.1,
-                   keep_psbulk_stats = False,
+                   keep_stats = False,
                    verbose=False,
                    **kwargs):
     """
@@ -75,8 +75,8 @@ def adata_to_views(adata,
         Number of samples per group that is considered to be "large".
     min_prop:
         Minimum proportion of samples that must have a count for a gene to be included in the pseudobulk.
-    keep_psbulk_stats:
-        If True, keep the pseudobulk statistics in `mdata.uns['psbulk_stats']`.
+    keep_stats:
+        If True, keep the pseudobulk statistics in `mdata.uns['psbulk_stats']`. Default is False.
     verbose:
         If True, show progress bar.
     **kwargs
@@ -96,7 +96,7 @@ def adata_to_views(adata,
     views = tqdm(views, disable=not verbose)
     
     padatas = {}
-    if keep_psbulk_stats: stats = []
+    if keep_stats: stats = []
     for view in (views):
         # filter AnnData to view
         temp = adata[adata.obs[groupby] == view].copy()
@@ -125,7 +125,7 @@ def adata_to_views(adata,
         # only append views that pass QC
         if 0 not in padata.shape:
             # keep psbulk stats
-            if keep_psbulk_stats:
+            if keep_stats:
                 df = padata.obs.filter(items=['psbulk_n_cells', 'psbulk_counts'], axis=1)
                 df.columns = [view + view_separator + col for col in df.columns]
                 stats.append(df)
@@ -140,7 +140,7 @@ def adata_to_views(adata,
     _process_meta(adata=adata, mdata=mdata, sample_key=sample_key, obs_keys=obs_keys)
     
     # combine psbulk stats across views and add to mdata
-    if keep_psbulk_stats:
+    if keep_stats:
         mdata.uns['psbulk_stats'] = pd.concat(stats, axis=1)
     
     return mdata

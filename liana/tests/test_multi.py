@@ -62,6 +62,7 @@ def test_adata_to_views():
                            obs_keys=None,
                            min_cells=5,
                            min_counts=10,
+                           keep_stats=False,
                            mode='sum',
                            verbose=True,
                            use_raw=True,
@@ -77,6 +78,7 @@ def test_adata_to_views():
     assert len(mdata.varm_keys())==9
     assert 'case' not in mdata.obs.columns
     assert mdata.shape == (4, 6201)
+    assert 'psbulk_stats' not in mdata.uns.keys()
     
     # test feature level filtering (with default values)
     mdata = adata_to_views(adata,
@@ -84,6 +86,7 @@ def test_adata_to_views():
                            sample_key='sample',
                            obs_keys = ['case'],
                            mode='sum',
+                           keep_stats=True,
                            verbose=True,
                            use_raw=True,
                            skip_checks=True
@@ -92,6 +95,7 @@ def test_adata_to_views():
     assert len(mdata.varm_keys())==7
     assert 'case' in mdata.obs.columns
     assert mdata.shape == (4, 1598)
+    assert mdata.uns['psbulk_stats'] is not None
     
     
 def test_filter_view_markers():

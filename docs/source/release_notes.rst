@@ -5,7 +5,9 @@ Release notes
 
 - Interactions names in `tileplot` and `dotplot` will now be sorted according to `orderby` when used.
 
-- Added `filter_view_markers` function to filter view markers considered background.
+- Added `filter_view_markers` function to filter view markers considered background in MOFAcellular tutorial.
+
+- Added `keep_stats` parameter to `adata_to_views` to enable pseudobulk stats to be kept.
 
 - Minor Readme & tutorial text improvements.
 
