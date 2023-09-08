@@ -10,7 +10,6 @@ from sklearn.linear_model import LinearRegression, RidgeCV
 from sklearn.model_selection import KFold, cross_val_predict
 import statsmodels.api as sm
 
-from anndata import AnnData
 from mudata import MuData
 
 class MistyData(MuData):
@@ -80,17 +79,20 @@ class MistyData(MuData):
         model : `str`, optional (default: 'rf')
             Model used to model the single views. Default is 'rf'.
             Can be either 'rf' (random forest) or 'linear' (linear regression).
+        predict_self : `bool`, optional (default: False)
+            Whether to predict self-interactions. These are determined purely by the feature names.
         bypass_intra : `bool`, optional (default: False)
-            Whether to bypass modeling the intraview features importances via LOFO
+            Whether to bypass modeling the intraview via LOFO.
+            In other words, whether to bypass modelling each target by leave-one-feature-out within the same spots.
         maskby : `str`, optional (default: None)
             Column in the .obs attribute used to group or mask observations in the intra-view
             If None, all cells are considered as one group.
+        k_cv : `int`, optional (default: 10)
+            Number of folds for cross-validation used in the multi-view model, 
+            and single-view models if model is 'linear'.
         alphas : `list`, optional (default: [0.1, 1, 10])
             List of alpha values used to choose from, that control the strength of the ridge regression,
             used for the multi-view part of the model. Only used if there are more than 2 views being modeled (including intra).
-        k_cv : `int`, optional (default: 10)
-            Number of folds for cross-validation used in the multi-view model, and single-view models if
-            model is 'linear'.
         n_jobs : `int`, optional (default: -1)
             Number of cores used to construct random forest models
         seed : `int`, optional (default: 1337)
@@ -98,6 +100,8 @@ class MistyData(MuData):
         inplace : `bool`, optional (default: True)
             Whether to write the results to the .uns attribute of the object or return 
             two DataFrames, one for target metrics and one for importances.
+        verbose : `bool`, optional (default: False)
+            Whether to show a progress bar.
         **kwargs : `dict`
             Keyword arguments passed to the Regressors. Note that n_jobs & random_state are already set.
         
@@ -107,49 +111,42 @@ class MistyData(MuData):
         Otherwise two DataFrames are returned, one for target metrics and one for importances.
 
         """
-        # TODO: function that checks if the groupby is in the obs
-        # and does this for both extra & intra
-        intra_groups = np.unique(self.obs[maskby]) if maskby else [None]
-        
         view_str = list(self.view_names)
+        obs_masks = _create_obs_masks(self.mod['intra'], maskby)
         
         if bypass_intra:
             view_str.remove('intra')
         intra = self.mod['intra']
         
-        # init list to store the results for each intra group and env group as dataframe;
         targets_list, importances_list = [], []
         intra_features = intra.var_names.to_list()
-                
         progress_bar = tqdm(intra_features, disable=not verbose)
-        # loop over each target and build one RF model for each view
-        for target in (progress_bar):
-            if verbose:
-                progress_bar.set_description(f"Now learning: {target}")
+        
+        for intra_group in obs_masks.keys():
+            msk = obs_masks[intra_group]
+            importance_dict = {}
             
-            for intra_group in intra_groups:
-                intra_obs_msk = intra.obs[maskby] == \
-                        intra_group if intra_group else np.ones(intra.shape[0], dtype=bool)
-                
-                y = intra[intra_obs_msk, target].X.toarray().reshape(-1)
-                # intra is always non-self, while other views can be self
+            for target in (progress_bar):
+                if verbose:
+                    desc = f"Now learning: {target}" + \
+                        (f" masked by {intra_group}" if intra_group is not None else "")
+                    progress_bar.set_description(desc)
+                    
                 predictors_nonself, insert_index = _get_nonself(target, intra_features)
-
-                importance_dict = {}
+                y = intra[msk, target].X.toarray().reshape(-1)
+                X = intra[msk, predictors_nonself].X.toarray()
                 
-                # model the intraview
                 if not bypass_intra:
                     predictions_intra, importance_dict["intra"] = \
-                    _single_view_model(y,
-                                       intra,
-                                       intra_obs_msk,
-                                       predictors_nonself,
-                                       model=model,
-                                       k_cv=k_cv,
-                                       seed=seed,
-                                       n_jobs=n_jobs,
-                                       **kwargs
-                                       )
+                        _single_view_model(y,
+                                           X,
+                                           predictors_nonself,
+                                           model=model,
+                                           k_cv=k_cv,
+                                           seed=seed,
+                                           n_jobs=n_jobs,
+                                           **kwargs
+                                           )
                     if insert_index is not None and predict_self: 
                         # add self-interactions as nan
                         importance_dict["intra"][target] = np.nan
@@ -167,17 +164,14 @@ class MistyData(MuData):
                     extra_features = extra.var_names.to_list()
                     _predictors, _ =  _get_nonself(target, extra_features) if not predict_self else (extra_features, None)
                     
+                    # NOTE: we always multiply before masking
                     weights = self._get_conn(view_name)
-                    view = AnnData(X=weights @ extra[:, _predictors].X,
-                                   obs=extra.obs,
-                                   var=pd.DataFrame(index=_predictors),
-                                   dtype='float32'
-                                   )
+                    X = weights @ extra[:, _predictors].X.toarray()
+                    X = X[msk, :]
                     
                     predictions_extra, importance_dict[view_name] = \
                         _single_view_model(y,
-                                           view,
-                                           intra_obs_msk, # TODO: is this needed??
+                                           X,
                                            _predictors, 
                                            model=model,
                                            k_cv=k_cv,
@@ -227,7 +221,6 @@ def _create_dict(**kwargs):
     return {k: v for k, v in kwargs.items() if v is not None}
 
 def _format_targets(target, intra_group, view_str, intra_r2, multi_r2, coefs):
-    # TODO: Remove dot from column names
     d = _create_dict(target=target,
                      intra_group=intra_group,
                      intra_R2=intra_r2,
@@ -266,10 +259,7 @@ def _concat_dataframes(targets_list, importances_list, view_str):
     return target_metrics, importances
 
 
-def _single_view_model(y, view, intra_obs_msk, predictors, model, k_cv, seed, n_jobs, **kwargs):
-    # TODO: directly pass X instead of view?
-    X = view[intra_obs_msk, predictors].X.toarray()
-    
+def _single_view_model(y, X, predictors, model, k_cv, seed, n_jobs, **kwargs):
     if model=='rf':
         model = RandomForestRegressor(oob_score=True,
                                       n_jobs=n_jobs,
@@ -324,10 +314,6 @@ def _multi_model(y, predictions, intra_group, bypass_intra, view_str, k_cv, alph
             
             intra_model = model.fit(X=pred_train, y=y[train_index])
             R2_vec_intra[cv_idx] = intra_model.score(X=pred_test, y=y[test_index])
-            
-        # TODO: misty's ridgeCV p-values (ridge::pvals) are calculated as in 
-        # https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-12-372#Sec2
-        # these are needed for the scaling of RF importances
 
     # format R2s
     intra_r2 = R2_vec_intra.mean().clip(min=0) if not bypass_intra else 0
@@ -348,3 +334,20 @@ def _get_nonself(target, predictors):
         predictors_subset = predictors
         insert_idx = None
     return predictors_subset, insert_idx
+
+def _create_obs_masks(intra, maskby):
+    obs_masks = {}
+    # if maskby is a column of only bolleans take it as is    
+    if maskby is None:
+        obs_masks[None] = np.ones(intra.shape[0], dtype=bool)
+    elif intra.obs[maskby].dtype == bool:
+        obs_masks[None] = intra.obs[maskby]
+    # else if maskby is column of strings convert to categorical
+    elif intra.obs[maskby].dtype == 'category':
+        for intra_group in intra.obs[maskby].cat.categories:
+            obs_masks[intra_group] = intra.obs[maskby] == intra_group
+    else:
+        raise ValueError(f"maskby column {maskby} must be a column of booleans or categorical")
+        
+        
+    return obs_masks

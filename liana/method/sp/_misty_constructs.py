@@ -112,8 +112,6 @@ def genericMistyData(intra,
     """
     # init views
     views = {}
-    
-    # NOTE the intra view is the one with obs
     intra = _make_view(adata=intra, nz_threshold=nz_threshold, add_obs=True,
                        use_raw=intra_use_raw, layer=intra_layer,
                        spatial_key=spatial_key, verbose=verbose)
