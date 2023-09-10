@@ -126,7 +126,6 @@ def test_misty_mask():
     np.testing.assert_almost_equal(misty.uns['interactions']['importances'].sum(), 184.53341789542696, decimal=5)
     
 
-
 def test_misty_multivew():
     adata = generate_toy_spatial()
     # keep first 10 vars
