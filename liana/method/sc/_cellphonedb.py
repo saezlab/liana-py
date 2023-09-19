@@ -45,5 +45,4 @@ _cellphonedb = MethodMeta(method_name="CellPhoneDB",
                                     "pp.1484-1506. "
                           )
 
-# Initialize callable Method instance
 cellphonedb = Method(_method=_cellphonedb)

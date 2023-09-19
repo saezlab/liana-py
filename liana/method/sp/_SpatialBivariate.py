@@ -18,6 +18,7 @@ from liana.resource._select_resource import _handle_resource
 from liana.method._pipe_utils import prep_check_adata, assert_covered
 
 from liana.method.sp._bivariate_funs import _handle_functions, _bivariate_functions
+from liana._logging import _logg
 
 
 class SpatialBivariate():
@@ -189,8 +190,7 @@ class SpatialBivariate():
         # NOTE: Should I just get rid of remove_self_interactions?
         self_interactions = resource[x_name] == resource[y_name]
         if self_interactions.any() & remove_self_interactions:
-            if verbose:
-                print(f"Removing {self_interactions.sum()} self-interactions")
+            _logg(f"Removing {self_interactions.sum()} self-interactions", verbose=verbose)
             resource = resource[~self_interactions]
 
         # get entities

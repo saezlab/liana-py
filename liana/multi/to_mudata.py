@@ -1,44 +1,13 @@
-from types import ModuleType
-
 import numpy as np
 import pandas as pd
 import scanpy as sc
+import warnings as warnings
 
 from anndata import AnnData
 from tqdm import tqdm
 
 from ._common import _process_scores
-
-
-def _check_if_mudata() -> ModuleType:
-
-    try:
-        from mudata import MuData
-
-    except Exception:
-
-        raise ImportError(
-            'mudata is not installed. Please install it with: '
-            'pip install mudata'
-        )
-
-    return MuData
-
-## TODO generalize these functions to work with any package
-def _check_if_decoupler() -> ModuleType:
-
-    try:
-        import decoupler as dc
-
-    except Exception:
-
-        raise ImportError(
-            'decoupler is not installed. Please install it with: '
-            'pip install decoupler'
-        )
-
-    return dc
-
+from liana._logging import _check_if_installed
 
 def adata_to_views(adata,
                    groupby,
@@ -49,6 +18,7 @@ def adata_to_views(adata,
                    min_total_count=15,
                    large_n=10, 
                    min_prop=0.1,
+                   keep_stats = False,
                    verbose=False,
                    **kwargs):
     """
@@ -74,6 +44,8 @@ def adata_to_views(adata,
         Number of samples per group that is considered to be "large".
     min_prop:
         Minimum proportion of samples that must have a count for a gene to be included in the pseudobulk.
+    keep_stats:
+        If True, keep the pseudobulk statistics in `mdata.uns['psbulk_stats']`. Default is False.
     verbose:
         If True, show progress bar.
     **kwargs
@@ -86,13 +58,14 @@ def adata_to_views(adata,
     """
     
     # Check if MuData & decoupler are installed
-    MuData = _check_if_mudata()
-    dc = _check_if_decoupler()
+    mu = _check_if_installed(package_name="mudata")
+    dc = _check_if_installed(package_name="decoupler")
     
     views = adata.obs[groupby].unique()
     views = tqdm(views, disable=not verbose)
     
     padatas = {}
+    if keep_stats: stats = []
     for view in (views):
         # filter AnnData to view
         temp = adata[adata.obs[groupby] == view].copy()
@@ -120,14 +93,24 @@ def adata_to_views(adata,
 
         # only append views that pass QC
         if 0 not in padata.shape:
+            # keep psbulk stats
+            if keep_stats:
+                df = padata.obs.filter(items=['psbulk_n_cells', 'psbulk_counts'], axis=1)
+                df.columns = [view + view_separator + col for col in df.columns]
+                stats.append(df)
+
             del padata.obs
             padatas[view] = padata
 
     # Convert to MuData
-    mdata = MuData(padatas)
+    mdata = mu.MuData(padatas)
     
     # process metadata
     _process_meta(adata=adata, mdata=mdata, sample_key=sample_key, obs_keys=obs_keys)
+    
+    # combine psbulk stats across views and add to mdata
+    if keep_stats:
+        mdata.uns['psbulk_stats'] = pd.concat(stats, axis=1)
     
     return mdata
 
@@ -210,7 +193,7 @@ def lrs_to_views(adata,
     """
     
     # Check if MuData is installed
-    MuData = _check_if_mudata()
+    mu = _check_if_installed(package_name='mudata')
     
     if (sample_key not in adata.obs.columns) or (sample_key not in adata.uns[uns_key].columns):
         raise ValueError(f'`{sample_key}` not found in `adata.obs` or `adata.uns[uns_key]`!' +
@@ -296,7 +279,7 @@ def lrs_to_views(adata,
                 lr_adatas[view] = temp
                 
     # to mdata
-    mdata = MuData(lr_adatas)
+    mdata = mu.MuData(lr_adatas)
     
     # process metadata
     _process_meta(adata=adata, mdata=mdata, sample_key=sample_key, obs_keys=obs_keys)
@@ -310,6 +293,73 @@ def _dataframe_to_anndata(df):
     X = np.array(df.values).T
     
     return AnnData(X=X, obs=obs, var=var, dtype=np.float32)
+
+
+def _remove_mod_var(mdata, markers, view_separator, var_column):
+    for current_mod in mdata.mod.keys():
+        # markers in markers dict for each modality except for current_mod
+        negative_markers = [marker for mod in markers.keys() if mod != current_mod for marker in markers[mod]]
+
+        if current_mod not in list(markers.keys()):
+            warnings.warn('no markers in dict for view: {0}'.format(current_mod), Warning)
+        else:
+            #keep negative_markers not in markers[current_mod] and add view_separator
+            negative_markers = [current_mod + view_separator + marker for marker in negative_markers if marker not in markers[current_mod]]
+        
+        if var_column is None:
+            # remove negative_markers from current_mod
+            mdata.mod[current_mod] = mdata.mod[current_mod][:, ~mdata.mod[current_mod].var_names.isin(negative_markers)]
+        else:
+            # set negative_markers to False in current_mod
+            mdata.mod[current_mod].var.loc[mdata.mod[current_mod].var_names.isin(negative_markers), var_column] = False
+
+    mdata.update()
+
+def filter_view_markers(mdata,
+                        markers,
+                        view_separator=':',
+                        var_column='highly_variable',
+                        inplace=False
+                        ):
+    """
+    Used for removing potential cell type marker genes found in the background of other views and thought to be contamination.
+    In each view, sets highly variable genes to False if they are in the markers dict for another view, but not if they are in the markers for the same view. 
+
+
+    Parameters
+    ----------
+    mdata :class:`~mudata.MuData`
+        MuData object. Highly variable genes should be computed already in .var for each modality.
+    markers :class:`dict`
+        Dictionary with markers for each view. Keys are the views and values are lists of markers. Can contain markers for views that are not in mdata.mod.keys().
+    view_separator :class:`str`, optional
+        Separator between view and gene names. Defaults to ':'.
+    var_column :class:`str`, optional
+        Column in mdata.mod['some_view'].var that contains the highly variable genes. Defaults to 'highly_variable'.
+        If set to ``None``, instead of setting the hvg genes to False, the hvg genes will be removed from the view.
+    inplace :class:`bool`, optional
+        If True, update mdata in place, else makes a copy. Defaults to False.
+    """
+    # check if markers is a dict
+    if not isinstance(markers, dict):
+        raise TypeError('markers is not a dict')
+
+    # check that all keys in markers are lists
+    if not all(isinstance(markers[mod], list) for mod in markers.keys()):
+        raise TypeError('not all values in markers are lists')
+
+    # check that var_column is in var for all modalities
+    if var_column is not None:
+        if not all(var_column in mdata.mod[mod].var.columns for mod in mdata.mod.keys()):
+            raise ValueError('{0} is not in the columns of .var for all modalities'.format(var_column))
+
+    if inplace:
+        _remove_mod_var(mdata, markers, view_separator, var_column)
+    else:
+        cdata = mdata.copy()
+        _remove_mod_var(cdata, markers, view_separator, var_column)
+        return cdata
+
 
 
 def _process_meta(adata, mdata, sample_key, obs_keys):

@@ -274,7 +274,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
 
     """
     # get label cats
-    labels = adata.obs.label.cat.categories
+    labels = adata.obs['@label'].cat.categories
 
     # Method-specific stats
     connectome_flag = ('ligand_zscores' in relevant_cols) | (
@@ -299,12 +299,12 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
     # Calc pvals + other stats per gene or not
     rank_genes_bool = ('ligand_pvals' in relevant_cols) | ('receptor_pvals' in relevant_cols)
     if rank_genes_bool:
-        adata = sc.tl.rank_genes_groups(adata, groupby='label',
+        adata = sc.tl.rank_genes_groups(adata, groupby='@label',
                                         method=de_method, use_raw=False,
                                         copy=True)
 
     for label in labels:
-        temp = adata[adata.obs.label == label, :]
+        temp = adata[adata.obs['@label'] == label, :]
         a = _get_props(temp.X)
         stats = pd.DataFrame({'names': temp.var_names, 'props': a}). \
             assign(label=label).sort_values('names')
@@ -319,7 +319,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
 
     # Calculate Mean, logFC and z-scores by group
     for label in labels:
-        temp = adata[adata.obs.label.isin([label])]
+        temp = adata[adata.obs['@label'].isin([label])]
         dedict[label]['means'] = temp.X.mean(axis=0).A.flatten()
         if connectome_flag:
             dedict[label]['zscores'] = temp.layers['scaled'].mean(axis=0)
@@ -392,8 +392,8 @@ def _calc_log2fc(adata, label) -> np.ndarray:
 
     """
     # Get subject vs rest cells
-    subject = adata[adata.obs.label.isin([label])]
-    rest = adata[~adata.obs.label.isin([label])]
+    subject = adata[adata.obs['@label'].isin([label])]
+    rest = adata[~adata.obs['@label'].isin([label])]
 
     # subject and rest means
     subj_means = subject.layers['normcounts'].mean(0).A.flatten()

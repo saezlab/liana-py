@@ -31,7 +31,7 @@ def test_misty_para():
         (interactions['predictor']=='protE')
     np.testing.assert_almost_equal(interactions[interaction_msk]['importances'].values,
                                 np.array([0.0015018, 0.0732367]))
-    np.testing.assert_almost_equal(target_metrics['gain_R2'].mean(), -0.0006017023721442239)
+    np.testing.assert_almost_equal(target_metrics['gain_R2'].mean(), -0.0008262446448197796)
     
 
 def test_misty_bypass():    
@@ -41,7 +41,7 @@ def test_misty_bypass():
     assert np.isin(['juxta', 'para'], misty.uns['target_metrics'].columns).all()
     assert ~np.isin(['intra'], misty.uns['target_metrics'].columns).all()
     assert misty.uns['target_metrics'].shape == (11, 6)
-    np.testing.assert_almost_equal(misty.uns['target_metrics']['multi_R2'].sum(), -3.6771450967285975, decimal=5)
+    np.testing.assert_almost_equal(misty.uns['target_metrics']['multi_R2'].sum(), 0, decimal=5)
     
     interactions = misty.uns['interactions']
     assert interactions.shape == (220, 4)
@@ -64,23 +64,22 @@ def test_misty_groups():
           bypass_intra=False,
           seed=42,
           predict_self=True, 
-          extra_groupby='cell_type', 
-          intra_groupby='cell_type',
+          maskby='cell_type',
           n_estimators=11)
     
-    assert misty.uns['target_metrics'].shape==(44, 9)
+    assert misty.uns['target_metrics'].shape==(22, 8)
     perf_actual = (misty.uns['target_metrics'].
-     groupby(['intra_group', 'extra_group'])['gain_R2'].
+     groupby(['intra_group'])['gain_R2'].
      mean().values
     )
-    perf_expected = np.array([-0.07680232034078138, 0.07309281412850636, 0.3557452382095637, 0.16556153161342435])
+    perf_expected = np.array([-0.0174493, -0.0121749])
     np.testing.assert_almost_equal(perf_actual, perf_expected)
     
     # assert that there are self interactions = var_n * var_n
     interactions = misty.uns['interactions']
     self_interactions = interactions[(interactions['target']==interactions['predictor'])]
     # 11 vars * 4 envs * 3 views = 132; NOTE: However, I drop NAs -> to be refactored...
-    assert self_interactions.shape == (88, 6)
+    assert self_interactions.shape == (44, 5)
     assert self_interactions[self_interactions['view']=='intra']['importances'].isna().all()
 
 
@@ -104,17 +103,28 @@ def test_linear_misty():
     
     misty(model='linear')
     assert misty.uns['target_metrics'].shape == (11, 7)
-    np.testing.assert_almost_equal(misty.uns['target_metrics']['gain_R2'].sum(), -0.09727229653770031, decimal=3)
+    np.testing.assert_almost_equal(misty.uns['target_metrics']['gain_R2'].sum(), -0.0647588938148182, decimal=3)
     
     assert misty.uns['interactions'].shape == (330, 4)
-    actual = actual = misty.uns['interactions']['importances'].values.mean()
+    actual = misty.uns['interactions']['importances'].values.mean()
     np.testing.assert_almost_equal(actual, 0.6683044, decimal=2)
     
     
-def test_misty_mudata():
+def test_misty_mask():
     misty = genericMistyData(adata, bandwidth=10, set_diag=False, cutoff=0)
     misty = MistyData(misty)
     assert misty.shape == (100, 33)
+    
+    misty.mod['intra'].obs['mask'] = misty.mod['intra'].obs=='A'
+    misty(model='linear', maskby='mask')
+    
+    assert misty.uns['target_metrics'].shape == (11, 7)
+    np.testing.assert_almost_equal(misty.uns['target_metrics']['multi_R2'].mean(), 0.42037103778063667, decimal=3)
+    np.testing.assert_almost_equal(misty.uns['target_metrics']['intra_R2'].mean(), 0.4248588250759459, decimal=3)
+    
+    assert misty.uns['interactions'].shape == (330, 4)
+    np.testing.assert_almost_equal(misty.uns['interactions']['importances'].sum(), 184, decimal=0)
+    
 
 def test_misty_multivew():
     adata = generate_toy_spatial()

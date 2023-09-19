@@ -1,4 +1,4 @@
-from liana.multi import to_tensor_c2c, adata_to_views, lrs_to_views
+from liana.multi import to_tensor_c2c, adata_to_views, lrs_to_views, filter_view_markers
 from liana.utils._getters import get_factor_scores, get_variable_loadings
 from liana.testing import sample_lrs
 
@@ -62,6 +62,7 @@ def test_adata_to_views():
                            obs_keys=None,
                            min_cells=5,
                            min_counts=10,
+                           keep_stats=False,
                            mode='sum',
                            verbose=True,
                            use_raw=True,
@@ -77,8 +78,27 @@ def test_adata_to_views():
     assert len(mdata.varm_keys())==9
     assert 'case' not in mdata.obs.columns
     assert mdata.shape == (4, 6201)
+    assert 'psbulk_stats' not in mdata.uns.keys()
     
-    #test feature level filtering (with default values)
+    # test feature level filtering (with default values)
+    mdata = adata_to_views(adata,
+                           groupby='bulk_labels',
+                           sample_key='sample',
+                           obs_keys = ['case'],
+                           mode='sum',
+                           keep_stats=True,
+                           verbose=True,
+                           use_raw=True,
+                           skip_checks=True
+                           )
+    
+    assert len(mdata.varm_keys())==7
+    assert 'case' in mdata.obs.columns
+    assert mdata.shape == (4, 1598)
+    assert mdata.uns['psbulk_stats'] is not None
+    
+    
+def test_filter_view_markers():
     mdata = adata_to_views(adata,
                            groupby='bulk_labels',
                            sample_key='sample',
@@ -89,10 +109,16 @@ def test_adata_to_views():
                            skip_checks=True
                            )
     
-    assert len(mdata.varm_keys())==7
-    assert 'case' in mdata.obs.columns
-    assert mdata.shape == (4, 1598)
+    rng = np.random.default_rng(42)
+    markers = {}
+    for cell_type in mdata.mod.keys():
+        markers[cell_type] = rng.choice(adata.var_names, 10).tolist()
+        
+    filter_view_markers(mdata, markers, inplace=True)
+    assert mdata.mod['Dendritic'].var['highly_variable'].sum() == 139
     
+    filter_view_markers(mdata, markers, var_column=None, inplace=True)
+    assert mdata.shape == (4, 1471)
     
     
 def test_get_funs():

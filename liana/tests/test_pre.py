@@ -18,7 +18,7 @@ def test_prep_check_adata():
     # test filtering
     filt = prep_check_adata(adata=adata, groupby='bulk_labels',
                             min_cells=20, use_raw=True)
-    assert len(filt.obs['label']) == 660
+    assert len(filt.obs['@label']) == 660
 
 
 def test_check_if_covered():

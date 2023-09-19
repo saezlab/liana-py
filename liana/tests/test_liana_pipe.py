@@ -95,5 +95,5 @@ def test_expm1_fun():
 def test_calc_log2fc():
     adata.layers['normcounts'] = adata.raw.X.copy()
     adata.layers['normcounts'].data = _expm1_base(base, adata.raw.X.data)
-    adata.obs['label'] = adata.obs.bulk_labels
+    adata.obs['@label'] = adata.obs.bulk_labels
     np.testing.assert_almost_equal(np.mean(_calc_log2fc(adata, "Dendritic")), -0.123781264)

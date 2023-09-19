@@ -109,12 +109,12 @@ def df_to_lr(adata,
     adata =  adata[:, dea_df.index.unique()]
     
     # get label cats
-    labels = adata.obs['label'].cat.categories
+    labels = adata.obs['@label'].cat.categories
     
     dedict = {}
     
     for label in labels:
-        temp = adata[adata.obs.label == label, :]
+        temp = adata[adata.obs['@label'] == label, :]
         props = _get_props(temp.X)
         means = np.array(temp.X.mean(axis=0), dtype='float32').flatten()
         

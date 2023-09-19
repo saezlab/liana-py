@@ -1,7 +1,32 @@
 Release notes
 =============
 
-1.0.0a1 (30.07.2023)
+1.0.0a2 (19.09.2023)
+
+- Interactions names in `tileplot` and `dotplot` will now be sorted according to `orderby` when used; related to #55
+
+- Added `filter_view_markers` function to filter view markers considered background in MOFAcellular tutorial
+
+- Added `keep_stats` parameter to `adata_to_views` to enable pseudobulk stats to be kept.
+
+- Replace `intra_groupby` and `extra_groupby` with `maskby` in misty. 
+  The spots will now only be filtered according to `maskby`, such that both intra and extra both contain the same spots.
+  The extra views are multiplied by the spatial connectivities prior to masking and the model being fit
+
+- Merge MOFAcell improvements; related to #42 and #29
+
+- Targets with zero variance will no longer be modeled by misty.
+
+- Resolve #46 - refactored misty's pipeline
+
+- Resolved logging and package import verbosity issues related to #43
+
+- Iternal .obs['label'] placeholder renamed to the less generic .obs['@label']; related to #53
+
+- Minor Readme & tutorial text improvements.
+
+
+1.0.0a1 Biorxiv (30.07.2023)
 ---------------------------------------------------------
 
 - `positive_only` in bivariate metrics was renamed to `mask_negatives` will now mask only negative-negative/low-low interactions, and not negative-positive interactions.

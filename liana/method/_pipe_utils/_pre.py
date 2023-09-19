@@ -10,7 +10,7 @@ from typing import Optional
 from pandas import DataFrame, Index
 import scanpy as sc
 from scipy.sparse import csr_matrix, isspmatrix_csr
-
+from liana._logging import _logg
 
 def assert_covered(
         subset,
@@ -56,8 +56,7 @@ def assert_covered(
         )
         raise ValueError(msg + f" [{x_missing}] missing from {superset_name}")
 
-    if verbose & (prop_missing > 0):
-        print(f"{prop_missing:.2f} of entities in the resource are missing from the data.")
+    _logg(f"{prop_missing:.2f} of entities in the resource are missing from the data.", verbose=verbose & (prop_missing > 0))
 
 
 def prep_check_adata(adata: AnnData,
@@ -114,33 +113,29 @@ def prep_check_adata(adata: AnnData,
     msk_features = np.sum(adata.X, axis=0).A1 == 0
     n_empty_features = np.sum(msk_features)
     if n_empty_features > 0:
-        if verbose:
-            print(f"{n_empty_features} features of mat are empty, they will be removed.")
+        _logg(f"{n_empty_features} features of mat are empty, they will be removed.", level='warn', verbose=verbose)
         adata = adata[:, ~msk_features]
 
     # Check for empty samples
     msk_samples = adata.X.sum(axis=1).A1 == 0
     n_empty_samples = np.sum(msk_samples)
     if n_empty_samples > 0:
-        if verbose:
-            print(f"{n_empty_samples} samples of mat are empty, please remove them.")
+        _logg(f"{n_empty_samples} samples of mat are empty, they will be removed.", level='warn', verbose=verbose)
 
     # Check if log-norm
     _sum = np.sum(adata.X.data[0:100])
     if _sum == np.floor(_sum):
-        if verbose:
-            print("Make sure that normalized counts are passed!")
+        _logg("Make sure that normalized counts are passed!", level='warn', verbose=verbose)
 
     # Check for non-finite values
     if np.any(~np.isfinite(adata.X.data)):
-        raise ValueError(
-            "mat contains non finite values (nan or inf), please set them to 0 or remove them.")
+        raise ValueError("mat contains non finite values (nan or inf), please set them to 0 or remove them.")
 
     # Define idents col name
     if groupby is not None:
         if groupby not in adata.obs.columns:
             raise AssertionError(f"`{groupby}` not found in `adata.obs.columns`.")
-        adata.obs.loc[:, 'label'] = adata.obs[groupby]
+        adata.obs.loc[:, '@label'] = adata.obs[groupby]
 
         # Remove any cell types below X number of cells per cell type
         count_cells = adata.obs.groupby(groupby)[groupby].size().reset_index(name='count').copy()
@@ -151,9 +146,9 @@ def prep_check_adata(adata: AnnData,
             # remove lowly abundant identities
             msk = ~np.isin(adata.obs[[groupby]], lowly_abundant_idents)
             adata = adata[msk]
-            if verbose:
-                print("The following cell identities were excluded: {0}".format(
-                    ", ".join(lowly_abundant_idents)))
+            _logg("The following cell identities were excluded: {0}".format(", ".join(lowly_abundant_idents)),
+                 level='warn', verbose=verbose)
+            
                 
     check_vars(adata.var_names,
                complex_sep=complex_sep,
@@ -178,8 +173,8 @@ def check_vars(var_names, complex_sep, verbose=False) -> list:
     else:
         pass
     
-    if verbose & (len(var_issues) > 0):
-        print(f"Warning: {var_issues} contain `{complex_sep}`. Consider replacing those!")
+    _logg(f"{var_issues} contain `{complex_sep}`. Consider replacing those!",
+         verbose=verbose & (len(var_issues) > 0), level='warn')
 
 
 
@@ -243,24 +238,20 @@ def _choose_mtx_rep(adata, use_raw=False, layer=None, verbose=False) -> csr_matr
     if is_layer & use_raw:
         raise ValueError("Cannot specify `layer` and have `use_raw=True`.")
     if is_layer:
-        if verbose:
-            print(f"Using the `{layer}` layer!")
+        _logg(f"Using the `{layer}` layer!", verbose=verbose)
         X = adata.layers[layer]
     elif use_raw:
         if adata.raw is None:
             raise ValueError("`.raw` is not initialized!")
-        if verbose:
-            print("Using `.raw`!")
+        _logg("Using `.raw`!", verbose=verbose)
         X = adata.raw.X
     else:
-        if verbose:
-            print("Using `.X`!")
+        _logg("Using `.X`!", verbose=verbose)
         X = adata.X
         
     # convert to sparse csr matrix
     if not isspmatrix_csr(X):
-        if verbose:
-            print("Converting mat to CSR format")
+        _logg("Converting to sparse csr matrix!", verbose=verbose)
         X = csr_matrix(X)
     
     return X

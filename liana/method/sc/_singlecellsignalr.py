@@ -17,7 +17,6 @@ def _sca_score(x):
     (LRscore, None)
 
     """
-
     lr_sqrt = np.sqrt(x['ligand_means']) * np.sqrt(x['receptor_means'])
     denominator = (lr_sqrt + x.mat_mean)
     return lr_sqrt / denominator, None
@@ -40,5 +39,4 @@ _singlecellsignalr = MethodMeta(method_name="SingleCellSignalR",
                                           'Acids Research, 48(10), pp.e55-e55. '
                                 )
 
-# Initialize callable Method instance
 singlecellsignalr = Method(_method=_singlecellsignalr)

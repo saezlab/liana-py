@@ -42,5 +42,4 @@ _geometric_mean = MethodMeta(method_name="Geometric Mean",
                                        "their arithmetic mean."
                              )
 
-# Initialize callable Method instance
 geometric_mean = Method(_method=_geometric_mean)
