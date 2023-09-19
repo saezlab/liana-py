@@ -42,11 +42,6 @@ spatially-resolved, and multi-modal omics data.
 
    notebooks/basic_usage 
 
-.. toctree::
-   :maxdepth: 1
-   :hidden:
-   :caption: Multi-Sample Vignettes
-
    notebooks/liana_c2c
 
    notebooks/mofacellular

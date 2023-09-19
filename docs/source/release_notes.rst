@@ -13,7 +13,9 @@ Release notes
   The spots will now only be filtered according to `maskby`, such that both intra and extra both contain the same spots.
   The extra views are multiplied by the spatial connectivities prior to masking and the model being fit
 
-- Merge #42 and #29
+- Merge MOFAcell improvements; related to #42 and #29
+
+- Targets with zero variance will no longer be modeled by misty.
 
 - Resolve #46 - refactored misty's pipeline
 
