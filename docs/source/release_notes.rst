@@ -3,7 +3,7 @@ Release notes
 
 1.0.0a2 (19.09.2023)
 
-- Interactions names in `tileplot` and `dotplot` will now be sorted according to `orderby` when used
+- Interactions names in `tileplot` and `dotplot` will now be sorted according to `orderby` when used; related to #55
 
 - Added `filter_view_markers` function to filter view markers considered background in MOFAcellular tutorial
 
