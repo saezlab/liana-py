@@ -10,7 +10,7 @@ test_path = pathlib.Path(__file__).parent
 
 adata = pbmc68k_reduced()
 adata.X = adata.raw.X
-adata.obs['label'] = adata.obs.bulk_labels
+adata.obs['@label'] = adata.obs.bulk_labels
 
 all_defaults = read_csv(test_path.joinpath("data/all_defaults.csv"), index_col=0)
 
@@ -62,12 +62,12 @@ def test_cellchat_perms():
     assert np.testing.assert_almost_equal(desired, expected, decimal=3) is None
     
     perms = _get_means_perms(adata=adata,
-                     norm_factor=mat_max,
-                     agg_fun=_trimean,
-                     n_perms=100,
-                     seed=1337,
-                     verbose=False
-                     )
+                             norm_factor=mat_max,
+                             agg_fun=_trimean,
+                             n_perms=100,
+                             seed=1337,
+                             verbose=False
+                             )
     desired = np.array([5215.107487, 5599.082231, 5327.412358,
                         5211.785598, 5210.349528, 5206.53966,
                         5215.676758, 5391.592763, 5286.547464,

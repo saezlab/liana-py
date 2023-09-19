@@ -135,7 +135,7 @@ def prep_check_adata(adata: AnnData,
     if groupby is not None:
         if groupby not in adata.obs.columns:
             raise AssertionError(f"`{groupby}` not found in `adata.obs.columns`.")
-        adata.obs.loc[:, 'label'] = adata.obs[groupby]
+        adata.obs.loc[:, '@label'] = adata.obs[groupby]
 
         # Remove any cell types below X number of cells per cell type
         count_cells = adata.obs.groupby(groupby)[groupby].size().reset_index(name='count').copy()

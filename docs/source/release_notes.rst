@@ -1,15 +1,25 @@
 Release notes
 =============
 
-1.0.0 (09.09.2023)
+1.0.0a2 (19.09.2023)
 
-- Interactions names in `tileplot` and `dotplot` will now be sorted according to `orderby` when used.
+- Interactions names in `tileplot` and `dotplot` will now be sorted according to `orderby` when used
 
-- Added `filter_view_markers` function to filter view markers considered background in MOFAcellular tutorial.
+- Added `filter_view_markers` function to filter view markers considered background in MOFAcellular tutorial
 
 - Added `keep_stats` parameter to `adata_to_views` to enable pseudobulk stats to be kept.
 
-- Resolved logging and package import verbosity issues related to #43.
+- Replace `intra_groupby` and `extra_groupby` with `maskby` in misty. 
+  The spots will now only be filtered according to `maskby`, such that both intra and extra both contain the same spots.
+  The extra views are multiplied by the spatial connectivities prior to masking and the model being fit
+
+- Merge #42 and #29
+
+- Resolve #46 - refactored misty's pipeline
+
+- Resolved logging and package import verbosity issues related to #43
+
+- Iternal .obs['label'] placeholder renamed to the less generic .obs['@label']; related to #53
 
 - Minor Readme & tutorial text improvements.
 

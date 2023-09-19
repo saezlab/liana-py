@@ -42,12 +42,12 @@ def _get_means_perms(adata: anndata.AnnData,
         adata.X /= norm_factor
 
     # define labels and masks
-    labels = adata.obs.label.cat.categories
+    labels = adata.obs['@label'].cat.categories
     labels_mask = np.zeros((adata.shape[0], labels.shape[0]), dtype=bool)
     
     # populate masks shape(genes, labels)
     for ct_idx, label in enumerate(labels):
-        labels_mask[:, ct_idx] = adata.obs.label == label
+        labels_mask[:, ct_idx] = adata.obs['@label'] == label
 
     # Perm should be a cube /w dims: n_perms x idents x n_genes
     perms = _generate_perms_cube(adata.X, n_perms, labels_mask, seed, agg_fun, verbose)
@@ -79,7 +79,7 @@ def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fun, verbose):
 
 
 def _get_positions(adata, lr_res):
-    labels = adata.obs['label'].cat.categories
+    labels = adata.obs['@label'].cat.categories
     
     # get positions of each entity in the matrix
     ligand_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity

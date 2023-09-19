@@ -122,15 +122,14 @@ class MistyData(MuData):
         intra_features = intra.var_names.to_list()
         progress_bar = tqdm(intra_features, disable=not verbose)
         
-        for intra_group in obs_masks.keys():
-            msk = obs_masks[intra_group]
-            importance_dict = {}
-            
-            for target in (progress_bar):
+        for target in (progress_bar):
+            for intra_group in obs_masks.keys():
+                msk = obs_masks[intra_group]
+                importance_dict = {}
                 if verbose:
-                    desc = f"Now learning: {target}" + \
+                    d = f"Now learning: {target}" + \
                         (f" masked by {intra_group}" if intra_group is not None else "")
-                    progress_bar.set_description(desc)
+                    progress_bar.set_description(d)
                     
                 predictors_nonself, insert_index = _get_nonself(target, intra_features)
                 y = intra[msk, target].X.toarray().reshape(-1)
@@ -164,7 +163,7 @@ class MistyData(MuData):
                     extra_features = extra.var_names.to_list()
                     _predictors, _ =  _get_nonself(target, extra_features) if not predict_self else (extra_features, None)
                     
-                    # NOTE: we always multiply before masking
+                    # NOTE: we multiply before masking
                     weights = self._get_conn(view_name)
                     X = weights @ extra[:, _predictors].X.toarray()
                     X = X[msk, :]
@@ -181,24 +180,17 @@ class MistyData(MuData):
                                            )
                     predictions_list.append(predictions_extra)
 
-                intra_r2, multi_r2, coefs = _multi_model(y,
-                                                         np.column_stack(predictions_list),
-                                                         intra_group,
-                                                         bypass_intra,
-                                                         view_str,
-                                                         k_cv,
-                                                         alphas, 
-                                                         seed
-                                                         )
-                
-                targets_df = _format_targets(target,
-                                             intra_group,
-                                             view_str,
-                                             intra_r2,
-                                             multi_r2,
-                                             coefs
-                                             )
-                targets_list.append(targets_df)
+                target_metrics = _multi_model(y,
+                                              np.column_stack(predictions_list),
+                                              intra_group,
+                                              bypass_intra,
+                                              view_str,
+                                              target,
+                                              k_cv,
+                                              alphas, 
+                                              seed
+                                              )
+                targets_list.append(target_metrics)
                 
                 importances_df = _format_importances(target=target,
                                                      intra_group=intra_group, 
@@ -289,13 +281,23 @@ def _single_view_model(y, X, predictors, model, k_cv, seed, n_jobs, **kwargs):
     return predictions, named_importances
 
 
-def _multi_model(y, predictions, intra_group, bypass_intra, view_str, k_cv, alphas, seed):
+def _multi_model(y, predictions, intra_group, bypass_intra, view_str, target, k_cv, alphas, seed):
     n_views = len(view_str)
     
-    if predictions.shape[0] < k_cv:
-        _logg(f"Number of samples in {intra_group} is less than k_cv. "
-             "{intra_group} values set to NaN", verbose=True, level='warn')
-        return np.nan, np.nan, np.repeat(np.nan, n_views)
+    if (predictions.shape[0] < k_cv) or (y.var() == 0.0):
+        if predictions.shape[0] < k_cv:
+            error_message = (f"Number of samples is less than k_cv, {target} metrics set to NaN")
+        else:
+            error_message = (f"Variance of '{target}' is 0.0, metrics set to NaN")
+        
+        _logg(error_message, verbose=True, level='warn')
+        return _format_targets(target,
+                            intra_group,
+                            view_str,
+                            np.nan,
+                            np.nan,
+                            np.repeat(np.nan, n_views)
+                            )
         
     kf = KFold(n_splits=k_cv, shuffle=True, random_state=seed)
     R2_vec_intra, R2_vec_multi = np.zeros(k_cv), np.zeros(k_cv)
@@ -323,7 +325,16 @@ def _multi_model(y, predictions, intra_group, bypass_intra, view_str, k_cv, alph
     coefs = coef_mtx.mean(axis=0).clip(min=0)
     coefs = coefs / coefs.sum()
     
-    return intra_r2, multi_r2, coefs
+    # format metrics to a dataframe
+    target_metrics = _format_targets(target,
+                                     intra_group,
+                                     view_str,
+                                     intra_r2,
+                                     multi_r2,
+                                     coefs
+                                     )
+        
+    return target_metrics
 
 def _get_nonself(target, predictors):
     if target in predictors:
@@ -337,7 +348,7 @@ def _get_nonself(target, predictors):
 
 def _create_obs_masks(intra, maskby):
     obs_masks = {}
-    # if maskby is a column of only bolleans take it as is    
+    # if maskby is a column of only boleans take it as is    
     if maskby is None:
         obs_masks[None] = np.ones(intra.shape[0], dtype=bool)
     elif intra.obs[maskby].dtype == bool:
