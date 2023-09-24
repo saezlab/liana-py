@@ -1,7 +1,7 @@
 import numpy as np
 
 from liana.method.sp._bivariate_funs import _vectorized_pearson, _vectorized_spearman, \
-    _vectorized_cosine, _vectorized_jaccard,_masked_spearman, _local_morans
+    _vectorized_cosine, _vectorized_jaccard, _masked_spearman, _local_morans, _vectorized_product
 
 from scipy.sparse import csr_matrix
 
@@ -16,17 +16,18 @@ weight = csr_matrix(rng.uniform(size=(20, 20)).astype(np.float32))
 def _assert_bivariate(function, desired, x_mat, y_mat, weight):
     actual = function(x_mat, y_mat, weight)
     assert actual.shape == (5, 20)
-    np.testing.assert_almost_equal(actual[:,0], desired, decimal=5)
-    
+    np.testing.assert_almost_equal(actual[:, 0], desired, decimal=5)
+
 
 def test_pc_vectorized():
-    pc_vec_truth = np.array([ 0.25005114,  0.04262733, -0.00130362,  0.2903336 , -0.1236529])
+    pc_vec_truth = np.array([0.25005114, 0.04262733, -0.00130362, 0.2903336, -0.1236529])
     _assert_bivariate(_vectorized_pearson, pc_vec_truth, x_mat, y_mat, weight)
 
 
 def test_sp_vectorized():
-    sp_vec_truth = np.array([ 0.23636213,  0.16480759, -0.01487235,  0.22840601, -0.11492937])
+    sp_vec_truth = np.array([0.23636213, 0.16480759, -0.01487235, 0.22840601, -0.11492937])
     _assert_bivariate(_vectorized_spearman, sp_vec_truth, x_mat, y_mat, weight)
+
 
 def test_sp_masked():
     sp_masked_truth = np.array([0.23636216, 0.16480756, -0.0148723, 0.22840606, -0.11492944])
@@ -34,7 +35,7 @@ def test_sp_masked():
 
 
 def test_costine_vectorized():
-    cosine_vec_truth = np.array([ 0.33806977,  0.03215113,  0.0950243 ,  0.2957758 , -0.10259595 ])
+    cosine_vec_truth = np.array([0.33806977, 0.03215113, 0.0950243, 0.2957758, -0.10259595])
     _assert_bivariate(_vectorized_cosine, cosine_vec_truth, x_mat, y_mat, weight)
 
 
@@ -45,5 +46,10 @@ def test_vectorized_jaccard():
 
 # NOTE: spatialdm uses raw counts
 def test_morans():
-    sp_morans_truth = np.array([-1.54256,  0.64591,  1.30025,  0.55437, -0.77182])
+    sp_morans_truth = np.array([-1.54256, 0.64591, 1.30025, 0.55437, -0.77182])
     _assert_bivariate(_local_morans, sp_morans_truth, x_mat, y_mat, weight)
+
+
+def test_product():
+    product_vec_truth = np.array([-75.886734, 0.37886935, 0.51154804, -0.51500267, 0.08980507])
+    _assert_bivariate(_vectorized_product, product_vec_truth, x_mat, y_mat, weight.A)
