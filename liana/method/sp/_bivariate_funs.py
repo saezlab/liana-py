@@ -98,13 +98,14 @@ def _vectorized_spearman(x_mat, y_mat, weight):
 
 
 def _vectorized_cosine(x_mat, y_mat, weight):
+
     x_mat, y_mat = x_mat.T, y_mat.T
-    
+
     xy_dot = (x_mat * y_mat) @ weight.T
     x_dot = ((x_mat ** 2) @ weight.T)
     y_dot = ((y_mat ** 2) @ weight.T)
     denominator = (x_dot * y_dot) + np.finfo(np.float32).eps
-    
+
     return xy_dot / denominator**0.5
 
 
@@ -144,6 +145,30 @@ def _local_morans(x_mat, y_mat, weight):
     return local_r
 
 
+def _vectorized_product(x_mat, y_mat, weight):
+
+    # Weight and normalize (deals with border regions)
+    total = weight.sum(axis=1)[:, np.newaxis]
+    x_mat = (weight @ x_mat) / total
+    y_mat = (weight @ y_mat) / total
+
+    # Make features comparable (assumes only +)
+    x_max = np.max(x_mat, axis=0)
+    y_max = np.max(y_mat, axis=0)
+
+    # Deal with 0s
+    x_max[x_max == 0.] = 1.
+    y_max[y_max == 0.] = 1.
+
+    x_mat = x_mat / x_max
+    y_mat = y_mat / y_max
+
+    # Product
+    score = x_mat * y_mat
+
+    return score.T
+
+
 class SpatialFunction:
     """
     Class representing information about bivariate spatial functions.
@@ -178,6 +203,11 @@ _bivariate_functions = [
             name="jaccard",
             metadata="weighted Jaccard similarity",
             local_function = _vectorized_jaccard,
+        ),
+        SpatialFunction(
+            name="product",
+            metadata="weighted product",
+            local_function = _vectorized_product,
         ),
         SpatialFunction(
             name="morans",
