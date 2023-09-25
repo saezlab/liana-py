@@ -1,7 +1,8 @@
 import numpy as np
 
 from liana.method.sp._bivariate_funs import _vectorized_pearson, _vectorized_spearman, \
-    _vectorized_cosine, _vectorized_jaccard, _masked_spearman, _local_morans, _vectorized_product
+    _vectorized_cosine, _vectorized_jaccard, _masked_spearman, _local_morans, _product, \
+    _norm_product
 
 from scipy.sparse import csr_matrix
 
@@ -51,5 +52,10 @@ def test_morans():
 
 
 def test_product():
-    product_vec_truth = np.array([-75.886734, 0.37886935, 0.51154804, -0.51500267, 0.08980507])
-    _assert_bivariate(_vectorized_product, product_vec_truth, x_mat, y_mat, weight.A)
+    product_vec_truth = np.array([5.4518123, -0.7268728, 8.350364, 0.53861964, 1.4466602])
+    _assert_bivariate(_product, product_vec_truth, x_mat, y_mat, weight.A)
+
+
+def test_norm_product():
+    product_vec_truth = np.array([0.4081537, -0.03988646, 0.42921585, 0.03255661, 0.08895018])
+    _assert_bivariate(_norm_product, product_vec_truth, x_mat, y_mat, weight.A)
