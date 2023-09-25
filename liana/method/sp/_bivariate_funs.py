@@ -145,23 +145,35 @@ def _local_morans(x_mat, y_mat, weight):
     return local_r
 
 
-def _vectorized_product(x_mat, y_mat, weight):
+def _product(x_mat, y_mat, weight):
 
-    # Weight and normalize (deals with border regions)
-    total = weight.sum(axis=1)[:, np.newaxis]
-    x_mat = (weight @ x_mat) / total
-    y_mat = (weight @ y_mat) / total
+    # Weight
+    x_mat = (weight @ x_mat)
+    y_mat = (weight @ y_mat)
 
-    # Make features comparable (assumes only +)
-    x_max = np.max(x_mat, axis=0)
-    y_max = np.max(y_mat, axis=0)
+    # Product
+    score = x_mat * y_mat
 
-    # Deal with 0s
-    x_max[x_max == 0.] = 1.
-    y_max[y_max == 0.] = 1.
+    return score.T
 
-    x_mat = x_mat / x_max
-    y_mat = y_mat / y_max
+
+def _norm_product(x_mat, y_mat, weight):
+
+    # Weight
+    x_mat = (weight @ x_mat)
+    y_mat = (weight @ y_mat)
+
+    # Find norm
+    x_norm = np.max(np.abs(x_mat), axis=0)
+    y_norm = np.max(np.abs(y_mat), axis=0)
+
+    # Handle 0s
+    x_norm[x_norm == 0.] = 1.
+    y_norm[y_norm == 0.] = 1.
+
+    # Make features comparable
+    x_mat = x_mat / x_norm
+    y_mat = y_mat / y_norm
 
     # Product
     score = x_mat * y_mat
@@ -206,8 +218,13 @@ _bivariate_functions = [
         ),
         SpatialFunction(
             name="product",
-            metadata="weighted product",
-            local_function = _vectorized_product,
+            metadata="simple weighted product",
+            local_function = _product,
+        ),
+        SpatialFunction(
+            name="norm_product",
+            metadata="normalized weighted product",
+            local_function = _norm_product,
         ),
         SpatialFunction(
             name="morans",
