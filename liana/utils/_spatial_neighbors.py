@@ -23,6 +23,7 @@ def _linear(distance_mtx, l):
 def spatial_neighbors(adata: anndata.AnnData,
                       bandwidth=None,
                       cutoff=None,
+                      norm=True,
                       max_dist_ratio=3,
                       kernel='gaussian',
                       set_diag=False,
@@ -40,9 +41,11 @@ def spatial_neighbors(adata: anndata.AnnData,
     adata
         `AnnData` object with spatial coordinates (in 'spatial') in `adata.obsm`.
     bandwidth
-         Denotes signaling length (`l`)
+         Denotes signaling length (`l`).
     cutoff
-        Vales below this cutoff will be set to 0
+        Values below this cutoff will be set to 0.
+    norm
+        Whether to normalize spatial weights to sum to 1 to account for border regions.
     kernel
         Kernel function used to generate connectivity weights. The following options are available:
         ['gaussian', 'exponential', 'linear', 'misty_rbf']
@@ -110,6 +113,8 @@ def spatial_neighbors(adata: anndata.AnnData,
         dist.setdiag(0)
     if cutoff is not None:
         dist.data = dist.data * (dist.data > cutoff)
+    if norm:
+        dist = (dist / dist.sum(axis=1).A).tocsr()
 
     spot_n = dist.shape[0]
     assert spot_n == adata.shape[0]
