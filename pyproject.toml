@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "liana"
-version = "1.0.0a2"
+version = "1.0.0"
 description = "LIANA+: a one-stop-shop framework for cell-cell communication"
 authors = ["Daniel Dimitrov <daniel.dimitrov@uni-heidelberg.de>"]
 classifiers = [
@@ -34,7 +34,7 @@ squidpy = {version = "*", optional = true}
 cell2cell = {version = "*", optional = true}
 muon = {version = "*", optional = true}
 mofax = {version = "*", optional = true}
-corneto = {git = "https://github.com/saezlab/corneto.git", tag = "0.9.1-alpha.3", optional = true}
+corneto = {version = "0.9.1-alpha.4", optional = true}
 cvxpy = {version = "^1.2.1", optional = true}
 cylp = {version = "^0.91.5", optional = true}
 
