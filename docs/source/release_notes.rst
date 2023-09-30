@@ -1,6 +1,10 @@
 Release notes
 =============
 
+1.0.0 Stable Release (30.09.2023)
+
+- Bumped CORNETO version and it's now installed via PyPI.
+
 1.0.0a2 (19.09.2023)
 
 - Interactions names in `tileplot` and `dotplot` will now be sorted according to `orderby` when used; related to #55
