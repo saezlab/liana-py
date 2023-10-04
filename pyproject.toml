@@ -37,7 +37,6 @@ mofax = {version = "*", optional = true}
 corneto = {version = "0.9.1-alpha.4", optional = true}
 cvxpy = {version = "^1.2.1", optional = true}
 cylp = {version = "^0.91.5", optional = true}
-gurobipy = {version = "*", optional = true}
 
 [tool.poetry.dev-dependencies]
 pytest = ">=6.0"
