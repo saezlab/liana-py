@@ -1,8 +1,8 @@
 Release notes
 =============
 
-1.0.0 Stable Release (30.09.2023)
-
+1.0.1 Stable Release (30.09.2023)
+-------------------------------------------------
 - Bumped CORNETO version and it's now installed via PyPI.
 
 1.0.0a2 (19.09.2023)
