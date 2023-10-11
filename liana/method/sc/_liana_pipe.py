@@ -15,6 +15,7 @@ from liana.method._pipe_utils._common import _get_props
 import scanpy as sc
 import pandas as pd
 import numpy as np
+from scipy.stats import norm
 from functools import reduce
 
 
@@ -109,6 +110,7 @@ def liana_pipe(adata: anndata.AnnData,
                      'ligand_logfc', 'receptor_logfc',
                      'ligand_trimean', 'receptor_trimean',
                      'mat_mean', 'mat_max',
+                     'ligand_score','receptor_score'
                      ]
         
     if n_perms is None:
@@ -121,7 +123,6 @@ def liana_pipe(adata: anndata.AnnData,
     # initialize mat_mean for sca
     mat_mean = None
     mat_max = None
-
     # Check and Reformat Mat if needed
     assert groupby is not None
     adata = prep_check_adata(adata=adata,
@@ -164,8 +165,20 @@ def liana_pipe(adata: anndata.AnnData,
     entities = np.union1d(np.unique(resource["ligand"]),
                           np.unique(resource["receptor"]))
 
-    # Filter to only include the relevant genes
+    # TODO we could use get_lr without filtering adata.
+    # Get lr results
+    # lr_res_unfiltered = _get_lr(adata=adata,
+    #                 resource=resource,
+    #                 mat_mean=mat_mean,
+    #                 mat_max=mat_max,
+    #                 relevant_cols=_key_cols + _add_cols + _complex_cols,
+    #                 de_method=de_method,
+    #                 base=base,
+    #                 verbose=verbose)
+
+    adata_unfiltered = adata.copy()
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
+    
 
     # Get lr results
     lr_res = _get_lr(adata=adata,
@@ -177,7 +190,30 @@ def liana_pipe(adata: anndata.AnnData,
                      base=base,
                      verbose=verbose
                      )
+    
+    print("SHAPE OF LR_RES {}".format(lr_res.shape))
+    input("Before score...")
+    
+    
+    #TODO add here the cluster mean column and cluster sd column
+    # Cluster mean and sd of target cluster required for scSeqComm
+    if any('_score' in col for col in _add_cols):
+        lr_res = _cluster_mean(lr_res, adata_unfiltered)
+        lr_res = _cluster_sd(lr_res, adata_unfiltered)
+        lr_res = _cluster_counts(lr_res, adata_unfiltered)
 
+        lr_res = _complex_score(lr_res)
+    """
+        lr_res['ligand_score'] = _gene_score(lr_res['ligand_means'],
+                                   lr_res['source_cluster_mean'],
+                                   lr_res['source_cluster_std'],
+                                   lr_res['source_cluster_counts'])
+        
+        lr_res['receptor_score'] = _gene_score(lr_res['receptor_means'],
+                                      lr_res['target_cluster_mean'],
+                                      lr_res['target_cluster_std'],
+                                      lr_res['target_cluster_counts'])
+    """
     # Mean Sums required for NATMI (note done on subunits also)
     if 'ligand_means_sums' in _add_cols:
         lr_res = _sum_means(lr_res, what='ligand_means',
@@ -187,9 +223,11 @@ def liana_pipe(adata: anndata.AnnData,
         lr_res = _sum_means(lr_res, what='receptor_means',
                             on=['ligand_complex', 'receptor_complex',
                                 'ligand', 'receptor', 'source'])
-
+        
     # Calculate Score
     if _score is not None:
+        print("SHAPE OF LR_RES {}".format(lr_res.shape))
+        input("Inside then of run methods section...")
         if _score.method_name == "Rank_Aggregate":
             # Run all methods in consensus
             lrs = {}
@@ -211,8 +249,9 @@ def liana_pipe(adata: anndata.AnnData,
                                 verbose=verbose,
                                 _aggregate_flag=True
                                 )
-            if _consensus_opts is not False:
-                lr_res = _aggregate(lrs,
+                
+                if _consensus_opts is not False:
+                    lr_res = _aggregate(lrs,
                                     consensus=_score,
                                     aggregate_method=_aggregate_method,
                                     _key_cols=_key_cols,
@@ -221,6 +260,8 @@ def liana_pipe(adata: anndata.AnnData,
             else:  # Return by method results as they are
                 return lrs
         else:  # Run the specific method in mind
+            print("SHAPE OF LR_RES {}".format(lr_res.shape))
+            input("Inside else of run methods section without aggregate rank...")
             lr_res = _run_method(lr_res=lr_res,
                                  adata=adata,
                                  expr_prop=expr_prop,
@@ -232,12 +273,16 @@ def liana_pipe(adata: anndata.AnnData,
                                  verbose=verbose,
                                  seed=seed)
     else:  # Just return lr_res
+        print("SHAPE OF LR_RES {}".format(lr_res.shape))
+        input("Inside else of run methods section...")
         lr_res = filter_reassemble_complexes(lr_res=lr_res,
                                              _key_cols=_key_cols,
                                              expr_prop=expr_prop,
                                              complex_cols=_complex_cols,
                                              return_all_lrs=return_all_lrs)
 
+    
+    
     if _score is not None:
         orderby, ascending =  (_score.magnitude, _score.magnitude_ascending) if _score.magnitude is not None \
             else (_score.specificity, _score.specificity_ascending)
@@ -284,6 +329,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
 
     logfc_flag = ('ligand_logfc' in relevant_cols) | (
             'receptor_logfc' in relevant_cols)
+    
     if logfc_flag:
         if 'log1p' in adata.uns_keys():
             if (adata.uns['log1p']['base'] is not None) & verbose:
@@ -333,6 +379,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
     pairs = (pd.DataFrame(np.array(np.meshgrid(labels, labels))
                           .reshape(2, np.size(labels) * np.size(labels)).T)
              .rename(columns={0: "source", 1: "target"}))
+    
 
     # Join Stats
     lr_res = pd.concat(
@@ -347,6 +394,8 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
     # NOTE: this is not needed
     if isinstance(mat_max, np.float32):
         lr_res['mat_max'] = mat_max
+        
+    
 
     # subset to only relevant columns
     relevant_cols = np.intersect1d(relevant_cols, lr_res.columns)
@@ -426,6 +475,12 @@ def _run_method(lr_res: pandas.DataFrame,
                 verbose: bool,
                 _aggregate_flag: bool = False  # Indicates whether we're generating the consensus
                 ) -> pd.DataFrame:
+    print("SHAPE OF LR_RES {}".format(lr_res.shape))
+    filtered_df = lr_res.copy()
+    filtered_df = lr_res[(lr_res['receptor'].str.contains('CD8A|CD8B', regex=True))]
+    filtered_df = filtered_df[['source','target','receptor','receptor_complex','receptor_means','receptor_score']]
+    print("SHAPE {}\n{}".format(filtered_df.shape,filtered_df.to_string(max_colwidth=20)))
+    input("Inside run methods, before filter complexes call...")
     # re-assemble complexes - specific for each method
     lr_res = filter_reassemble_complexes(lr_res=lr_res,
                                          _key_cols=_key_cols,
@@ -433,6 +488,8 @@ def _run_method(lr_res: pandas.DataFrame,
                                          return_all_lrs=return_all_lrs,
                                          complex_cols=_complex_cols)
 
+    print("SHAPE OF LR_RES {}".format(lr_res.shape))
+    input("Inside run methods, after filter complexes call...")
     _add_cols = _add_cols + ['ligand', 'receptor']
     relevant_cols = reduce(np.union1d, [_key_cols, _complex_cols, _add_cols])
     if return_all_lrs:
@@ -441,6 +498,7 @@ def _run_method(lr_res: pandas.DataFrame,
         rest_res = lr_res[~lr_res['lrs_to_keep']]
         rest_res = rest_res[relevant_cols]
         lr_res = lr_res[lr_res['lrs_to_keep']]
+    
     lr_res = lr_res[relevant_cols]
 
     if ('mat_max' in _add_cols) & (_score.method_name == "CellChat"):
@@ -518,9 +576,7 @@ def _trimean(a, axis=0):
     a
         array (cell ident counts)
 
-    Returns
-    -------
-    Trimean value
+    Returns trimean
 
     """
     return np.mean(
@@ -528,3 +584,93 @@ def _trimean(a, axis=0):
                     q=[0.25, 0.5, 0.5, 0.75],
                     axis=axis),
         axis=axis)
+    
+def _gene_mean(lr_res, adata):
+    labels = adata.obs['@label'].cat.categories
+    dedict = {label: None for label in labels}
+    for label in labels:
+        temp = adata[adata.obs['@label'].isin([label])]
+        dedict[label] = np.mean(temp.X.A.T.flatten(),axis=0)
+
+    lr_res['source_cluster_mean'] = lr_res['source'].map(dedict)
+    lr_res['target_cluster_mean'] = lr_res['target'].map(dedict)
+    return lr_res
+        
+def _cluster_mean(lr_res, adata):
+    labels = adata.obs['@label'].cat.categories
+    dedict = {label: None for label in labels}
+    for label in labels:
+        temp = adata[adata.obs['@label'].isin([label])]
+        dedict[label] = np.mean(temp.X.A.T.flatten(),axis=0)
+
+    lr_res['source_cluster_mean'] = lr_res['source'].map(dedict)
+    lr_res['target_cluster_mean'] = lr_res['target'].map(dedict)
+    return lr_res
+
+def _cluster_sd(lr_res, adata):
+    labels = adata.obs['@label'].cat.categories
+    dedict = {label: None for label in labels}
+    for label in labels:
+        temp = adata[adata.obs['@label'].isin([label])]
+        dedict[label] = np.std(temp.X.A.T.flatten(),axis=0)
+    lr_res['source_cluster_std'] = lr_res['source'].map(dedict)
+    lr_res['target_cluster_std'] = lr_res['target'].map(dedict)
+    return lr_res
+
+def _cluster_counts(lr_res, adata):
+    labels = adata.obs['@label'].cat.categories
+    dedict = {label: None for label in labels}
+    for label in labels:
+        temp = adata[adata.obs['@label'].isin([label])]
+        dedict[label] = temp.shape[0]
+    lr_res['source_cluster_counts'] = lr_res['source'].map(dedict)
+    lr_res['target_cluster_counts'] = lr_res['target'].map(dedict)
+    return lr_res
+
+#TODO subunit score: tira fuori S_gene così che puoi fare geometric mean dentro. 
+# Poichè i complessi collassano in una sola riga che probabilmente ha il minimo dei valori delle colonne dentro complex_cols
+# per ogni subuntià dei complessi
+# def _gene_score
+""" 
+def _cluster_mean(adata):
+    labels = adata.obs['@label'].cat.categories
+    dedict = {label: None for label in labels}
+    for label in labels:
+        temp = adata[adata.obs['@label'].isin([label])]
+        dedict[label] = np.mean(temp.X.A.T.flatten(),axis=0)
+    return dedict
+def _cluster_sd(adata):
+    labels = adata.obs['@label'].cat.categories
+    dedict = {label: None for label in labels}
+    for label in labels:
+        temp = adata[adata.obs['@label'].isin([label])]
+        dedict[label] = np.std(temp.X.A.T.flatten(),axis=0)
+    return dedict
+def _cluster_counts(adata):
+    labels = adata.obs['@label'].cat.categories
+    dedict = {label: None for label in labels}
+    for label in labels:
+        temp = adata[adata.obs['@label'].isin([label])]
+        dedict[label] = temp.shape[0]
+    return dedict
+
+"""
+def _gene_score(gene_mean, cluster_mean, cluster_std, cluster_counts):
+    probability = norm.cdf(gene_mean, loc=cluster_mean, scale = cluster_std/np.sqrt(cluster_counts))
+    return probability
+
+def _complex_score(lr_res):
+    lr_res['ligand_score'] = _gene_score(lr_res['ligand_means'],
+                                 lr_res['source_cluster_mean'],
+                                 lr_res['source_cluster_std'],
+                                 lr_res['source_cluster_counts'])
+    lr_res['receptor_score'] = _gene_score(lr_res['receptor_means'],
+                                lr_res['target_cluster_mean'],
+                                lr_res['target_cluster_std'],
+                                lr_res['target_cluster_counts'])
+    lr_res['ligand_score'] = lr_res.groupby(['ligand_complex','source'])['ligand_score'] \
+                                    .transform(lambda x: np.prod(x)**(1/len(x)))
+    lr_res['receptor_score'] = lr_res.groupby(['receptor_complex','target'])['receptor_score'] \
+                                    .transform(lambda x: np.prod(x)**(1/len(x)))
+    return lr_res
+    
