@@ -1,5 +1,3 @@
-from ..method import get_method_scores
-
 import numpy as np
 
 from ._common import _process_scores

@@ -1,14 +1,6 @@
 import pandas as pd
-from liana._logging import _logg
-
-def _check_if_corneto():
-    try:
-        import corneto
-    except Exception as e:
-        raise ImportError("CORNETO is not correctly installed. Please install it with: "
-                          "'pip install git+https://github.com/saezlab/corneto.git@0.9.1-alpha.3 cvxpy==1.3.1 cylp==0.91.5'. "
-                          "GUROBI solver is recommended, free academic licenses are available at https://www.gurobi.com/academia/academic-program-and-licenses/.", str(e))
-    return corneto
+import numpy as np
+from liana._logging import _logg, _check_if_installed
 
 
 def build_prior_network(ppis, input_nodes, output_nodes, lr_sep=None, verbose=True):
@@ -34,7 +26,7 @@ def build_prior_network(ppis, input_nodes, output_nodes, lr_sep=None, verbose=Tr
         
     """
     
-    cn = _check_if_corneto()
+    cn = _check_if_installed("corneto")
 
     if lr_sep is not None:
         if any(lr_sep in k for k in input_nodes.keys()):
@@ -99,6 +91,7 @@ def find_causalnet(
         missing_penalty=10,
         edge_penalty=0.01,
         solver=None,
+        seed=1337,
         max_seconds=None,
         verbose=True,
         **kwargs
@@ -134,6 +127,8 @@ def find_causalnet(
     solver : str, optional
         The solver to use. If None, the default solver will be used. Default: None
         It will default to the solver included in SCIPY, if no other solver is available.
+    seed : int, optional
+        The seed to use for the random number generator. Default: 1337
     max_seconds : int, optional
         The maximum number of seconds to run the solver. Default: None
     verbose : bool, optional 
@@ -142,7 +137,7 @@ def find_causalnet(
         Additional arguments to pass to the solver.
     """
     
-    cn = _check_if_corneto()
+    cn = _check_if_installed("corneto")
 
     if solver is None:
         solver = cn.methods.carnival.select_mip_solver()
@@ -162,7 +157,7 @@ def find_causalnet(
     _logg(f" - abs total (inputs + outputs): {total}", verbose=verbose)
     
     if node_weights is None:
-        node_weights = {}
+        node_penalties = {}
     else:
         node_penalties = _weights_to_penalties(node_weights,
                                                cutoff=node_cutoff,
@@ -170,8 +165,11 @@ def find_causalnet(
                                                min_penalty=min_penalty)
 
     # assign 0 penalties to input/output nodes, missing_penalty to missing nodes
-    c_node_penalties = {k: node_penalties.get(k, missing_penalty) if k not in measured_nodes else 0.0 for k in prior_graph.vertices}
-
+    # add a small amount of noise to the penalties to ensure reproducible solutions
+    rng = np.random.default_rng(seed=seed)
+    c_node_penalties = {k: node_penalties.get(k, missing_penalty) + rng.uniform(0, 0.00001)
+                        if k not in measured_nodes else 0.0 for k in prior_graph.vertices}
+        
     _logg("Building CORNETO problem...", verbose=verbose)
     P, G = cn.methods.carnival._extended_carnival_problem(
         prior_graph,
@@ -182,11 +180,12 @@ def find_causalnet(
     )
 
     _logg(f"Solving with {solver}...", verbose=verbose)
+    if (solver=='scipy') and verbose:
+        kwargs.update(scipy_options=dict(disp='true'))
     ps = P.solve(
-        solver=solver, 
-        max_seconds=max_seconds, 
+        solver=solver,
+        max_seconds=max_seconds,
         verbosity=int(verbose),
-        scipy_options=dict(disp='true'), 
         **kwargs)
     
     _logg("Done.", verbose=verbose)
