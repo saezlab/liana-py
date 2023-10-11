@@ -3,9 +3,10 @@ Release notes
 
 1.0.2 (05.10.2023)
 -------------------------------------------------
-- Added a small amount of noise to the nodes in `find_causalnet` to avoid obtaining multiple solutions to the same problem.
+- Added as `seed` param to `find_causalnet`, used to a small amount of noise to the nodes in to avoid obtaining multiple solutions to the same problem when multiple equal solutions are possible.
 
 - Updated `installation.rst`
+
 
 1.0.1 Stable Release (30.09.2023)
 -------------------------------------------------

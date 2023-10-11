@@ -1,15 +1,6 @@
 import pandas as pd
 import numpy as np
-from liana._logging import _logg
-
-def _check_if_corneto():
-    try:
-        import corneto
-    except Exception as e:
-        raise ImportError("CORNETO is not correctly installed. Please install it with: "
-                          "'pip install git+https://github.com/saezlab/corneto.git@0.9.1-alpha.3 cvxpy==1.3.1 cylp==0.91.5'. "
-                          "GUROBI solver is recommended, free academic licenses are available at https://www.gurobi.com/academia/academic-program-and-licenses/.", str(e))
-    return corneto
+from liana._logging import _logg, _check_if_installed
 
 
 def build_prior_network(ppis, input_nodes, output_nodes, lr_sep=None, verbose=True):
@@ -35,7 +26,7 @@ def build_prior_network(ppis, input_nodes, output_nodes, lr_sep=None, verbose=Tr
         
     """
     
-    cn = _check_if_corneto()
+    cn = _check_if_installed("corneto")
 
     if lr_sep is not None:
         if any(lr_sep in k for k in input_nodes.keys()):
@@ -146,7 +137,7 @@ def find_causalnet(
         Additional arguments to pass to the solver.
     """
     
-    cn = _check_if_corneto()
+    cn = _check_if_installed("corneto")
 
     if solver is None:
         solver = cn.methods.carnival.select_mip_solver()
