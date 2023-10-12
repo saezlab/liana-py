@@ -98,13 +98,14 @@ def _vectorized_spearman(x_mat, y_mat, weight):
 
 
 def _vectorized_cosine(x_mat, y_mat, weight):
+
     x_mat, y_mat = x_mat.T, y_mat.T
-    
+
     xy_dot = (x_mat * y_mat) @ weight.T
     x_dot = ((x_mat ** 2) @ weight.T)
     y_dot = ((y_mat ** 2) @ weight.T)
     denominator = (x_dot * y_dot) + np.finfo(np.float32).eps
-    
+
     return xy_dot / denominator**0.5
 
 
@@ -144,6 +145,42 @@ def _local_morans(x_mat, y_mat, weight):
     return local_r
 
 
+def _product(x_mat, y_mat, weight):
+
+    # Weight
+    x_mat = (weight @ x_mat)
+    y_mat = (weight @ y_mat)
+
+    # Product
+    score = x_mat * y_mat
+
+    return score.T
+
+
+def _norm_product(x_mat, y_mat, weight):
+
+    # Weight
+    x_mat = (weight @ x_mat)
+    y_mat = (weight @ y_mat)
+
+    # Find norm
+    x_norm = np.max(np.abs(x_mat), axis=0)
+    y_norm = np.max(np.abs(y_mat), axis=0)
+
+    # Handle 0s
+    x_norm[x_norm == 0.] = 1.
+    y_norm[y_norm == 0.] = 1.
+
+    # Make features comparable
+    x_mat = x_mat / x_norm
+    y_mat = y_mat / y_norm
+
+    # Product
+    score = x_mat * y_mat
+
+    return score.T
+
+
 class SpatialFunction:
     """
     Class representing information about bivariate spatial functions.
@@ -178,6 +215,16 @@ _bivariate_functions = [
             name="jaccard",
             metadata="weighted Jaccard similarity",
             local_function = _vectorized_jaccard,
+        ),
+        SpatialFunction(
+            name="product",
+            metadata="simple weighted product",
+            local_function = _product,
+        ),
+        SpatialFunction(
+            name="norm_product",
+            metadata="normalized weighted product",
+            local_function = _norm_product,
         ),
         SpatialFunction(
             name="morans",

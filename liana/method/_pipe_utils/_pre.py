@@ -44,9 +44,12 @@ def assert_covered(
 
     subset = np.asarray(subset)
     is_missing = ~np.isin(subset, superset)
-    prop_missing = np.sum(is_missing) / len(subset)
-    x_missing = ", ".join([x for x in subset[is_missing]])
-
+    if subset.size == 0:
+        prop_missing = 1.
+        x_missing = 'values in interactions argument'
+    else:
+        prop_missing = np.sum(is_missing) / len(subset)
+        x_missing = ", ".join([x for x in subset[is_missing]])
     if prop_missing > prop_missing_allowed:
         msg = (
             f"Please check if appropriate organism/ID type was provided! "
