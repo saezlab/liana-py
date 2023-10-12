@@ -2,18 +2,14 @@ import anndata
 import numpy as np
 from scipy.spatial import cKDTree
 
-
 def _gaussian(distance_mtx, l):
     return np.exp(-(distance_mtx ** 2.0) / (2.0 * l ** 2.0))
-
 
 def _misty_rbf(distance_mtx, l):
     return np.exp(-(distance_mtx ** 2.0) / (l ** 2.0))
 
-
 def _exponential(distance_mtx, l):
     return np.exp(-distance_mtx / l)
-
 
 def _linear(distance_mtx, l):
     connectivity = 1 - distance_mtx / l
