@@ -49,7 +49,7 @@ def test_liana_pipe_defaults():
     assert 21 == all_defaults.shape[1]
     assert 'prop_min' in all_defaults.columns
 
-    exp_defaults = read_csv(test_path.joinpath("data/all_defaults.csv"), index_col=0)
+    exp_defaults = read_csv(test_path.joinpath("data", "all_defaults.csv"), index_col=0)
     exp_defaults.index = all_defaults.index
     assert_frame_equal(all_defaults, exp_defaults, check_dtype=False,
                        check_exact=False, check_index_type=False, rtol=1e-3)

@@ -2,7 +2,6 @@ import anndata
 import numpy as np
 from scipy.spatial import cKDTree
 
-
 def _gaussian(distance_mtx, l):
     return np.exp(-(distance_mtx ** 2.0) / (2.0 * l ** 2.0))
 
@@ -23,11 +22,11 @@ def _linear(distance_mtx, l):
 def spatial_neighbors(adata: anndata.AnnData,
                       bandwidth=None,
                       cutoff=None,
-                      normalize=False,
                       max_dist_ratio=3,
                       kernel='gaussian',
                       set_diag=False,
                       zoi=0,
+                      standardize=False,
                       spatial_key="spatial",
                       key_added='spatial',
                       inplace=True
@@ -44,10 +43,6 @@ def spatial_neighbors(adata: anndata.AnnData,
          Denotes signaling length (`l`). Corresponds to the units in which spatial coordinates are expressed.
     cutoff
         Values below this cutoff will be set to 0.
-    normalize
-        Whether to normalize spatial proximities by summing them across the slide to 1.
-        This plays a role when weighing border regions prior to downstream methods, as the number of spots
-        in the border region (and hence the sum of proximities) is smaller than the number of spots in the center
     kernel
         Kernel function used to generate connectivity weights. The following options are available:
         ['gaussian', 'exponential', 'linear', 'misty_rbf']
@@ -57,6 +52,15 @@ def spatial_neighbors(adata: anndata.AnnData,
         by the specified radial basis function, the remainder are set to 0.
     set_diag
         Logical, sets connectivity diagonal to 0 if `False`. Default is `True`.
+    zoi
+        Zone of indifference. Values below this cutoff will be set to `np.inf`.
+    standardize
+        Whether to standardize spatial proximities (connectivities) so that they of each spot sum to 1.
+        This plays a role when weighing border regions prior to downstream methods, as the number of spots
+        in the border region (and hence the sum of proximities) is smaller than the number of spots in the center.
+        Relevant for methods with unstandardized scores (e.g. product). Default is `False`.
+    spatial_key
+        Key in `adata.obsm` where spatial coordinates are stored.
     key_added
         Key to add to `adata.obsm` if `inplace = True`.
     inplace
@@ -115,7 +119,7 @@ def spatial_neighbors(adata: anndata.AnnData,
         dist.setdiag(0)
     if cutoff is not None:
         dist.data = dist.data * (dist.data > cutoff)
-    if normalize:
+    if standardize:
         dist = dist / dist.sum(axis=1)
 
     spot_n = dist.shape[0]

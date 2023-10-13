@@ -41,8 +41,8 @@ Local bivariate metrics
 .. autosummary::
    :toctree: api
 
-   liana.method.bivar
-   liana.method.lr_bivar
+   liana.method.bivar.__call__
+   liana.method.lr_bivar.__call__
 
 
 Learn Spatial Relationships
