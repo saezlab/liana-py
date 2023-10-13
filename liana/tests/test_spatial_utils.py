@@ -19,14 +19,12 @@ def test_get_spatial_connectivities():
     
     conns = spatial_neighbors(adata=adata, bandwidth=100,
                               kernel='linear', cutoff=0.1,
-                              set_diag=True,
-                              inplace=False)
+                              set_diag=True, inplace=False)
     assert conns.sum() == 899.065036633088
     
     conns = spatial_neighbors(adata=adata, bandwidth=100,
                               kernel='exponential', cutoff=0.1,
-                              set_diag=True,
-                              inplace=False)
+                              set_diag=True, inplace=False)
     assert conns.sum() == 1520.8496098963612
     
     conns = spatial_neighbors(adata=adata, bandwidth=100, set_diag=True,
@@ -40,8 +38,11 @@ def test_get_spatial_connectivities():
                               inplace=False)
     assert conns.sum() == 6597.05237692107
     
-    
-    
+    conns = spatial_neighbors(adata=adata, bandwidth=250,
+                              set_diag=False, max_dist_ratio=5,
+                              kernel='gaussian', cutoff=0.1,
+                              inplace=False, standardize=True)
+    np.testing.assert_almost_equal(conns.sum(), conns.shape[0])
 
 # toy test data
 seed = 0

@@ -1,6 +1,7 @@
 import anndata
 import numpy as np
 from scipy.spatial import cKDTree
+from sklearn.preprocessing import normalize
 
 def _gaussian(distance_mtx, l):
     return np.exp(-(distance_mtx ** 2.0) / (2.0 * l ** 2.0))
@@ -55,7 +56,7 @@ def spatial_neighbors(adata: anndata.AnnData,
     zoi
         Zone of indifference. Values below this cutoff will be set to `np.inf`.
     standardize
-        Whether to standardize spatial proximities (connectivities) so that they of each spot sum to 1.
+        Whether to (l1) standardize spatial proximities (connectivities) so that they sum to 1.
         This plays a role when weighing border regions prior to downstream methods, as the number of spots
         in the border region (and hence the sum of proximities) is smaller than the number of spots in the center.
         Relevant for methods with unstandardized scores (e.g. product). Default is `False`.
@@ -120,7 +121,7 @@ def spatial_neighbors(adata: anndata.AnnData,
     if cutoff is not None:
         dist.data = dist.data * (dist.data > cutoff)
     if standardize:
-        dist = dist / dist.sum(axis=1)
+        dist = normalize(dist, axis=1, norm='l1')
 
     spot_n = dist.shape[0]
     assert spot_n == adata.shape[0]
