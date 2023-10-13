@@ -7,13 +7,13 @@ Release notes
 
 - Updated `installation.rst` to refer to `pip install liana[common]` and `liana[full]` for extended installations.
 
+- Fixed a bug which would cause `bivar` to crash when an AnnData object was passed
+
 Merged #61 including the following:
 
-- Added norm parameter to spatial_neighbors, by default I've set it to True but we can discuss it
+- Added `standardize` parameter to spatial_neighbors, used to standardize the spatial connectivities such that each spot's proximity weights to 1. Required for non-standardized metrics (such as `product`)
 
 - Fixed edge case in `assert_covered` to handle interactions not present in `adata` nor the resource.
-
-- Fixed a bug which would cause `bivar` to crash when an AnnData object was passed
 
 - Added simple product (scores ranging from -inf, +inf) and norm_product (scores ranging from -1, +1). 
 The former is a simple product of x and y, while the latter standardized each variable to be between 0 and 1, following weighing by spatial proximity, and then multiplies them.
