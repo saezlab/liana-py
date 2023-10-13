@@ -12,14 +12,12 @@ def test_m_to_adata():
 
 
 def test_mdata_transformations():
-    
     # test minmax
     adata = mdata_to_anndata(mdata, x_mod='adata_x', y_mod='adata_y', 
                              x_transform=zi_minmax, y_transform=zi_minmax,
                              verbose=False)
     assert adata.X.max() == 1
     assert_almost_equal(adata.X.sum(), 2120.704, decimal=3)
-    
     
     # test cutoff
     def zi_minmax_cutoff(x):

@@ -23,6 +23,7 @@ def spatial_neighbors(adata: anndata.AnnData,
                       kernel='gaussian',
                       set_diag=False,
                       zoi=0,
+                      standardize=False,
                       spatial_key="spatial",
                       key_added='spatial',
                       inplace=True
@@ -36,9 +37,9 @@ def spatial_neighbors(adata: anndata.AnnData,
     adata
         `AnnData` object with spatial coordinates (in 'spatial') in `adata.obsm`.
     bandwidth
-         Denotes signaling length (`l`)
+         Denotes signaling length (`l`). Corresponds to the units in which spatial coordinates are expressed.
     cutoff
-        Vales below this cutoff will be set to 0
+        Values below this cutoff will be set to 0.
     kernel
         Kernel function used to generate connectivity weights. The following options are available:
         ['gaussian', 'exponential', 'linear', 'misty_rbf']
@@ -48,6 +49,15 @@ def spatial_neighbors(adata: anndata.AnnData,
         by the specified radial basis function, the remainder are set to 0.
     set_diag
         Logical, sets connectivity diagonal to 0 if `False`. Default is `True`.
+    zoi
+        Zone of indifference. Values below this cutoff will be set to `np.inf`.
+    standardize
+        Whether to standardize spatial proximities (connectivities) so that they of each spot sum to 1.
+        This plays a role when weighing border regions prior to downstream methods, as the number of spots
+        in the border region (and hence the sum of proximities) is smaller than the number of spots in the center.
+        Relevant for methods with unstandardized scores (e.g. product). Default is `False`.
+    spatial_key
+        Key in `adata.obsm` where spatial coordinates are stored.
     key_added
         Key to add to `adata.obsm` if `inplace = True`.
     inplace
@@ -106,6 +116,8 @@ def spatial_neighbors(adata: anndata.AnnData,
         dist.setdiag(0)
     if cutoff is not None:
         dist.data = dist.data * (dist.data > cutoff)
+    if standardize:
+        dist = dist / dist.sum(axis=1)
 
     spot_n = dist.shape[0]
     assert spot_n == adata.shape[0]

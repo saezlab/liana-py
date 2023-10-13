@@ -12,7 +12,6 @@ mdata.obsp['ones'] = ones
 
 
 def test_bivar_morans():
-    # default
     bivar(mdata,
           x_mod='adata_x',
           y_mod='adata_y',
@@ -24,7 +23,6 @@ def test_bivar_morans():
     
 
 def test_bivar_morans_perms():
-      # with perms
     bivar(mdata,
           x_mod='adata_x',
           y_mod='adata_y', 
@@ -40,11 +38,18 @@ def test_bivar_morans_perms():
 
 def test_bivar_nondefault():
     global_stats, local_scores = \
-          bivar(mdata, x_mod='adata_x', y_mod='adata_y', 
-                function_name='morans', n_perms=0,
-                connectivity_key='ones', remove_self_interactions=False,
-                x_layer = "scaled", y_layer = "scaled", inplace=False, 
-                add_categories=True, interactions=interactions
+          bivar(mdata,
+                x_mod='adata_x',
+                y_mod='adata_y', 
+                function_name='morans',
+                n_perms=0,
+                connectivity_key='ones',
+                remove_self_interactions=False,
+                x_layer = "scaled",
+                y_layer = "scaled",
+                inplace=False, 
+                add_categories=True,
+                interactions=interactions
                 )
     
     # if all are the same weights, then everything is close to 0?
@@ -56,13 +61,15 @@ def test_bivar_nondefault():
     
     
 
-def test_bivar_external():
-    bivar(mdata=mdata,
-          x_mod='adata_x',
-          y_mod='adata_y',
-          function_name='morans', 
-          connectivity_key='ones',
-          interactions=interactions)
+def test_bivar_adata():
+      mdata.mod['adata_x'].obsp = mdata.obsp
+      
+      bivar(mdata=mdata.mod['adata_x'],
+            x_mod=None,
+            y_mod=None,
+            function_name='morans', 
+            connectivity_key='ones',
+            interactions=interactions)
     
     
 def test_masked_spearman():

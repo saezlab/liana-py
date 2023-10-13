@@ -107,11 +107,6 @@ class SpatialLR(SpatialBivariate):
             complex_sep='_'
             )
                      
-        
-        if not inplace:
-            return lr_res, local_scores
-            
-        adata.uns[key_added] = lr_res
-        adata.obsm[obsm_added] = local_scores
+        return self._handle_return(adata, lr_res, local_scores, key_added, obsm_added, inplace)
 
 lr_bivar = SpatialLR()
