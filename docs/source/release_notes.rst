@@ -1,11 +1,23 @@
 Release notes
 =============
 
-1.0.2 (05.10.2023)
+1.0.2 (13.10.2023)
 -------------------------------------------------
 - Added as `seed` param to `find_causalnet`, used to a small amount of noise to the nodes in to avoid obtaining multiple solutions to the same problem when multiple equal solutions are possible.
 
-- Updated `installation.rst`
+- Updated `installation.rst` to refer to `pip install liana[common]` and `liana[full]` for extended installations.
+
+Merged #61 including the following:
+
+- Added norm parameter to spatial_neighbors, by default I've set it to True but we can discuss it
+
+- Fixed edge case in `assert_covered` to handle interactions not present in `adata` nor the resource.
+
+- Fixed a bug which would cause `bivar` to crash when an AnnData object was passed
+
+- Added simple product (scores ranging from -inf, +inf) and norm_product (scores ranging from -1, +1). 
+The former is a simple product of x and y, while the latter standardized each variable to be between 0 and 1, following weighing by spatial proximity, and then multiplies them.
+Essentially, it diminishes the effect of spatial proximity on the score, while still taking it into account. We observed that this is useful for e.g. border zones.
 
 
 1.0.1 Stable Release (30.09.2023)

@@ -7,9 +7,14 @@ from anndata import AnnData
 from mudata import MuData
 from liana.method._pipe_utils._common import _get_props
 
-from liana.method.sp._spatial_pipe import _categorize, \
-    _rename_means, _run_scores_pipeline, \
-    _connectivity_to_weight, _handle_connectivity, _add_complexes_to_var
+from liana.method.sp._spatial_pipe import (
+    _categorize,
+    _rename_means,
+    _run_scores_pipeline,
+    _connectivity_to_weight,
+    _handle_connectivity,
+    _add_complexes_to_var
+    )
     
 from liana.utils.obsm_to_adata import obsm_to_adata
 from liana.utils.mdata_to_anndata import mdata_to_anndata
@@ -25,6 +30,19 @@ class SpatialBivariate():
     """ A class for bivariate local spatial metrics. """
     def __init__(self):
         pass
+    
+    def _handle_return(self, data, stats, local_scores, key_added, x_added, inplace=False):
+        if not inplace:
+            return stats, local_scores
+
+        data.uns[key_added] = stats
+        
+        if isinstance(data, MuData):
+            data.mod[x_added] = local_scores
+        else:
+            data.obsm[x_added] = local_scores
+        
+
     def __call__(self,
                  mdata,
                  x_mod,
@@ -259,12 +277,7 @@ class SpatialBivariate():
         if local_pvals is not None:
             local_scores.layers['pvals'] = csr_matrix(local_pvals.T)
 
-        if not inplace:
-            return xy_stats, local_scores
-        
-        mdata.uns[key_added] = xy_stats
-        mdata.mod[mod_added] = local_scores
-
+        return self._handle_return(mdata, xy_stats, local_scores, key_added, mod_added, inplace)
 
     def show_functions(self):
         """
