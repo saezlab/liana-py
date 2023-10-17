@@ -37,6 +37,7 @@ def filter_reassemble_complexes(lr_res,
     lr_res: a reduced long-format pandas dataframe
     """
     # Filter by expr_prop (inner join only complexes where all subunits are expressed)
+    
     expressed = (lr_res[_key_cols + ['ligand_props', 'receptor_props']]
                  .set_index(_key_cols)
                  .stack()
@@ -44,8 +45,8 @@ def filter_reassemble_complexes(lr_res,
                  .agg(prop_min=complex_policy)
                  .reset_index()
                  )
-    expressed = expressed[expressed['prop_min'] >= expr_prop]
 
+    expressed = expressed[expressed['prop_min'] >= expr_prop]
     if not return_all_lrs:
         lr_res = lr_res.merge(expressed, how='inner', on=_key_cols)
     else:
@@ -59,7 +60,7 @@ def filter_reassemble_complexes(lr_res,
 
     # check if complex policy is only min
     aggs = {complex_policy, 'min'}
-    
+
     for col in complex_cols:
         lr_res = _reduce_complexes(col=col, 
                                    lr_res=lr_res,
@@ -77,7 +78,7 @@ def filter_reassemble_complexes(lr_res,
                  'However, there were subunits that were not the same within a complex. ',
                  level='warn')
         lr_res = lr_res.drop_duplicates(subset=_key_cols, keep='first')
-
+        
     return lr_res
 
 

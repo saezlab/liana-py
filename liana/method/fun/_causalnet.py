@@ -108,7 +108,7 @@ def find_causalnet(
     output_node_scores : dict
         A dictionary of output node scores.
     node_weights : dict, optional
-        A dictionary of node weights. The keys are the node names, the values are the weeights.
+        A dictionary of node weights. The keys are the node names, the values are the weights.
         If None, all nodes will have the same weight.
     node_cutoff : float
         The cutoff to use for the node weights. Nodes with a weight below this cutoff will be assigned
