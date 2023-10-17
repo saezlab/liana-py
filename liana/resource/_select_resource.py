@@ -5,52 +5,6 @@ from pandas import DataFrame
 
 from liana._logging import _logg
 
-def select_resource_tf_tg() -> DataFrame:
-    """
-    Read resource of choice from the pre-generated resources in scseqcomm for LIANA.
-    TF_TG_DB.csv -> The resources contains the associations between transcription factors and target genes:
-
-    Parameters
-    ----------
-
-
-    Returns
-    -------
-    A dataframe with ``['transcription_factor', 'target_gene']`` columns
-
-    """
-    resource_path = pathlib.Path(__file__).parent.joinpath("TF_TG_db.csv")
-    resource = read_csv(resource_path, index_col=False)
-    
-    return resource
-
-def select_resource_ppr_r_tf(resource_name: str = 'consensus') -> DataFrame:
-    """
-    Read resource of choice from the pre-generated resources in scseqcomm for LIANA.
-    Personalized_PAgeRank_score.csv -> The resources contains the PPR scores associated with the couple receptor-TF.
-                                       This include KEGG, Reactome in one single document.
-
-    Parameters
-    ----------
-
-    Returns
-    -------
-    A dataframe with ``['receptor', 'transcription_factor', 'ppr']`` columns
-
-    """
-    print(resource_name)
-    resource_path = pathlib.Path(__file__).parent.joinpath("Personalized_PageRank_scores.csv")
-    resource = read_csv(resource_path, index_col=False)
-    
-    if resource_name != 'consensus' and resource_name not in resource['database'].unique():
-        raise ValueError(f"Resource {resource_name} not found. "
-                        f"Please choose from {resource['database'].unique()} or 'consensus'")
-        
-    if resource_name != 'consensus':
-        resource = resource[resource['database'] == resource_name]
-    
-    return resource
-
 def select_resource(resource_name: str = 'consensus') -> DataFrame:
     """
     Read resource of choice from the pre-generated resources in LIANA.

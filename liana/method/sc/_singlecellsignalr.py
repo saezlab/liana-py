@@ -1,7 +1,6 @@
 import numpy as np
 
 from liana.method.sc._Method import Method, MethodMeta
-import scanpy as sc
 
 
 def _sca_score(x):
@@ -39,5 +38,5 @@ _singlecellsignalr = MethodMeta(method_name="SingleCellSignalR",
                                           'networks from single-cell transcriptomics. Nucleic '
                                           'Acids Research, 48(10), pp.e55-e55. '
                                 )
-singlecellsignalr = Method(_method=_singlecellsignalr)
 
+singlecellsignalr = Method(_method=_singlecellsignalr)

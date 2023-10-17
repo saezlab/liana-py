@@ -1,5 +1,3 @@
 from ._select_resource import select_resource
 from ._select_resource import show_resources
-from ._select_resource import select_resource_tf_tg
-from ._select_resource import select_resource_ppr_r_tf
 from ._resource_utils import generate_lr_geneset

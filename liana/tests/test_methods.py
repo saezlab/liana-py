@@ -102,7 +102,6 @@ def test_scseqcomm():
     assert_almost_equal(max(liana_res[(liana_res.receptor_complex == "CD74_CXCR4")].inter_score), 0.9997214654, decimal = 6)
 
 
-
 def test_sca():
     sca(adata, groupby='bulk_labels', use_raw=True)
 

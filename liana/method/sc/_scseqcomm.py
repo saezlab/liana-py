@@ -26,6 +26,3 @@ _scseqcomm = MethodMeta(method_name="scSeqComm",
                                   "38(7), pp.1920-1929"
                         )
 scseqcomm = Method(_method=_scseqcomm)
-
-    
-    
