@@ -3,7 +3,7 @@ from numpy import max, min
 from numpy.testing import assert_almost_equal
 
 from liana.method import cellphonedb, singlecellsignalr as sca, \
-    natmi, connectome, logfc, geometric_mean, cellchat
+    natmi, connectome, logfc, geometric_mean, cellchat, scseqcomm
     
 from liana.testing._sample_anndata import generate_toy_adata
 
@@ -83,6 +83,24 @@ def test_natmi():
     assert_almost_equal(max(liana_res[(liana_res.ligand == "TIMP1")].expr_prod), 4.521420922884062, decimal=6)
     assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['spec_weight'].max(), 0.03480120361979308, decimal=6)
     assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['expr_prod'].max(), 1.9646283122925752, decimal=6)
+
+def test_scseqcomm():
+    scseqcomm(adata, groupby='bulk_labels', use_raw=True, expr_prop = 0, return_all_lrs=True)
+    
+    assert adata.shape == expected_shape
+    assert 'liana_res' in adata.uns.keys()
+
+    liana_res = adata.uns['liana_res']
+    assert isinstance(liana_res, pandas.DataFrame)
+
+    assert 'inter_score' in liana_res.columns
+
+    assert_almost_equal(liana_res[(liana_res.ligand == "TIMP1") & \
+                                (liana_res.receptor == "CD63") & \
+                                (liana_res.source == "Dendritic") & \
+                                (liana_res.target == "CD4+/CD45RA+/CD25- Naive T")].inter_score.values, 0.6819619345, decimal = 5)
+    assert_almost_equal(max(liana_res[(liana_res.receptor_complex == "CD74_CXCR4")].inter_score), 0.9997214654, decimal = 6)
+
 
 
 def test_sca():

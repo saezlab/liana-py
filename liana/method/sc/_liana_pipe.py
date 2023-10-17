@@ -18,6 +18,7 @@ import numpy as np
 from scipy.stats import norm
 from functools import reduce
 
+import time
 
 def liana_pipe(adata: anndata.AnnData,
                groupby: str,
@@ -131,7 +132,6 @@ def liana_pipe(adata: anndata.AnnData,
                              use_raw=use_raw,
                              layer=layer,
                              verbose=verbose)
-
     # get mat mean for SCA (before reducing the features)
     if 'mat_mean' in _add_cols:
         mat_mean = np.mean(adata.X, dtype='float32')
@@ -156,7 +156,7 @@ def liana_pipe(adata: anndata.AnnData,
 
     # Filter Resource
     resource = filter_resource(resource, adata.var_names)
-
+    
     if verbose:
         print(f"Generating ligand-receptor stats for {adata.shape[0]} samples "
               f"and {adata.shape[1]} features")
@@ -165,21 +165,8 @@ def liana_pipe(adata: anndata.AnnData,
     entities = np.union1d(np.unique(resource["ligand"]),
                           np.unique(resource["receptor"]))
 
-    # TODO we could use get_lr without filtering adata.
-    # Get lr results
-    # lr_res_unfiltered = _get_lr(adata=adata,
-    #                 resource=resource,
-    #                 mat_mean=mat_mean,
-    #                 mat_max=mat_max,
-    #                 relevant_cols=_key_cols + _add_cols + _complex_cols,
-    #                 de_method=de_method,
-    #                 base=base,
-    #                 verbose=verbose)
-
     adata_unfiltered = adata.copy()
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
-    
-
     # Get lr results
     lr_res = _get_lr(adata=adata,
                      resource=resource,
@@ -191,29 +178,10 @@ def liana_pipe(adata: anndata.AnnData,
                      verbose=verbose
                      )
     
-    print("SHAPE OF LR_RES {}".format(lr_res.shape))
-    input("Before score...")
-    
-    
-    #TODO add here the cluster mean column and cluster sd column
-    # Cluster mean and sd of target cluster required for scSeqComm
+    # Ligand and receptor score based on unfiltered cluster mean and cluster std. Handles protein complexes
     if any('_score' in col for col in _add_cols):
-        lr_res = _cluster_mean(lr_res, adata_unfiltered)
-        lr_res = _cluster_sd(lr_res, adata_unfiltered)
-        lr_res = _cluster_counts(lr_res, adata_unfiltered)
-
-        lr_res = _complex_score(lr_res)
-    """
-        lr_res['ligand_score'] = _gene_score(lr_res['ligand_means'],
-                                   lr_res['source_cluster_mean'],
-                                   lr_res['source_cluster_std'],
-                                   lr_res['source_cluster_counts'])
+        lr_res = _complex_score(lr_res, adata = adata_unfiltered)
         
-        lr_res['receptor_score'] = _gene_score(lr_res['receptor_means'],
-                                      lr_res['target_cluster_mean'],
-                                      lr_res['target_cluster_std'],
-                                      lr_res['target_cluster_counts'])
-    """
     # Mean Sums required for NATMI (note done on subunits also)
     if 'ligand_means_sums' in _add_cols:
         lr_res = _sum_means(lr_res, what='ligand_means',
@@ -223,11 +191,9 @@ def liana_pipe(adata: anndata.AnnData,
         lr_res = _sum_means(lr_res, what='receptor_means',
                             on=['ligand_complex', 'receptor_complex',
                                 'ligand', 'receptor', 'source'])
-        
+
     # Calculate Score
     if _score is not None:
-        print("SHAPE OF LR_RES {}".format(lr_res.shape))
-        input("Inside then of run methods section...")
         if _score.method_name == "Rank_Aggregate":
             # Run all methods in consensus
             lrs = {}
@@ -260,8 +226,7 @@ def liana_pipe(adata: anndata.AnnData,
             else:  # Return by method results as they are
                 return lrs
         else:  # Run the specific method in mind
-            print("SHAPE OF LR_RES {}".format(lr_res.shape))
-            input("Inside else of run methods section without aggregate rank...")
+                  
             lr_res = _run_method(lr_res=lr_res,
                                  adata=adata,
                                  expr_prop=expr_prop,
@@ -272,9 +237,8 @@ def liana_pipe(adata: anndata.AnnData,
                                  return_all_lrs=return_all_lrs,
                                  verbose=verbose,
                                  seed=seed)
+
     else:  # Just return lr_res
-        print("SHAPE OF LR_RES {}".format(lr_res.shape))
-        input("Inside else of run methods section...")
         lr_res = filter_reassemble_complexes(lr_res=lr_res,
                                              _key_cols=_key_cols,
                                              expr_prop=expr_prop,
@@ -475,21 +439,12 @@ def _run_method(lr_res: pandas.DataFrame,
                 verbose: bool,
                 _aggregate_flag: bool = False  # Indicates whether we're generating the consensus
                 ) -> pd.DataFrame:
-    print("SHAPE OF LR_RES {}".format(lr_res.shape))
-    filtered_df = lr_res.copy()
-    filtered_df = lr_res[(lr_res['receptor'].str.contains('CD8A|CD8B', regex=True))]
-    filtered_df = filtered_df[['source','target','receptor','receptor_complex','receptor_means','receptor_score']]
-    print("SHAPE {}\n{}".format(filtered_df.shape,filtered_df.to_string(max_colwidth=20)))
-    input("Inside run methods, before filter complexes call...")
     # re-assemble complexes - specific for each method
     lr_res = filter_reassemble_complexes(lr_res=lr_res,
                                          _key_cols=_key_cols,
                                          expr_prop=expr_prop,
                                          return_all_lrs=return_all_lrs,
                                          complex_cols=_complex_cols)
-
-    print("SHAPE OF LR_RES {}".format(lr_res.shape))
-    input("Inside run methods, after filter complexes call...")
     _add_cols = _add_cols + ['ligand', 'receptor']
     relevant_cols = reduce(np.union1d, [_key_cols, _complex_cols, _add_cols])
     if return_all_lrs:
@@ -584,82 +539,125 @@ def _trimean(a, axis=0):
                     q=[0.25, 0.5, 0.5, 0.75],
                     axis=axis),
         axis=axis)
-    
-def _gene_mean(lr_res, adata):
-    labels = adata.obs['@label'].cat.categories
-    dedict = {label: None for label in labels}
-    for label in labels:
-        temp = adata[adata.obs['@label'].isin([label])]
-        dedict[label] = np.mean(temp.X.A.T.flatten(),axis=0)
-
-    lr_res['source_cluster_mean'] = lr_res['source'].map(dedict)
-    lr_res['target_cluster_mean'] = lr_res['target'].map(dedict)
-    return lr_res
         
 def _cluster_mean(lr_res, adata):
+    """
+    Evaluate the mean of the expression matrix for each cluster of cells.
+    Considers all the genes maintained in the expression matrix at this poit.
+
+    Parameters
+    ----------
+    lr_res 
+        pd.DataFrame (Dataframe of results for each ligand-receptor pair)
+    adata 
+        anndata.AnnData (Annotated data object. For scSeqComm must not be filtered by gene expression.)
+
+    Returns lr_res (returns the ligand-receptor pair dataframe with a new column for the mean of the source and target cluster.)
+    """
     labels = adata.obs['@label'].cat.categories
     dedict = {label: None for label in labels}
     for label in labels:
         temp = adata[adata.obs['@label'].isin([label])]
-        dedict[label] = np.mean(temp.X.A.T.flatten(),axis=0)
+        dedict[label] = np.mean(temp.X.A,axis=None)
 
     lr_res['source_cluster_mean'] = lr_res['source'].map(dedict)
     lr_res['target_cluster_mean'] = lr_res['target'].map(dedict)
     return lr_res
 
 def _cluster_sd(lr_res, adata):
+    """
+    Evaluate the standard deviation of the expression matrix for each cluster of cells.
+    Considers all the genes maintained in the expression matrix at this poit.
+
+    Parameters
+    ----------
+    lr_res
+        pd.DataFrame (Dataframe of results for each ligand-receptor pair)
+    adata
+        anndata.AnnData (Annotated data object. For scSeqComm must not be filtered by gene expression.)
+
+    Returns lr_res (returns the ligand-receptor pair dataframe with a new column for the standard deviation of the source and target cluster.)
+    """
     labels = adata.obs['@label'].cat.categories
     dedict = {label: None for label in labels}
     for label in labels:
         temp = adata[adata.obs['@label'].isin([label])]
-        dedict[label] = np.std(temp.X.A.T.flatten(),axis=0)
+
+        dedict[label] = np.std(temp.X.A,axis=None)
     lr_res['source_cluster_std'] = lr_res['source'].map(dedict)
     lr_res['target_cluster_std'] = lr_res['target'].map(dedict)
+    
+    print("sd of cluster CD4+/CD45RA+/CD25- Naive T: {}".format(dedict["CD4+/CD45RA+/CD25- Naive T"]))
     return lr_res
 
 def _cluster_counts(lr_res, adata):
+    """
+    Evaluate the cardinality of the expression matrix for each cluster of cells.
+
+    Parameters
+    ----------
+    lr_res
+        pd.DataFrame (Dataframe of results for each ligand-receptor pair)
+    adata
+        anndata.AnnData (Annotated data object. For scSeqComm must not be filtered by gene expression.)
+
+    
+    Return lr_res (returns the ligand-receptor pair dataframe with a new column for the cardinality of the source and target cluster.)
+    """
     labels = adata.obs['@label'].cat.categories
     dedict = {label: None for label in labels}
     for label in labels:
         temp = adata[adata.obs['@label'].isin([label])]
         dedict[label] = temp.shape[0]
+    
     lr_res['source_cluster_counts'] = lr_res['source'].map(dedict)
     lr_res['target_cluster_counts'] = lr_res['target'].map(dedict)
     return lr_res
 
-#TODO subunit score: tira fuori S_gene così che puoi fare geometric mean dentro. 
-# Poichè i complessi collassano in una sola riga che probabilmente ha il minimo dei valori delle colonne dentro complex_cols
-# per ogni subuntià dei complessi
-# def _gene_score
-""" 
-def _cluster_mean(adata):
-    labels = adata.obs['@label'].cat.categories
-    dedict = {label: None for label in labels}
-    for label in labels:
-        temp = adata[adata.obs['@label'].isin([label])]
-        dedict[label] = np.mean(temp.X.A.T.flatten(),axis=0)
-    return dedict
-def _cluster_sd(adata):
-    labels = adata.obs['@label'].cat.categories
-    dedict = {label: None for label in labels}
-    for label in labels:
-        temp = adata[adata.obs['@label'].isin([label])]
-        dedict[label] = np.std(temp.X.A.T.flatten(),axis=0)
-    return dedict
-def _cluster_counts(adata):
-    labels = adata.obs['@label'].cat.categories
-    dedict = {label: None for label in labels}
-    for label in labels:
-        temp = adata[adata.obs['@label'].isin([label])]
-        dedict[label] = temp.shape[0]
-    return dedict
-
-"""
 def _gene_score(gene_mean, cluster_mean, cluster_std, cluster_counts):
+    """
+    Measures how much the observed ligand (receptor) average expression level X_g^k is high compared to the average expression levels observable by chance for random genes in the
+    same cluster k. 
+    
+    Parameters
+    ----------
+    gene_mean 
+        pandas.core.series.Series ([num present LR pairs x 1] This is the gene average expression in each cluster. Column of lr_res dataframe. mean{X}_g^k, g=1,...,num genes & k=1,...,num clusters)
+    cluster_mean
+        pandas.core.series.Series ([num present LR pairs x 1] This is the average expression in each cluster. Column of lr_res dataframe. It considers all genes in that cluster. mean{X}^k, k=1,...,num clusters)
+    cluster_std
+        pandas.core.series.Series ([num present LR pairs x 1] This is the standard deviation expression in each cluster. Column of lr_res dataframe. It considers all genes in that cluster. std{X}^k, k=1,...,num clusters)
+    cluster_counts
+        pandas.core.series.Series ([num present LR pairs x 1] This is the gene average expression in each cluster. Column of lr_res dataframe. cardinality of each cluster. n_k, k=1,...,num clusters)
+
+    Returns probability (pandas.core.series.Series [num present LR pairs x 1] This is the proportion that a normal distribution is less than the gene_mean.)
+    """
+    print(type(gene_mean))
     probability = norm.cdf(gene_mean, loc=cluster_mean, scale = cluster_std/np.sqrt(cluster_counts))
+    # If gene expression in specific cluster is 0, then the gene score must be 0.
+    probability[gene_mean==0] = 0
+    
     return probability
 
-def _complex_score(lr_res):
+def _complex_score(lr_res, adata):
+    """
+    Compute the ligand and receptor score for each ligand-receptor pair considering scSeqcomm method. The scores are 
+    related to the genes expressed in each cluster of cells. The score takes into account the protein complexes to which
+    different subunits of ligand (receptor) are part of. The score is the geometric mean of the scores of the subunits.
+
+    Parameters
+    ----------
+    lr_res
+        pd.DataFrame (Dataframe of results for each ligand-receptor pair)
+    adata
+        anndata.AnnData (Annotated data object. For scSeqComm must not be filtered by gene expression.)
+
+    Returns lr_res (returns the ligand-receptor pair dataframe with several new columns with gene scores and cluster statistics.)
+    """
+    lr_res = _cluster_mean(lr_res, adata)
+    lr_res = _cluster_sd(lr_res, adata)
+    lr_res = _cluster_counts(lr_res, adata)
+    
     lr_res['ligand_score'] = _gene_score(lr_res['ligand_means'],
                                  lr_res['source_cluster_mean'],
                                  lr_res['source_cluster_std'],
@@ -668,6 +666,9 @@ def _complex_score(lr_res):
                                 lr_res['target_cluster_mean'],
                                 lr_res['target_cluster_std'],
                                 lr_res['target_cluster_counts'])
+    
+    # if the ligand or the receptor is composed by different subunits of the same complex, we evaluate the 
+    # geometric mean of the subunit scores.
     lr_res['ligand_score'] = lr_res.groupby(['ligand_complex','source'])['ligand_score'] \
                                     .transform(lambda x: np.prod(x)**(1/len(x)))
     lr_res['receptor_score'] = lr_res.groupby(['receptor_complex','target'])['receptor_score'] \

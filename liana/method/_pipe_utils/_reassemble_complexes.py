@@ -45,36 +45,18 @@ def filter_reassemble_complexes(lr_res,
                  .agg(prop_min=complex_policy)
                  .reset_index()
                  )
-    
-    print("SHAPE OF LR_RES {}".format(lr_res.shape))
-    filtered_df = lr_res.copy()
-    filtered_df = lr_res[(lr_res['receptor'].str.contains('CD8A|CD8B', regex=True))]
-    filtered_df = filtered_df[['source','target','ligand','ligand_complex','receptor','receptor_complex','receptor_score','ligand_score']]
-    print("SHAPE {}\n{}".format(filtered_df.shape,filtered_df.to_string(max_colwidth=20)))
-    input("Before filter complex but inside function call...")    
-    
+
     expressed = expressed[expressed['prop_min'] >= expr_prop]
     if not return_all_lrs:
         lr_res = lr_res.merge(expressed, how='inner', on=_key_cols)
     else:
         expressed['lrs_to_keep'] = True
-        print(lr_res.columns)
         lr_res = lr_res.merge(expressed, how='left', on=_key_cols)
          # deal with duplicated subunits
          # subunits that are not expressed might not represent the most relevant subunit
         lr_res.drop_duplicates(subset=_key_cols, inplace=True)
         lr_res['lrs_to_keep'].fillna(value=False, inplace=True)
-        
         lr_res['prop_min'].fillna(value=0, inplace=True)
-        print(lr_res.columns)
-        
-    print("SHAPE OF LR_RES {}".format(lr_res.shape))
-    filtered_df = lr_res.copy()
-    filtered_df = lr_res[(lr_res['receptor'].str.contains('CD8A|CD8B', regex=True))]
-    filtered_df = filtered_df[['source','target','ligand','ligand_complex','receptor','receptor_complex','receptor_score','ligand_score']]
-    print("SHAPE {}\n{}".format(filtered_df.shape,filtered_df.to_string(max_colwidth=20)))
-    input("Before filter complex but inside function call... Here i lose the condB")    
-    
 
     # check if complex policy is only min
     aggs = {complex_policy, 'min'}
@@ -96,8 +78,7 @@ def filter_reassemble_complexes(lr_res,
                  'However, there were subunits that were not the same within a complex. ',
                  level='warn')
         lr_res = lr_res.drop_duplicates(subset=_key_cols, keep='first')
-    print("SHAPE OF LR_RES {}".format(lr_res.shape))
-    input("After filter complex but inside function call...")
+        
     return lr_res
 
 
