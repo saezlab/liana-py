@@ -589,7 +589,6 @@ def _cluster_sd(lr_res, adata):
     lr_res['source_cluster_std'] = lr_res['source'].map(dedict)
     lr_res['target_cluster_std'] = lr_res['target'].map(dedict)
     
-    print("sd of cluster CD4+/CD45RA+/CD25- Naive T: {}".format(dedict["CD4+/CD45RA+/CD25- Naive T"]))
     return lr_res
 
 def _cluster_counts(lr_res, adata):
@@ -640,7 +639,6 @@ def _gene_score(gene_mean, cluster_mean, cluster_std, cluster_counts):
     probability (pandas.core.series.Series [num present LR pairs x 1] This is the proportion that a normal distribution is less than the gene_mean.)
     
     """
-    print(type(gene_mean))
     probability = norm.cdf(gene_mean, loc=cluster_mean, scale = cluster_std/np.sqrt(cluster_counts))
     # If gene expression in specific cluster is 0, then the gene score must be 0.
     probability[gene_mean==0] = 0
