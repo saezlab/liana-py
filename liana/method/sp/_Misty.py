@@ -14,7 +14,7 @@ from mudata import MuData
 
 class MistyData(MuData):
     """MistyData Class used to construct multi-view objects"""
-    def __init__(self, data, obs=None, spatial_key='spatial', **kwargs):
+    def __init__(self, data, obs=None, spatial_key='spatial', enforce_obs=True, **kwargs):
         """
         Construct a MistyData object from a dictionary of views (anndatas).
         
@@ -37,6 +37,7 @@ class MistyData(MuData):
         super().__init__(data, **kwargs)
         self.view_names = list(self.mod.keys())
         self.spatial_key = spatial_key
+        self.enforce_obs = enforce_obs
         self._check_views()
         self.obs = obs if obs is not None else self.mod['intra'].obs
 
@@ -50,11 +51,21 @@ class MistyData(MuData):
                 self.mod[view].X = csr_matrix(self.mod[view].X)
             if view=="intra":
                 continue
-            if f"{self.spatial_key}_connectivities" not in self.mod[view].obsp.keys():
-                raise ValueError(f"view {view} does not contain `{self.spatial_key}_connectivities` key in .obsp")
+            if self.enforce_obs:
+                if f"{self.spatial_key}_connectivities" not in self.mod[view].obsp.keys():
+                    raise ValueError(f"view {view} does not contain `{self.spatial_key}_connectivities` key in .obsp")
+                if self.mod[view].shape[0] != self.mod['intra'].shape[0]:
+                    raise ValueError(f"view {view} has {self.mod[view].shape[0]} observations, " + \
+                                    f"but the intra-view has {self.mod['intra'].shape[0]} observations")
+            else:
+                if f"{self.spatial_key}_connectivities" not in self.mod[view].obsm.keys():
+                    raise ValueError(f"view {view} does not contain `{self.spatial_key}_connectivities` key in .obsm")
     
     def _get_conn(self, view_name):
-        return self.mod[view_name].obsp[f"{self.spatial_key}_connectivities"]
+        if self.enforce_obs:
+            return self.mod[view_name].obsp[f"{self.spatial_key}_connectivities"]
+        else:
+            return self.mod[view_name].obsm[f"{self.spatial_key}_connectivities"].T
     
     def __call__(self,
                  model='rf',

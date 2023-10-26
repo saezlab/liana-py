@@ -26,6 +26,7 @@ def spatial_neighbors(adata: anndata.AnnData,
                       standardize=False,
                       spatial_key="spatial",
                       key_added='spatial',
+                      reference=None,
                       inplace=True
                       ):
     """
@@ -87,11 +88,21 @@ def spatial_neighbors(adata: anndata.AnnData,
     if bandwidth is None:
         raise ValueError("Please specify a bandwidth")
 
+    max_distance = bandwidth * max_dist_ratio
     coords = adata.obsm[spatial_key]
     tree = cKDTree(coords)
-    dist = tree.sparse_distance_matrix(tree,
-                                       max_distance=bandwidth * max_dist_ratio,
-                                       output_type="coo_matrix")
+    
+    if reference is not None:
+        reference = cKDTree(reference)
+        dist = reference.sparse_distance_matrix(tree,
+                                                max_distance=max_distance,
+                                                output_type="coo_matrix")
+    else:
+        dist = tree.sparse_distance_matrix(tree,
+                                           max_distance=max_distance,
+                                           output_type="coo_matrix")
+
+    
     dist = dist.tocsr()
 
     # prevent float overflow
@@ -120,12 +131,15 @@ def spatial_neighbors(adata: anndata.AnnData,
         dist = dist / dist.sum(axis=1)
 
     spot_n = dist.shape[0]
-    assert spot_n == adata.shape[0]
-    # speed up
+    if reference is None:
+        assert spot_n == adata.shape[0]
     if spot_n > 1000:
         dist = dist.astype(np.float32)
 
     if inplace:
-        adata.obsp[f'{key_added}_connectivities'] = dist
+        if reference is not None:
+            adata.obsm[f'{key_added}_connectivities'] = dist.T
+        else:
+            adata.obsp[f'{key_added}_connectivities'] = dist
 
     return None if inplace else dist
