@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from liana.method.sc._liana_pipe import liana_pipe
 from liana.utils import mdata_to_anndata
+from liana._logging import _logg
 
 import anndata as an
 from mudata import MuData
@@ -116,8 +117,8 @@ class MethodMeta:
         if sample_key not in adata.obs:
             raise ValueError(f"{sample_key} was not found in `adata.obs`.")
         
-        if adata.obs[sample_key].dtype.name != "category":
-            (f"`{sample_key}` was assigned as a categorical.")
+        if not adata.obs[sample_key].dtype.name == "category":
+            _logg(f"Converting `{sample_key}` to categorical!", level='warn', verbose=verbose)
             adata.obs[sample_key] = adata.obs[sample_key].astype("category")
             
         if verbose == 'full':

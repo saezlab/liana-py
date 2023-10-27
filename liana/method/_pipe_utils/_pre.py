@@ -138,6 +138,10 @@ def prep_check_adata(adata: AnnData,
     if groupby is not None:
         if groupby not in adata.obs.columns:
             raise AssertionError(f"`{groupby}` not found in `adata.obs.columns`.")
+        if not adata.obs[groupby].dtype.name == 'category':
+            _logg(f"Converting `{groupby}` to categorical!", level='warn', verbose=verbose)
+            adata.obs[groupby] = adata.obs[groupby].astype('category')
+        
         adata.obs.loc[:, '@label'] = adata.obs[groupby]
 
         # Remove any cell types below X number of cells per cell type
