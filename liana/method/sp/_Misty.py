@@ -179,7 +179,7 @@ class MistyData(MuData):
                                            **kwargs
                                            )
                     predictions_list.append(predictions_extra)
-
+                
                 target_metrics = _multi_model(y,
                                               np.column_stack(predictions_list),
                                               intra_group,
@@ -359,6 +359,5 @@ def _create_obs_masks(intra, maskby):
             obs_masks[intra_group] = intra.obs[maskby] == intra_group
     else:
         raise ValueError(f"maskby column {maskby} must be a column of booleans or categorical")
-        
         
     return obs_masks
