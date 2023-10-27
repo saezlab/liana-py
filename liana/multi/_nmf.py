@@ -30,7 +30,10 @@ def nmf(adata, n_components=None, k_range=range(1, 10), use_raw=False, layer=Non
     
     Returns
     -------
-    If inplace is True, it will add ``NMF_W`` and ``NMF_H`` to the ``adata.obsm`` and ``adata.varm`` AnnData objects.
+    If inplace is True, it will add ``NMF_W`` and ``NMF_H`` to the ``adata.obsm`` and ``adata.varm``.
+    If n_components is None, it will also add ``nfm_errors`` and ``nfm_rank`` to ``adata.uns``.
+    
+    If inplace is False, it will return ``W`` and ``H``.
     
     """
     
@@ -46,6 +49,9 @@ def nmf(adata, n_components=None, k_range=range(1, 10), use_raw=False, layer=Non
     if inplace:
         adata.obsm['NMF_W'] = W
         adata.varm['NMF_H'] = H
+        adata.uns['nfm_errors'] = errors
+        adata.uns['nfm_rank'] = n_components
+        
     return None if inplace else (W, H)
 
 

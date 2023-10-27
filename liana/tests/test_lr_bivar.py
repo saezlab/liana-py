@@ -54,3 +54,9 @@ def test_morans_pval_none_cats():
     
     assert 'cats' in adata.layers.keys()
     assert adata.layers['cats'].sum() == -6197
+
+def test_wrong_interactions():
+    from pytest import raises
+    with raises(ValueError):
+        lr_bivar(adata, resource_name='mouseconsensus', function_name='morans', n_perms=None, use_raw=True, add_categories=True)
+    

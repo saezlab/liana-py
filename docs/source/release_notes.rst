@@ -1,13 +1,13 @@
 Release notes
 =============
 
-
 1.0.3 (XX.11.2023)
 -------------------------------------------------
 - Added `filterby` and `filter_lambda` parameters to `li.pl.interactions` and `li.pl.target_metrics` to allow filtering of interactions and metrics, respectively.
 
 - Removed unnecessary `stat` parameter from `li.pl.contributions`
 
+- Added tests to ensure both `lr_bivar` and single-cell methods throw an exception when the resource is not covered by the data.
 
 1.0.2 (13.10.2023)
 -------------------------------------------------

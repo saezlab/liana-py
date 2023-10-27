@@ -70,8 +70,8 @@ def test_bivar_adata():
             function_name='morans', 
             connectivity_key='ones',
             interactions=interactions)
-    
-    
+
+
 def test_masked_spearman():
     bivar(mdata, x_mod='adata_x', y_mod='adata_y',
           function_name='masked_spearman', interactions=interactions,
