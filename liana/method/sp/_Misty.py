@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 from liana._logging import _logg
@@ -9,12 +11,20 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression, RidgeCV
 from sklearn.model_selection import KFold, cross_val_predict
 import statsmodels.api as sm
+from liana._constants._docs import d
+
 
 from mudata import MuData
 
+
 class MistyData(MuData):
     """MistyData Class used to construct multi-view objects"""
-    def __init__(self, data, obs=None, spatial_key='spatial', **kwargs):
+    @d.dedent
+    def __init__(self,
+                 data:(dict | MuData),
+                 obs:(pd.DataFrame | None)= None,
+                 spatial_key:str='spatial',
+                 **kwargs):
         """
         Construct a MistyData object from a dictionary of views (anndatas).
         
@@ -25,10 +35,8 @@ class MistyData(MuData):
             Requires an intra-view called "intra".
         obs : `pd.DataFrame`
             DataFrame of observations. If None, the obs of the intra-view is used.
-        spatial_key : `str`
-            Key in the .obsm attribute of each view that contains the spatial coordinates.
-            Default is 'spatial'.
-        **kwargs : `dict`
+        %(spatial_key)s
+        **kwargs
             Keyword arguments passed to the MuData Super class
         """
         if isinstance(data, MuData):
@@ -56,6 +64,7 @@ class MistyData(MuData):
     def _get_conn(self, view_name):
         return self.mod[view_name].obsp[f"{self.spatial_key}_connectivities"]
     
+    @d.dedent
     def __call__(self,
                  model='rf',
                  bypass_intra = False,
@@ -95,13 +104,9 @@ class MistyData(MuData):
             used for the multi-view part of the model. Only used if there are more than 2 views being modeled (including intra).
         n_jobs : `int`, optional (default: -1)
             Number of cores used to construct random forest models
-        seed : `int`, optional (default: 1337)
-            Specify random seed for reproducibility
-        inplace : `bool`, optional (default: True)
-            Whether to write the results to the .uns attribute of the object or return 
-            two DataFrames, one for target metrics and one for importances.
-        verbose : `bool`, optional (default: False)
-            Whether to show a progress bar.
+        %(seed)s
+        %(inplace)s
+        %(verbose)s
         **kwargs : `dict`
             Keyword arguments passed to the Regressors. Note that n_jobs & random_state are already set.
         

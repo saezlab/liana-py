@@ -13,6 +13,10 @@ Release notes
 
 - When `groupby` or `sample_key` are not categorical liana will now print a warning before converting them to categorical. Related to #28
 
+- Various Documentation improvements
+
+- Renamed some `*_separator` columns to `*_sep` for consistency
+
 
 1.0.2 (13.10.2023)
 -------------------------------------------------

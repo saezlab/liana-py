@@ -1,22 +1,29 @@
+from __future__ import annotations
+from typing import Callable
+
 import numpy as np
+
+from anndata import AnnData
+from pandas import DataFrame
 
 from ._common import _process_scores
 from liana._logging import _check_if_installed
+from liana._constants._docs import d
 
-
-def to_tensor_c2c(adata=None,
-                  liana_res=None,
-                  sample_key=None,
-                  source_key='source',
-                  target_key='target',
-                  ligand_key='ligand_complex',
-                  receptor_key='receptor_complex',
-                  score_key=None,
-                  uns_key = 'liana_res',
-                  non_expressed_fill=None,
-                  inverse_fun = lambda x: 1 - x,
-                  non_negative = True,
-                  return_dict=False,
+@d.dedent
+def to_tensor_c2c(adata:AnnData=None,
+                  sample_key:str=None,
+                  score_key:str=None,
+                  liana_res: (DataFrame or None) = None,
+                  source_key:str = 'source',
+                  target_key:str = 'target',
+                  ligand_key:str = 'ligand_complex',
+                  receptor_key:str = 'receptor_complex',
+                  uns_key:str = 'liana_res',
+                  non_expressed_fill:(float or None) = None,
+                  inverse_fun: Callable = lambda x: 1 - x,
+                  non_negative:bool = True,
+                  return_dict:bool = False,
                   **kwargs
                   ):
     """
@@ -25,25 +32,17 @@ def to_tensor_c2c(adata=None,
     Parameters
     ----------
     
-    adata : :class:`~anndata.AnnData`
-        Annotated data matrix.
-    liana_res : :class:`~pandas.DataFrame`
-        LIANA result.
-    sample_key : `str`, optional (default: None)
-        Column name of the sample key in `liana_res`.
-    source_key : `str`, optional (default: 'source')
-        Column name of the sender/source cell types in `liana_res`.
-    target_key : `str`, optional (default: 'target')
-        Column name of the receiver/target cell types in `liana_res`.
-    ligand_key : `str`, optional (default: 'ligand_complex')
-        Column name of the ligand in `liana_res`.
-    receptor_key : `str`, optional (default: 'receptor_complex')
-        Column name of the receptor in `liana_res`.
-    score_key : `str`, optional (default: None)
-        Column name of the score in `liana_res`. If None, the score is inferred from the method.
-    inverse_fun : `function`, optional (default: lambda x: 1 - x)
-        Function to inverse the score. For example, if the score is in ascending order or probability,
-        the inverse function should be 1 - probability. This is handled automatically for the scores in liana.
+    %(adata)s
+    %(sample_key)s
+    %(score_key)s
+    liana_res
+        A dataframe with the LIANA results. If None, it will be taken from `adata.uns[uns_key]`.
+    %(source_key)s
+    %(target_key)s
+    %(ligand_key)s
+    %(receptor_key)s
+    %(uns_key)s
+    %(inverse_fun)s
     non_expressed_fill : `float`, optional (default: None)
         Value to fill for non-expressed ligand-receptor pairs.
     non_negative : `bool`, optional (default: True)
@@ -82,7 +81,6 @@ def to_tensor_c2c(adata=None,
     keys = [sample_key, source_key, target_key, ligand_key, receptor_key, score_key]
     keys = keys + ['lrs_to_keep'] if 'lrs_to_keep' in liana_res.columns else keys
     liana_res = liana_res[keys]
-    
     
     # check for duplicates
     if liana_res[[sample_key, source_key, target_key, ligand_key, receptor_key]].duplicated().any():

@@ -1,7 +1,8 @@
-import anndata
+from anndata import AnnData
 import numpy as np
 from scipy.spatial import cKDTree
 from sklearn.preprocessing import normalize
+from liana._constants._docs import d
 
 def _gaussian(distance_mtx, l):
     return np.exp(-(distance_mtx ** 2.0) / (2.0 * l ** 2.0))
@@ -20,17 +21,18 @@ def _linear(distance_mtx, l):
     return np.clip(connectivity, a_min=0, a_max=np.inf)
 
 
-def spatial_neighbors(adata: anndata.AnnData,
-                      bandwidth=None,
-                      cutoff=None,
-                      max_dist_ratio=3,
-                      kernel='gaussian',
-                      set_diag=False,
-                      zoi=0,
-                      standardize=False,
-                      spatial_key="spatial",
-                      key_added='spatial',
-                      inplace=True
+@d.dedent
+def spatial_neighbors(adata: AnnData,
+                      bandwidth: float = None,
+                      cutoff: float = None,
+                      max_dist_ratio: float = 3,
+                      kernel: str = 'gaussian',
+                      set_diag : bool = False,
+                      zoi: float = 0,
+                      standardize: True = False,
+                      spatial_key: str = "spatial",
+                      key_added: str = 'spatial',
+                      inplace: bool = True
                       ):
     """
     Generate spatial connectivity weights using Euclidean distance.
@@ -38,19 +40,16 @@ def spatial_neighbors(adata: anndata.AnnData,
     Parameters
     ----------
     
-    adata
-        `AnnData` object with spatial coordinates (in 'spatial') in `adata.obsm`.
+    %(adata)s
     bandwidth
          Denotes signaling length (`l`). Corresponds to the units in which spatial coordinates are expressed.
     cutoff
         Values below this cutoff will be set to 0.
+    max_dist_ratio
+        Maximum distance ratio used when calculate pairwise Euclidean distances. Default is 3 (x the bandwidth).
     kernel
         Kernel function used to generate connectivity weights. The following options are available:
         ['gaussian', 'exponential', 'linear', 'misty_rbf']
-    n_neighbors
-        Find k nearest neighbours, use it as a connectivity mask. In other words,
-        only the connectivity of the nearest neighbours is kept as calculated
-        by the specified radial basis function, the remainder are set to 0.
     set_diag
         Logical, sets connectivity diagonal to 0 if `False`. Default is `True`.
     zoi
@@ -60,12 +59,10 @@ def spatial_neighbors(adata: anndata.AnnData,
         This plays a role when weighing border regions prior to downstream methods, as the number of spots
         in the border region (and hence the sum of proximities) is smaller than the number of spots in the center.
         Relevant for methods with unstandardized scores (e.g. product). Default is `False`.
-    spatial_key
-        Key in `adata.obsm` where spatial coordinates are stored.
+    %(spatial_key)s
     key_added
-        Key to add to `adata.obsm` if `inplace = True`.
-    inplace
-        If true return `DataFrame` with results, else assign to `.obsm`.
+        Key to add to `adata.obsp` if `inplace = True`.
+    %(inplace)s
         
     Notes
     -----

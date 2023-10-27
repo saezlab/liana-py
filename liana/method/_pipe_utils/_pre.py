@@ -134,14 +134,8 @@ def prep_check_adata(adata: AnnData,
     if np.any(~np.isfinite(adata.X.data)):
         raise ValueError("mat contains non finite values (nan or inf), please set them to 0 or remove them.")
 
-    # Define idents col name
     if groupby is not None:
-        if groupby not in adata.obs.columns:
-            raise AssertionError(f"`{groupby}` not found in `adata.obs.columns`.")
-        if not adata.obs[groupby].dtype.name == 'category':
-            _logg(f"Converting `{groupby}` to categorical!", level='warn', verbose=verbose)
-            adata.obs[groupby] = adata.obs[groupby].astype('category')
-        
+        _check_groupby(adata, groupby, verbose)
         adata.obs.loc[:, '@label'] = adata.obs[groupby]
 
         # Remove any cell types below X number of cells per cell type
@@ -262,3 +256,10 @@ def _choose_mtx_rep(adata, use_raw=False, layer=None, verbose=False) -> csr_matr
         X = csr_matrix(X)
     
     return X
+
+def _check_groupby(adata, groupby, verbose):
+    if groupby not in adata.obs.columns:
+        raise AssertionError(f"`{groupby}` not found in `adata.obs.columns`.")
+    if not adata.obs[groupby].dtype.name == 'category':
+        _logg(f"Converting `{groupby}` to categorical!", level='warn', verbose=verbose)
+        adata.obs[groupby] = adata.obs[groupby].astype('category')

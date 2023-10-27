@@ -3,72 +3,59 @@ import pandas as pd
 from itertools import product
 
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
-    filter_reassemble_complexes
-from liana.method._pipe_utils._common import _join_stats
-from liana.method._pipe_utils._common import _get_props
+    filter_reassemble_complexes, _check_groupby
+from liana.method._pipe_utils._common import _join_stats, _get_props
 from liana.method._pipe_utils._reassemble_complexes import explode_complexes
 from liana.resource._select_resource import _handle_resource
+from liana._constants._docs import d
 
+@d.dedent
 def df_to_lr(adata,
-              dea_df,
-              groupby,
-              stat_keys,
-              resource_name = 'consensus',
-              resource = None,
-              interactions = None,
-              layer = None, 
-              use_raw = True,
-              expr_prop = 0.1,
-              min_cells=10,
-              complex_col=None,
-              return_all_lrs=False,
-              source_labels = None,
-              target_labels = None,
-              lr_sep="^",
-              verbose = False,
-              ):
+             dea_df,
+             groupby,
+             stat_keys,
+             resource_name = 'consensus',
+             resource = None,
+             interactions = None,
+             layer = None, 
+             use_raw = True,
+             expr_prop = 0.1,
+             min_cells = 10,
+             complex_col=None,
+             return_all_lrs=False,
+             source_labels = None,
+             target_labels = None,
+             lr_sep="^",
+             verbose = False,
+             ):
     """
     Convert DEA results to ligand-receptor pairs.
     
     Parameters
     ----------
-    adata : AnnData object
-        Anndata Object
+    %(adata)s
     dea_df : pd.DataFrame
         DEA results. Index must match adata.var_names
-    groupby : str
-        Column in adata.obs and dea_df to groupby
+    %(groupby)s
     stat_keys : list
-        List of statistics to use for lr pairs
-    resource_name : str, optional
-        Name of resource to use. Default is 'consensus'
-    resource : pd.DataFrame, optional
-        Resource to use. If None, will use resource_name
-    interactions : pd.DataFrame, optional
-        Interactions to use. If None, will use resource
-    layer : str, optional
-        Layer to use. If None, will use adata.raw.X
-    use_raw : bool, optional
-        Whether to use adata.raw.X. Default is True
-    expr_prop : float, optional
-        Minimum cells expressing a gene for it to be considered expressed. Default is 0.1
-    min_cells : int, optional
-        Minimum cells per group to be considered. Default is 10
+        List of statistics to be used for ligand-receptor pairs
+    %(resource_name)s
+    %(resource)s
+    %(interactions)s
+    %(layer)s
+    %(use_raw)s
+    %(expr_prop)s
+    %(min_cells)s
     complex_col : str, optional
-        Column in dea_df to use for complex expression. Default is None.
+        Column in `dea_df` to use for complex expression. Default is None.
         If None, will use mean expression ('expr') calculated per group in `groupby`.
-    return_all_lrs : bool, optional
-        Whether to return all ligand-receptor pairs. Default is False.
-        If False, will only return ligand-receptor pairs, the genes for which
-        have matching statistics in dea_df (for each group in `groupby`).
+    %(return_all_lrs)s
     source_labels : list, optional
         List of labels to use as source. Default is None
     target_labels : list, optional
         List of labels to use as target. Default is None
-    lr_sep : str, optional
-        Separator to use between ligand and receptor. Default is '^'
-    verbose : bool, optional
-        Whether to print progress. Default is False
+    %(lr_sep)s
+    %(verbose)s
     
     Returns
     -------
@@ -78,8 +65,9 @@ def df_to_lr(adata,
     
     _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
         
+    _check_groupby(adata=adata, groupby=groupby, verbose=verbose)
     if (groupby not in adata.obs.columns) or (groupby not in dea_df.columns):
-        raise ValueError(f'groupby must match a column in adata.obs and dea_df')
+        raise ValueError(f'groupby must match a column in both adata.obs and dea_df')
     if not np.any(adata.var_names.isin(dea_df.index)):
         raise ValueError(f'index of dea_df must match adata.var_names')
     

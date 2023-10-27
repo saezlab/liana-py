@@ -142,9 +142,9 @@ def test_get_funs():
     
     loadings = get_variable_loadings(mdata,
                                      varm_key='LFs',
-                                     view_separator=':',
-                                     variable_separator='^',
-                                     pair_separator='&')
+                                     view_sep=':',
+                                     variable_sep='^',
+                                     pair_sep='&')
     assert isinstance(loadings, pd.DataFrame)
     assert loadings.shape == (16, 9)
     

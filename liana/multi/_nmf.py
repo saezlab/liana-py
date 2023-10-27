@@ -1,30 +1,38 @@
+from __future__ import annotations
+
 from sklearn.decomposition import NMF
 import numpy as np
 import pandas as pd
 import plotnine as p9
 from tqdm import tqdm
 
+from anndata import AnnData
 from liana.method._pipe_utils._pre import _choose_mtx_rep
 from liana._logging import _logg, _check_if_installed
+from liana._constants._docs import d
 
-def nmf(adata, n_components=None, k_range=range(1, 10), use_raw=False, layer=None, inplace=True, verbose=False, **kwargs):
+@d.dedent
+def nmf(adata: AnnData,
+        n_components: (int or None)=None,
+        k_range: range =range(1, 10),
+        use_raw: bool=False,
+        layer: (str or None) = None, 
+        inplace:bool=True, 
+        verbose:bool=False,
+        **kwargs):
     """
     Fits NMF to an AnnData object.
     
     Parameters
     ----------
-    adata : AnnData
-        AnnData object.
+    %(adata)s
     n_components : int, None
         Number of components to use. If None, the number of components is estimated using the elbow method.
     k_range : range
         Range of components to test. Default: range(1, 10).
-    use_raw : bool
-        Whether to use ``.raw`` attribute of ``adata``.
-    layer : str, None
-        ``.layers`` key to use. If None, ``.X`` is used.
-    inplace : bool
-        If ``False``, return a copy. Otherwise, do operation inplace and return ``None``.
+    %(use_raw)s
+    %(layer)s
+    %(inplace)s
     **kwargs : dict
         Keyword arguments to pass to ``sklearn.decomposition.NMF``.
     

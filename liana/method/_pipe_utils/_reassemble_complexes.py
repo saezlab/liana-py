@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import pandas as pd
 from liana._logging import _logg
+from liana._constants._docs import d
 
+@d.dedent
 def filter_reassemble_complexes(lr_res,
                                 _key_cols,
                                 complex_cols,
@@ -24,11 +26,8 @@ def filter_reassemble_complexes(lr_res,
         ['source', 'target', 'ligand_complex', 'receptor_complex']
     complex_cols
         method/complex-relevant columns
-    expr_prop
-        minimum expression proportion for each subunit in a complex
-    return_all_lrs
-        Bool whether to return all LRs, or only those that surpass the expr_prop
-        threshold. `False` by default.
+    %(expr_prop)s
+    %(return_all_lrs)s
     complex_policy
         approach by which the complexes are reassembled
 
