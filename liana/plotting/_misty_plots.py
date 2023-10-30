@@ -2,7 +2,7 @@ import pandas as pd
 import plotnine as p9
 
 
-def target_metrics(misty, stat, top_n=None, ascending=False, key=None, figure_size=(7,5), return_fig=True):
+def target_metrics(misty, stat, top_n=None, ascending=False, key=None, filterby=None, filter_lambda=None, figure_size=(7,5), return_fig=True):
     """
     Plot target metrics.
     
@@ -18,6 +18,10 @@ def target_metrics(misty, stat, top_n=None, ascending=False, key=None, figure_si
         Whether to sort in ascending order
     key : callable
         Function to use to sort the dataframe
+    filterby : str
+        Column to filter by
+    filter_lambda : callable
+        Function to use to filter the dataframe
     figure_size : tuple
         Figure size
     return_fig : bool
@@ -31,6 +35,9 @@ def target_metrics(misty, stat, top_n=None, ascending=False, key=None, figure_si
     """
     target_metrics = misty.uns['target_metrics'].copy()
     
+    if filterby is not None:
+        msk = target_metrics[filterby].apply(filter_lambda)
+        target_metrics = target_metrics[msk]
     if top_n is not None:
         target_metrics = target_metrics.sort_values(stat, ascending=ascending, key=key).head(top_n)
     
@@ -54,9 +61,9 @@ def target_metrics(misty, stat, top_n=None, ascending=False, key=None, figure_si
     p.draw()
     
     
-def contributions(misty, figure_size=(7, 5), stat=None, top_n=None, ascending=False, key=None, return_fig=True):
+def contributions(misty, top_n=None, ascending=False, key=None, figure_size=(7, 5), return_fig=True):
     """
-    Plot view contributions.
+    Plot view contributions per target.
     
     Parameters
     ----------
@@ -65,8 +72,6 @@ def contributions(misty, figure_size=(7, 5), stat=None, top_n=None, ascending=Fa
         MistyData object
     figure_size : tuple
         Figure size
-    stat : str
-        Statistic to plot
     top_n : int
         Number of targets to plot
     ascending : bool
@@ -83,15 +88,15 @@ def contributions(misty, figure_size=(7, 5), stat=None, top_n=None, ascending=Fa
     """
     target_metrics = misty.uns['target_metrics'].copy()
     
-    if top_n is not None:
-        target_metrics = target_metrics.sort_values(stat, ascending=ascending, key=key).head(top_n)
-
     view_names = misty.view_names.copy()
     if 'intra' not in target_metrics.columns:
         view_names.remove('intra')
 
     target_metrics = target_metrics[['target', *view_names]]
     target_metrics = target_metrics.melt(id_vars='target', var_name='view', value_name='contribution')
+    
+    if top_n is not None:
+        target_metrics = target_metrics.sort_values('contribution', ascending=ascending, key=key).head(top_n)
 
     p = (p9.ggplot(target_metrics, p9.aes(x='target', y='contribution', fill='view')) +
             p9.geom_bar(stat='identity') +
@@ -107,7 +112,7 @@ def contributions(misty, figure_size=(7, 5), stat=None, top_n=None, ascending=Fa
     p.draw()
 
 
-def interactions(misty, view, top_n = None, ascending=False, key=None, figure_size=(7,5), return_fig=True):
+def interactions(misty, view, top_n = None, ascending=False, key=None, filterby=None, filter_lambda=None, figure_size=(7,5), return_fig=True):
     """
     Plot interaction importances.
     
@@ -124,6 +129,10 @@ def interactions(misty, view, top_n = None, ascending=False, key=None, figure_si
         Whether to sort interactions in ascending order
     key : str
         Key to use when sorting interactions
+    filterby : str
+        Column to filter by
+    filter_lambda : callable
+        Function to use to filter the dataframe
     figure_size : tuple
         Figure size
     return_fig : bool
@@ -139,9 +148,14 @@ def interactions(misty, view, top_n = None, ascending=False, key=None, figure_si
     grouped = interactions.groupby('predictor')['importances'].apply(lambda x: x.isna().all())
     interactions = interactions[~interactions['predictor'].isin(grouped[grouped].index)]
     
+    if filterby is not None:
+        top_interactions = interactions[interactions[filterby].apply(filter_lambda)]
+        top_interactions = top_interactions.drop_duplicates(['target', 'predictor'])
     if top_n is not None:
         interactions = interactions.sort_values(by='importances', key=key, ascending=ascending)
         top_interactions = interactions.drop_duplicates(['target', 'predictor']).head(top_n)
+        
+    if (filterby is not None) or (top_n is not None):
         interactions = interactions[interactions['target'].isin(top_interactions['target']) & 
                             interactions['predictor'].isin(top_interactions['predictor'])]
     

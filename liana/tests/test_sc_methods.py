@@ -1,6 +1,7 @@
 import pandas
 from numpy import max, min
 from numpy.testing import assert_almost_equal
+from pandas import DataFrame
 
 from liana.method import cellphonedb, singlecellsignalr as sca, \
     natmi, connectome, logfc, geometric_mean, cellchat
@@ -170,3 +171,16 @@ def test_methods_on_mdata():
         )
     
     assert mdata.uns['liana_res'].shape == (132, 12)
+    
+def test_wrong_resource():
+    from pytest import raises
+    with raises(ValueError):
+        natmi(adata, resource_name='mouseconsensus', groupby='bulk_labels', use_raw=True, n_perms=4)
+    
+    with raises(ValueError):
+        natmi(adata, interactions=[('x', 'D')], groupby='bulk_labels', use_raw=True, n_perms=4)
+        
+    with raises(ValueError):
+        resource = DataFrame({'ligand': ['A', 'B'], 'receptor': ['C', 'D']})
+        natmi(adata, resource=resource, groupby='bulk_labels', use_raw=True, n_perms=4)
+        

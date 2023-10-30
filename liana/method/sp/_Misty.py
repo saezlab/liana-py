@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 from liana._logging import _logg
@@ -9,12 +11,21 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression, RidgeCV
 from sklearn.model_selection import KFold, cross_val_predict
 import statsmodels.api as sm
+from liana._constants._docs import d
+
 
 from mudata import MuData
 
+
 class MistyData(MuData):
     """MistyData Class used to construct multi-view objects"""
-    def __init__(self, data, obs=None, spatial_key='spatial', enforce_obs=True, **kwargs):
+    @d.dedent
+    def __init__(self,
+                 data:(dict | MuData),
+                 obs:(pd.DataFrame | None)= None,
+                 spatial_key:str='spatial',
+                 enforce_obs=True, 
+                 **kwargs):
         """
         Construct a MistyData object from a dictionary of views (anndatas).
         
@@ -25,10 +36,8 @@ class MistyData(MuData):
             Requires an intra-view called "intra".
         obs : `pd.DataFrame`
             DataFrame of observations. If None, the obs of the intra-view is used.
-        spatial_key : `str`
-            Key in the .obsm attribute of each view that contains the spatial coordinates.
-            Default is 'spatial'.
-        **kwargs : `dict`
+        %(spatial_key)s
+        **kwargs
             Keyword arguments passed to the MuData Super class
         """
         if isinstance(data, MuData):
@@ -67,6 +76,7 @@ class MistyData(MuData):
         else:
             return self.mod[view_name].obsm[f"{self.spatial_key}_connectivities"].T
     
+    @d.dedent
     def __call__(self,
                  model='rf',
                  bypass_intra = False,
@@ -93,8 +103,8 @@ class MistyData(MuData):
         predict_self : `bool`, optional (default: False)
             Whether to predict self-interactions. These are determined purely by the feature names.
         bypass_intra : `bool`, optional (default: False)
-            Whether to bypass modeling the intraview via LOFO.
-            In other words, whether to bypass modelling each target by leave-one-feature-out within the same spots.
+            Whether to bypass modeling the intraview via leave-one-feature-out (LOFO).
+            In other words, whether to bypass modelling each target by LOFO within the same spots.
         maskby : `str`, optional (default: None)
             Column in the .obs attribute used to group or mask observations in the intra-view
             If None, all cells are considered as one group.
@@ -106,13 +116,9 @@ class MistyData(MuData):
             used for the multi-view part of the model. Only used if there are more than 2 views being modeled (including intra).
         n_jobs : `int`, optional (default: -1)
             Number of cores used to construct random forest models
-        seed : `int`, optional (default: 1337)
-            Specify random seed for reproducibility
-        inplace : `bool`, optional (default: True)
-            Whether to write the results to the .uns attribute of the object or return 
-            two DataFrames, one for target metrics and one for importances.
-        verbose : `bool`, optional (default: False)
-            Whether to show a progress bar.
+        %(seed)s
+        %(inplace)s
+        %(verbose)s
         **kwargs : `dict`
             Keyword arguments passed to the Regressors. Note that n_jobs & random_state are already set.
         
@@ -190,7 +196,7 @@ class MistyData(MuData):
                                            **kwargs
                                            )
                     predictions_list.append(predictions_extra)
-
+                
                 target_metrics = _multi_model(y,
                                               np.column_stack(predictions_list),
                                               intra_group,
@@ -370,6 +376,5 @@ def _create_obs_masks(intra, maskby):
             obs_masks[intra_group] = intra.obs[maskby] == intra_group
     else:
         raise ValueError(f"maskby column {maskby} must be a column of booleans or categorical")
-        
         
     return obs_masks

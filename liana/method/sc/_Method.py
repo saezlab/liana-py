@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from liana.method.sc._liana_pipe import liana_pipe
 from liana.utils import mdata_to_anndata
+from liana._logging import _logg
+from liana._constants._docs import d
 
 import anndata as an
 from mudata import MuData
@@ -87,37 +89,40 @@ class MethodMeta:
                            }])
         return meta
     
-    def by_sample(self, adata, sample_key, key_added='liana_res', inplace=True, verbose=False, **kwargs):
+    @d.dedent
+    def by_sample(self,
+                  adata: an.AnnData | MuData,
+                  sample_key: str,
+                  key_added: str = 'liana_res',
+                  inplace: bool = True,
+                  verbose: bool = False,
+                  **kwargs):
         """
         Run a method by sample.
         
         Parameters
         ----------
-            adata 
-                AnnData object to run the method on
-            sample_key
-                key in `adata.obs` to use for grouping by sample/context
-            key_added
-                key to store the results in `adata.uns` if `inplace` is True
-            inplace
-                whether to store the results in `adata.uns['liana_res']` or return a dataframe
-            verbose
-                Possible values: False, True, 'full', where 'full' will print the results for each sample,
-                and True will only print the sample progress bar. Default is False.
-            **kwargs
-                keyword arguments to pass to the method
+        %(adata)s
+        %(sample_key)s
+        %(key_added)s
+        %(inplace)s
+        verbose
+            Possible values: False, True, 'full', where 'full' will print the results for each sample,
+            and True will only print the sample progress bar. Default is False.
+        %(kwargs)s
         
         Returns
         -------
-        A pandas DataFrame with the results and a column sample if inplace is False, else None
+        A pandas DataFrame with the results and a column sample is stored in `adata.uns[key_added]` if `inplace` is True, 
+        else the DataFrame is returned.
         
         """
         
         if sample_key not in adata.obs:
             raise ValueError(f"{sample_key} was not found in `adata.obs`.")
         
-        if adata.obs[sample_key].dtype.name != "category":
-            (f"`{sample_key}` was assigned as a categorical.")
+        if not adata.obs[sample_key].dtype.name == "category":
+            _logg(f"Converting `{sample_key}` to categorical!", level='warn', verbose=verbose)
             adata.obs[sample_key] = adata.obs[sample_key].astype("category")
             
         if verbose == 'full':
@@ -167,8 +172,9 @@ class Method(MethodMeta):
                          )
         self._method = _method
 
+    @d.dedent
     def __call__(self,
-                 adata: an.AnnData,
+                 adata: an.AnnData | MuData,
                  groupby: str,
                  resource_name: str = 'consensus',
                  expr_prop: float = 0.1,
@@ -188,61 +194,32 @@ class Method(MethodMeta):
                  mdata_kwargs = dict(),
                  inplace=True):
         """
+        Run a ligand-receptor method.
+        
         Parameters
         ----------
-        adata
-            Annotated data object.
-        groupby
-            The key of the observations grouping to consider.
-        resource_name
-            Name of the resource to be loaded and use for ligand-receptor inference.
-        expr_prop
-            Minimum expression proportion for the ligands/receptors (and their subunits) in the
-            corresponding cell identities. Set to `0`, to return unfiltered results.
-        min_cells
-            Minimum cells per cell identity (`groupby`) to be considered for downstream analysis
-        base
-            Exponent base used to reverse the log-transformation of matrix. Note that this is
-            relevant only for the `logfc` method.
+        %(adata)s
+        %(groupby)s
+        %(resource_name)s
+        %(expr_prop)s
+        %(min_cells)s
+        %(base)s
         supp_columns
-            Any additional columns to be added from any of the methods implemented in
-            liana, or any of the columns returned by `scanpy.tl.rank_genes_groups`, each
-            starting with ligand_* or receptor_*. For example, `['ligand_pvals', 'receptor_pvals']`.
-            `None` by default.
-        return_all_lrs
-            Bool whether to return all LRs, or only those that surpass the `expr_prop`
-            threshold. Those interactions that do not pass the `expr_prop` threshold will
-            be assigned to the *worst* score of the ones that do. `False` by default.
-        key_added
-            Key under which the results will be stored in `adata.uns` if `inplace` is True.
-        use_raw
-            Use raw attribute of adata if present.
-        layer
-            Layer in anndata.AnnData.layers to use. If None, use anndata.AnnData.X.
-        de_method
-            Differential expression method. `scanpy.tl.rank_genes_groups` is used to rank genes
-            according to 1vsRest. The default method is 't-test'. Only relevant if p-values
-            are included in `supp_cols`
-        verbose
-            Verbosity flag
-        n_perms
-            Number of permutations for the permutation test. Note that this is relevant
-            only for permutation-based methods - e.g. `CellPhoneDB`. If `None` is passed, 
-            no permutation testing is performed.
-        seed
-            Random seed for reproducibility.
-        resource
-            Parameter to enable external resources to be passed. Expects a pandas dataframe
-            with [`ligand`, `receptor`] columns. None by default. If provided will overrule
-            the resource requested via `resource_name`
-        interactions
-            List of tuples with ligand-receptor pairs `[(ligand, receptor), ...]` to be used for the analysis.
-            If passed, it will overrule the resource requested via `resource` and `resource_name`.
-        mdata_kwargs
-            Keyword arguments to be passed to `li.fun.mdata_to_anndata` if `adata` is an instance of `MuData`.
-            If an AnnData object is passed, these arguments are ignored.
-        inplace
-            If true return `DataFrame` with results, else assign to `.uns`.
+            Additional columns to be added from any of the methods implemented in liana,
+            or any of the columns returned by `scanpy.tl.rank_genes_groups`, each starting with ligand_* or receptor_*.
+            For example, `['ligand_pvals', 'receptor_pvals']`. None by default.
+        %(return_all_lrs)s
+        %(key_added)s
+        %(use_raw)s
+        %(layer)s
+        %(de_method)s
+        %(verbose)s
+        %(n_perms_sc)s
+        %(seed)s
+        %(resource)s
+        %(interactions)s
+        %(mdata_kwargs)s
+        %(inplace)s
 
         Returns
         -------

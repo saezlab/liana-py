@@ -1,6 +1,23 @@
 Release notes
 =============
 
+1.0.3 (XX.11.2023)
+-------------------------------------------------
+- Added `filterby` and `filter_lambda` parameters to `li.pl.interactions` and `li.pl.target_metrics` to allow filtering of interactions and metrics, respectively.
+
+- Removed unnecessary `stat` parameter from `li.pl.contributions`
+
+- Added tests to ensure both `lr_bivar` and single-cell methods throw an exception when the resource is not covered by the data.
+
+- `estimate_elbow` will add the errors and the number of patterns to `.uns`
+
+- When `groupby` or `sample_key` are not categorical liana will now print a warning before converting them to categorical. Related to #28
+
+- Various Documentation improvements
+
+- Renamed some `*_separator` columns to `*_sep` for consistency
+
+
 1.0.2 (13.10.2023)
 -------------------------------------------------
 - Added as `seed` param to `find_causalnet`, used to a small amount of noise to the nodes in to avoid obtaining multiple solutions to the same problem when multiple equal solutions are possible.
