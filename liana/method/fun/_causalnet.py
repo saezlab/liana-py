@@ -182,7 +182,7 @@ def find_causalnet(
     _logg(f"Solving with {solver}...", verbose=verbose)
     if (solver=='scipy') and verbose:
         kwargs.update(scipy_options=dict(disp='true'))
-    ps = P.solve(
+    P.solve(
         solver=solver,
         max_seconds=max_seconds,
         verbosity=int(verbose),

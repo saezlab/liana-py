@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from scipy.sparse import csr_matrix
 from anndata import AnnData
 from mudata import MuData
 from liana.method._pipe_utils._common import _get_props
@@ -80,7 +79,7 @@ class SpatialBivariate():
                  y_transform: (bool | callable) = False,
                  complex_sep: (None | str)=None,
                  xy_sep:str = '^',
-                 remove_self_interactions:bool=True,
+                 remove_self_interactions:bool = True,
                  inplace:bool = True,
                  verbose:bool = False,
                  ):
