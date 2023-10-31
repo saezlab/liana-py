@@ -33,13 +33,13 @@ def test_get_spatial_connectivities():
     assert conns.sum() == 1254.3161716188595
     
     conns = spatial_neighbors(adata=adata, bandwidth=250, set_diag=False,
-                              max_dist_ratio=5,
+                              max_neighbours=100,
                               kernel='gaussian', cutoff=0.1,
                               inplace=False)
     assert conns.sum() == 6597.05237692107
     
     conns = spatial_neighbors(adata=adata, bandwidth=250,
-                              set_diag=False, max_dist_ratio=5,
+                              set_diag=False, max_neighbours=100,
                               kernel='gaussian', cutoff=0.1,
                               inplace=False, standardize=True)
     np.testing.assert_almost_equal(conns.sum(), conns.shape[0])

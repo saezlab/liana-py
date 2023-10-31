@@ -30,8 +30,8 @@ def test_misty_para():
     interaction_msk = (interactions['target']=='ligA') & \
         (interactions['predictor']=='protE')
     np.testing.assert_almost_equal(interactions[interaction_msk]['importances'].values,
-                                np.array([0.0015018, 0.0732367]))
-    np.testing.assert_almost_equal(target_metrics['gain_R2'].mean(), -0.0008262446448197796)
+                                np.array([0.0015018, 0.066417]))
+    np.testing.assert_almost_equal(target_metrics['gain_R2'].mean(), -0.0013332858830147898)
     
 
 def test_misty_bypass():    
@@ -48,7 +48,7 @@ def test_misty_bypass():
     assert interactions['importances'].sum().round(10) == 22.0
     np.testing.assert_almost_equal(interactions[(interactions['target']=='ligC') &
                                                (interactions['predictor']=='ligA')]['importances'].values,
-                                   np.array([0.0444664, 0.0541467]))
+                                   np.array([0.0444664, 0.0546247]))
     
 
 def test_misty_groups():
@@ -72,7 +72,7 @@ def test_misty_groups():
      groupby(['intra_group'])['gain_R2'].
      mean().values
     )
-    perf_expected = np.array([-0.0174493, -0.0121749])
+    perf_expected = np.array([-0.01674819, -0.01008328])
     np.testing.assert_almost_equal(perf_actual, perf_expected)
     
     # assert that there are self interactions = var_n * var_n
@@ -119,7 +119,7 @@ def test_misty_mask():
     misty(model='linear', maskby='mask')
     
     assert misty.uns['target_metrics'].shape == (11, 7)
-    np.testing.assert_almost_equal(misty.uns['target_metrics']['multi_R2'].mean(), 0.42037103778063667, decimal=3)
+    np.testing.assert_almost_equal(misty.uns['target_metrics']['multi_R2'].mean(), 0.4203699749106394, decimal=3)
     np.testing.assert_almost_equal(misty.uns['target_metrics']['intra_R2'].mean(), 0.4248588250759459, decimal=3)
     
     assert misty.uns['interactions'].shape == (330, 4)

@@ -1,6 +1,6 @@
 from anndata import AnnData
 import numpy as np
-from scipy.spatial import cKDTree
+from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import normalize
 from liana._constants._docs import d
 
@@ -21,7 +21,7 @@ def _linear(distance_mtx, l):
 def spatial_neighbors(adata: AnnData,
                       bandwidth=None,
                       cutoff=None,
-                      max_dist_ratio=3,
+                      max_neighbours=None,
                       kernel='gaussian',
                       set_diag=False,
                       zoi=0,
@@ -39,11 +39,14 @@ def spatial_neighbors(adata: AnnData,
     
     %(adata)s
     bandwidth
-         Denotes signaling length (`l`). Corresponds to the units in which spatial coordinates are expressed.
+         Denotes signaling length (`l`) and controls the maximum distance at which two spots are considered.
+         Corresponds to the units in which spatial coordinates are expressed.
     cutoff
         Values below this cutoff will be set to 0.
-    max_dist_ratio
-        Maximum distance ratio used when calculate pairwise Euclidean distances. Default is 3 (x the bandwidth).
+    max_neighbours
+        Maximum nearest neighbours to be considered when generating spatial connectivity weights.
+        Essentially, the maximum number of edges in the graph. Default is `None`, which will use adata.shape[0]/2.
+        
     kernel
         Kernel function used to generate connectivity weights. The following options are available:
         ['gaussian', 'exponential', 'linear', 'misty_rbf']
@@ -65,8 +68,6 @@ def spatial_neighbors(adata: AnnData,
     -----
     This function is adapted from mistyR, and is set to be consistent with
     the `squidpy.gr.spatial_neighbors` function in the `squidpy` package. 
-    It is intended to be a minimalist implementation of spatial connectivity weights,
-    for non-generic use cases, it should be replaced by `squidpy.gr.spatial_neighbors`.
     
     Returns
     -------
@@ -85,22 +86,18 @@ def spatial_neighbors(adata: AnnData,
     if bandwidth is None:
         raise ValueError("Please specify a bandwidth")
 
-    max_distance = bandwidth * max_dist_ratio
     coords = adata.obsm[spatial_key]
-    tree = cKDTree(coords)
     
-    if reference is not None:
-        reference = cKDTree(reference)
-        dist = reference.sparse_distance_matrix(tree,
-                                                max_distance=max_distance,
-                                                output_type="coo_matrix")
-    else:
-        dist = tree.sparse_distance_matrix(tree,
-                                           max_distance=max_distance,
-                                           output_type="coo_matrix")
-
-    
-    dist = dist.tocsr()
+    if reference is None:
+        _reference = coords
+        
+    if max_neighbours is None:
+        max_neighbours = int(adata.shape[0] / 2)
+        
+    tree = NearestNeighbors(n_neighbors=max_neighbours,
+                        algorithm='ball_tree',
+                        metric='euclidean').fit(_reference)
+    dist = tree.kneighbors_graph(coords, mode='distance')
 
     # prevent float overflow
     bandwidth = np.array(bandwidth, dtype=np.float64)
@@ -135,7 +132,7 @@ def spatial_neighbors(adata: AnnData,
 
     if inplace:
         if reference is not None:
-            adata.obsm[f'{key_added}_connectivities'] = dist.T
+            adata.obsm[f'{key_added}_connectivities'] = dist
         else:
             adata.obsp[f'{key_added}_connectivities'] = dist
 
