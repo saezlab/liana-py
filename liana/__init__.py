@@ -1,7 +1,6 @@
 import importlib.metadata
 __version__ = importlib.metadata.version("liana")
 
-"""actual API"""
 from . import _logging, testing, multi
 from . import method as mt
 from . import plotting as pl

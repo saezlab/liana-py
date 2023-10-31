@@ -76,9 +76,6 @@ def generate_lr_geneset(resource,
 
     return resource
 
-
-import numpy as np
-
 def _assign_entity_weights(resource, net, entity_key='receptor', source='source', target='target', weight='weight'):
     # only keep relevant columns
     net = net[[source, target, weight]]

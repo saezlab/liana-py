@@ -68,7 +68,8 @@ def adata_to_views(adata: AnnData,
     _check_groupby(adata=adata, groupby=groupby, verbose=verbose)
 
     padatas = {}
-    if keep_stats: stats = []
+    if keep_stats:
+        stats = []
     for view in (views):
         # filter AnnData to view
         temp = adata[adata.obs[groupby] == view].copy()
@@ -181,10 +182,6 @@ def lrs_to_views(adata: AnnData,
     Returns a MuData object with views that represent an aggregate for each entity in `adata.obs[groupby]`.
 
     """
-
-    # Check if MuData is installed
-    mu = _check_if_installed(package_name='mudata')
-
     if (sample_key not in adata.obs.columns) or (sample_key not in adata.uns[uns_key].columns):
         raise ValueError(f'`{sample_key}` not found in `adata.obs` or `adata.uns[uns_key]`!' +
                          'Please ensure that the sample key is present in both objects.')

@@ -4,17 +4,17 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import normalize
 from liana._constants._docs import d
 
-def _gaussian(distance_mtx, l):
-    return np.exp(-(distance_mtx ** 2.0) / (2.0 * l ** 2.0))
+def _gaussian(distance_mtx, bandwidth):
+    return np.exp(-(distance_mtx ** 2.0) / (2.0 * bandwidth ** 2.0))
 
-def _misty_rbf(distance_mtx, l):
-    return np.exp(-(distance_mtx ** 2.0) / (l ** 2.0))
+def _misty_rbf(distance_mtx, bandwidth):
+    return np.exp(-(distance_mtx ** 2.0) / (bandwidth ** 2.0))
 
-def _exponential(distance_mtx, l):
-    return np.exp(-distance_mtx / l)
+def _exponential(distance_mtx, bandwidth):
+    return np.exp(-distance_mtx / bandwidth)
 
-def _linear(distance_mtx, l):
-    connectivity = 1 - distance_mtx / l
+def _linear(distance_mtx, bandwidth):
+    connectivity = 1 - distance_mtx / bandwidth
     return np.clip(connectivity, a_min=0, a_max=np.inf)
 
 
