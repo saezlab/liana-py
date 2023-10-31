@@ -7,7 +7,7 @@ from liana.method._pipe_utils._common import _get_props
 
 from liana.method.sp._Misty import MistyData
 
-from liana.utils._spatial_neighbors import spatial_neighbors
+from liana.utils.spatial_neighbors import spatial_neighbors
 from liana.method._pipe_utils._pre import _choose_mtx_rep
 
 from liana.resource import select_resource

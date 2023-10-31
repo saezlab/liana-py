@@ -18,6 +18,7 @@ def _linear(distance_mtx, l):
     return np.clip(connectivity, a_min=0, a_max=np.inf)
 
 
+@d.dedent
 def spatial_neighbors(adata: AnnData,
                       bandwidth=None,
                       cutoff=None,
@@ -26,9 +27,9 @@ def spatial_neighbors(adata: AnnData,
                       set_diag=False,
                       zoi=0,
                       standardize=False,
+                      reference=None,
                       spatial_key="spatial",
                       key_added='spatial',
-                      reference=None,
                       inplace=True
                       ):
     """
@@ -45,11 +46,11 @@ def spatial_neighbors(adata: AnnData,
         Values below this cutoff will be set to 0.
     max_neighbours
         Maximum nearest neighbours to be considered when generating spatial connectivity weights.
-        Essentially, the maximum number of edges in the graph. Default is `None`, which will use adata.shape[0]/2.
-        
+        Essentially, the maximum number of edges in the graph. Default is `None`, which will use n = adata.shape[0]/2.
     kernel
-        Kernel function used to generate connectivity weights. The following options are available:
-        ['gaussian', 'exponential', 'linear', 'misty_rbf']
+        Kernel function used to generate connectivity weights. 
+        It controls the shape of the connectivity weights.
+        The following options are available: ['gaussian', 'exponential', 'linear', 'misty_rbf']
     set_diag
         Logical, sets connectivity diagonal to 0 if `False`. Default is `True`.
     zoi
@@ -59,6 +60,10 @@ def spatial_neighbors(adata: AnnData,
         This plays a role when weighing border regions prior to downstream methods, as the number of spots
         in the border region (and hence the sum of proximities) is smaller than the number of spots in the center.
         Relevant for methods with unstandardized scores (e.g. product). Default is `False`.
+    reference
+        Reference coordinates to use when generating spatial connectivity weights.
+        If `None`, uses the spatial coordinates in `adata.obsm[spatial_key]`.
+        This is only relevant if you want to use a different set of coordinates to generate spatial connectivity weights.
     %(spatial_key)s
     key_added
         Key to add to `adata.obsp` if `inplace = True`.
@@ -86,10 +91,12 @@ def spatial_neighbors(adata: AnnData,
     if bandwidth is None:
         raise ValueError("Please specify a bandwidth")
 
-    coords = adata.obsm[spatial_key]
+    coordinates = adata.obsm[spatial_key]
     
     if reference is None:
-        _reference = coords
+        _reference = coordinates
+    else:
+        _reference = reference
         
     if max_neighbours is None:
         max_neighbours = int(adata.shape[0] / 2)
@@ -97,7 +104,7 @@ def spatial_neighbors(adata: AnnData,
     tree = NearestNeighbors(n_neighbors=max_neighbours,
                         algorithm='ball_tree',
                         metric='euclidean').fit(_reference)
-    dist = tree.kneighbors_graph(coords, mode='distance')
+    dist = tree.kneighbors_graph(coordinates, mode='distance')
 
     # prevent float overflow
     bandwidth = np.array(bandwidth, dtype=np.float64)
