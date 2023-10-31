@@ -17,6 +17,10 @@ Release notesconsistency
 
 - Renamed some ``*_separator`` columns to ``*_sep`` for consistency
 
+- Added ``li.ut.query_bandwidth`` to query the bandwidth of a the spatial connectivities
+
+- Added pre-commit hooks to ensure consistency
+
 
 1.0.2 (13.10.2023)
 -------------------------------------------------
