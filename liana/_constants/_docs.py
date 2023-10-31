@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from textwrap import dedent
-from typing import Any, Callable
 
 from docrep import DocstringProcessor
 
@@ -10,7 +8,7 @@ _adata = """\
 adata
     Annotated data object."""
 
-    
+
 _mdata = """\
 mdata
     MuData (multimodal) data object."""
@@ -45,7 +43,7 @@ resource_name
 _sample_key = """\
 sample_key
     key in `adata.obs` to use for grouping by sample or context."""
-    
+
 _key_added = """\
 key_added
     Key under which the results will be stored in `adata.uns` if `inplace` is True."""
@@ -74,7 +72,7 @@ inplace
 _verbose = """\
 verbose
     Verbosity flag."""
-    
+
 _lr_sep = """\
 lr_sep
     Separator to use between ligand and receptor. Default is '^'."""
@@ -98,13 +96,13 @@ min_cells
 _base = """\
 base
     Exponent base used to reverse the log-transformation of the matrix. Relevant only for the `logfc` method."""
-    
+
 _return_all_lrs = """\
 return_all_lrs
     Bool whether to return all ligand-receptor pairs, or only those that surpass the `expr_prop`
     threshold. Ligand-receptor pairs that do not pass the `expr_prop` threshold will be assigned
     to the *worst* score of the ones that do. `False` by default."""
-    
+
 _de_method = """\
 de_method
     Differential expression method. `scanpy.tl.rank_genes_groups` is used to rank genes
@@ -216,5 +214,5 @@ d = DocstringProcessor(
     x_mod=_x_mod,
     y_mod=_y_mod,
     mask_negatives=mask_negatives
-    
+
 )

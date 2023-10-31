@@ -13,10 +13,9 @@ from liana.method.sp._spatial_pipe import (
     _rename_means,
     _run_scores_pipeline,
     _connectivity_to_weight,
-    _handle_connectivity,
     _add_complexes_to_var
     )
-    
+
 from liana.utils.obsm_to_adata import obsm_to_adata
 from liana.utils.mdata_to_anndata import mdata_to_anndata
 from liana.resource._select_resource import _handle_resource
@@ -25,6 +24,7 @@ from liana.method._pipe_utils import prep_check_adata, assert_covered
 
 from liana.method.sp._bivariate_funs import _handle_functions, _bivariate_functions
 from liana._logging import _logg
+from scipy.sparse import csr_matrix, isspmatrix_csr
 
 
 class SpatialBivariate():
@@ -32,18 +32,29 @@ class SpatialBivariate():
     def __init__(self, x_name='x', y_name='y'):
         self.x_name = x_name
         self.y_name = y_name
-    
+
     def _handle_return(self, data, stats, local_scores, key_added, x_added, inplace=False):
         if not inplace:
             return stats, local_scores
 
         data.uns[key_added] = stats
-        
+
         if isinstance(data, MuData):
             data.mod[x_added] = local_scores
         else:
             data.obsm[x_added] = local_scores
-        
+
+
+    def _handle_connectivity(self, adata, connectivity_key):
+        if connectivity_key not in adata.obsp.keys():
+            raise ValueError(f'No connectivity matrix founds in mdata.obsp[{connectivity_key}]')
+        connectivity = adata.obsp[connectivity_key]
+
+        if not isspmatrix_csr(connectivity):
+            connectivity = csr_matrix(connectivity, dtype=np.float32)
+
+        return connectivity
+
     @d.dedent
     def __call__(self,
                  mdata: (MuData | AnnData),
@@ -75,10 +86,10 @@ class SpatialBivariate():
                  ):
         """
         A method for bivariate local spatial metrics.
-        
+
         Parameters
         ----------
-        
+
         %(mdata)s
         %(x_mod)s
         %(y_mod)s
@@ -116,27 +127,27 @@ class SpatialBivariate():
             Whether to remove self-interactions. `True` by default.
         %(inplace)s
         %(verbose)s
-        
+
         Returns
         -------
-        
+
         If `inplace` is `True`, the results are added to `mdata` and `None` is returned.
         If `inplace` is `False`, the results are returned.
         """
-        
+
         if n_perms is not None:
             if not isinstance(n_perms, int) or n_perms < 0:
                 raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")
-        
+
         local_fun = _handle_functions(function_name)
-        
+
         resource = _handle_resource(interactions=interactions,
                                     resource=resource,
                                     resource_name=resource_name,
                                     x_name=self.x_name,
                                     y_name=self.y_name,
                                     verbose=verbose)
-        
+
         if isinstance(mdata, MuData):
             adata = mdata_to_anndata(mdata,
                                      x_mod=x_mod,
@@ -157,7 +168,7 @@ class SpatialBivariate():
             layer = x_layer
         else:
             raise ValueError("Invalid type, `adata/mdata` must be an AnnData/MuData object")
-            
+
         adata = prep_check_adata(adata=adata,
                                  use_raw=use_raw,
                                  layer=layer,
@@ -168,9 +179,9 @@ class SpatialBivariate():
                                 )
 
 
-        connectivity = _handle_connectivity(adata=adata, connectivity_key=connectivity_key)
+        connectivity = self._handle_connectivity(adata=adata, connectivity_key=connectivity_key)
         weight = _connectivity_to_weight(connectivity=connectivity, local_fun=local_fun)
-        
+
         if complex_sep is not None:
             adata = _add_complexes_to_var(adata,
                                           np.union1d(resource[self.x_name].astype(str),
@@ -178,11 +189,11 @@ class SpatialBivariate():
                                                      ),
                                           complex_sep=complex_sep
                                           )
-        
+
         # filter_resource
         resource = resource[(np.isin(resource[self.x_name], adata.var_names)) &
                             (np.isin(resource[self.y_name], adata.var_names))]
-        
+
         # NOTE: Should I just get rid of remove_self_interactions?
         self_interactions = resource[self.x_name] == resource[self.y_name]
         if self_interactions.any() & remove_self_interactions:
@@ -197,7 +208,7 @@ class SpatialBivariate():
 
         # Filter to only include the relevant features
         adata = adata[:, np.intersect1d(entities, adata.var.index)]
-        
+
         xy_stats = pd.DataFrame({'means': adata.X.mean(axis=0).A.flatten(),
                                  'props': _get_props(adata.X)},
                                 index=adata.var_names
@@ -205,20 +216,20 @@ class SpatialBivariate():
         # join global stats to LRs from resource
         xy_stats = resource.merge(_rename_means(xy_stats, entity=self.x_name)).merge(
             _rename_means(xy_stats, entity=self.y_name))
-        
+
         # TODO: nz_threshold to nz_prop? For consistency with other methods
         # filter according to props
         xy_stats = xy_stats[(xy_stats[f'{self.x_name}_props'] >= nz_threshold) &
                             (xy_stats[f'{self.y_name}_props'] >= nz_threshold)]
         # create interaction column
         xy_stats['interaction'] = xy_stats[self.x_name] + xy_sep + xy_stats[self.y_name]
-        
+
         x_mat = adata[:, xy_stats[self.x_name]].X.T
         y_mat = adata[:, xy_stats[self.y_name]].X.T
-        
+
         # reorder columns, NOTE: why?
         xy_stats = xy_stats.reindex(columns=sorted(xy_stats.columns))
-        
+
         if add_categories or mask_negatives:
             local_cats = _categorize(x_mat=x_mat,
                                      y_mat=y_mat,
@@ -230,7 +241,7 @@ class SpatialBivariate():
         else:
             local_cats = None
             local_msk = None
-        
+
         # get local scores
         xy_stats, local_scores, local_pvals = \
             _run_scores_pipeline(xy_stats=xy_stats,
@@ -247,7 +258,7 @@ class SpatialBivariate():
                                  )
         local_scores = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
         local_scores.uns[key_added] = xy_stats
-        
+
         if mask_negatives:
             local_scores.X = local_scores.X * local_msk.T
         if local_cats is not None:
@@ -267,7 +278,7 @@ class SpatialBivariate():
                 "metadata":function.metadata,
                 "reference":function.reference,
                 }
-            
+
         return pd.DataFrame(funs).T.reset_index().rename(columns={"index":"name"})
-    
+
 bivar = SpatialBivariate()

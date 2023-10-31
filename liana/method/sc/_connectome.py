@@ -18,7 +18,7 @@ def _connectome_score(x) -> tuple:
     """
     # magnitude
     expr_prod = x['ligand_means'].values * x['receptor_means'].values
-    
+
     # specificity
     scaled_weight = mean((x['ligand_zscores'].values, x['receptor_zscores'].values), axis=0)
     return expr_prod, scaled_weight

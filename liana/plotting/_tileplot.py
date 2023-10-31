@@ -1,4 +1,3 @@
-import numpy as np
 import plotnine as p9
 from typing import Union, List, Callable, Tuple
 import anndata as ad
@@ -28,7 +27,7 @@ def tileplot(adata: ad.AnnData = None,
              ):
     """
     Tileplot interactions by source and target cells
-    
+
     Parameters
     ----------
     adata
@@ -39,7 +38,7 @@ def tileplot(adata: ad.AnnData = None,
         `column` in `liana_res` to define the fill of the tiles
     label
         `column` in `liana_res` to define the label of the tiles
-    label_fun   
+    label_fun
         `callable` to apply to the `label` column
     source_labels
         list to specify `source` identities to plot
@@ -65,12 +64,12 @@ def tileplot(adata: ad.AnnData = None,
         Size of the figure
     return_fig
         `bool` whether to return the fig object, `False` only plots
-    
+
     Returns
     -------
     A `plotnine.ggplot` instance
-    
-    """    
+
+    """
     liana_res = _prep_liana_res(adata=adata,
                                 liana_res=liana_res,
                                 source_labels=source_labels,
@@ -78,18 +77,18 @@ def tileplot(adata: ad.AnnData = None,
                                 ligand_complex=ligand_complex,
                                 receptor_complex=receptor_complex,
                                 uns_key=uns_key)
-    
+
     liana_res = _filter_by(liana_res, filterby, filter_lambda)
     liana_res = _get_top_n(liana_res, top_n, orderby, orderby_ascending, orderby_absolute)
-    
+
     # get columns which ends with fill or label
     relevant_cols = [col for col in liana_res.columns if col.endswith(fill) | col.endswith(label)]
-    
+
     ligand_stats = _entity_stats(liana_res,
                                  entity='ligand',
                                  entity_type='source',
                                  relevant_cols=relevant_cols)
-    
+
     _check_var(ligand_stats, var=fill, var_name='fill')
     _check_var(ligand_stats, var=label, var_name='label')
 
@@ -102,7 +101,7 @@ def tileplot(adata: ad.AnnData = None,
 
     if label_fun is not None:
         liana_res[label] = liana_res[label].apply(label_fun)
-        
+
     p = (
         p9.ggplot(liana_res, p9.aes(x='cell_type', y='interaction', fill=fill)) +
         p9.geom_tile() +
@@ -117,12 +116,12 @@ def tileplot(adata: ad.AnnData = None,
         p9.scale_fill_cmap(cmap) +
         p9.labs(x='Cell type', y='Interaction', fill=str.capitalize(fill))
     )
-    
+
     if return_fig:
         return p
-    
+
     p.draw()
-    
+
 def _entity_stats(liana_res, entity, entity_type, relevant_cols):
     entity_stats = liana_res[['interaction', f"{entity}_complex", entity_type, *relevant_cols]].copy()
     entity_stats = entity_stats.rename(columns={entity_type: 'cell_type'}).assign(type=entity_type.capitalize())

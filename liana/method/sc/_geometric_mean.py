@@ -23,7 +23,7 @@ def _gmean_score(x, perm_stats) -> tuple:
     """
     lr_gmeans = gmean((x['ligand_means'].values, x['receptor_means'].values), axis=0)
     gmean_pvals = _calculate_pvals(lr_gmeans, perm_stats, gmean)
-    
+
     return lr_gmeans, gmean_pvals
 
 

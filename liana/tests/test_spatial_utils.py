@@ -13,31 +13,31 @@ def test_get_spatial_connectivities():
     spatial_neighbors(adata=adata, bandwidth=200, set_diag=True, cutoff=0.2)
     np.testing.assert_equal(adata.obsp['spatial_connectivities'].shape, (adata.shape[0], adata.shape[0]))
     np.testing.assert_equal(adata.obsp['spatial_connectivities'].sum(), 4550.654013895928)
-    
+
     spatial_neighbors(adata=adata, bandwidth=100, set_diag=True, cutoff=0.1)
     np.testing.assert_equal(adata.obsp['spatial_connectivities'].sum(), 1802.332962418902)
-    
+
     conns = spatial_neighbors(adata=adata, bandwidth=100,
                               kernel='linear', cutoff=0.1,
                               set_diag=True, inplace=False)
     assert conns.sum() == 899.065036633088
-    
+
     conns = spatial_neighbors(adata=adata, bandwidth=100,
                               kernel='exponential', cutoff=0.1,
                               set_diag=True, inplace=False)
     assert conns.sum() == 1520.8496098963612
-    
+
     conns = spatial_neighbors(adata=adata, bandwidth=100, set_diag=True,
                               kernel='misty_rbf', cutoff=0.1,
                               inplace=False)
     assert conns.sum() == 1254.3161716188595
-    
+
     conns = spatial_neighbors(adata=adata, bandwidth=250, set_diag=False,
                               max_neighbours=100,
                               kernel='gaussian', cutoff=0.1,
                               inplace=False)
     assert conns.sum() == 6597.05237692107
-    
+
     conns = spatial_neighbors(adata=adata, bandwidth=250,
                               set_diag=False, max_neighbours=100,
                               kernel='gaussian', cutoff=0.1,
@@ -56,7 +56,7 @@ x_mat = rng.normal(size=(10, 10))
 y_mat = rng.normal(size=(10, 10))
 n_perms = 100
 mask_negatives = True
-    
+
 
 def test_global_permutation_pvals():
     global_truth = rng.normal(size=(10))
@@ -64,7 +64,7 @@ def test_global_permutation_pvals():
     pvals = _global_permutation_pvals(x_mat=x_mat,
                                       y_mat=y_mat,
                                       global_r=global_truth,
-                                      seed=seed,  
+                                      seed=seed,
                                       n_perms=n_perms,
                                       mask_negatives=mask_negatives,
                                       weight = weight,
@@ -72,8 +72,8 @@ def test_global_permutation_pvals():
                                       )
     assert pvals.shape == (10, )
     assert pvals.sum().round(3)==4.65
-    
-    
+
+
 
 def test_local_permutation_pvals():
     local_truth = rng.normal(size=(10, 10))

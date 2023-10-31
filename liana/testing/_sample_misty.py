@@ -8,7 +8,7 @@ def _sample_interactions():
     interactions['predictor'] = np.tile(['x', 'y', 'z'], 3)
     interactions['view'] = np.repeat(['intra', 'inter', 'extra'], 3)
     interactions['importances'] = np.random.rand(9)
-    
+
     return interactions
 
 
@@ -21,5 +21,5 @@ def _sample_target_metrics():
     target_metrics['gain_R2'] = np.random.rand(3)
     target_metrics['intra'] = np.random.rand(3)
     target_metrics['extra'] = np.random.rand(3)
-    
+
     return target_metrics

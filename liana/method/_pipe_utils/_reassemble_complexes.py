@@ -58,9 +58,9 @@ def filter_reassemble_complexes(lr_res,
 
     # check if complex policy is only min
     aggs = {complex_policy, 'min'}
-    
+
     for col in complex_cols:
-        lr_res = _reduce_complexes(col=col, 
+        lr_res = _reduce_complexes(col=col,
                                    lr_res=lr_res,
                                    key_cols=_key_cols,
                                    aggs=aggs)
@@ -71,7 +71,7 @@ def filter_reassemble_complexes(lr_res,
     if duplicate_mask.any():
         # check if there are any non-equal subunit values
         if not lr_res[duplicate_mask].groupby(_key_cols)[complex_cols].transform(lambda x: x.duplicated(keep=False)).all().all():
-            _logg('There were duplicated subunits in the complexes. ' + 
+            _logg('There were duplicated subunits in the complexes. ' +
                  'The subunits were reduced to only the minimum expression subunit. ' +
                  'However, there were subunits that were not the same within a complex. ',
                  level='warn')

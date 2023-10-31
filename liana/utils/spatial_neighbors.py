@@ -34,10 +34,10 @@ def spatial_neighbors(adata: AnnData,
                       ):
     """
     Generate spatial connectivity weights using Euclidean distance.
-    
+
     Parameters
     ----------
-    
+
     %(adata)s
     bandwidth
          Denotes signaling length (`l`) and controls the maximum distance at which two spots are considered.
@@ -48,7 +48,7 @@ def spatial_neighbors(adata: AnnData,
         Maximum nearest neighbours to be considered when generating spatial connectivity weights.
         Essentially, the maximum number of edges in the graph. Default is `None`, which will use n = adata.shape[0]/2.
     kernel
-        Kernel function used to generate connectivity weights. 
+        Kernel function used to generate connectivity weights.
         It controls the shape of the connectivity weights.
         The following options are available: ['gaussian', 'exponential', 'linear', 'misty_rbf']
     set_diag
@@ -68,18 +68,18 @@ def spatial_neighbors(adata: AnnData,
     key_added
         Key to add to `adata.obsp` if `inplace = True`.
     %(inplace)s
-        
+
     Notes
     -----
     This function is adapted from mistyR, and is set to be consistent with
-    the `squidpy.gr.spatial_neighbors` function in the `squidpy` package. 
-    
+    the `squidpy.gr.spatial_neighbors` function in the `squidpy` package.
+
     Returns
     -------
     If ``inplace = False``, returns an `np.array` with spatial connectivity weights.
     Otherwise, modifies the ``adata`` object with the following key:
         - :attr:`anndata.AnnData.obsp` ``['{key_added}_connectivities']`` with the aforementioned array
-        
+
     """
 
     if cutoff is None:
@@ -92,15 +92,15 @@ def spatial_neighbors(adata: AnnData,
         raise ValueError("Please specify a bandwidth")
 
     coordinates = adata.obsm[spatial_key]
-    
+
     if reference is None:
         _reference = coordinates
     else:
         _reference = reference
-        
+
     if max_neighbours is None:
         max_neighbours = int(adata.shape[0] / 2)
-        
+
     tree = NearestNeighbors(n_neighbors=max_neighbours,
                         algorithm='ball_tree',
                         metric='euclidean').fit(_reference)

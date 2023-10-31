@@ -24,11 +24,11 @@ class MistyData(MuData):
                  data:(dict | MuData),
                  obs:(pd.DataFrame | None)= None,
                  spatial_key:str='spatial',
-                 enforce_obs=True, 
+                 enforce_obs=True,
                  **kwargs):
         """
         Construct a MistyData object from a dictionary of views (anndatas).
-        
+
         Parameters
         ----------
         data : `dict`
@@ -42,7 +42,7 @@ class MistyData(MuData):
         """
         if isinstance(data, MuData):
             data = data.mod
-        
+
         super().__init__(data, **kwargs)
         self.view_names = list(self.mod.keys())
         self.spatial_key = spatial_key
@@ -53,7 +53,7 @@ class MistyData(MuData):
     def _check_views(self):
         assert isinstance(self, MuData), "views must be a MuData object"
         assert "intra" in self.view_names, "views must contain an intra view"
-        
+
         for view in self.view_names:
             if not isspmatrix_csr(self.mod[view].X):
                 _logg(f"view {view} is not a csr_matrix. Converting to csr_matrix", verbose=True, level='warn')
@@ -69,13 +69,13 @@ class MistyData(MuData):
             else:
                 if f"{self.spatial_key}_connectivities" not in self.mod[view].obsm.keys():
                     raise ValueError(f"view {view} does not contain `{self.spatial_key}_connectivities` key in .obsm")
-    
+
     def _get_conn(self, view_name):
         if self.enforce_obs:
             return self.mod[view_name].obsp[f"{self.spatial_key}_connectivities"]
         else:
             return self.mod[view_name].obsm[f"{self.spatial_key}_connectivities"].T
-    
+
     @d.dedent
     def __call__(self,
                  model='rf',
@@ -92,7 +92,7 @@ class MistyData(MuData):
                  ):
         """
         A Multi-view Learning for dissecting Spatial Transcriptomics data (MISTy) model.
-        
+
         Parameters
         ----------
         n_estimators : `int`, optional (default: 100)
@@ -109,7 +109,7 @@ class MistyData(MuData):
             Column in the .obs attribute used to group or mask observations in the intra-view
             If None, all cells are considered as one group.
         k_cv : `int`, optional (default: 10)
-            Number of folds for cross-validation used in the multi-view model, 
+            Number of folds for cross-validation used in the multi-view model,
             and single-view models if model is 'linear'.
         alphas : `list`, optional (default: [0.1, 1, 10])
             List of alpha values used to choose from, that control the strength of the ridge regression,
@@ -121,7 +121,7 @@ class MistyData(MuData):
         %(verbose)s
         **kwargs : `dict`
             Keyword arguments passed to the Regressors. Note that n_jobs & random_state are already set.
-        
+
         Returns
         -------
         If inplace is True, the results are written to the `.uns` attribute of the object.
@@ -130,15 +130,15 @@ class MistyData(MuData):
         """
         view_str = list(self.view_names)
         obs_masks = _create_obs_masks(self.mod['intra'], maskby)
-        
+
         if bypass_intra:
             view_str.remove('intra')
         intra = self.mod['intra']
-        
+
         targets_list, importances_list = [], []
         intra_features = intra.var_names.to_list()
         progress_bar = tqdm(intra_features, disable=not verbose)
-        
+
         for target in (progress_bar):
             for intra_group in obs_masks.keys():
                 msk = obs_masks[intra_group]
@@ -147,11 +147,11 @@ class MistyData(MuData):
                     d = f"Now learning: {target}" + \
                         (f" masked by {intra_group}" if intra_group is not None else "")
                     progress_bar.set_description(d)
-                    
+
                 predictors_nonself, insert_index = _get_nonself(target, intra_features)
                 y = intra[msk, target].X.toarray().reshape(-1)
                 X = intra[msk, predictors_nonself].X.toarray()
-                
+
                 if not bypass_intra:
                     predictions_intra, importance_dict["intra"] = \
                         _single_view_model(y,
@@ -163,7 +163,7 @@ class MistyData(MuData):
                                            n_jobs=n_jobs,
                                            **kwargs
                                            )
-                    if insert_index is not None and predict_self: 
+                    if insert_index is not None and predict_self:
                         # add self-interactions as nan
                         importance_dict["intra"][target] = np.nan
 
@@ -176,19 +176,19 @@ class MistyData(MuData):
                 # model the juxta and paraview (if applicable)
                 for view_name in [v for v in view_str if v != "intra"]:
                     extra = self.mod[view_name]
-                    
+
                     extra_features = extra.var_names.to_list()
                     _predictors, _ =  _get_nonself(target, extra_features) if not predict_self else (extra_features, None)
-                    
+
                     # NOTE: we multiply before masking
                     weights = self._get_conn(view_name)
                     X = weights @ extra[:, _predictors].X.toarray()
                     X = X[msk, :]
-                    
+
                     predictions_extra, importance_dict[view_name] = \
                         _single_view_model(y,
                                            X,
-                                           _predictors, 
+                                           _predictors,
                                            model=model,
                                            k_cv=k_cv,
                                            seed=seed,
@@ -196,7 +196,7 @@ class MistyData(MuData):
                                            **kwargs
                                            )
                     predictions_list.append(predictions_extra)
-                
+
                 target_metrics = _multi_model(y,
                                               np.column_stack(predictions_list),
                                               intra_group,
@@ -204,13 +204,13 @@ class MistyData(MuData):
                                               view_str,
                                               target,
                                               k_cv,
-                                              alphas, 
+                                              alphas,
                                               seed
                                               )
                 targets_list.append(target_metrics)
-                
+
                 importances_df = _format_importances(target=target,
-                                                     intra_group=intra_group, 
+                                                     intra_group=intra_group,
                                                      importance_dict=importance_dict
                                                      )
                 importances_list.append(importances_df)
@@ -218,7 +218,7 @@ class MistyData(MuData):
         target_metrics, importances = _concat_dataframes(targets_list,
                                                          importances_list,
                                                          view_str)
-        
+
         if inplace:
             self.uns['target_metrics'] = target_metrics
             self.uns['interactions'] = importances
@@ -236,18 +236,18 @@ def _format_targets(target, intra_group, view_str, intra_r2, multi_r2, coefs):
                      multi_R2=multi_r2,
                      gain_R2=multi_r2 - intra_r2,
                      )
-    
+
     target_df = pd.DataFrame(d, index=[0])
     target_df[view_str] = coefs
-    
+
     return target_df
 
 
 def _format_importances(target, intra_group, importance_dict):
-    
+
     importances_df = pd.DataFrame(importance_dict).reset_index().rename(columns={'index': 'predictor'})
     importances_df[['target', 'intra_group']] = target, intra_group
-        
+
     return importances_df
 
 
@@ -256,15 +256,15 @@ def _concat_dataframes(targets_list, importances_list, view_str):
     importances = pd.concat(importances_list, axis=0, ignore_index=True)
     importances = pd.melt(importances,
                           id_vars=["target", "predictor", "intra_group"],
-                          value_vars=view_str, 
+                          value_vars=view_str,
                           var_name="view",
                           value_name="importances"
                           )
-    
+
     # drop intra and extra group columns if they are all None
     importances = importances.dropna(axis=1, how='all')
     importances = importances.dropna(axis=0)
-    
+
     return target_metrics, importances
 
 
@@ -278,7 +278,7 @@ def _single_view_model(y, X, predictors, model, k_cv, seed, n_jobs, **kwargs):
         model = model.fit(y=y, X=X)
         predictions = model.oob_prediction_
         importances = model.feature_importances_
-        
+
     elif model=='linear':
         model = LinearRegression(n_jobs=1, **kwargs)
         predictions = cross_val_predict(model,
@@ -289,24 +289,24 @@ def _single_view_model(y, X, predictors, model, k_cv, seed, n_jobs, **kwargs):
                                         n_jobs=n_jobs
                                         )
         importances = sm.OLS(y, X).fit().tvalues
-        
+
     else:
         raise ValueError(f"model {model} is not supported")
-    
+
     named_importances = dict(zip(predictors, importances))
-    
+
     return predictions, named_importances
 
 
 def _multi_model(y, predictions, intra_group, bypass_intra, view_str, target, k_cv, alphas, seed):
     n_views = len(view_str)
-    
+
     if (predictions.shape[0] < k_cv) or (y.var() == 0.0):
         if predictions.shape[0] < k_cv:
             error_message = (f"Number of samples is less than k_cv, {target} metrics set to NaN")
         else:
             error_message = (f"Variance of '{target}' is 0.0, metrics set to NaN")
-        
+
         _logg(error_message, verbose=True, level='warn')
         return _format_targets(target,
                             intra_group,
@@ -315,13 +315,13 @@ def _multi_model(y, predictions, intra_group, bypass_intra, view_str, target, k_
                             np.nan,
                             np.repeat(np.nan, n_views)
                             )
-        
+
     kf = KFold(n_splits=k_cv, shuffle=True, random_state=seed)
     R2_vec_intra, R2_vec_multi = np.zeros(k_cv), np.zeros(k_cv)
     coef_mtx = np.zeros((k_cv, n_views))
-    
+
     model = RidgeCV(alphas=alphas) if n_views > 2 else LinearRegression()
-    
+
     for cv_idx, (train_index, test_index) in enumerate(kf.split(predictions)):
         multi_model = model.fit(X=predictions[train_index], y=y[train_index])
         R2_vec_multi[cv_idx] = multi_model.score(X=predictions[test_index], y=y[test_index])
@@ -330,18 +330,18 @@ def _multi_model(y, predictions, intra_group, bypass_intra, view_str, target, k_
         if not bypass_intra:
             pred_train = predictions[train_index, 0].reshape(-1, 1)
             pred_test = predictions[test_index, 0].reshape(-1, 1)
-            
+
             intra_model = model.fit(X=pred_train, y=y[train_index])
             R2_vec_intra[cv_idx] = intra_model.score(X=pred_test, y=y[test_index])
 
     # format R2s
     intra_r2 = R2_vec_intra.mean().clip(min=0) if not bypass_intra else 0
     multi_r2 = R2_vec_multi.mean().clip(min=0)
-    
+
     # format coefficients
     coefs = coef_mtx.mean(axis=0).clip(min=0)
     coefs = coefs / coefs.sum()
-    
+
     # format metrics to a dataframe
     target_metrics = _format_targets(target,
                                      intra_group,
@@ -350,7 +350,7 @@ def _multi_model(y, predictions, intra_group, bypass_intra, view_str, target, k_
                                      multi_r2,
                                      coefs
                                      )
-        
+
     return target_metrics
 
 def _get_nonself(target, predictors):
@@ -365,7 +365,7 @@ def _get_nonself(target, predictors):
 
 def _create_obs_masks(intra, maskby):
     obs_masks = {}
-    # if maskby is a column of only boleans take it as is    
+    # if maskby is a column of only boleans take it as is
     if maskby is None:
         obs_masks[None] = np.ones(intra.shape[0], dtype=bool)
     elif intra.obs[maskby].dtype == bool:
@@ -376,5 +376,5 @@ def _create_obs_masks(intra, maskby):
             obs_masks[intra_group] = intra.obs[maskby] == intra_group
     else:
         raise ValueError(f"maskby column {maskby} must be a column of booleans or categorical")
-        
+
     return obs_masks

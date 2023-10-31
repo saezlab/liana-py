@@ -29,7 +29,7 @@ def test_dea_to_lr():
     for col in expected_columns:
         assert col in columns
     assert lr_res['interaction_padjusted'].mean() == 0.5540001846991026
-        
+
 def test_dea_to_lr_params():
     lr_res = df_to_lr(adata,
                     dea_df=dea_df,

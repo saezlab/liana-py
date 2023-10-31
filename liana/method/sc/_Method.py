@@ -17,10 +17,10 @@ class MethodMeta:
     """
     A Class used to store Method Metadata
     """
-    
+
     # initiate a list to store weak references to all instances
     instances = [] ## TODO separate instances for each child class
-    
+
     def __init__(self,
                  method_name: str,
                  complex_cols: list,
@@ -88,7 +88,7 @@ class MethodMeta:
                            "Reference": self.reference
                            }])
         return meta
-    
+
     @d.dedent
     def by_sample(self,
                   adata: an.AnnData | MuData,
@@ -99,7 +99,7 @@ class MethodMeta:
                   **kwargs):
         """
         Run a method by sample.
-        
+
         Parameters
         ----------
         %(adata)s
@@ -110,31 +110,31 @@ class MethodMeta:
             Possible values: False, True, 'full', where 'full' will print the results for each sample,
             and True will only print the sample progress bar. Default is False.
         %(kwargs)s
-        
+
         Returns
         -------
-        A pandas DataFrame with the results and a column sample is stored in `adata.uns[key_added]` if `inplace` is True, 
+        A pandas DataFrame with the results and a column sample is stored in `adata.uns[key_added]` if `inplace` is True,
         else the DataFrame is returned.
-        
+
         """
-        
+
         if sample_key not in adata.obs:
             raise ValueError(f"{sample_key} was not found in `adata.obs`.")
-        
+
         if not adata.obs[sample_key].dtype.name == "category":
             _logg(f"Converting `{sample_key}` to categorical!", level='warn', verbose=verbose)
             adata.obs[sample_key] = adata.obs[sample_key].astype("category")
-            
+
         if verbose == 'full':
             verbose = True
             full_verbose = True
         else:
             full_verbose = False
-            
-        samples = adata.obs[sample_key].cat.categories 
-            
+
+        samples = adata.obs[sample_key].cat.categories
+
         adata.uns[key_added] = {}
-        
+
         progress_bar = tqdm(samples, disable=not verbose)
         for sample in (progress_bar):
             if verbose:
@@ -148,7 +148,7 @@ class MethodMeta:
 
         liana_res = concat(adata.uns[key_added]).reset_index(level=1, drop=True).reset_index()
         liana_res = liana_res.rename({"index":sample_key}, axis=1)
-        
+
         if inplace:
             adata.uns[key_added] = liana_res
         return None if inplace else liana_res
@@ -195,7 +195,7 @@ class Method(MethodMeta):
                  inplace=True):
         """
         Run a ligand-receptor method.
-        
+
         Parameters
         ----------
         %(adata)s
@@ -229,7 +229,7 @@ class Method(MethodMeta):
         """
         if supp_columns is None:
             supp_columns = []
-        
+
         if isinstance(adata, MuData):
             ad = mdata_to_anndata(adata, **mdata_kwargs, verbose=verbose)
         else:
@@ -256,7 +256,7 @@ class Method(MethodMeta):
         if inplace:
             adata.uns[key_added] = liana_res
         return None if inplace else liana_res
-        
+
 
 def _show_methods(methods):
     return concat([method.get_meta() for method in methods])

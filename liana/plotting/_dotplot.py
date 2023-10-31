@@ -5,7 +5,7 @@ import pandas
 
 from plotnine import ggplot, geom_point, aes, \
     facet_grid, labs, theme_bw, theme, element_text, element_rect, scale_size_continuous, scale_color_cmap
-    
+
 from liana.plotting._common import _prep_liana_res, _check_var, _get_top_n, _filter_by, _inverse_scores
 
 
@@ -22,7 +22,7 @@ def dotplot(adata: anndata.AnnData = None,
             orderby_absolute: bool = False,
             filterby: bool | None = None,
             filter_lambda=None,
-            ligand_complex: str | None = None, 
+            ligand_complex: str | None = None,
             receptor_complex: str | None = None,
             inverse_colour: bool = False,
             inverse_size: bool = False,
@@ -81,10 +81,10 @@ def dotplot(adata: anndata.AnnData = None,
 
     """
     liana_res = _prep_liana_res(adata=adata,
-                                liana_res=liana_res, 
+                                liana_res=liana_res,
                                 source_labels=source_labels,
                                 target_labels=target_labels,
-                                ligand_complex = ligand_complex, 
+                                ligand_complex = ligand_complex,
                                 receptor_complex = receptor_complex,
                                 uns_key=uns_key
                                 )
@@ -93,7 +93,7 @@ def dotplot(adata: anndata.AnnData = None,
 
     liana_res = _filter_by(liana_res, filterby, filter_lambda)
     liana_res = _get_top_n(liana_res, top_n, orderby, orderby_ascending, orderby_absolute)
-        
+
     # inverse sc if needed
     if inverse_colour:
         liana_res[colour] = _inverse_scores(liana_res[colour])
@@ -129,7 +129,7 @@ def dotplot(adata: anndata.AnnData = None,
 
     p.draw()
 
-    
+
 def dotplot_by_sample(adata: anndata.AnnData  = None,
                       uns_key: str = 'liana_res',
                       liana_res: pandas.DataFrame = None,
@@ -140,7 +140,7 @@ def dotplot_by_sample(adata: anndata.AnnData  = None,
                       inverse_size: bool = False,
                       source_labels: str | None = None,
                       target_labels: str | None = None,
-                      ligand_complex: str | None = None, 
+                      ligand_complex: str | None = None,
                       receptor_complex: str | None = None,
                       size_range: tuple = (2, 9),
                       cmap: str = 'viridis',
@@ -149,7 +149,7 @@ def dotplot_by_sample(adata: anndata.AnnData  = None,
                       ):
     """
     A dotplot of interactions by sample
-    
+
     Parameters
     ----------
         adata
@@ -182,15 +182,15 @@ def dotplot_by_sample(adata: anndata.AnnData  = None,
             Figure x,y size. Defaults to (8, 6).
         return_fig
             `bool` whether to return the fig object, `False` only plots. Defaults to True.
-        
+
     Returns
     -------
     Returns a dotplot of Class ggplot for the specified interactions by sample.
-    
+
     """
-    
+
     liana_res = _prep_liana_res(adata=adata,
-                                liana_res=liana_res, 
+                                liana_res=liana_res,
                                 source_labels=source_labels,
                                 target_labels=target_labels,
                                 ligand_complex=ligand_complex,
@@ -198,7 +198,7 @@ def dotplot_by_sample(adata: anndata.AnnData  = None,
                                 uns_key=uns_key)
     _check_var(liana_res, var=colour, var_name='colour')
     _check_var(liana_res, var=size, var_name='size')
-        
+
     # inverse sc if needed
     if inverse_colour:
         liana_res[colour] = _inverse_scores(liana_res[colour])
@@ -229,7 +229,5 @@ def dotplot_by_sample(adata: anndata.AnnData  = None,
             )
     if return_fig:
         return p
-    
+
     p.draw()
-
-

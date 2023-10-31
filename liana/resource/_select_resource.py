@@ -22,7 +22,7 @@ def select_resource(resource_name: str = 'consensus') -> DataFrame:
     resource_name = resource_name.lower()
 
     resource_path = pathlib.Path(__file__).parent.joinpath("omni_resource.csv")
-    
+
     resource = read_csv(resource_path, index_col=False)
 
     if resource_name not in resource['resource'].unique():

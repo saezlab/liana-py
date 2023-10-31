@@ -1,4 +1,3 @@
-import numpy as np
 
 from liana.plotting import interactions, contributions, target_metrics
 from liana.testing import generate_toy_spatial
@@ -10,8 +9,8 @@ adata.uns['interactions'] = _sample_interactions()
 adata.view_names = ['intra', 'extra']
 
 
-def test_target_contributions_plot():    
-    contributions(misty=adata)    
+def test_target_contributions_plot():
+    contributions(misty=adata)
     contributions(misty=adata, top_n=1, return_fig=False)
 
 

@@ -3,7 +3,7 @@ import anndata
 import pandas as pd
 
 
-def connectivity(adata: anndata.AnnData, idx: int, 
+def connectivity(adata: anndata.AnnData, idx: int,
                  spatial_key='spatial',
                  connectivity_key='spatial_connectivities',
                  size=1, figure_size=(5.4, 5),
@@ -49,7 +49,7 @@ def connectivity(adata: anndata.AnnData, idx: int,
          + theme_minimal()
          + labs(colour='connectivity', y='y Coordinate', x='x Coordinate')
          + theme(figure_size=figure_size)
-         ) 
+         )
 
 
     if return_fig:

@@ -5,22 +5,22 @@ from scipy.stats import rankdata
 
 @nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:], nb.float32), cache=True)
 def _wcorr(x, y, w, wsum):
-    
+
     x = np.argsort(x).argsort().astype(nb.float32)
     y = np.argsort(y).argsort().astype(nb.float32)
-    
+
     wx = w * x
     wy = w * y
-    
+
     numerator = wsum * sum(wx * y) - sum(wx) * sum(wy)
-    
+
     denominator_x = wsum * sum(w * (x**2)) - sum(wx)**2
     denominator_y = wsum * sum(w * (y**2)) - sum(wy)**2
     denominator = (denominator_x * denominator_y)
-    
+
     if (denominator == 0) or (numerator == 0):
         return 0
-    
+
     return numerator / (denominator**0.5)
 
 
@@ -28,45 +28,45 @@ def _wcorr(x, y, w, wsum):
 def _masked_spearman(x_mat, y_mat, weight):
     spot_n = x_mat.shape[0]
     xy_n = x_mat.shape[1]
-    
+
     local_corrs = np.zeros((spot_n, xy_n), dtype=nb.float32)
-    
+
     for i in nb.prange(spot_n):
         w = weight[i, :]
         msk = w > 0
         wsum = sum(w[msk])
-        
+
         for j in range(xy_n):
             x = x_mat[:, j][msk]
             y = y_mat[:, j][msk]
-            
+
             local_corrs[i, j] = _wcorr(x, y, w[msk], wsum)
-    
+
     # NOTE done due to numpy/numba sum imprecision, https://github.com/numba/numba/issues/8749
     local_corrs = np.clip(a=local_corrs, a_min=-1.0, a_max=1.0, out=local_corrs)
-    
+
     return local_corrs.T
 
 
 def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
     """
     Vectorized implementation of weighted correlations.
-    
+
     Note: due to the imprecision of np.sum and np.dot, the function is accurate to 5 decimal places.
-    
+
     """
     if method not in ["pearson", "spearman"]:
         raise ValueError("method must be one of 'pearson', 'spearman'")
-    
+
     # transpose
     x_mat, y_mat, weight = x_mat.T, y_mat.T, weight.T
-    
+
     weight_sums = np.array(np.sum(weight, axis = 0)).flatten()
-            
+
     if method=="spearman":
         x_mat = rankdata(x_mat, axis=1)
         y_mat = rankdata(y_mat, axis=1)
-        
+
     # standard pearson
     n1 = ((x_mat * y_mat) @ weight) * weight_sums
     n2 = (x_mat @ weight) * (y_mat @ weight)
@@ -76,7 +76,7 @@ def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
     denominator_y = (weight_sums * (y_mat ** 2 @ weight)) - (y_mat @ weight)**2
     denominator = (denominator_x * denominator_y)
 
-    # numpy sum is unstable below 1e-6... 
+    # numpy sum is unstable below 1e-6...
     denominator[denominator < 1e-6] = 0
     denominator = denominator ** 0.5
 
@@ -85,7 +85,7 @@ def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
 
     # NOTE done due to numpy/numba sum imprecision, https://github.com/numba/numba/issues/8749
     local_corrs = np.clip(local_corrs, -1, 1, out=local_corrs, dtype=np.float32)
-    
+
     return local_corrs
 
 
@@ -114,11 +114,11 @@ def _vectorized_jaccard(x_mat, y_mat, weight):
     x_mat, y_mat = x_mat > 0, y_mat > 0 ## TODO, only positive?
     # transpose
     x_mat, y_mat, weight = x_mat.T, y_mat.T, weight.T
-    
+
     # intersect and union
     numerator = np.minimum(x_mat, y_mat) @ weight
     denominator = np.maximum(x_mat, y_mat) @ weight + np.finfo(np.float32).eps
-    
+
     return numerator / denominator
 
 
@@ -131,13 +131,13 @@ def _local_morans(x_mat, y_mat, weight):
         2D array with x variables
     y_mat
         2D array with y variables
-    
+
     Returns
     -------
     Returns 2D array of local Moran's I with shape(n_spot, xy_n)
 
     """
-    
+
     local_x = x_mat * (weight @ y_mat)
     local_y = y_mat * (weight @ x_mat)
     local_r = (local_x + local_y).T
@@ -185,7 +185,7 @@ class SpatialFunction:
         self.metadata = metadata
         self.local_function = local_function
         self.reference = reference
-        
+
     def __repr__(self):
         return f"{self.name}: {self.metadata}"
 

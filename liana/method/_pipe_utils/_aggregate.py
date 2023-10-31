@@ -128,7 +128,7 @@ def _corr_beta_pvals(p, k) -> np.array:
 def _rho_scores(rmat, dist_a, dist_b):
     """
     Calculate Beta Distribution Rho Scores
-    
+
     ----------
     rmat
         a matrix where rows are the ranks/n for each interaction, while

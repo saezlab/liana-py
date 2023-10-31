@@ -35,7 +35,7 @@ class SpatialLR(SpatialBivariate):
                  ):
         """
         Local ligand-receptor interaction metrics and global scores.
-        
+
         Parameters
         ----------
         %(adata)s
@@ -57,7 +57,7 @@ class SpatialLR(SpatialBivariate):
             Key in `adata.obsm` where the local scores are stored.
         %(lr_sep)s
         %(verbose)s
-        
+
         Returns
         -------
         Returns `adata` with the following fields, if `inplace=True`:
@@ -65,7 +65,7 @@ class SpatialLR(SpatialBivariate):
             - `adata.obsm[obsm_added]` - local scores (AnnData object)
         if `inplace=False`, returns a the above.
         """
-        
+
         lr_res, local_scores = super().__call__(
             mdata=adata,
             function_name=function_name,
@@ -87,7 +87,7 @@ class SpatialLR(SpatialBivariate):
             inplace=False,
             complex_sep='_'
             )
-                     
+
         return self._handle_return(adata, lr_res, local_scores, key_added, obsm_added, inplace)
 
 lr_bivar = SpatialLR()

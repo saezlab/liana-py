@@ -48,16 +48,16 @@ def test_dotplot_bysample():
     assert 'interaction' in my_p3.data.columns
     assert 'sample' in my_p3.data.columns
     assert 'B' not in my_p3.data['target']
-    
+
 
 def test_tileplot():
-    my_p2 = tileplot(liana_res = liana_res, 
+    my_p2 = tileplot(liana_res = liana_res,
                      # NOTE: fill & label need to exist for both
                      # ligand_ and receptor_ columns
                      fill='means',
                      label='pvals',
                      label_fun=lambda x: f'{x:.2f}',
-                     top_n=10, 
+                     top_n=10,
                      orderby='specificity_rank',
                      orderby_ascending=True
                      )
@@ -67,7 +67,7 @@ def test_tileplot():
 
 def test_proximity_plot():
     from liana.plotting import connectivity
-    
+
     adata = generate_toy_spatial()
     my_p4 = connectivity(adata=adata, idx=0)
     assert my_p4 is not None

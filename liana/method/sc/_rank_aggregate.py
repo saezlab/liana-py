@@ -77,7 +77,7 @@ class AggregateClass(MethodMeta):
                  ):
         """
         Get an aggregate of ligand-receptor scores from multiple methods.
-        
+
         Parameters
         ----------
         %(adata)s
@@ -109,12 +109,12 @@ class AggregateClass(MethodMeta):
         Otherwise, modifies the ``adata`` object with the following key:
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
         """
-        
+
         if isinstance(adata, MuData):
             ad = mdata_to_anndata(adata, **mdata_kwargs, verbose=verbose)
         else:
             ad = adata
-        
+
         liana_res = liana_pipe(adata=ad,
                                groupby=groupby,
                                resource_name=resource_name,
@@ -135,7 +135,7 @@ class AggregateClass(MethodMeta):
                                _aggregate_method=aggregate_method,
                                _consensus_opts=consensus_opts
                                )
-        
+
         if inplace:
             adata.uns[key_added] = liana_res
         return None if inplace else liana_res

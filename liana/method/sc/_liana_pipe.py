@@ -67,7 +67,7 @@ def liana_pipe(adata: anndata.AnnData,
     n_perms
         n permutations (relevant only for permutation-based methods)
     seed
-        Random seed for reproducibility 
+        Random seed for reproducibility
     verbose
         Verbosity flag
     use_raw
@@ -110,7 +110,7 @@ def liana_pipe(adata: anndata.AnnData,
                      'ligand_trimean', 'receptor_trimean',
                      'mat_mean', 'mat_max',
                      ]
-        
+
     if n_perms is None:
         _consensus_opts = 'Magnitude'
 
@@ -139,12 +139,12 @@ def liana_pipe(adata: anndata.AnnData,
     if 'mat_max' in _add_cols:
         mat_max = adata.X.max()
         assert isinstance(mat_max, np.float32)
-    
+
     resource = _handle_resource(interactions=interactions,
                                 resource=resource,
                                 resource_name=resource_name,
                                 verbose=verbose)
-    
+
     # explode complexes/decomplexify
     resource = explode_complexes(resource)
 
@@ -241,9 +241,9 @@ def liana_pipe(adata: anndata.AnnData,
     if _score is not None:
         orderby, ascending =  (_score.magnitude, _score.magnitude_ascending) if _score.magnitude is not None \
             else (_score.specificity, _score.specificity_ascending)
-            
+
         lr_res = lr_res.sort_values(by=orderby, ascending=ascending)
-    
+
     return lr_res
 
 
@@ -462,7 +462,7 @@ def _run_method(lr_res: pandas.DataFrame,
                                      verbose=verbose)
             # get tensor indexes for ligand, receptor, source, target
             ligand_idx, receptor_idx, source_idx, target_idx = _get_mat_idx(adata, lr_res)
-            
+
             # ligand and receptor perms
             ligand_stat_perms = perms[:, source_idx, ligand_idx]
             receptor_stat_perms = perms[:, target_idx, receptor_idx]
@@ -471,15 +471,15 @@ def _run_method(lr_res: pandas.DataFrame,
         else:
             perm_stats = None
             _score.specificity = None
-        
+
         scores = _score.fun(x=lr_res,
                             perm_stats=perm_stats)
     else:  # non-perm funs
         scores = _score.fun(x=lr_res)
-        
+
     lr_res.loc[:, _score.magnitude] = scores[0]
     lr_res.loc[:, _score.specificity] = scores[1]
-        
+
 
     if return_all_lrs:
         # re-append rest of results
@@ -508,7 +508,7 @@ def _assign_min_or_max(x, x_ascending):
         return np.max(x)
     else:
         return np.min(x)
-    
+
 
 def _trimean(a, axis=0):
     """

@@ -5,7 +5,7 @@ from pandas import DataFrame
 
 from liana.method import cellphonedb, singlecellsignalr as sca, \
     natmi, connectome, logfc, geometric_mean, cellchat
-    
+
 from liana.testing._sample_anndata import generate_toy_adata
 
 # load toy adata
@@ -50,7 +50,7 @@ def test_cellphonedb_none():
     assert adata.shape == expected_shape
     liana_res = adata.uns['liana_res']
     assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['lr_means'].max(), 1.4035000205039978, decimal=6)
-    assert 'cellphone_pvals' not in liana_res.columns 
+    assert 'cellphone_pvals' not in liana_res.columns
 
 
 def test_geometric_mean():
@@ -128,7 +128,7 @@ def test_connectome():
     assert_almost_equal(max(liana_res[(liana_res.ligand == "TIMP1")].expr_prod), 4.521420922884062, decimal=6)
     assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['scaled_weight'].max(), 0.9002860486507416, decimal=6)
     assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['expr_prod'].max(), 1.9646283122925752, decimal=6)
-    
+
 
 
 def test_with_all_lrs():
@@ -142,7 +142,7 @@ def test_with_all_lrs():
 def test_methods_by_sample():
     logfc.by_sample(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, sample_key='sample')
     lr_by_sample = adata.uns['liana_res']
-    
+
     assert 'sample' in lr_by_sample.columns
     assert lr_by_sample.shape == (10836, 15)
 
@@ -150,12 +150,12 @@ def test_methods_by_sample():
 def test_methods_on_mdata():
     from liana.testing._sample_anndata import generate_toy_mdata
     from itertools import product
-    
+
     mdata = generate_toy_mdata()
     mdata.mod['adata_y'].var.index = 'scaled:' + mdata.mod['adata_y'].var.index
     interactions = list(product(mdata.mod['adata_x'].var.index, mdata.mod['adata_y'].var.index))
     interactions = interactions[0:10]
-    
+
     sca(mdata,
         groupby='bulk_labels',
         n_perms=None,
@@ -164,23 +164,22 @@ def test_methods_on_mdata():
         verbose=True,
         mdata_kwargs=dict(
             x_mod='adata_x',
-            y_mod='adata_y', 
-            x_transform=False, 
+            y_mod='adata_y',
+            x_transform=False,
             y_transform=False
             ),
         )
-    
+
     assert mdata.uns['liana_res'].shape == (132, 12)
-    
+
 def test_wrong_resource():
     from pytest import raises
     with raises(ValueError):
         natmi(adata, resource_name='mouseconsensus', groupby='bulk_labels', use_raw=True, n_perms=4)
-    
+
     with raises(ValueError):
         natmi(adata, interactions=[('x', 'D')], groupby='bulk_labels', use_raw=True, n_perms=4)
-        
+
     with raises(ValueError):
         resource = DataFrame({'ligand': ['A', 'B'], 'receptor': ['C', 'D']})
         natmi(adata, resource=resource, groupby='bulk_labels', use_raw=True, n_perms=4)
-        

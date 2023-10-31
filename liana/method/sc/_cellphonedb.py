@@ -6,7 +6,7 @@ from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
 def _cpdb_score(x, perm_stats) -> tuple:
     """
     Calculate CellPhoneDB-like LR means and p-values
-    
+
     Parameters
     ----------
     x
@@ -22,7 +22,7 @@ def _cpdb_score(x, perm_stats) -> tuple:
     zero_msk = ((x['ligand_means'] == 0) | (x['receptor_means'] == 0))
     lr_means = np.mean((x['ligand_means'].values, x['receptor_means'].values), axis=0)
     lr_means[zero_msk] = 0
-    
+
     cpdb_pvals = _calculate_pvals(lr_means, perm_stats, np.mean)
 
     return lr_means, cpdb_pvals

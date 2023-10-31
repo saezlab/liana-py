@@ -17,27 +17,27 @@ from liana._logging import _check_if_installed
 
 def _make_view(adata, nz_threshold=0.1, add_obs=False, use_raw=False,
                layer=None, connecitivity=None, spatial_key=None, verbose=False):
-    
+
     X = _choose_mtx_rep(adata=adata, use_raw=use_raw, layer=layer, verbose=verbose)
-        
+
     obsm = dict()
     obsp = dict()
     if spatial_key is not None:
         if spatial_key not in adata.obsm.keys():
             raise ValueError(f"spatial_key {spatial_key} not found in `obsm`")
         obsm[spatial_key] = adata.obsm[spatial_key]
-        
+
         if connecitivity is not None:
             obsp = dict()
             obsp[f"{spatial_key}_connectivities"] = connecitivity
-    
+
     obs = adata.obs if add_obs else pd.DataFrame(index=adata.obs.index)
-        
+
     adata = AnnData(X=X, obs=obs, var=pd.DataFrame(index=adata.var_names),
                     obsp=obsp, obsm=obsm, dtype=np.float32)
     var_msk = _get_props(adata.X) >= nz_threshold
     adata = adata[:, var_msk]
-    
+
     return adata
 
 
@@ -60,10 +60,10 @@ def genericMistyData(intra,
                      verbose=False,
                      **kwargs,
                      ):
-    
+
     """
     Construct a MistyData object from an AnnData object with views as presented in the manuscript.
-    
+
     Parameters
     ----------
     intra : `anndata.AnnData`
@@ -104,11 +104,11 @@ def genericMistyData(intra,
         Whether to print progress.
     **kwargs : `dict`, optional
         Additional arguments to pass to `squidpy.gr.spatial_neighbors`.
-    
+
     Returns
     -------
     `MistyData` object with the intra view, and two fixed extra view(s): para and juxta.
-    
+
     """
     # init views
     views = {}
@@ -116,10 +116,10 @@ def genericMistyData(intra,
                        use_raw=intra_use_raw, layer=intra_layer,
                        spatial_key=spatial_key, verbose=verbose)
     views['intra'] = intra
-    
+
     if extra is None:
         extra = intra
-        
+
     if add_juxta:
         sq = _check_if_installed('squidpy')
         neighbors, _ = sq.gr.spatial_neighbors(adata=extra,
@@ -130,26 +130,26 @@ def genericMistyData(intra,
                                                **kwargs
                                                )
 
-        views['juxta'] = _make_view(adata=extra, nz_threshold=nz_threshold, 
+        views['juxta'] = _make_view(adata=extra, nz_threshold=nz_threshold,
                                     use_raw=extra_use_raw, layer=extra_layer,
                                     spatial_key=spatial_key, connecitivity=neighbors,
                                     verbose=verbose)
-    
+
     if add_para:
         weights = spatial_neighbors(adata=extra,
                                     spatial_key=spatial_key,
                                     bandwidth=bandwidth,
                                     kernel=kernel,
-                                    set_diag=set_diag, 
+                                    set_diag=set_diag,
                                     inplace=False,
                                     cutoff=cutoff,
                                     zoi=zoi
                                     )
-        views['para'] = _make_view(adata=extra, nz_threshold=nz_threshold, 
-                                   use_raw=extra_use_raw, layer=extra_layer, 
+        views['para'] = _make_view(adata=extra, nz_threshold=nz_threshold,
+                                   use_raw=extra_use_raw, layer=extra_layer,
                                    spatial_key=spatial_key, connecitivity=weights,
                                    verbose=verbose)
-        
+
     return MistyData(views, intra.obs, spatial_key)
 
 
@@ -165,8 +165,8 @@ def _check_if_squidpy() -> ModuleType:
     return sq
 
 
-def lrMistyData(adata, 
-                resource_name='consensus', 
+def lrMistyData(adata,
+                resource_name='consensus',
                 resource=None,
                 nz_threshold=0.1,
                 use_raw = False,
@@ -181,7 +181,7 @@ def lrMistyData(adata,
                 ):
     """
     Generate a MistyData object from an AnnData object in ligand-receptor format.
-    
+
     Parameters
     ----------
     adata : `anndata.AnnData`
@@ -210,8 +210,8 @@ def lrMistyData(adata,
     zoi : `float`, optional (default: 0)
         Zone of indifference of the kernel, i.e. the kernel is set to 0 for distances smaller than zoi.
     verbose : `bool`, optional (default: False)
-        Whether to print progress.    
-        
+        Whether to print progress.
+
     Returns
     -------
     A `MistyData` object with receptors in the intra view & ligands in the extra view.
@@ -219,7 +219,7 @@ def lrMistyData(adata,
     # TODO: reduce redundancies in documentation
     if resource is None:
         resource = select_resource(resource_name)
-    
+
     adata = prep_check_adata(adata=adata,
                              use_raw=use_raw,
                              layer=layer,
@@ -228,28 +228,28 @@ def lrMistyData(adata,
                              min_cells=None,
                              obsm = {spatial_key: adata.obsm[spatial_key]}
                              )
-    
+
     adata = _add_complexes_to_var(adata,
                                   np.union1d(resource['receptor'].astype(str),
                                              resource['ligand'].astype(str)
                                              )
                                   )
-    
+
     # filter_resource after adding complexes to var
     resource = resource[(np.isin(resource.ligand, adata.var_names)) &
                         (np.isin(resource.receptor, adata.var_names))]
-    
+
     views = dict()
     views['intra'] =  _make_view(adata=adata[:, resource['receptor'].unique()],
                         nz_threshold=0, add_obs=True)
-        
+
     connectivity = spatial_neighbors(adata=adata, spatial_key=spatial_key,
                                      bandwidth=bandwidth, kernel=kernel,
                                      set_diag=set_diag, cutoff=cutoff,
                                      zoi=zoi, inplace=False)
-    
+
     views['extra'] = _make_view(adata=adata[:,resource['ligand'].unique()],
                                 spatial_key=spatial_key, nz_threshold=nz_threshold,
                                 connecitivity=connectivity)
-    
+
     return MistyData(data=views, obs=views['intra'].obs, spatial_key=spatial_key)

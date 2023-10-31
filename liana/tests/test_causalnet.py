@@ -17,13 +17,13 @@ def test_build_prior_network():
     prior_graph = build_prior_network(input_pkn, input_scores, output_scores, verbose=True)
     assert prior_graph.num_vertices == 6
     assert prior_graph.num_edges == 6
-    
+
 
 def test_caulsalnet():
     prior_graph = build_prior_network(input_pkn, input_scores, output_scores, verbose=False)
-    df_res, problem = find_causalnet(prior_graph, 
-                                     input_scores, 
-                                     output_scores, 
+    df_res, problem = find_causalnet(prior_graph,
+                                     input_scores,
+                                     output_scores,
                                      node_weights=node_weights,
                                      verbose=False
                                      )
@@ -33,7 +33,7 @@ def test_caulsalnet():
     assert df_res['target_pred_val'].values.sum() == 8
     assert df_res[df_res['source_type']=='input']['source'].values[0] == 'I2'
     assert (df_res[df_res['target_type']=='output']['target'].isin(['M1', 'M2'])).all()
-    
+
 
 
 def test_causalnet_noweights():

@@ -75,14 +75,14 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_per
 
 def _zscore(mat, local=True, axis=0):
     spot_n = mat.shape[1]
-    
+
     # NOTE: specific to global SpatialDM
     if not local:
         spot_n = 1
-    
+
     mat = np.array(mat - np.array(mat.mean(axis=axis)))
     mat = mat / np.sqrt(np.sum(mat ** 2, axis=axis, keepdims=True) / spot_n)
-    
+
     return mat
 
 
@@ -97,13 +97,13 @@ def _encode_cats(a, weight):
 def _categorize(x_mat, y_mat, weight, idx, columns):
     x_cats = _encode_cats(x_mat.A, weight)
     y_cats = _encode_cats(y_mat.A, weight)
-    
+
     # add the two categories, and simplify them to ints
     cats = x_cats + y_cats
     cats = np.where(cats == 2, 1, np.where(cats == 0, -1, 0))
-    
+
     return cats
-    
+
 
 def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, mask_negatives, seed, verbose):
     """
@@ -356,11 +356,11 @@ def _get_local_scores(x_mat,
         # and leave it to the user
         x_mat = _zscore(x_mat, local=True, axis=0)
         y_mat = _zscore(y_mat, local=True, axis=0)
-        
+
         # # NOTE: spatialdm do this, and also use .raw by default
         # x_mat = x_mat / np.max(x_mat, axis=0)
         # y_mat = y_mat / np.max(y_mat, axis=0)
-        
+
     else:
         x_mat = x_mat.A
         y_mat = y_mat.A
@@ -406,7 +406,7 @@ def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, mask_negatives
                               verbose=verbose
                               )
         xy_stats['global_r'] = global_r
-        xy_stats['global_pvals'] = global_pvals        
+        xy_stats['global_pvals'] = global_pvals
     else:
         # any other local score
         xy_stats.loc[:, ['global_mean', 'global_sd']] = np.vstack(
@@ -418,13 +418,13 @@ def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, mask_negatives
 
 def _connectivity_to_weight(connectivity, local_fun):
     connectivity = csr_matrix(connectivity, dtype=np.float32)
-    
+
     if local_fun.__name__ == "_local_morans":
         norm_factor = connectivity.shape[0] / connectivity.sum()
         connectivity = norm_factor * connectivity
-        
+
         return csr_matrix(connectivity)
-    
+
     # NOTE vectorized is faster with non-sparse, masked_scores won't work with sparse
     elif (connectivity.shape[0] < 5000) | local_fun.__name__.__contains__("masked"):
             return connectivity.A
@@ -432,28 +432,17 @@ def _connectivity_to_weight(connectivity, local_fun):
         return csr_matrix(connectivity)
 
 
-def _handle_connectivity(adata, connectivity_key):
-    if connectivity_key not in adata.obsp.keys():
-        raise ValueError(f'No connectivity matrix founds in mdata.obsp[{connectivity_key}]')
-    connectivity = adata.obsp[connectivity_key]
-        
-    if not isspmatrix_csr(connectivity):
-        connectivity = csr_matrix(connectivity, dtype=np.float32)
-        
-    return connectivity
-
-
 def _add_complexes_to_var(adata, entities, complex_sep='_'):
     """
     Generate an AnnData object with complexes appended as variables.
     """
     complexes = entities[Series(entities).str.contains(complex_sep)]
-    
+
     X = None
 
     for comp in complexes:
         subunits = comp.split(complex_sep)
-        
+
         # keep only complexes, the subunits of which are in var
         if all([subunit in adata.var.index for subunit in subunits]):
             adata.var.loc[comp, :] = None
@@ -469,8 +458,8 @@ def _add_complexes_to_var(adata, entities, complex_sep='_'):
     adata = AnnData(X=hstack((adata.X, X)),
                     obs=adata.obs, var=adata.var,
                     obsm=adata.obsm, obsp=adata.obsp)
-    
+
     if not isspmatrix_csr(adata.X):
         adata.X = adata.X.tocsr()
-    
+
     return adata

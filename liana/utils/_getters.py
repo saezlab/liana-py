@@ -11,7 +11,7 @@ def get_factor_scores(adata:AnnData | MuData,
                       obs_keys: str | None = None):
     """
     Extract factor scores from an AnnData object.
-    
+
     Parameters
     ----------
     %(adata)s
@@ -20,12 +20,12 @@ def get_factor_scores(adata:AnnData | MuData,
     obs_keys: list
         List of keys to use when extracting metadata from `adata.obs`
         If None, no metadata is extracted. Default is None.
-    
+
     Returns
     -------
-    
+
     Returns a pandas DataFrame with the factor scores.
-    
+
     """
     if obsm_key not in adata.obsm.keys():
         raise ValueError(f'{obsm_key} not found in `.obsm`')
@@ -54,10 +54,10 @@ def get_variable_loadings(adata: AnnData | MuData,
                           ):
     """
     Extract variable loadings from an AnnData object.
-    
+
     Parameters
     ----------
-    
+
     %(adata)s
     varm_key: str
         Key to use when extracting variable loadings from `mdata.varm`
@@ -69,15 +69,15 @@ def get_variable_loadings(adata: AnnData | MuData,
         Separator to use when splitting view names into `pair_names` ('source' and 'target' by default)
     drop_columns: bool
         If True, drop the `view:variable` column
-        
+
     Returns
     -------
-    
+
     Returns a pandas DataFrame with the variable loadings for the specified index.
     """
     if varm_key not in adata.varm.keys():
         raise ValueError(f'{varm_key} not found in adata.varm')
-    
+
     n_factors = adata.varm[varm_key].shape[1]
     columns = [f'Factor{i+1}' for i in range(n_factors)]
 
@@ -95,7 +95,7 @@ def get_variable_loadings(adata: AnnData | MuData,
     if variable_sep:
         if view_sep is None:
             df = df.rename(columns={'index': 'variable'})
-            
+
         df[var_names] = df['variable'].str.split(variable_sep, expand=True)
 
         if drop_columns:
