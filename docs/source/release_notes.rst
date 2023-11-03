@@ -17,7 +17,7 @@ Release notesconsistency
 
 - Renamed some ``*_separator`` columns to ``*_sep`` for consistency
 
-- Added ``li.ut.query_bandwidth`` to query the bandwidth of a the spatial connectivities
+- Added ``li.ut.query_bandwidth`` to query the bandwidth of the spatial connectivities
 
 - Added **pre-commit** hooks adapted from scverse-cooking cutter to ensure consistency.
 
