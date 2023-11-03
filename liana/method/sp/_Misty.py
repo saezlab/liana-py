@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression, RidgeCV
 from sklearn.model_selection import KFold, cross_val_predict
 import statsmodels.api as sm
-from liana._constants._docs import d
+from liana._docs import d
 
 
 from mudata import MuData

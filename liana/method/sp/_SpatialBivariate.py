@@ -5,7 +5,7 @@ import pandas as pd
 from anndata import AnnData
 from mudata import MuData
 from liana.method._pipe_utils._common import _get_props
-from liana._constants._docs import d
+from liana._docs import d
 
 from liana.method.sp._spatial_pipe import (
     _categorize,

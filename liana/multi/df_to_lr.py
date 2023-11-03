@@ -7,7 +7,7 @@ from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_re
 from liana.method._pipe_utils._common import _join_stats, _get_props
 from liana.method._pipe_utils._reassemble_complexes import explode_complexes
 from liana.resource._select_resource import _handle_resource
-from liana._constants._docs import d
+from liana._docs import d
 
 @d.dedent
 def df_to_lr(adata,

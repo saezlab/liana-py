@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from liana.method.sc._Method import MethodMeta
 from liana.method.sc._liana_pipe import liana_pipe
-from liana._constants._docs import d
+from liana._docs import d
 from liana.utils import mdata_to_anndata
 from mudata import MuData
 

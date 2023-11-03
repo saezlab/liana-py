@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from anndata import AnnData
-from liana._constants._docs import d
+from liana._docs import d
 
 @d.dedent
 def obsm_to_adata(adata: AnnData,

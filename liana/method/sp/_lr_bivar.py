@@ -5,7 +5,7 @@ import pandas as pd
 from typing import Optional
 
 from liana.method.sp._SpatialBivariate import SpatialBivariate
-from liana._constants._docs import d
+from liana._docs import d
 
 class SpatialLR(SpatialBivariate):
     """ A child class of SpatialBivariate for ligand-receptor analysis. """

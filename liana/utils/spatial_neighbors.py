@@ -2,7 +2,7 @@ from anndata import AnnData
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import normalize
-from liana._constants._docs import d
+from liana._docs import d
 
 def _gaussian(distance_mtx, bandwidth):
     return np.exp(-(distance_mtx ** 2.0) / (2.0 * bandwidth ** 2.0))

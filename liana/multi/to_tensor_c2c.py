@@ -8,7 +8,7 @@ from pandas import DataFrame
 
 from ._common import _process_scores
 from liana._logging import _check_if_installed
-from liana._constants._docs import d
+from liana._docs import d
 
 @d.dedent
 def to_tensor_c2c(adata:AnnData=None,

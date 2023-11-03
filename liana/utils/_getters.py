@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
-from liana._constants._docs import d
+from liana._docs import d
 from anndata import AnnData
 from mudata import MuData
 

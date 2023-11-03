@@ -13,13 +13,13 @@ Release notesconsistency
 
 - When ``groupby`` or ``sample_key`` are not categorical liana will now print a warning before converting them to categorical. Related to #28
 
-- Various Documentation improvements
+- Various documentation improvements, including using ``docrep`` to ensure consistency.
 
 - Renamed some ``*_separator`` columns to ``*_sep`` for consistency
 
 - Added ``li.ut.query_bandwidth`` to query the bandwidth of a the spatial connectivities
 
-- Added pre-commit hooks to ensure consistency
+- Added **pre-commit** hooks adapted from scverse-cooking cutter to ensure consistency.
 
 
 1.0.2 (13.10.2023)
