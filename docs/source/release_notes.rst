@@ -1,7 +1,7 @@
 Release notesconsistency
 =============
 
-1.0.3 (XX.11.2023)
+1.0.3 (03.11.2023)
 -------------------------------------------------
 - Added ``filterby`` and ``filter_lambda`` parameters to ``li.pl.interactions`` and ``li.pl.target_metrics`` to allow filtering of interactions and metrics, respectively.
 

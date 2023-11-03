@@ -146,12 +146,8 @@ def _local_morans(x_mat, y_mat, weight):
 
 
 def _product(x_mat, y_mat, weight):
-
-    # Weight
     x_mat = (weight @ x_mat)
     y_mat = (weight @ y_mat)
-
-    # Product
     score = x_mat * y_mat
 
     return score.T
