@@ -5,6 +5,7 @@ from liana.method.sc._liana_pipe import liana_pipe
 from liana._docs import d
 from liana.utils import mdata_to_anndata
 from mudata import MuData
+from liana._constants import Keys as K, DefaultValues as V
 
 import anndata as an
 from pandas import DataFrame
@@ -56,24 +57,24 @@ class AggregateClass(MethodMeta):
     def __call__(self,
                  adata: an.AnnData | MuData,
                  groupby: str,
-                 resource_name: str = 'consensus',
-                 expr_prop: float = 0.1,
-                 min_cells: int = 5,
-                 base: float = 2.718281828459045,
-                 aggregate_method='rra',
-                 return_all_lrs: bool = False,
-                 key_added : str = 'liana_res',
-                 consensus_opts=None,
-                 use_raw: Optional[bool] = True,
-                 layer: Optional[str] = None,
-                 de_method='t-test',
-                 verbose: Optional[bool] = False,
-                 n_perms: int | None = 1000 ,
-                 seed: int = 1337,
-                 resource: Optional[DataFrame] = None,
-                 interactions=None,
-                 mdata_kwargs = dict(),
-                 inplace=True
+                 resource_name: str = V.resource_name,
+                 expr_prop: float = V.expr_prop,
+                 min_cells: int = V.min_cells,
+                 base: float = V.logbase,
+                 aggregate_method: str = 'rra',
+                 consensus_opts: Optional[list] = None,
+                 return_all_lrs: bool = V.return_all_lrs,
+                 key_added: str = K.uns_key,
+                 use_raw: Optional[bool] = V.use_raw,
+                 layer: Optional[str] = V.layer,
+                 de_method: str = V.de_method,
+                 n_perms: int = V.n_perms,
+                 seed: int = V.seed,
+                 resource: Optional[DataFrame] = V.resource,
+                 interactions: Optional[list] = V.interactions,
+                 mdata_kwargs: dict = dict(),
+                 inplace: bool = V.inplace,
+                 verbose: Optional[bool] = V.verbose,
                  ):
         """
         Get an aggregate of ligand-receptor scores from multiple methods.
@@ -90,6 +91,9 @@ class AggregateClass(MethodMeta):
             Method aggregation approach, one of ['mean', 'rra'], where `mean` represents the
             mean rank, while 'rra' is the RobustRankAggregate (Kolde et al., 2014)
             of the interactions
+        consensus_opts
+            Strategies to aggregate interactions across methods.
+            Default is None - i.e. ['Specificity', 'Magnitude'] and both specificity and magnitude are aggregated.
         %(return_all_lrs)s
         %(key_added)s
         %(use_raw)s

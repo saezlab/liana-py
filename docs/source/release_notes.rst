@@ -9,7 +9,7 @@ Release notesconsistency
 
 - Added tests to ensure both ``lr_bivar`` and single-cell methods throw an exception when the resource is not covered by the data.
 
-- ``estimate_elbow`` will add the errors and the number of patterns to ``.uns``
+- ``estimate_elbow`` will add the errors and the number of patterns to ``.uns`` when inplace is True.
 
 - When ``groupby`` or ``sample_key`` are not categorical liana will now print a warning before converting them to categorical. Related to #28
 
@@ -17,7 +17,7 @@ Release notesconsistency
 
 - Renamed some ``*_separator`` columns to ``*_sep`` for consistency
 
-- Added ``li.ut.query_bandwidth`` to query the bandwidth of the spatial connectivities
+- Added ``li.ut.query_bandwidth`` to query the bandwidth of the spatial connectivities (used in spatial bivariate tutorial)
 
 - Added **pre-commit** hooks adapted from scverse-cooking cutter to ensure consistency.
 

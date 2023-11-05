@@ -3,8 +3,6 @@ from scipy.stats import gmean
 from liana.method.sc._Method import Method, MethodMeta
 from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
 
-
-# Internal Function to calculate Geometric LR_mean and p-values
 def _gmean_score(x, perm_stats) -> tuple:
     """
     Calculate CellPhoneDB-like LR means and p-values
@@ -26,8 +24,6 @@ def _gmean_score(x, perm_stats) -> tuple:
 
     return lr_gmeans, gmean_pvals
 
-
-# Initialize Meta
 _geometric_mean = MethodMeta(method_name="Geometric Mean",
                              complex_cols=["ligand_means", "receptor_means"],
                              add_cols=[],

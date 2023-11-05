@@ -6,15 +6,14 @@ from liana._logging import _logg
 from tqdm import tqdm
 
 from scipy.sparse import isspmatrix_csr, csr_matrix
-
+import statsmodels.api as sm
+from mudata import MuData
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression, RidgeCV
 from sklearn.model_selection import KFold, cross_val_predict
-import statsmodels.api as sm
+
 from liana._docs import d
-
-
-from mudata import MuData
+from liana._constants import Keys as K, DefaultValues as V
 
 
 class MistyData(MuData):
@@ -23,7 +22,7 @@ class MistyData(MuData):
     def __init__(self,
                  data:(dict | MuData),
                  obs:(pd.DataFrame | None)= None,
-                 spatial_key:str='spatial',
+                 spatial_key:str=K.spatial_key,
                  enforce_obs=True,
                  **kwargs):
         """
@@ -78,16 +77,16 @@ class MistyData(MuData):
 
     @d.dedent
     def __call__(self,
-                 model='rf',
-                 bypass_intra = False,
-                 predict_self = False,
-                 k_cv = 10,
+                 model: str = 'rf',
+                 bypass_intra: bool = False,
+                 predict_self: bool = False,
+                 k_cv: int = 10,
                  alphas = [0.1, 1, 10],
                  maskby = None,
                  n_jobs = -1,
-                 seed = 1337,
-                 inplace=True,
-                 verbose=False,
+                 seed: int = V.seed,
+                 inplace: bool = V.inplace,
+                 verbose: bool = V.verbose,
                  **kwargs
                  ):
         """
@@ -293,9 +292,9 @@ def _single_view_model(y, X, predictors, model, k_cv, seed, n_jobs, **kwargs):
     else:
         raise ValueError(f"model {model} is not supported")
 
-    named_importances = dict(zip(predictors, importances))
+    importances = dict(zip(predictors, importances))
 
-    return predictions, named_importances
+    return predictions, importances
 
 
 def _multi_model(y, predictions, intra_group, bypass_intra, view_str, target, k_cv, alphas, seed):
@@ -309,12 +308,12 @@ def _multi_model(y, predictions, intra_group, bypass_intra, view_str, target, k_
 
         _logg(error_message, verbose=True, level='warn')
         return _format_targets(target,
-                            intra_group,
-                            view_str,
-                            np.nan,
-                            np.nan,
-                            np.repeat(np.nan, n_views)
-                            )
+                               intra_group,
+                               view_str,
+                               np.nan,
+                               np.nan,
+                               np.repeat(np.nan, n_views)
+                               )
 
     kf = KFold(n_splits=k_cv, shuffle=True, random_state=seed)
     R2_vec_intra, R2_vec_multi = np.zeros(k_cv), np.zeros(k_cv)
