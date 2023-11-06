@@ -1,5 +1,5 @@
 LIANA: an all-in-one framework for cell-cell communication
-===========================================
+===============================================================
 
 |MainBuild| |Issues| |Docs| |Codecov|
 
