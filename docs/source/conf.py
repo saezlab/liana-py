@@ -12,7 +12,6 @@ def read(rel_path: str) -> str:
     with open(os.path.join(here, rel_path)) as fp:
         return fp.read()
 
-
 def get_version(rel_path: str) -> str:
     for line in read(rel_path).splitlines():
         if line.startswith("version ="):
@@ -44,7 +43,7 @@ intersphinx_mapping = {
     'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
 }
 intersphinx_disabled_domains = ['std']
-
+autosummary_generate = True
 templates_path = ['_templates']
 
 # -- Options for HTML output
