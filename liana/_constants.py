@@ -22,6 +22,9 @@ class DefaultValues():
     lr_sep = '^'
     complex_sep = "_"
 
+    def inverse_fun(x):
+        return 1 - x
+
 class Keys():
     """Keys related to AnnData"""
     uns_key = 'liana_res'

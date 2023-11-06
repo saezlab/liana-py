@@ -4,8 +4,9 @@ import pathlib
 from pandas import DataFrame
 
 from liana._logging import _logg
+from liana._constants import DefaultValues as V
 
-def select_resource(resource_name: str = 'consensus') -> DataFrame:
+def select_resource(resource_name: str = V.resource_name) -> DataFrame:
     """
     Read resource of choice from the pre-generated resources in LIANA.
 

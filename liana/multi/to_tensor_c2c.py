@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Callable
 
 import numpy as np
 
@@ -9,19 +8,20 @@ from pandas import DataFrame
 from ._common import _process_scores
 from liana._logging import _check_if_installed
 from liana._docs import d
+from liana._constants import DefaultValues as V, Keys as K, PrimaryColumns as P
 
 @d.dedent
 def to_tensor_c2c(adata:AnnData=None,
-                  sample_key:str=None,
-                  score_key:str=None,
+                  sample_key:str = None,
+                  score_key:str = None,
                   liana_res: (DataFrame or None) = None,
-                  source_key:str = 'source',
-                  target_key:str = 'target',
-                  ligand_key:str = 'ligand_complex',
-                  receptor_key:str = 'receptor_complex',
-                  uns_key:str = 'liana_res',
+                  source_key:str = P.source,
+                  target_key:str = P.target,
+                  ligand_key:str = P.ligand_complex,
+                  receptor_key:str = P.receptor_complex,
+                  uns_key:str = K.uns_key,
                   non_expressed_fill:(float or None) = None,
-                  inverse_fun: Callable = lambda x: 1 - x,
+                  inverse_fun: callable = V.inverse_fun,
                   non_negative:bool = True,
                   return_dict:bool = False,
                   **kwargs

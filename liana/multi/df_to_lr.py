@@ -7,26 +7,28 @@ from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_re
 from liana.method._pipe_utils._common import _join_stats, _get_props
 from liana.method._pipe_utils._reassemble_complexes import explode_complexes
 from liana.resource._select_resource import _handle_resource
+
 from liana._docs import d
+from liana._constants import DefaultValues as V, InternalValues as I, PrimaryColumns as P
 
 @d.dedent
 def df_to_lr(adata,
              dea_df,
              groupby,
              stat_keys,
-             resource_name = 'consensus',
-             resource = None,
-             interactions = None,
-             layer = None,
-             use_raw = True,
-             expr_prop = 0.1,
-             min_cells = 10,
+             resource_name = V.resource_name,
+             resource = V.resource,
+             interactions = V.interactions,
+             layer = V.layer,
+             use_raw = V.layer,
+             expr_prop = V.expr_prop,
+             min_cells = V.min_cells,
              complex_col=None,
-             return_all_lrs=False,
+             return_all_lrs=V.return_all_lrs,
              source_labels = None,
              target_labels = None,
-             lr_sep="^",
-             verbose = False,
+             lr_sep=V.lr_sep,
+             verbose = V.verbose,
              ):
     """
     Convert DEA results to ligand-receptor pairs.
@@ -50,10 +52,8 @@ def df_to_lr(adata,
         Column in `dea_df` to use for complex expression. Default is None.
         If None, will use mean expression ('expr') calculated per group in `groupby`.
     %(return_all_lrs)s
-    source_labels : list, optional
-        List of labels to use as source. Default is None
-    target_labels : list, optional
-        List of labels to use as target. Default is None
+    %(source_labels)s
+    %(target_labels)s
     %(lr_sep)s
     %(verbose)s
 
@@ -62,9 +62,6 @@ def df_to_lr(adata,
     Returns a pd.DataFrame with joined ligand-receptor pairs and statistics.
 
     """
-
-    _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
-
     _check_groupby(adata=adata, groupby=groupby, verbose=verbose)
     if (groupby not in adata.obs.columns) or (groupby not in dea_df.columns):
         raise ValueError('groupby must match a column in both adata.obs and dea_df')
@@ -97,12 +94,12 @@ def df_to_lr(adata,
     adata =  adata[:, dea_df.index.unique()]
 
     # get label cats
-    labels = adata.obs['@label'].cat.categories
+    labels = adata.obs[I.label].cat.categories
 
     dedict = {}
 
     for label in labels:
-        temp = adata[adata.obs['@label'] == label, :]
+        temp = adata[adata.obs[I.label] == label, :]
         props = _get_props(temp.X)
         means = np.array(temp.X.mean(axis=0), dtype='float32').flatten()
 
@@ -162,7 +159,7 @@ def df_to_lr(adata,
         lr_res[_placeholders] = lr_res[_placeholders].fillna(0)
 
     lr_res = filter_reassemble_complexes(lr_res=lr_res,
-                                         _key_cols=_key_cols,
+                                         _key_cols=P.primary,
                                          expr_prop=expr_prop,
                                          return_all_lrs=return_all_lrs,
                                          complex_cols=_placeholders

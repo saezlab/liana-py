@@ -37,7 +37,7 @@ def connectivity(adata: anndata.AnnData,
     assert spatial_key in adata.obsm_keys()
 
     _logg("This function will be deprecated in the next version. " +
-          "Please use scanpy or squidpy for plotting spatial data.", level='warn')
+          "Please use scanpy or squidpy for plotting spatial connectivities.", level='warn')
 
     coordinates = pd.DataFrame(adata.obsm[spatial_key],
                                index=adata.obs_names,

@@ -78,6 +78,17 @@ lr_sep
     Separator to use between ligand and receptor."""
 
 
+_source_labels = """\
+source_labels
+    List of labels to use as `source`, the rest are filtered out.
+"""
+
+_target_labels = """\
+target_labels
+    List of labels to use as `target`, the rest are filtered out.
+"""
+
+
 # Single-cell specific docstrings
 _n_perms_sc = """\
 n_perms
@@ -91,7 +102,7 @@ expr_prop
 
 _min_cells = """\
 min_cells
-    Minimum cells per cell identity (grouped by `groupby`) to be considered for downstream analysis."""
+    Minimum cells (per cell identity if grouped by `groupby`) to be considered for downstream analysis."""
 
 _base = """\
 base
@@ -190,16 +201,6 @@ colour
 _size = """\
 size
     `column` in `liana_res` to define the size of the dots.
-"""
-
-_source_labels = """\
-source_labels
-    List to specify `source` identities to plot.
-"""
-
-_target_labels = """\
-target_labels
-    List to specify `target` identities to plot.
 """
 
 _top_n = """\
