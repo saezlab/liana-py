@@ -1,8 +1,11 @@
 # Configuration file for the Sphinx documentation builder.
 import os
 import sys
+from pathlib import Path
+from datetime import datetime
 
-sys.path.insert(0, os.path.abspath('../../'))
+HERE = Path(__file__).parent
+sys.path.insert(0, f"{HERE.parent.parent}")
 
 def read(rel_path: str) -> str:
     here = os.path.abspath(os.path.dirname(__file__))
@@ -18,7 +21,7 @@ def get_version(rel_path: str) -> str:
     raise RuntimeError("Unable to find version string.")
 
 project = 'liana'
-copyright = '2022, Saezlab'
+copyright = f'{datetime.now():%Y}, Saezlab'
 author = 'Daniel Dimitrov'
 release = get_version("../../pyproject.toml")
 version = release
