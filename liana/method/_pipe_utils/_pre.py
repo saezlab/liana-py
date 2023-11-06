@@ -134,10 +134,8 @@ def prep_check_adata(adata: AnnData,
     if np.any(~np.isfinite(adata.X.data)):
         raise ValueError("mat contains non finite values (nan or inf), please set them to 0 or remove them.")
 
-    # Define idents col name
     if groupby is not None:
-        if groupby not in adata.obs.columns:
-            raise AssertionError(f"`{groupby}` not found in `adata.obs.columns`.")
+        _check_groupby(adata, groupby, verbose)
         adata.obs.loc[:, '@label'] = adata.obs[groupby]
 
         # Remove any cell types below X number of cells per cell type
@@ -151,8 +149,8 @@ def prep_check_adata(adata: AnnData,
             adata = adata[msk]
             _logg("The following cell identities were excluded: {0}".format(", ".join(lowly_abundant_idents)),
                  level='warn', verbose=verbose)
-            
-                
+
+
     check_vars(adata.var_names,
                complex_sep=complex_sep,
                verbose=verbose)
@@ -167,7 +165,7 @@ def prep_check_adata(adata: AnnData,
 def check_vars(var_names, complex_sep, verbose=False) -> list:
     """
     Raise a warning if `complex_sep` is part of any variable name.
-    """ 
+    """
     var_issues = []
     if complex_sep is not None:
         for name in var_names:
@@ -175,7 +173,7 @@ def check_vars(var_names, complex_sep, verbose=False) -> list:
                 var_issues.append(name)
     else:
         pass
-    
+
     _logg(f"{var_issues} contain `{complex_sep}`. Consider replacing those!",
          verbose=verbose & (len(var_issues) > 0), level='warn')
 
@@ -223,7 +221,7 @@ def filter_resource(resource: DataFrame, var_names: Index) -> DataFrame:
 def _choose_mtx_rep(adata, use_raw=False, layer=None, verbose=False) -> csr_matrix:
     """
     Choose matrix (adapted from scanpy)
-    
+
     Parameters
     ----------
     adata
@@ -232,7 +230,7 @@ def _choose_mtx_rep(adata, use_raw=False, layer=None, verbose=False) -> csr_matr
         Use raw attribute of adata if present.
     layer
         Indicate whether to use any layer.
-    
+
     Returns
     -------
         The matrix to be used by liana-py.
@@ -251,10 +249,17 @@ def _choose_mtx_rep(adata, use_raw=False, layer=None, verbose=False) -> csr_matr
     else:
         _logg("Using `.X`!", verbose=verbose)
         X = adata.X
-        
+
     # convert to sparse csr matrix
     if not isspmatrix_csr(X):
         _logg("Converting to sparse csr matrix!", verbose=verbose)
         X = csr_matrix(X)
-    
+
     return X
+
+def _check_groupby(adata, groupby, verbose):
+    if groupby not in adata.obs.columns:
+        raise AssertionError(f"`{groupby}` not found in `adata.obs.columns`.")
+    if not adata.obs[groupby].dtype.name == 'category':
+        _logg(f"Converting `{groupby}` to categorical!", level='warn', verbose=verbose)
+        adata.obs[groupby] = adata.obs[groupby].astype('category')

@@ -1,22 +1,7 @@
 from liana.method.sc._Method import Method, MethodMeta
 from numpy import mean
 
-
 def _logfc_score(x):
-    """
-    Calculate 1vs Rest expression logFC
-
-    Parameters
-    ----------
-    x
-        DataFrame row
-
-    Returns
-    -------
-    (None, 1vsRest expression logFC)
-
-    """
-    # specificity
     mean_logfc = mean((x['ligand_logfc'], x['receptor_logfc']), axis=0)
     return None, mean_logfc
 

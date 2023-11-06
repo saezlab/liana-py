@@ -4,8 +4,9 @@ import pathlib
 from pandas import DataFrame
 
 from liana._logging import _logg
+from liana._constants import DefaultValues as V
 
-def select_resource(resource_name: str = 'consensus') -> DataFrame:
+def select_resource(resource_name: str = V.resource_name) -> DataFrame:
     """
     Read resource of choice from the pre-generated resources in LIANA.
 
@@ -22,7 +23,7 @@ def select_resource(resource_name: str = 'consensus') -> DataFrame:
     resource_name = resource_name.lower()
 
     resource_path = pathlib.Path(__file__).parent.joinpath("omni_resource.csv")
-    
+
     resource = read_csv(resource_path, index_col=False)
 
     if resource_name not in resource['resource'].unique():

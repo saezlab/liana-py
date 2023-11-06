@@ -1,5 +1,5 @@
 import numpy as np
-from liana.plotting import dotplot, dotplot_by_sample, tileplot, interactions, contributions, target_metrics
+from liana.plotting import dotplot, dotplot_by_sample, tileplot
 from liana.testing import sample_lrs
 from liana.testing import generate_toy_spatial
 
@@ -48,16 +48,16 @@ def test_dotplot_bysample():
     assert 'interaction' in my_p3.data.columns
     assert 'sample' in my_p3.data.columns
     assert 'B' not in my_p3.data['target']
-    
+
 
 def test_tileplot():
-    my_p2 = tileplot(liana_res = liana_res, 
+    my_p2 = tileplot(liana_res = liana_res,
                      # NOTE: fill & label need to exist for both
                      # ligand_ and receptor_ columns
                      fill='means',
                      label='pvals',
                      label_fun=lambda x: f'{x:.2f}',
-                     top_n=10, 
+                     top_n=10,
                      orderby='specificity_rank',
                      orderby_ascending=True
                      )
@@ -67,26 +67,7 @@ def test_tileplot():
 
 def test_proximity_plot():
     from liana.plotting import connectivity
-    
+
     adata = generate_toy_spatial()
     my_p4 = connectivity(adata=adata, idx=0)
     assert my_p4 is not None
-
-
-def test_target_metrics_plots():
-    from liana.testing import _sample_target_metrics
-    adata = generate_toy_spatial()
-    adata.uns['target_metrics'] = _sample_target_metrics()
-    adata.view_names = ['intra', 'extra']
-    
-    contributions(misty=adata, stat='intra_R2', top_n=1)
-    target_metrics(misty=adata, stat='gain_R2')
-
-
-def test_misty_interactions_plot():
-    from liana.testing import _sample_interactions
-    adata = generate_toy_spatial()
-    adata.uns['interactions'] = _sample_interactions()
-    adata.view_names = ['intra', 'extra']
-    
-    interactions(misty=adata, top_n=3, view='extra', key=lambda x: np.abs(x), ascending=False)

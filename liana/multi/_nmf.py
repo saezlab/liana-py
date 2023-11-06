@@ -1,51 +1,65 @@
+from __future__ import annotations
+
 from sklearn.decomposition import NMF
 import numpy as np
 import pandas as pd
 import plotnine as p9
 from tqdm import tqdm
 
+from anndata import AnnData
 from liana.method._pipe_utils._pre import _choose_mtx_rep
 from liana._logging import _logg, _check_if_installed
+from liana._docs import d
 
-def nmf(adata, n_components=None, k_range=range(1, 10), use_raw=False, layer=None, inplace=True, verbose=False, **kwargs):
+@d.dedent
+def nmf(adata: AnnData,
+        n_components: (int or None)=None,
+        k_range: range =range(1, 10),
+        use_raw: bool=False,
+        layer: (str or None) = None,
+        inplace:bool=True,
+        verbose:bool=False,
+        **kwargs):
     """
     Fits NMF to an AnnData object.
-    
+
     Parameters
     ----------
-    adata : AnnData
-        AnnData object.
+    %(adata)s
     n_components : int, None
         Number of components to use. If None, the number of components is estimated using the elbow method.
     k_range : range
         Range of components to test. Default: range(1, 10).
-    use_raw : bool
-        Whether to use ``.raw`` attribute of ``adata``.
-    layer : str, None
-        ``.layers`` key to use. If None, ``.X`` is used.
-    inplace : bool
-        If ``False``, return a copy. Otherwise, do operation inplace and return ``None``.
+    %(use_raw)s
+    %(layer)s
+    %(inplace)s
     **kwargs : dict
         Keyword arguments to pass to ``sklearn.decomposition.NMF``.
-    
+
     Returns
     -------
-    If inplace is True, it will add ``NMF_W`` and ``NMF_H`` to the ``adata.obsm`` and ``adata.varm`` AnnData objects.
-    
+    If inplace is True, it will add ``NMF_W`` and ``NMF_H`` to the ``adata.obsm`` and ``adata.varm``.
+    If n_components is None, it will also add ``nfm_errors`` and ``nfm_rank`` to ``adata.uns``.
+
+    If inplace is False, it will return ``W`` and ``H``.
+
     """
-    
+
     if n_components is None:
         errors, n_components = estimate_elbow(adata.X, k_range=k_range, verbose=verbose, **kwargs)
         _plot_elbow(errors, n_components)
-    
+
     nmf = NMF(n_components=n_components, **kwargs)
     X = _choose_mtx_rep(adata, layer=layer, use_raw=use_raw)
     W = nmf.fit_transform(X)
     H = nmf.components_.T
-    
+
     if inplace:
         adata.obsm['NMF_W'] = W
         adata.varm['NMF_H'] = H
+        adata.uns['nfm_errors'] = errors
+        adata.uns['nfm_rank'] = n_components
+
     return None if inplace else (W, H)
 
 
@@ -55,23 +69,23 @@ def estimate_elbow(X, k_range, verbose=False, **kwargs):
     for k in tqdm(k_range, disable=not verbose):
         error = _calculate_error(X, k, **kwargs)
         errors.append(error)
-    
+
     kneedle = kn.KneeLocator(x=k_range,
                              y=errors,
-                             direction='decreasing', 
+                             direction='decreasing',
                              curve='convex',
                              interp_method='interp1d',
                              S=1
                              )
     rank = kneedle.knee
-    
+
     _logg(f'Estimated rank: {rank}', verbose=verbose)
 
     errors = pd.DataFrame(errors,
                           index=list(k_range),
                           columns=['error']). \
                               reset_index().rename(columns={'index': 'k'})
-    
+
     return errors, rank
 
 
@@ -79,10 +93,10 @@ def _calculate_error(X, n_components, **kwargs):
     nmf = NMF(n_components=n_components, **kwargs)
     W = nmf.fit_transform(X)
     H = nmf.components_
-    
+
     Xhat = np.dot(W, H)
     error = np.mean(np.abs(X - Xhat))
-    
+
     return error
 
 

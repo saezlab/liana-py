@@ -17,12 +17,12 @@ all_defaults = read_csv(test_path.joinpath("data/all_defaults.csv"), index_col=0
 
 def test_perms():
     perms = _get_means_perms(adata=adata,
-                             norm_factor=None, 
+                             norm_factor=None,
                              agg_fun=np.mean,
                              n_perms=100,
-                             seed=1337, 
+                             seed=1337,
                              verbose=False)
-    
+
     assert perms.shape == (100, 10, 765)
 
     desired = np.array([45615.15418553, 45737.95729483, 45575.47318892, 45559.41832494,
@@ -35,7 +35,7 @@ def test_perms():
 
 def test_positions():
     ligand_pos, receptor_pos, labels_pos = _get_positions(adata, all_defaults)
-    
+
     assert ligand_pos['MIF'] == 740
     assert receptor_pos['CD4'] == 465
     assert labels_pos['Dendritic'] == 9
@@ -47,7 +47,7 @@ def test_cellchat_perms():
     perms = _get_means_perms(adata=adata,
                              norm_factor=None,
                              agg_fun=_trimean,
-                             n_perms=100, 
+                             n_perms=100,
                              seed=1337,
                              verbose=False
                              )
@@ -58,9 +58,9 @@ def test_cellchat_perms():
                         33809.956, 33785.234, 33844.524, 34986.043,
                         34304.404, 33644.323])
     expected = perms.sum(axis=0).sum(axis=1)
-    
+
     assert np.testing.assert_almost_equal(desired, expected, decimal=3) is None
-    
+
     perms = _get_means_perms(adata=adata,
                              norm_factor=mat_max,
                              agg_fun=_trimean,

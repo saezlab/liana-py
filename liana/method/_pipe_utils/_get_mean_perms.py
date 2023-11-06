@@ -44,7 +44,7 @@ def _get_means_perms(adata: anndata.AnnData,
     # define labels and masks
     labels = adata.obs['@label'].cat.categories
     labels_mask = np.zeros((adata.shape[0], labels.shape[0]), dtype=bool)
-    
+
     # populate masks shape(genes, labels)
     for ct_idx, label in enumerate(labels):
         labels_mask[:, ct_idx] = adata.obs['@label'] == label
@@ -59,7 +59,7 @@ def _get_means_perms(adata: anndata.AnnData,
 def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fun, verbose):
     # initialize rng
     rng = np.random.default_rng(seed=seed)
-    
+
     # indexes to be shuffled
     idx = np.arange(X.shape[0])
 
@@ -74,33 +74,33 @@ def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fun, verbose):
         for ct_idx in range(labels_mask.shape[1]):
             ct_mask = labels_mask[:, ct_idx]
             perms[perm, ct_idx] = agg_fun(perm_mat[ct_mask], axis=0)
-    
+
     return perms
 
 
 def _get_positions(adata, lr_res):
     labels = adata.obs['@label'].cat.categories
-    
+
     # get positions of each entity in the matrix
     ligand_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity
                   in lr_res['ligand']}
     receptor_pos = {entity: np.where(adata.var_names == entity)[0][0] for entity
                     in lr_res['receptor']}
     labels_pos = {labels[pos]: pos for pos in range(labels.shape[0])}
-    
+
     return ligand_pos, receptor_pos, labels_pos
 
 
 def _get_mat_idx(adata, lr_res):
     # convert to indexes
     ligand_pos, receptor_pos, labels_pos = _get_positions(adata, lr_res)
-    
+
     ligand_idx = lr_res['ligand'].map(ligand_pos)
     receptor_idx = lr_res['receptor'].map(receptor_pos)
-    
+
     source_idx = lr_res['source'].map(labels_pos)
     target_idx = lr_res['target'].map(labels_pos)
-    
+
     return ligand_idx, receptor_idx, source_idx, target_idx
 
 
@@ -129,5 +129,5 @@ def _calculate_pvals(lr_truth, perm_stats, _score_fun):
     else:
         pvals = None
 
-    
+
     return pvals

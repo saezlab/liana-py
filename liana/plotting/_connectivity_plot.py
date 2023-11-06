@@ -2,31 +2,30 @@ from plotnine import ggplot, aes, geom_point, theme_minimal, labs, theme
 import anndata
 import pandas as pd
 
+from liana._logging import _logg
+from liana._docs import d
+from liana._constants import Keys as K, DefaultValues as V
 
-def connectivity(adata: anndata.AnnData, idx: int, 
-                 spatial_key='spatial',
-                 connectivity_key='spatial_connectivities',
-                 size=1, figure_size=(5.4, 5),
-                 return_fig: bool = True):
+@d.dedent
+def connectivity(adata: anndata.AnnData,
+                 idx: int,
+                 spatial_key=K.spatial_key,
+                 connectivity_key=K.connectivity_key,
+                 size=1,
+                 figure_size=(5.4, 5),
+                 return_fig: bool = V.return_fig):
     """
     Plot spatial connectivity weights.
 
     Parameters
     ----------
-    adata
-        `AnnData` object with `connectivity` (spatial connectivity weights) in `adata.obsm`.
-    idx
-        Spot/cell index
-    spatial_key
-        Key to use to retrieve the spatial coordinates from adata.obsm.
-    connectivity_key
-        Key to use to retrieve the connectivity (sparse) matrix from adata.obsp.
+    %(adata)s
+    %(spatial_key)s
+    %(connectivity_key)s
     size
         Size of the points
-    figure_size
-        Size of the figure
-    return_fig
-        `bool` whether to return the fig object, `False` only plots
+    %(figure_size)s
+    %(return_fig)s
 
     Returns
     -------
@@ -36,6 +35,9 @@ def connectivity(adata: anndata.AnnData, idx: int,
 
     assert connectivity_key in list(adata.obsp.keys())
     assert spatial_key in adata.obsm_keys()
+
+    _logg("This function will be deprecated in the next version. " +
+          "Please use scanpy or squidpy for plotting spatial connectivities.", level='warn')
 
     coordinates = pd.DataFrame(adata.obsm[spatial_key],
                                index=adata.obs_names,
@@ -49,7 +51,7 @@ def connectivity(adata: anndata.AnnData, idx: int,
          + theme_minimal()
          + labs(colour='connectivity', y='y Coordinate', x='x Coordinate')
          + theme(figure_size=figure_size)
-         ) 
+         )
 
 
     if return_fig:

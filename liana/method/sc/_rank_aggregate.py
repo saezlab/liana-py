@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from liana.method.sc._Method import MethodMeta
 from liana.method.sc._liana_pipe import liana_pipe
+from liana._docs import d
 from liana.utils import mdata_to_anndata
 from mudata import MuData
+from liana._constants import Keys as K, DefaultValues as V
 
 import anndata as an
 from pandas import DataFrame
@@ -51,81 +53,59 @@ class AggregateClass(MethodMeta):
             f"`magnitude`- and `specificity`-related scoring functions from the different methods."
         )
 
+    @d.dedent
     def __call__(self,
-                 adata: an.AnnData,
+                 adata: an.AnnData | MuData,
                  groupby: str,
-                 resource_name: str = 'consensus',
-                 expr_prop: float = 0.1,
-                 min_cells: int = 5,
-                 base: float = 2.718281828459045,
-                 aggregate_method='rra',
-                 return_all_lrs: bool = False,
-                 key_added : str = 'liana_res',
-                 consensus_opts=None,
-                 use_raw: Optional[bool] = True,
-                 layer: Optional[str] = None,
-                 de_method='t-test',
-                 verbose: Optional[bool] = False,
-                 n_perms: int | None = 1000 ,
-                 seed: int = 1337,
-                 resource: Optional[DataFrame] = None,
-                 interactions=None,
-                 mdata_kwargs = dict(),
-                 inplace=True
+                 resource_name: str = V.resource_name,
+                 expr_prop: float = V.expr_prop,
+                 min_cells: int = V.min_cells,
+                 base: float = V.logbase,
+                 aggregate_method: str = 'rra',
+                 consensus_opts: Optional[list] = None,
+                 return_all_lrs: bool = V.return_all_lrs,
+                 key_added: str = K.uns_key,
+                 use_raw: Optional[bool] = V.use_raw,
+                 layer: Optional[str] = V.layer,
+                 de_method: str = V.de_method,
+                 n_perms: int = V.n_perms,
+                 seed: int = V.seed,
+                 resource: Optional[DataFrame] = V.resource,
+                 interactions: Optional[list] = V.interactions,
+                 mdata_kwargs: dict = dict(),
+                 inplace: bool = V.inplace,
+                 verbose: Optional[bool] = V.verbose,
                  ):
         """
+        Get an aggregate of ligand-receptor scores from multiple methods.
+
         Parameters
         ----------
-        adata
-            Annotated data object.
-        groupby
-            The key of the observations grouping to consider.
-        resource_name
-            Name of the resource to be loaded and use for ligand-receptor inference.
-        expr_prop
-            Minimum expression proportion for the ligands/receptors (and their subunits) in the
-             corresponding cell identities. Set to `0`, to return unfiltered results.
-        min_cells
-            Minimum cells per cell identity (`groupby`) to be considered for downstream analysis
-        base
-            Exponent base used to reverse the log-transformation of matrix. Note that this is
-            relevant only for the `logfc` method.
+        %(adata)s
+        %(groupby)s
+        %(resource_name)s
+        %(expr_prop)s
+        %(min_cells)s
+        %(base)s
         aggregate_method
             Method aggregation approach, one of ['mean', 'rra'], where `mean` represents the
             mean rank, while 'rra' is the RobustRankAggregate (Kolde et al., 2014)
             of the interactions
-        return_all_lrs
-            Bool whether to return all LRs, or only those that surpass the `expr_prop`
-            threshold. Those interactions that do not pass the `expr_prop` threshold will
-            be assigned to the *worst* score of the ones that do. `False` by default.
-        key_added
-            Key to add the results to the `uns` attribute of `adata`.
-        use_raw
-            Use raw attribute of adata if present. True, by default.
-        layer
-            Layer in anndata.AnnData.layers to use. If None, use anndata.AnnData.X.
-        de_method
-            Differential expression method. `scanpy.tl.rank_genes_groups` is used to rank genes
-            according to 1vsRest. The default method is 't-test'.
-        verbose
-            Verbosity flag
-        n_perms
-            Number of permutations for the permutation test. Note that this is relevant
-            only for permutation-based methods - e.g. `CellPhoneDB`. If `None` is passed, 
-            no permutation testing is performed. Thus, specificity_rank is not returned. 
-        seed
-            Random seed for reproducibility.
-        resource
-            Parameter to enable external resources to be passed. Expects a pandas dataframe
-            with [`ligand`, `receptor`] columns. None by default. If provided will overrule
-            the resource requested via `resource_name`
-        interactions
-            List of tuples with ligand-receptor pairs `[(ligand, receptor), ...]` to be used for the analysis.
-            If passed, it will overrule the resource requested via `resource` and `resource_name`.
-        mdata_kwargs
-            Keyword arguments to be passed to `li.fun.mdata_to_anndata` if `adata` is an instance of `MuData`.
-        inplace
-            If true return `DataFrame` with results, else assign inplace to `.uns`.
+        consensus_opts
+            Strategies to aggregate interactions across methods.
+            Default is None - i.e. ['Specificity', 'Magnitude'] and both specificity and magnitude are aggregated.
+        %(return_all_lrs)s
+        %(key_added)s
+        %(use_raw)s
+        %(layer)s
+        %(de_method)s
+        %(verbose)s
+        %(n_perms_sc)s
+        %(seed)s
+        %(resource)s
+        %(interactions)s
+        %(mdata_kwargs)s
+        %(inplace)s
 
         Returns
         -------
@@ -133,12 +113,12 @@ class AggregateClass(MethodMeta):
         Otherwise, modifies the ``adata`` object with the following key:
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
         """
-        
+
         if isinstance(adata, MuData):
             ad = mdata_to_anndata(adata, **mdata_kwargs, verbose=verbose)
         else:
             ad = adata
-        
+
         liana_res = liana_pipe(adata=ad,
                                groupby=groupby,
                                resource_name=resource_name,
@@ -159,7 +139,7 @@ class AggregateClass(MethodMeta):
                                _aggregate_method=aggregate_method,
                                _consensus_opts=consensus_opts
                                )
-        
+
         if inplace:
             adata.uns[key_added] = liana_res
         return None if inplace else liana_res

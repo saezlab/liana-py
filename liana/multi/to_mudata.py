@@ -1,40 +1,43 @@
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
-import scanpy as sc
 import warnings as warnings
 
 from anndata import AnnData
+from mudata import MuData
 from tqdm import tqdm
 
 from ._common import _process_scores
 from liana._logging import _check_if_installed
+from liana.method._pipe_utils import _check_groupby
+from liana._docs import d
+from liana._constants import DefaultValues as V, Keys as K, PrimaryColumns as P
 
-def adata_to_views(adata,
-                   groupby,
-                   sample_key,
-                   obs_keys,
-                   view_separator=':',
-                   min_count=10,
-                   min_total_count=15,
-                   large_n=10, 
-                   min_prop=0.1,
-                   keep_stats = False,
-                   verbose=False,
+@d.dedent
+def adata_to_views(adata: AnnData,
+                   groupby: str,
+                   sample_key: str,
+                   obs_keys: list = None,
+                   view_sep: str = ':',
+                   min_count: int = 10,
+                   min_total_count: int = 15,
+                   large_n: int = 10,
+                   min_prop: float = 0.1,
+                   keep_stats: bool = False,
+                   verbose: bool = False,
                    **kwargs):
     """
     Converts an AnnData object to a MuData object with views that represent an aggregate for each entity in `adata.obs[groupby]`.
-    
+
     Parameters
     ----------
-    adata: :class:`~anndata.AnnData`
-        AnnData object
-    groupby:
-        Column name in `adata.obs` to group by
-    sample_key:
-        Column name in `adata.obs` to use as sample key
+    %(adata)s
+    %(groupby)s
+    %(sample_key)s
     obs_keys:
         Column names in `adata.obs` to merge with the MuData object
-    view_separator:
+    view_sep:
         Separator to use when assigning `adata.var_names` to views
     min_count:
         Minimum number of counts per gene per sample to be included in the pseudobulk.
@@ -46,38 +49,39 @@ def adata_to_views(adata,
         Minimum proportion of samples that must have a count for a gene to be included in the pseudobulk.
     keep_stats:
         If True, keep the pseudobulk statistics in `mdata.uns['psbulk_stats']`. Default is False.
-    verbose:
-        If True, show progress bar.
+    %(verbose)s
     **kwargs
         Keyword arguments used to aggregate the values per cell into views. See `dc.filter_by_expr` for more details.
-    
+
     Returns
     -------
     Returns a MuData object with views that represent an aggregate for each entity in `adata.obs[groupby]`.
-    
+
     """
-    
+
     # Check if MuData & decoupler are installed
-    mu = _check_if_installed(package_name="mudata")
     dc = _check_if_installed(package_name="decoupler")
-    
+
     views = adata.obs[groupby].unique()
     views = tqdm(views, disable=not verbose)
-    
+
+    _check_groupby(adata=adata, groupby=groupby, verbose=verbose)
+
     padatas = {}
-    if keep_stats: stats = []
+    if keep_stats:
+        stats = []
     for view in (views):
         # filter AnnData to view
         temp = adata[adata.obs[groupby] == view].copy()
         # assign view to var_names
-        temp.var_names = view + view_separator + temp.var_names
+        temp.var_names = view + view_sep + temp.var_names
 
         padata = dc.get_pseudobulk(temp,
                                    sample_col=sample_key,
                                    groups_col=None,
                                    **kwargs
                                    )
-        
+
         # only filter genes for views that pass QC
         if 0 in padata.shape:
             continue
@@ -96,139 +100,122 @@ def adata_to_views(adata,
             # keep psbulk stats
             if keep_stats:
                 df = padata.obs.filter(items=['psbulk_n_cells', 'psbulk_counts'], axis=1)
-                df.columns = [view + view_separator + col for col in df.columns]
+                df.columns = [view + view_sep + col for col in df.columns]
                 stats.append(df)
 
             del padata.obs
             padatas[view] = padata
 
     # Convert to MuData
-    mdata = mu.MuData(padatas)
-    
+    mdata = MuData(padatas)
+
     # process metadata
     _process_meta(adata=adata, mdata=mdata, sample_key=sample_key, obs_keys=obs_keys)
-    
+
     # combine psbulk stats across views and add to mdata
     if keep_stats:
         mdata.uns['psbulk_stats'] = pd.concat(stats, axis=1)
-    
+
     return mdata
 
-
-def lrs_to_views(adata, 
-                 score_key=None, 
-                 inverse_fun= lambda x: 1 - x,
-                 obs_keys=None,
-                 lr_prop=0.5,
-                 lr_fill=np.nan,
-                 lrs_per_view=20,
-                 lrs_per_sample=10,
-                 samples_per_view=3,
-                 min_variance=0,
-                 lr_separator='^',
-                 cell_separator='&',
-                 var_separator=':',
-                 uns_key = 'liana_res',
-                 sample_key='sample',
-                 source_key='source',
-                 target_key='target', 
-                 ligand_key='ligand_complex',
-                 receptor_key='receptor_complex',
-                 verbose=False
+@d.dedent
+def lrs_to_views(adata: AnnData,
+                 score_key: (str or None) = None,
+                 inverse_fun: callable = V.inverse_fun,
+                 obs_keys: (list or None) =None,
+                 lr_prop: float = 0.5,
+                 lr_fill: np.nan = np.nan,
+                 lrs_per_view:int = 20,
+                 lrs_per_sample:int = 10,
+                 samples_per_view: int = 3,
+                 min_variance:int = 0,
+                 lr_sep: str = V.lr_sep,
+                 cell_sep: str='&',
+                 var_sep: str=':',
+                 uns_key: str = K.uns_key,
+                 sample_key: str = 'sample',
+                 source_key: str = P.source,
+                 target_key: str = P.target,
+                 ligand_key: str = P.ligand_complex,
+                 receptor_key: str = P.receptor_complex,
+                 verbose: bool = V.verbose
                  ):
     """
     Converts a LIANA result to a MuData object with views that represent an aggregate for each entity in `adata.obs[groupby]`.
-    
+
     Parameters
     ----------
-    adata
-        AnnData object with LIANA results in `adata.uns[uns_key]`
-    score_key
-        Column in `adata.uns[uns_key]` that contains the scores to be used for building the views.
-    inverse_fun
-        Function that is applied to the scores before building the views. Default is `lambda x: 1 - x` which is used to invert the scores
-        reflect probabilities (e.g. magnitude_rank), i.e. such for which lower values reflect higher relevance.
-        This is handled automatically for the scores in liana.
+    %(adata)s
+    %(score_key)s
+    %(inverse_fun)s
     obs_keys
-        List of keys in `adata.obs` that should be included in the MuData object. Default is `None`. 
+        List of keys in `adata.obs` that should be included in the MuData object.
         These columns should correspond to the number of samples in `adata.obs[sample_key]`.
     lr_prop
-        Reflects the minimum required proportion of samples for an interaction to be considered for building the views. Default is `0.5`.
+        Reflects the minimum required proportion of samples for an interaction to be considered for building the views.
     lr_fill
         Value to fill in for interactions that are not present in a view. Default is `np.nan`.
     lrs_per_sample
-        Reflects the minimum required number of interactions in a sample to be considered when building a specific view. Default is `10`.
+        Reflects the minimum required number of interactions in a sample to be considered when building a specific view.
     lrs_per_view
-        Reflects the minimum required number of interactions in a view to be considered for building the views. Default is `20`.
+        Reflects the minimum required number of interactions in a view to be considered for building the views.
     samples_per_view
-        Reflects the minimum required samples to keep a view. Default is `3`.
+        Reflects the minimum required samples to keep a view.
     min_variance
-        Reflects the minimum required variance across samples for each interaction in each view. Default is `0`.
+        Reflects the minimum required variance across samples for each interaction in each view.
         NaNs are ignored when computing the variance.
-    lr_separator
-        Separator to use for the interaction names in the views. Default is `^`.
-    cell_separator
-        Separator to use for the cell names in the views. Default is `&`.
-    var_separator
-        Separator to use for the variable names in the views. Default is `:`.
-    uns_key
-        Key in `adata.uns` that contains the LIANA results. Default is `'liana_res'`.
-    sample_key
-        Key in `adata.uns[uns_key]` that contains the sample names. Default is `'sample'`.
-    source_key
-        Key in `adata.uns[uns_key]` that contains the source names. Default is `'source'`.
-    target_key
-        Key in `adata.uns[uns_key]` that contains the target names. Default is `'target'`.
-    ligand_key
-        Key in `adata.uns[uns_key]` that contains the ligand names. Default is `'ligand_complex'`.
-    receptor_key
-        Key in `adata.uns[uns_key]` that contains the receptor names. Default is `'receptor_complex'`.
-    verbose
-        If True, show progress bar.
-    
+    %(lr_sep)s
+    cell_sep
+        Separator to use for the cell names in the views.
+    var_sep
+        Separator to use for the variable names in the views.
+    %(uns_key)s
+    %(sample_key)s
+    %(source_key)s
+    %(target_key)s
+    %(ligand_key)s
+    %(receptor_key)s
+    %(verbose)s
+
     Returns
     -------
     Returns a MuData object with views that represent an aggregate for each entity in `adata.obs[groupby]`.
-    
+
     """
-    
-    # Check if MuData is installed
-    mu = _check_if_installed(package_name='mudata')
-    
     if (sample_key not in adata.obs.columns) or (sample_key not in adata.uns[uns_key].columns):
         raise ValueError(f'`{sample_key}` not found in `adata.obs` or `adata.uns[uns_key]`!' +
                          'Please ensure that the sample key is present in both objects.')
-    
+
     if uns_key not in adata.uns_keys():
         raise ValueError(f'`{uns_key}` not found in `adata.uns`! Please run `li.mt.rank_aggregate.by_sample` first.')
-    
+
     liana_res = adata.uns[uns_key].copy()
-    
+
     if (score_key is None) or (score_key not in liana_res.columns):
         raise ValueError(f"Score column `{score_key}` not found in `liana_res`")
-    
+
     if isinstance(obs_keys, list):
         if any([key not in adata.obs.keys() for key in obs_keys]):
             raise ValueError(f'`{obs_keys}` not found in `adata.obs`!')
     elif obs_keys is not None:
-        raise ValueError(f'`obs_keys` must be a list or `None`!')
-    
+        raise ValueError('`obs_keys` must be a list or `None`!')
+
     keys = np.array([sample_key, source_key, target_key, ligand_key, receptor_key])
     missing_keys = keys[[ key not in liana_res.columns for key in keys]]
-    
+
     if any(missing_keys):
         raise ValueError(f'`{missing_keys}` not found in `adata.uns[{uns_key}]`! Please check your input.')
-    
+
     # concat columns (needed for MOFA)
-    liana_res['interaction'] = liana_res[ligand_key] + lr_separator + liana_res[receptor_key]
-    liana_res['ct_pair'] = liana_res[source_key] + cell_separator + liana_res[target_key]
+    liana_res['interaction'] = liana_res[ligand_key] + lr_sep + liana_res[receptor_key]
+    liana_res['ct_pair'] = liana_res[source_key] + cell_sep + liana_res[target_key]
     liana_res = liana_res[[sample_key, 'ct_pair', 'interaction', score_key]]
-    
+
     # get scores & invert if necessary
     liana_res = _process_scores(liana_res=liana_res,
                                 score_key=score_key,
                                 inverse_fun=inverse_fun)
-        
+
     # count samples per interaction
     count_pairs = (liana_res.
                    drop(columns=score_key).
@@ -237,13 +224,13 @@ def lrs_to_views(adata,
                    rename(columns={sample_key: 'count'}).
                    reset_index()
                    )
-    
+
     sample_n = liana_res[sample_key].nunique()
-    
+
     # Keep only lrs above a certain proportion of samples
     count_pairs = count_pairs[count_pairs['count'] >= sample_n * lr_prop]
     liana_res = liana_res.merge(count_pairs.drop(columns='count') , how='inner')
-    
+
     # Keep only samples above a certain number of LRs
     count_lrs = (liana_res.
                  drop(columns=score_key).
@@ -254,48 +241,48 @@ def lrs_to_views(adata,
                  )
     count_lrs = count_lrs[count_lrs['count'] >= lrs_per_sample]
     liana_res = liana_res.merge(count_lrs.drop(columns='count') , how='inner')
-    
+
     # convert to anndata views
     views = liana_res['ct_pair'].unique()
     views = tqdm(views, disable=not verbose)
-    
-    lr_adatas = {}    
+
+    lr_adatas = {}
     for view in views:
         lrs_per_ct = liana_res[liana_res['ct_pair']==view]
-        lrs_wide = lrs_per_ct.pivot(index='interaction', 
+        lrs_wide = lrs_per_ct.pivot(index='interaction',
                                     columns=sample_key,
                                     values=score_key)
-    
-        lrs_wide.index = view + var_separator + lrs_wide.index
+
+        lrs_wide.index = view + var_sep + lrs_wide.index
         lrs_wide = lrs_wide.replace(np.nan, lr_fill)
-        
+
         if lrs_wide.shape[0] >= lrs_per_view: # check if enough LRs
             temp = _dataframe_to_anndata(lrs_wide)
-            
+
             # keep only variables with variance > min_variance
             temp = temp[:, np.nanvar(temp.X, axis=0) > min_variance]
-            
+
             if (temp.shape[0] >= samples_per_view): # check if enough samples
                 lr_adatas[view] = temp
-                
+
     # to mdata
-    mdata = mu.MuData(lr_adatas)
-    
+    mdata = MuData(lr_adatas)
+
     # process metadata
     _process_meta(adata=adata, mdata=mdata, sample_key=sample_key, obs_keys=obs_keys)
-    
+
     return mdata
-        
+
 
 def _dataframe_to_anndata(df):
     obs = pd.DataFrame(index=df.columns)
     var = pd.DataFrame(index=df.index)
     X = np.array(df.values).T
-    
+
     return AnnData(X=X, obs=obs, var=var, dtype=np.float32)
 
 
-def _remove_mod_var(mdata, markers, view_separator, var_column):
+def _remove_mod_var(mdata, markers, view_sep, var_column):
     for current_mod in mdata.mod.keys():
         # markers in markers dict for each modality except for current_mod
         negative_markers = [marker for mod in markers.keys() if mod != current_mod for marker in markers[mod]]
@@ -303,9 +290,9 @@ def _remove_mod_var(mdata, markers, view_separator, var_column):
         if current_mod not in list(markers.keys()):
             warnings.warn('no markers in dict for view: {0}'.format(current_mod), Warning)
         else:
-            #keep negative_markers not in markers[current_mod] and add view_separator
-            negative_markers = [current_mod + view_separator + marker for marker in negative_markers if marker not in markers[current_mod]]
-        
+            #keep negative_markers not in markers[current_mod] and add view_sep
+            negative_markers = [current_mod + view_sep + marker for marker in negative_markers if marker not in markers[current_mod]]
+
         if var_column is None:
             # remove negative_markers from current_mod
             mdata.mod[current_mod] = mdata.mod[current_mod][:, ~mdata.mod[current_mod].var_names.isin(negative_markers)]
@@ -315,30 +302,29 @@ def _remove_mod_var(mdata, markers, view_separator, var_column):
 
     mdata.update()
 
-def filter_view_markers(mdata,
-                        markers,
-                        view_separator=':',
-                        var_column='highly_variable',
-                        inplace=False
+@d.dedent
+def filter_view_markers(mdata: MuData,
+                        markers: dict,
+                        view_sep: str = ':',
+                        var_column: str = 'highly_variable',
+                        inplace: bool =False
                         ):
     """
     Used for removing potential cell type marker genes found in the background of other views and thought to be contamination.
-    In each view, sets highly variable genes to False if they are in the markers dict for another view, but not if they are in the markers for the same view. 
+    In each view, sets highly variable genes to False if they are in the markers dict for another view, but not if they are in the markers for the same view.
 
 
     Parameters
     ----------
-    mdata :class:`~mudata.MuData`
-        MuData object. Highly variable genes should be computed already in .var for each modality.
+    %(mdata)s
     markers :class:`dict`
         Dictionary with markers for each view. Keys are the views and values are lists of markers. Can contain markers for views that are not in mdata.mod.keys().
-    view_separator :class:`str`, optional
+    view_sep :class:`str`, optional
         Separator between view and gene names. Defaults to ':'.
     var_column :class:`str`, optional
         Column in mdata.mod['some_view'].var that contains the highly variable genes. Defaults to 'highly_variable'.
         If set to ``None``, instead of setting the hvg genes to False, the hvg genes will be removed from the view.
-    inplace :class:`bool`, optional
-        If True, update mdata in place, else makes a copy. Defaults to False.
+    %(inplace)s
     """
     # check if markers is a dict
     if not isinstance(markers, dict):
@@ -354,22 +340,21 @@ def filter_view_markers(mdata,
             raise ValueError('{0} is not in the columns of .var for all modalities'.format(var_column))
 
     if inplace:
-        _remove_mod_var(mdata, markers, view_separator, var_column)
+        _remove_mod_var(mdata, markers, view_sep, var_column)
     else:
         cdata = mdata.copy()
-        _remove_mod_var(cdata, markers, view_separator, var_column)
+        _remove_mod_var(cdata, markers, view_sep, var_column)
         return cdata
-
 
 
 def _process_meta(adata, mdata, sample_key, obs_keys):
     if obs_keys is not None:
         metadata = adata.obs[[sample_key, *obs_keys]].drop_duplicates()
-        
+
         sample_n = adata.obs[sample_key].nunique()
         if metadata.shape[0] != sample_n:
             raise ValueError('`obs_keys` must be unique per sample in `adata.obs`')
-        
+
         mdata.obs.index.name = None
         mdata.obs = (mdata.obs.
                      reset_index().

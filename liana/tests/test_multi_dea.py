@@ -19,6 +19,7 @@ def test_dea_to_lr():
                        use_raw=False,
                        complex_col=None,
                        verbose=True,
+                       min_cells=10,
                        return_all_lrs=False,
                        )
     assert lr_res.shape == (374, 20)
@@ -29,16 +30,17 @@ def test_dea_to_lr():
     for col in expected_columns:
         assert col in columns
     assert lr_res['interaction_padjusted'].mean() == 0.5540001846991026
-        
+
 def test_dea_to_lr_params():
     lr_res = df_to_lr(adata,
-                    dea_df=dea_df,
-                    expr_prop=0.1,
-                    groupby='bulk_labels',
-                    stat_keys=['stat', 'pval', 'padjusted'],
-                    use_raw=False,
-                    complex_col='stat',
-                    verbose=True,
-                    return_all_lrs=True,
-                    )
+                      dea_df=dea_df,
+                      expr_prop=0.1,
+                      min_cells=10,
+                      groupby='bulk_labels',
+                      stat_keys=['stat', 'pval', 'padjusted'],
+                      use_raw=False,
+                      complex_col='stat',
+                      verbose=True,
+                      return_all_lrs=True,
+                      )
     assert lr_res.shape == (3321, 21)

@@ -1,49 +1,55 @@
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 from anndata import AnnData
+from liana._docs import d
 
-def obsm_to_adata(adata, obsm_key, df = None, _uns=None, _obsm=None):
+@d.dedent
+def obsm_to_adata(adata: AnnData,
+                  obsm_key: str,
+                  df: (pd.DataFrame | None) = None,
+                  _uns: (pd.DataFrame | None) =None,
+                  _obsm: (pd.DataFrame | None)=None
+                  ):
     """
     Extracts a dataframe from adata.obsm and returns a new AnnData object with the values stored in X.
-    
+
     Parameters
     ----------
-    
-    adata : AnnData
-        Annotated data matrix with activities stored in .obsm.
+
+    %(adata)s
     obsm_key
         `.osbm` key to extract.
-    df : pd.DataFrame
+    df
         Dataframe with stats per cell/spot. If None, it will be extracted from adata.obsm[obsm_key].
-    _uns : AxisArrays
+    _uns
         Dictionary with uns data. If None, it will be extracted from adata.uns.
-    _obsm : AxisArrays
+    _obsm
         Dictionary with obsm data. If None, it will be extracted from adata.obsm.
-        
+
     Returns
     -------
-    
-    acts : AnnData
-        New AnnData object with activities in X.
+    An AnnData object with the values stored in X.
     """
 
     if df is None:
         df = adata.obsm[obsm_key]
-    
+
     obs = adata.obs
-    
+
     if _uns is None:
         uns = adata.uns
     else:
         uns = _uns
-        
+
     if _obsm is None:
         obsm = adata.obsm
     else:
         obsm = _obsm
-    
+
     obsp = adata.obsp
-    
+
     var = pd.DataFrame(index = df.columns)
     X = np.array(df, dtype=np.float32)
 

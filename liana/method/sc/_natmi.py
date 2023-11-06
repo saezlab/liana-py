@@ -47,4 +47,3 @@ _natmi = MethodMeta(method_name="NATMI",
                     )
 
 natmi = Method(_method=_natmi)
-
