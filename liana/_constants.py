@@ -16,10 +16,20 @@ class DefaultValues():
     supp_columns = None
     inplace = True
 
+    return_fig = True
+    cmap = 'viridis'
+
+    lr_sep = '^'
+    complex_sep = "_"
+
 class Keys():
     """Keys related to AnnData"""
     uns_key = 'liana_res'
     spatial_key = 'spatial'
+    connectivity_key = f'{spatial_key}_connectivities'
+    target_metrics = 'target_metrics'
+    interactions = 'interactions'
+
 
 class PrimaryColumns():
     source = 'source'

@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+from liana._constants import Keys as K
+
 def _check_var(liana_res, var_name, var):
     if var is None:
         raise ValueError(f'`{var_name}` must be provided!')
@@ -14,7 +16,7 @@ def _prep_liana_res(adata=None,
                     target_labels=None,
                     ligand_complex=None,
                     receptor_complex=None,
-                    uns_key='liana_res'):
+                    uns_key=K.uns_key):
 
     if (liana_res is None) & (adata is None):
         raise AttributeError(f'Ambiguous! One of `liana_res` or `adata.uns[{uns_key}]` should be provided.')

@@ -8,10 +8,14 @@ _adata = """\
 adata
     Annotated data object."""
 
-
 _mdata = """\
 mdata
     MuData (multimodal) data object."""
+
+_misty = """\
+misty
+    MistyData object with modelling results
+"""
 
 _groupby = """\
 groupby
@@ -61,10 +65,6 @@ mdata_kwargs
     Keyword arguments to be passed to `li.fun.mdata_to_anndata` if `adata` is an instance of `MuData`.
     If an AnnData object is passed, these arguments are ignored."""
 
-_kwargs = """\
-kwargs
-    Keyword arguments passed to `scipy.stats.spearmanr`."""
-
 _inplace = """\
 inplace
     Whether to store results in place, or else to return them."""
@@ -75,7 +75,7 @@ verbose
 
 _lr_sep = """\
 lr_sep
-    Separator to use between ligand and receptor. Default is '^'."""
+    Separator to use between ligand and receptor."""
 
 
 # Single-cell specific docstrings
@@ -149,7 +149,7 @@ spatial_key
 
 _connectivity_key = """\
 connectivity_key
-    Key in `adata.obsp` that contains the spatial connectivity matrix. Default is `'spatial_connectivity'`."""
+    Key in `adata.obsp` that contains the spatial connectivity matrix. Default is `'spatial_connectivity'`. """
 
 _function_name = """\
 function_name
@@ -171,13 +171,113 @@ _y_mod = """\
 y_mod
     Name of the modality to use for the y-axis."""
 
-mask_negatives = """\
+_mask_negatives = """\
 mask_negatives
     Whether to mask negative-negative (low-low) or uncategorized interactions."""
+
+
+# Plot docstrings
+_liana_res = """\
+liana_res
+    `liana_res` a `DataFrame` in liana's format.
+"""
+
+_colour = """\
+colour
+    `column` in `liana_res` to define the colours of the dots.
+"""
+
+_size = """\
+size
+    `column` in `liana_res` to define the size of the dots.
+"""
+
+_source_labels = """\
+source_labels
+    List to specify `source` identities to plot.
+"""
+
+_target_labels = """\
+target_labels
+    List to specify `target` identities to plot.
+"""
+
+_top_n = """\
+top_n
+    ``top_n`` entities to plot.
+"""
+
+_orderby = """\
+orderby
+    If `top_n` is not `None`, order the interactions by this column
+"""
+
+_orderby_ascending = """\
+orderby_ascending
+    If `top_n` is not `None`, specify how to order the interactions
+"""
+
+_orderby_absolute = """\
+orderby_absolute
+    If `top_n` is not `None`, whether to order by the absolute value of the `orderby` column.
+"""
+
+_filterby = """\
+filterby
+    Column by which to filter the interactions.
+"""
+
+_filter_lambda = """\
+filter_lambda
+    If `filterby` is not `None`, provide a simple lambda function by which to filter the interactions to be plotted.
+"""
+
+_ligand_complex = """\
+ligand_complex
+    `list` of ligand complexes to filter the interactions to be plotted. Defaults to None.
+"""
+
+_receptor_complex = """\
+receptor_complex
+    `list` of receptor complexes to filter the interactions to be plotted. Defaults to None.
+"""
+
+
+_inverse_colour = """\
+inverse_colour
+    Whether to -log10 the `colour` column for plotting. `False` by default.
+"""
+
+_inverse_size = """\
+inverse_size
+    Whether to -log10 the `size` column for plotting. `False` by default.
+"""
+
+_size_range = """\
+size_range
+    Define size range. Tuple of (min, max) integers.
+"""
+
+_cmap = """\
+cmap
+    Colour map to use for plotting.
+"""
+
+_figure_size = """\
+figure_size
+    Figure x,y size
+"""
+
+_return_fig = """\
+return_fig
+    `bool` whether to return the fig object.
+"""
+
 
 d = DocstringProcessor(
     adata=_adata,
     mdata=_mdata,
+    misty=_misty,
     groupby=_groupby,
     seed=_seed,
     resource=_resource,
@@ -188,7 +288,6 @@ d = DocstringProcessor(
     use_raw=_use_raw,
     layer=_layer,
     mdata_kwargs=_mdata_kwargs,
-    kwargs=_kwargs,
     inplace=_inplace,
     verbose=_verbose,
     lr_sep=_lr_sep,
@@ -198,6 +297,7 @@ d = DocstringProcessor(
     min_cells=_min_cells,
     base=_base,
     return_all_lrs=_return_all_lrs,
+    liana_res=_liana_res,
     de_method=_de_method,
     source_key=_source_key,
     target_key=_target_key,
@@ -213,6 +313,24 @@ d = DocstringProcessor(
     add_categories=_add_categories,
     x_mod=_x_mod,
     y_mod=_y_mod,
-    mask_negatives=mask_negatives
+    mask_negatives=_mask_negatives,
+    colour=_colour,
+    size=_size,
+    source_labels=_source_labels,
+    target_labels=_target_labels,
+    top_n=_top_n,
+    orderby=_orderby,
+    orderby_ascending=_orderby_ascending,
+    orderby_absolute=_orderby_absolute,
+    filterby=_filterby,
+    filter_lambda=_filter_lambda,
+    ligand_complex=_ligand_complex,
+    receptor_complex=_receptor_complex,
+    inverse_colour=_inverse_colour,
+    inverse_size=_inverse_size,
+    size_range=_size_range,
+    cmap=_cmap,
+    figure_size=_figure_size,
+    return_fig=_return_fig,
 
 )

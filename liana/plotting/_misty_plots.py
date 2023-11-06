@@ -1,15 +1,25 @@
 import pandas as pd
 import plotnine as p9
 
+from liana._constants import Keys as K
+from liana._docs import d
 
-def target_metrics(misty, stat, top_n=None, ascending=False, key=None, filterby=None, filter_lambda=None, figure_size=(7,5), return_fig=True):
+@d.dedent
+def target_metrics(misty,
+                   stat,
+                   top_n=None,
+                   ascending=False,
+                   key=None,
+                   filterby=None,
+                   filter_lambda=None,
+                   figure_size=(7,5),
+                   return_fig=True):
     """
     Plot target metrics.
 
     Parameters
     ----------
-    misty : MistyData
-        MistyData object
+    %(misty)s
     stat : str
         Statistic to plot
     top_n : int
@@ -33,7 +43,7 @@ def target_metrics(misty, stat, top_n=None, ascending=False, key=None, filterby=
     Returns a plotnine plot.
 
     """
-    target_metrics = misty.uns['target_metrics'].copy()
+    target_metrics = misty.uns[K.target_metrics].copy()
 
     if filterby is not None:
         msk = target_metrics[filterby].apply(filter_lambda)
@@ -86,7 +96,7 @@ def contributions(misty, top_n=None, ascending=False, key=None, figure_size=(7, 
     A plotnine plot.
 
     """
-    target_metrics = misty.uns['target_metrics'].copy()
+    target_metrics = misty.uns[K.target_metrics].copy()
 
     view_names = misty.view_names.copy()
     if 'intra' not in target_metrics.columns:
@@ -112,7 +122,15 @@ def contributions(misty, top_n=None, ascending=False, key=None, figure_size=(7, 
     p.draw()
 
 
-def interactions(misty, view, top_n = None, ascending=False, key=None, filterby=None, filter_lambda=None, figure_size=(7,5), return_fig=True):
+def interactions(misty,
+                 view,
+                 top_n = None,
+                 ascending=False,
+                 key=None,
+                 filterby=None,
+                 filter_lambda=None,
+                 figure_size=(7,5),
+                 return_fig=True):
     """
     Plot interaction importances.
 
@@ -143,7 +161,7 @@ def interactions(misty, view, top_n = None, ascending=False, key=None, filterby=
     A plotnine plot.
 
     """
-    interactions = misty.uns['interactions'].copy()
+    interactions = misty.uns[K.interactions].copy()
     interactions = interactions[interactions['view'] == view]
     grouped = interactions.groupby('predictor')['importances'].apply(lambda x: x.isna().all())
     interactions = interactions[~interactions['predictor'].isin(grouped[grouped].index)]

@@ -6,6 +6,7 @@ from typing import Optional
 
 from liana.method.sp._SpatialBivariate import SpatialBivariate
 from liana._docs import d
+from liana._constants import Keys as K, DefaultValues as V
 
 class SpatialLR(SpatialBivariate):
     """ A child class of SpatialBivariate for ligand-receptor analysis. """
@@ -16,22 +17,22 @@ class SpatialLR(SpatialBivariate):
     def __call__(self,
                  adata: AnnData,
                  function_name: str,
-                 resource_name: str = 'consensus',
-                 resource: Optional[pd.DataFrame] = None,
-                 interactions=None,
+                 resource_name: str = V.resource_name,
+                 resource: Optional[pd.DataFrame] = V.resource,
+                 interactions: list = V.interactions,
                  expr_prop: float = 0.05,
-                 n_perms:(None | int) = None,
+                 n_perms: (None | int) = None,
                  mask_negatives: bool = False,
-                 seed: int = 1337,
+                 seed: int = V.seed,
                  add_categories: bool = False,
-                 use_raw: Optional[bool] = True,
-                 layer: Optional[str] = None,
-                 connectivity_key = 'spatial_connectivities',
-                 inplace=True,
+                 use_raw: Optional[bool] = V.use_raw,
+                 layer: Optional[str] = V.layer,
+                 connectivity_key = K.connectivity_key,
+                 inplace = True,
                  key_added='global_res',
                  obsm_added='local_scores',
-                 lr_sep='^',
-                 verbose: Optional[bool] = False,
+                 lr_sep=V.lr_sep,
+                 verbose: Optional[bool] = V.verbose,
                  ):
         """
         Local ligand-receptor interaction metrics and global scores.

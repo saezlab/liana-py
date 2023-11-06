@@ -22,7 +22,7 @@ class MistyData(MuData):
     def __init__(self,
                  data:(dict | MuData),
                  obs:(pd.DataFrame | None)= None,
-                 spatial_key:str=K.spatial_key,
+                 spatial_key:str=K.spatial_key, # NOTE: change to spatial_connectivities?
                  enforce_obs=True,
                  **kwargs):
         """
@@ -219,8 +219,8 @@ class MistyData(MuData):
                                                          view_str)
 
         if inplace:
-            self.uns['target_metrics'] = target_metrics
-            self.uns['interactions'] = importances
+            self.uns[K.target_metrics] = target_metrics
+            self.uns[K.interactions] = importances
         else:
             return target_metrics, importances
 
