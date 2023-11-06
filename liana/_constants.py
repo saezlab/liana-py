@@ -33,7 +33,6 @@ class Keys():
     target_metrics = 'target_metrics'
     interactions = 'interactions'
 
-
 class PrimaryColumns():
     source = 'source'
     target = 'target'
@@ -42,7 +41,7 @@ class PrimaryColumns():
     ligand_complex = 'ligand_complex'
     receptor_complex = 'receptor_complex'
     primary = [source, target, ligand_complex, receptor_complex]
-    all = primary + [ligand, receptor]
+    complete = primary + [ligand, receptor]
 
 class CommonColumns():
     ligand_means = 'ligand_means'
@@ -68,7 +67,6 @@ class MethodColumns():
     def get_all_values(cls):
         return [value for name, value in cls.__dict__.items()
                 if not name.startswith('__') and isinstance(value, str)]
-
 
 class InternalValues():
     lrs_to_keep = 'lrs_to_keep'

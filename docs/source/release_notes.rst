@@ -1,7 +1,7 @@
 Release notesconsistency
 =============
 
-1.0.3 (03.11.2023)
+1.0.3 (06.11.2023)
 -------------------------------------------------
 - Added ``filterby`` and ``filter_lambda`` parameters to ``li.pl.interactions`` and ``li.pl.target_metrics`` to allow filtering of interactions and metrics, respectively.
 
@@ -15,11 +15,13 @@ Release notesconsistency
 
 - Various documentation improvements, including using ``docrep`` to ensure consistency.
 
-- Renamed some ``*_separator`` columns to ``*_sep`` for consistency
+- Exported repeated value definitions to ``_constants.py``
+
+- Renamed some ``*_separator`` columns to ``*_sep`` for consistency.
 
 - Added ``li.ut.query_bandwidth`` to query the bandwidth of the spatial connectivities (used in spatial bivariate tutorial)
 
-- Added **pre-commit** hooks adapted from scverse-cooking cutter to ensure consistency.
+- Added **pre-commit** hooks adapted from scverse's cookiecutter.
 
 
 1.0.2 (13.10.2023)

@@ -171,10 +171,10 @@ def liana_pipe(adata: anndata.AnnData,
 
     # Mean Sums required for NATMI (note done on subunits also)
     if M.ligand_means_sums in _add_cols:
-        on = [x for x in P.all if x != P.source]
+        on = [x for x in P.complete if x != P.source]
         lr_res = _sum_means(lr_res, what=C.ligand_means, on=on)
     if M.receptor_means_sums in _add_cols:
-        on = [x for x in P.all if x != P.target]
+        on = [x for x in P.complete if x != P.target]
         lr_res = _sum_means(lr_res, what=C.receptor_means, on=on)
 
     # Calculate Score

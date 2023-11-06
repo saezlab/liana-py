@@ -109,7 +109,8 @@ class MethodMeta:
         verbose
             Possible values: False, True, 'full', where 'full' will print the results for each sample,
             and True will only print the sample progress bar. Default is False.
-        %(kwargs)s
+        **kwargs
+            keyword arguments to pass to the method
 
         Returns
         -------

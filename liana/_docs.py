@@ -31,9 +31,8 @@ seed
 
 _resource = """\
 resource
-    Parameter to enable external resources to be passed. Expects a pandas dataframe
-    with [`ligand`, `receptor`] columns. None by default. If provided will overrule
-    the resource requested via `resource_name`"""
+    A pandas dataframe with [`ligand`, `receptor`] columns.
+    If provided will overrule the resource requested via `resource_name`"""
 
 _interactions = """\
 interactions
@@ -75,7 +74,8 @@ verbose
 
 _lr_sep = """\
 lr_sep
-    Separator to use between ligand and receptor."""
+    Separator to use when joining ligand and receptor names into interactions.
+"""
 
 
 _source_labels = """\
