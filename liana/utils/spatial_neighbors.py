@@ -2,7 +2,9 @@ from anndata import AnnData
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import normalize
+
 from liana._docs import d
+from liana._constants import Keys as K, DefaultValues as V
 
 def _gaussian(distance_mtx, bandwidth):
     return np.exp(-(distance_mtx ** 2.0) / (2.0 * bandwidth ** 2.0))
@@ -28,9 +30,9 @@ def spatial_neighbors(adata: AnnData,
                       zoi=0,
                       standardize=False,
                       reference=None,
-                      spatial_key="spatial",
-                      key_added='spatial',
-                      inplace=True
+                      spatial_key=K.spatial_key,
+                      key_added=K.spatial_key,
+                      inplace=V.inplace
                       ):
     """
     Generate spatial connectivity weights using Euclidean distance.
@@ -66,7 +68,7 @@ def spatial_neighbors(adata: AnnData,
         This is only relevant if you want to use a different set of coordinates to generate spatial connectivity weights.
     %(spatial_key)s
     key_added
-        Key to add to `adata.obsp` if `inplace = True`.
+        Key to add to `adata.obsp` if `inplace = True`. If reference is not `None`, key will be added to `adata.obsm`.
     %(inplace)s
 
     Notes
