@@ -1,19 +1,19 @@
 import pandas as pd
 import plotnine as p9
 
-from liana._constants import Keys as K
+from liana._constants import Keys as K, DefaultValues as V
 from liana._docs import d
 
 @d.dedent
 def target_metrics(misty,
                    stat,
-                   top_n=None,
-                   ascending=False,
-                   key=None,
-                   filterby=None,
-                   filter_lambda=None,
-                   figure_size=(7,5),
-                   return_fig=True):
+                   top_n = None,
+                   ascending = False,
+                   key = None,
+                   filterby = None,
+                   filter_lambda: callable = None,
+                   figure_size: tuple = (7,5),
+                   return_fig: bool = V.return_fig):
     """
     Plot target metrics.
 
@@ -22,20 +22,15 @@ def target_metrics(misty,
     %(misty)s
     stat : str
         Statistic to plot
-    top_n : int
-        Number of targets to plot
+    %(top_n)s
     ascending : bool
         Whether to sort in ascending order
     key : callable
         Function to use to sort the dataframe
-    filterby : str
-        Column to filter by
-    filter_lambda : callable
-        Function to use to filter the dataframe
-    figure_size : tuple
-        Figure size
-    return_fig : bool
-        Whether to return the plot or draw it. Default: True.
+    %(filterby)s
+    %(filter_lambda)s
+    %(figure_size)s
+    %(return_fig)s
 
     Returns
     -------
@@ -70,26 +65,27 @@ def target_metrics(misty,
         return p
     p.draw()
 
-
-def contributions(misty, top_n=None, ascending=False, key=None, figure_size=(7, 5), return_fig=True):
+@d.dedent
+def contributions(misty,
+                  top_n=None,
+                  ascending=False,
+                  key=None,
+                  figure_size: tuple = (7, 5),
+                  return_fig: bool = V.return_fig):
     """
     Plot view contributions per target.
 
     Parameters
     ----------
 
-    misty : MistyData
-        MistyData object
-    figure_size : tuple
-        Figure size
-    top_n : int
-        Number of targets to plot
+    %(misty)s
+    %(top_n)s
     ascending : bool
         Whether to sort in ascending order
     key : callable
         Function to use to sort the dataframe
-    return_fig : bool
-        Whether to return the plot or draw it. Default: True.
+    %(figure_size)s
+    %(return_fig)s
 
     Returns
     -------
@@ -121,40 +117,34 @@ def contributions(misty, top_n=None, ascending=False, key=None, figure_size=(7, 
         return p
     p.draw()
 
-
+@d.dedent
 def interactions(misty,
                  view,
                  top_n = None,
-                 ascending=False,
-                 key=None,
-                 filterby=None,
-                 filter_lambda=None,
-                 figure_size=(7,5),
-                 return_fig=True):
+                 ascending = False,
+                 key = None,
+                 filterby = None,
+                 filter_lambda: callable = None,
+                 figure_size: tuple = (7,5),
+                 return_fig: bool = V.return_fig):
     """
     Plot interaction importances.
 
     Parameters
     ----------
 
-    misty : MistyData
-        MistyData object
+    %(misty)s
     view : str
         A view to plot
-    top_n : int
-        Number of interactions to plot
+    %(top_n)s
     ascending : bool
         Whether to sort interactions in ascending order
     key : str
         Key to use when sorting interactions
-    filterby : str
-        Column to filter by
-    filter_lambda : callable
-        Function to use to filter the dataframe
-    figure_size : tuple
-        Figure size
-    return_fig : bool
-        Whether to return the plot or draw it. Default: True.
+    %(filterby)s
+    %(filter_lambda)s
+    %(figure_size)s
+    %(return_fig)s
 
     Returns
     -------

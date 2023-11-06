@@ -225,12 +225,12 @@ orderby_absolute
 
 _filterby = """\
 filterby
-    Column by which to filter the interactions.
+    Column by which to filter the dataframe.
 """
 
 _filter_lambda = """\
 filter_lambda
-    If `filterby` is not `None`, provide a simple lambda function by which to filter the interactions to be plotted.
+    If `filterby` is not `None`, provide a simple lambda function by which to filter the results to be plotted.
 """
 
 _ligand_complex = """\

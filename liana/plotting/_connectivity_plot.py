@@ -4,7 +4,7 @@ import pandas as pd
 
 from liana._logging import _logg
 from liana._docs import d
-from liana._constants import Keys as K
+from liana._constants import Keys as K, DefaultValues as V
 
 @d.dedent
 def connectivity(adata: anndata.AnnData,
@@ -13,7 +13,7 @@ def connectivity(adata: anndata.AnnData,
                  connectivity_key=K.connectivity_key,
                  size=1,
                  figure_size=(5.4, 5),
-                 return_fig: bool = True):
+                 return_fig: bool = V.return_fig):
     """
     Plot spatial connectivity weights.
 
