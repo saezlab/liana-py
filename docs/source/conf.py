@@ -1,29 +1,17 @@
 # Configuration file for the Sphinx documentation builder.
-import os
 import sys
 from pathlib import Path
 from datetime import datetime
 
+import liana  # noqa: E402
+
 HERE = Path(__file__).parent
-sys.path.insert(0, f"{HERE.parent.parent}")
-
-def read(rel_path: str) -> str:
-    here = os.path.abspath(os.path.dirname(__file__))
-    with open(os.path.join(here, rel_path)) as fp:
-        return fp.read()
-
-def get_version(rel_path: str) -> str:
-    for line in read(rel_path).splitlines():
-        if line.startswith("version ="):
-            delim = '"' if '"' in line else "'"
-            return line.split(delim)[1]
-    raise RuntimeError("Unable to find version string.")
+sys.path.insert(0, str(HERE.parent))
 
 project = 'liana'
 copyright = f'{datetime.now():%Y}, Saezlab'
 author = 'Daniel Dimitrov'
-release = get_version("../../pyproject.toml")
-version = release
+version = liana.__version__
 
 # -- General configuration
 extensions = [
@@ -69,5 +57,4 @@ html_css_files = ['custom.css']
 
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
-
 nbsphinx_execute = 'never'
