@@ -22,14 +22,14 @@ to describe each method instance, and are callable:
 .. autosummary::
    :toctree: api
 
-   liana.mt.cellchat.__call__
-   liana.mt.cellphonedb.__call__
-   liana.mt.connectome.__call__
-   liana.mt.logfc.__call__
-   liana.mt.natmi.__call__
-   liana.mt.singlecellsignalr.__call__
-   liana.mt.geometric_mean.__call__
-   liana.mt.rank_aggregate.__call__
+   liana.method.cellchat.__call__
+   liana.method.cellphonedb.__call__
+   liana.method.connectome.__call__
+   liana.method.logfc.__call__
+   liana.method.natmi.__call__
+   liana.method.singlecellsignalr.__call__
+   liana.method.geometric_mean.__call__
+   liana.method.rank_aggregate.__call__
 
 
 Spatial
@@ -41,8 +41,8 @@ Local bivariate metrics
 .. autosummary::
    :toctree: api
 
-   liana.mt.bivar.__call__
-   liana.mt.lr_bivar.__call__
+   liana.method.bivar.__call__
+   liana.method.lr_bivar.__call__
 
 
 Learn Spatial Relationships
@@ -51,9 +51,9 @@ Learn Spatial Relationships
 .. autosummary::
    :toctree: api
 
-   liana.mt.MistyData
-   liana.mt.genericMistyData
-   liana.mt.lrMistyData
+   liana.method.MistyData
+   liana.method.genericMistyData
+   liana.method.lrMistyData
 
 
 Multi-Sample
@@ -115,5 +115,5 @@ Intracellular
 .. autosummary::
    :toctree: api
 
-   liana.mt.find_causalnet
-   liana.mt.build_prior_network
+   liana.method.find_causalnet
+   liana.method.build_prior_network

@@ -54,13 +54,13 @@ html_theme_options = dict(
     display_version=True,
 )
 html_context = dict(
-    display_github=False,
+    display_github=True,
     github_user='saezlab',
     github_repo='liana-py',
     github_version='main',
     conf_py_path='/docs/source/',
 )
-html_show_sphinx = True
+html_show_sphinx = False
 html_logo = '_static/logo.png'
 html_favicon = '_static/logo.png'
 html_css_files = ['custom.css']
