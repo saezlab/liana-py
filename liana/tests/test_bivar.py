@@ -16,6 +16,8 @@ def test_bivar_morans():
           x_mod='adata_x',
           y_mod='adata_y',
           function_name='morans',
+          x_use_raw=False,
+          y_use_raw=False,
           interactions=interactions
           )
     assert 'local_scores' in mdata.mod.keys()
@@ -28,6 +30,8 @@ def test_bivar_morans_perms():
           y_mod='adata_y',
           function_name='morans',
           n_perms=2,
+          x_use_raw=False,
+          y_use_raw=False,
           interactions=interactions)
 
 
@@ -47,6 +51,8 @@ def test_bivar_nondefault():
                 remove_self_interactions=False,
                 x_layer = "scaled",
                 y_layer = "scaled",
+                x_use_raw=False,
+                y_use_raw=False,
                 inplace=False,
                 add_categories=True,
                 interactions=interactions
@@ -67,14 +73,21 @@ def test_bivar_adata():
       bivar(mdata=mdata.mod['adata_x'],
             x_mod=None,
             y_mod=None,
+            x_use_raw=False,
+            y_use_raw=False,
             function_name='morans',
             connectivity_key='ones',
             interactions=interactions)
 
 
 def test_masked_spearman():
-    bivar(mdata, x_mod='adata_x', y_mod='adata_y',
-          function_name='masked_spearman', interactions=interactions,
+    bivar(mdata,
+          x_mod='adata_x',
+          y_mod='adata_y',
+          x_use_raw=False,
+          y_use_raw=False,
+          function_name='masked_spearman',
+          interactions=interactions,
           connectivity_key='ones')
 
     # check local
@@ -90,9 +103,13 @@ def test_masked_spearman():
 
 
 def test_vectorized_pearson():
-    bivar(mdata, x_mod='adata_x',
+    bivar(mdata,
+          x_mod='adata_x',
           y_mod='adata_y',
-          function_name='pearson', n_perms=100,
+          x_use_raw=False,
+          y_use_raw=False,
+          function_name='pearson',
+          n_perms=100,
           interactions=interactions)
 
     # check local

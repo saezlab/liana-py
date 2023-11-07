@@ -3,7 +3,8 @@ from __future__ import annotations
 from liana.method.sc._liana_pipe import liana_pipe
 from liana.utils import mdata_to_anndata
 from liana._logging import _logg
-from liana._constants._docs import d
+from liana._docs import d
+from liana._constants import Keys as K, DefaultValues as V
 
 import anndata as an
 from mudata import MuData
@@ -17,9 +18,8 @@ class MethodMeta:
     """
     A Class used to store Method Metadata
     """
-
     # initiate a list to store weak references to all instances
-    instances = [] ## TODO separate instances for each child class
+    instances = []
 
     def __init__(self,
                  method_name: str,
@@ -93,9 +93,9 @@ class MethodMeta:
     def by_sample(self,
                   adata: an.AnnData | MuData,
                   sample_key: str,
-                  key_added: str = 'liana_res',
-                  inplace: bool = True,
-                  verbose: bool = False,
+                  key_added: str = K.uns_key,
+                  inplace: bool = V.inplace,
+                  verbose: bool = V.verbose,
                   **kwargs):
         """
         Run a method by sample.
@@ -109,7 +109,8 @@ class MethodMeta:
         verbose
             Possible values: False, True, 'full', where 'full' will print the results for each sample,
             and True will only print the sample progress bar. Default is False.
-        %(kwargs)s
+        **kwargs
+            keyword arguments to pass to the method
 
         Returns
         -------
@@ -176,23 +177,24 @@ class Method(MethodMeta):
     def __call__(self,
                  adata: an.AnnData | MuData,
                  groupby: str,
-                 resource_name: str = 'consensus',
-                 expr_prop: float = 0.1,
-                 min_cells: int = 5,
-                 base: float = 2.718281828459045,
-                 supp_columns: list = None,
-                 return_all_lrs: bool = False,
-                 key_added: str = 'liana_res',
-                 use_raw: Optional[bool] = True,
-                 layer: Optional[str] = None,
-                 de_method='t-test',
-                 verbose: Optional[bool] = False,
-                 n_perms: int = 1000,
-                 seed: int = 1337,
-                 resource: Optional[DataFrame] = None,
-                 interactions=None,
-                 mdata_kwargs = dict(),
-                 inplace=True):
+                 resource_name: str = V.resource_name,
+                 expr_prop: float = V.expr_prop,
+                 min_cells: int = V.min_cells,
+                 base: float = V.logbase,
+                 supp_columns: list = V.supp_columns,
+                 return_all_lrs: bool = V.return_all_lrs,
+                 key_added: str = K.uns_key,
+                 use_raw: Optional[bool] = V.use_raw,
+                 layer: Optional[str] = V.layer,
+                 de_method: str = V.de_method,
+                 n_perms: int = V.n_perms,
+                 seed: int = V.seed,
+                 resource: Optional[DataFrame] = V.resource,
+                 interactions: Optional[list] = V.interactions,
+                 mdata_kwargs: dict = dict(),
+                 inplace: bool = V.inplace,
+                 verbose: Optional[bool] = V.verbose,
+                 ):
         """
         Run a ligand-receptor method.
 

@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -11,8 +10,9 @@ from tqdm import tqdm
 
 from ._common import _process_scores
 from liana._logging import _check_if_installed
-from liana._constants._docs import d
 from liana.method._pipe_utils import _check_groupby
+from liana._docs import d
+from liana._constants import DefaultValues as V, Keys as K, PrimaryColumns as P
 
 @d.dedent
 def adata_to_views(adata: AnnData,
@@ -121,7 +121,7 @@ def adata_to_views(adata: AnnData,
 @d.dedent
 def lrs_to_views(adata: AnnData,
                  score_key: (str or None) = None,
-                 inverse_fun: Callable = lambda x: 1 - x,
+                 inverse_fun: callable = V.inverse_fun,
                  obs_keys: (list or None) =None,
                  lr_prop: float = 0.5,
                  lr_fill: np.nan = np.nan,
@@ -129,16 +129,16 @@ def lrs_to_views(adata: AnnData,
                  lrs_per_sample:int = 10,
                  samples_per_view: int = 3,
                  min_variance:int = 0,
-                 lr_sep:str='^',
-                 cell_sep:str='&',
-                 var_sep:str=':',
-                 uns_key:str = 'liana_res',
-                 sample_key:str='sample',
-                 source_key:str='source',
-                 target_key:str='target',
-                 ligand_key:str='ligand_complex',
-                 receptor_key:str='receptor_complex',
-                 verbose:bool=False
+                 lr_sep: str = V.lr_sep,
+                 cell_sep: str='&',
+                 var_sep: str=':',
+                 uns_key: str = K.uns_key,
+                 sample_key: str = 'sample',
+                 source_key: str = P.source,
+                 target_key: str = P.target,
+                 ligand_key: str = P.ligand_complex,
+                 receptor_key: str = P.receptor_complex,
+                 verbose: bool = V.verbose
                  ):
     """
     Converts a LIANA result to a MuData object with views that represent an aggregate for each entity in `adata.obs[groupby]`.
@@ -149,26 +149,26 @@ def lrs_to_views(adata: AnnData,
     %(score_key)s
     %(inverse_fun)s
     obs_keys
-        List of keys in `adata.obs` that should be included in the MuData object. Default is `None`.
+        List of keys in `adata.obs` that should be included in the MuData object.
         These columns should correspond to the number of samples in `adata.obs[sample_key]`.
     lr_prop
-        Reflects the minimum required proportion of samples for an interaction to be considered for building the views. Default is `0.5`.
+        Reflects the minimum required proportion of samples for an interaction to be considered for building the views.
     lr_fill
         Value to fill in for interactions that are not present in a view. Default is `np.nan`.
     lrs_per_sample
-        Reflects the minimum required number of interactions in a sample to be considered when building a specific view. Default is `10`.
+        Reflects the minimum required number of interactions in a sample to be considered when building a specific view.
     lrs_per_view
-        Reflects the minimum required number of interactions in a view to be considered for building the views. Default is `20`.
+        Reflects the minimum required number of interactions in a view to be considered for building the views.
     samples_per_view
-        Reflects the minimum required samples to keep a view. Default is `3`.
+        Reflects the minimum required samples to keep a view.
     min_variance
-        Reflects the minimum required variance across samples for each interaction in each view. Default is `0`.
+        Reflects the minimum required variance across samples for each interaction in each view.
         NaNs are ignored when computing the variance.
     %(lr_sep)s
     cell_sep
-        Separator to use for the cell names in the views. Default is `&`.
+        Separator to use for the cell names in the views.
     var_sep
-        Separator to use for the variable names in the views. Default is `:`.
+        Separator to use for the variable names in the views.
     %(uns_key)s
     %(sample_key)s
     %(source_key)s

@@ -1,22 +1,23 @@
 from __future__ import annotations
 
+from functools import reduce
+
 import anndata
 import pandas
+import scanpy as sc
+import pandas as pd
+import numpy as np
 
-from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
-    filter_reassemble_complexes
+from liana.method._pipe_utils import prep_check_adata, assert_covered, \
+    filter_resource, filter_reassemble_complexes
 from liana.method._pipe_utils._common import _join_stats
 from liana.resource._select_resource import _handle_resource
 from liana.method._pipe_utils._reassemble_complexes import explode_complexes
 from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
 from liana.method._pipe_utils._aggregate import _aggregate
 from liana.method._pipe_utils._common import _get_props
-
-import scanpy as sc
-import pandas as pd
-import numpy as np
-from functools import reduce
-
+from liana._constants import MethodColumns as M, CommonColumns as C, \
+                            PrimaryColumns as P, InternalValues as I
 
 def liana_pipe(adata: anndata.AnnData,
                groupby: str,
@@ -34,7 +35,6 @@ def liana_pipe(adata: anndata.AnnData,
                layer: str | None,
                supp_columns: list | None = None,
                return_all_lrs: bool = False,
-               _key_cols: list = None,
                _score=None,
                _methods: list = None,
                _consensus_opts: list = None,
@@ -79,15 +79,12 @@ def liana_pipe(adata: anndata.AnnData,
     return_all_lrs
         Bool whether to return all LRs, or only those that surpass the expr_prop threshold.
         `False` by default.
-    _key_cols
-        columns which make every interaction unique (i.e. PK).
     _score
         Instance of Method classes (None by default - returns LR stats - no methods used).
     _methods
         Methods to be run (only relevant for consensus).
     _consensus_opts
-        Ways to aggregate interactions across methods by default does all aggregations (['Steady',
-        'Specificity', 'Magnitude']).
+        Ways to aggregate interactions across methods by default does all aggregations (['Specificity', 'Magnitude']).
     _aggregate_method
         RobustRankAggregate('rra') or mean rank ('mean').
 
@@ -96,27 +93,21 @@ def liana_pipe(adata: anndata.AnnData,
     A adata frame with ligand-receptor results
 
     """
-    if _key_cols is None:
-        _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
+    _key_cols = P.primary
 
     if _score is not None:
         _complex_cols, _add_cols = _score.complex_cols, _score.add_cols
     else:
-        _complex_cols = ['ligand_means', 'receptor_means']
-        # change to full list and move to _var
-        _add_cols = ['ligand_means_sums', 'receptor_means_sums',
-                     'ligand_zscores', 'receptor_zscores',
-                     'ligand_logfc', 'receptor_logfc',
-                     'ligand_trimean', 'receptor_trimean',
-                     'mat_mean', 'mat_max',
-                     ]
+        _complex_cols = [C.ligand_means, C.receptor_means]
+        _add_cols = M.get_all_values()
 
     if n_perms is None:
         _consensus_opts = 'Magnitude'
 
     if supp_columns is None:
         supp_columns = []
-    _add_cols = _add_cols + ['ligand', 'receptor', 'ligand_props', 'receptor_props'] + supp_columns
+    _add_cols = _add_cols + [P.ligand, P.receptor,
+                             C.ligand_props, C.receptor_props] + supp_columns
 
     # initialize mat_mean for sca
     mat_mean = None
@@ -132,11 +123,11 @@ def liana_pipe(adata: anndata.AnnData,
                              verbose=verbose)
 
     # get mat mean for SCA (before reducing the features)
-    if 'mat_mean' in _add_cols:
+    if M.mat_mean in _add_cols:
         mat_mean = np.mean(adata.X, dtype='float32')
 
     # get mat max for CellChat
-    if 'mat_max' in _add_cols:
+    if M.mat_max in _add_cols:
         mat_max = adata.X.max()
         assert isinstance(mat_max, np.float32)
 
@@ -149,8 +140,8 @@ def liana_pipe(adata: anndata.AnnData,
     resource = explode_complexes(resource)
 
     # Check overlap between resource and adata
-    assert_covered(np.union1d(np.unique(resource["ligand"]),
-                              np.unique(resource["receptor"])),
+    assert_covered(np.union1d(np.unique(resource[P.ligand]),
+                              np.unique(resource[P.receptor])),
                    adata.var_names, verbose=verbose)
 
     # Filter Resource
@@ -161,8 +152,8 @@ def liana_pipe(adata: anndata.AnnData,
               f"and {adata.shape[1]} features")
 
     # Create Entities
-    entities = np.union1d(np.unique(resource["ligand"]),
-                          np.unique(resource["receptor"]))
+    entities = np.union1d(np.unique(resource[P.ligand]),
+                          np.unique(resource[P.receptor]))
 
     # Filter to only include the relevant genes
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
@@ -179,14 +170,12 @@ def liana_pipe(adata: anndata.AnnData,
                      )
 
     # Mean Sums required for NATMI (note done on subunits also)
-    if 'ligand_means_sums' in _add_cols:
-        lr_res = _sum_means(lr_res, what='ligand_means',
-                            on=['ligand_complex', 'receptor_complex',
-                                'ligand', 'receptor', 'target'])
-    if 'receptor_means_sums' in _add_cols:
-        lr_res = _sum_means(lr_res, what='receptor_means',
-                            on=['ligand_complex', 'receptor_complex',
-                                'ligand', 'receptor', 'source'])
+    if M.ligand_means_sums in _add_cols:
+        on = [x for x in P.complete if x != P.source]
+        lr_res = _sum_means(lr_res, what=C.ligand_means, on=on)
+    if M.receptor_means_sums in _add_cols:
+        on = [x for x in P.complete if x != P.target]
+        lr_res = _sum_means(lr_res, what=C.receptor_means, on=on)
 
     # Calculate Score
     if _score is not None:
@@ -248,42 +237,16 @@ def liana_pipe(adata: anndata.AnnData,
 
 
 def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, verbose):
-    """
-    Run DE analysis and merge needed information with resource for LR inference
-
-    Parameters
-    ----------
-    adata : anndata.AnnData
-        adata filtered and formated to contain only the relevant features for lr inference
-
-    relevant_cols : list
-        Relevant column names
-
-    resource : pandas.core.frame.DataFrame formatted and filtered resource
-    dataframe with the following columns: [interaction, ligand, receptor,
-    ligand_complex, receptor_complex]
-
-    de_method : Literal name of the DE `method` to call via
-    scanpy.tl.rank_genes.groups - available options are: ['logreg', 't-test',
-    'wilcoxon', 't-test_overestim_var']
-
-    Returns
-    -------
-    lr_res : pandas.core.frame.DataFrame long-format pandas dataframe with stats
-    for all interactions /w matching variables in the dataset.
-
-    """
-    # get label cats
-    labels = adata.obs['@label'].cat.categories
+    labels = adata.obs[I.label].cat.categories
 
     # Method-specific stats
-    connectome_flag = ('ligand_zscores' in relevant_cols) | (
-            'receptor_zscores' in relevant_cols)
+    connectome_flag = (M.ligand_zscores in relevant_cols) | (
+                M.receptor_zscores in relevant_cols)
     if connectome_flag:
         adata.layers['scaled'] = sc.pp.scale(adata, copy=True).X
 
-    logfc_flag = ('ligand_logfc' in relevant_cols) | (
-            'receptor_logfc' in relevant_cols)
+    logfc_flag = (M.ligand_logfc in relevant_cols) | (
+            M.receptor_logfc in relevant_cols)
     if logfc_flag:
         if 'log1p' in adata.uns_keys():
             if (adata.uns['log1p']['base'] is not None) & verbose:
@@ -297,14 +260,14 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
     dedict = {}
 
     # Calc pvals + other stats per gene or not
-    rank_genes_bool = ('ligand_pvals' in relevant_cols) | ('receptor_pvals' in relevant_cols)
+    rank_genes_bool = (C.ligand_pvals in relevant_cols) | (C.receptor_pvals in relevant_cols)
     if rank_genes_bool:
-        adata = sc.tl.rank_genes_groups(adata, groupby='@label',
+        adata = sc.tl.rank_genes_groups(adata, groupby=I.label,
                                         method=de_method, use_raw=False,
                                         copy=True)
 
     for label in labels:
-        temp = adata[adata.obs['@label'] == label, :]
+        temp = adata[adata.obs[I.label] == label, :]
         a = _get_props(temp.X)
         stats = pd.DataFrame({'names': temp.var_names, 'props': a}). \
             assign(label=label).sort_values('names')
@@ -319,7 +282,7 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
 
     # Calculate Mean, logFC and z-scores by group
     for label in labels:
-        temp = adata[adata.obs['@label'].isin([label])]
+        temp = adata[adata.obs[I.label].isin([label])]
         dedict[label]['means'] = temp.X.mean(axis=0).A.flatten()
         if connectome_flag:
             dedict[label]['zscores'] = temp.layers['scaled'].mean(axis=0)
@@ -332,21 +295,21 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
     # pd.DataFrame(list(product(labels, labels))); TODO: check this
     pairs = (pd.DataFrame(np.array(np.meshgrid(labels, labels))
                           .reshape(2, np.size(labels) * np.size(labels)).T)
-             .rename(columns={0: "source", 1: "target"}))
+             .rename(columns={0: P.source, 1: P.target}))
 
     # Join Stats
     lr_res = pd.concat(
         [_join_stats(source, target, dedict, resource) for source, target in
-         zip(pairs['source'], pairs['target'])]
+         zip(pairs[P.source], pairs[P.target])]
     )
 
-    if 'mat_mean' in relevant_cols:
+    if M.mat_mean in relevant_cols:
         assert isinstance(mat_mean, np.float32)
-        lr_res['mat_mean'] = mat_mean
+        lr_res[M.mat_mean] = mat_mean
 
     # NOTE: this is not needed
     if isinstance(mat_max, np.float32):
-        lr_res['mat_max'] = mat_max
+        lr_res[M.mat_max] = mat_max
 
     # subset to only relevant columns
     relevant_cols = np.intersect1d(relevant_cols, lr_res.columns)
@@ -355,45 +318,13 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
 
 
 def _sum_means(lr_res, what, on):
-    """
-    Calculate Sum Means
-
-    Parameters
-    ---------
-    lr_res
-        lr_res with reassembled complexes
-    what
-        [entity]_means_sums for which the sum is calculated
-    on
-        columns by which to group and sum
-
-    Returns
-    -------
-    lr_res with [entity]_means_sums column
-    """
     return lr_res.join(lr_res.groupby(on)[what].sum(), on=on, rsuffix='_sums')
 
 
 def _calc_log2fc(adata, label) -> np.ndarray:
-    """
-    Calculate 1 vs rest Log2FC for a particular cell identity
-
-    Parameters
-    ---------
-
-    adata
-        anndata with feature-space reduced to the vars intersecting with the IDs in the resource
-    label
-        cell identity
-
-    Returns
-    -------
-    An array with logFC changes
-
-    """
     # Get subject vs rest cells
-    subject = adata[adata.obs['@label'].isin([label])]
-    rest = adata[~adata.obs['@label'].isin([label])]
+    subject = adata[adata.obs[I.label].isin([label])]
+    rest = adata[~adata.obs[I.label].isin([label])]
 
     # subject and rest means
     subj_means = subject.layers['normcounts'].mean(0).A.flatten()
@@ -408,7 +339,6 @@ def _calc_log2fc(adata, label) -> np.ndarray:
     return logfc_vec
 
 
-# Exponent with a custom base
 def _expm1_base(X, base):
     return np.power(base, X) - 1
 
@@ -433,19 +363,19 @@ def _run_method(lr_res: pandas.DataFrame,
                                          return_all_lrs=return_all_lrs,
                                          complex_cols=_complex_cols)
 
-    _add_cols = _add_cols + ['ligand', 'receptor']
+    _add_cols = _add_cols + [P.ligand, P.receptor]
     relevant_cols = reduce(np.union1d, [_key_cols, _complex_cols, _add_cols])
     if return_all_lrs:
-        relevant_cols = list(relevant_cols) + ['lrs_to_keep']
+        relevant_cols = list(relevant_cols) + [I.lrs_to_keep]
         # separate those that pass from rest
-        rest_res = lr_res[~lr_res['lrs_to_keep']]
+        rest_res = lr_res[~lr_res[I.lrs_to_keep]]
         rest_res = rest_res[relevant_cols]
-        lr_res = lr_res[lr_res['lrs_to_keep']]
+        lr_res = lr_res[lr_res[I.lrs_to_keep]]
     lr_res = lr_res[relevant_cols]
 
-    if ('mat_max' in _add_cols) & (_score.method_name == "CellChat"):
+    if (M.mat_max in _add_cols) & (_score.method_name == "CellChat"):
         # CellChat matrix_max
-        norm_factor = np.unique(lr_res['mat_max'].values)[0]
+        norm_factor = np.unique(lr_res[M.mat_max].values)[0]
         agg_fun = _trimean
     else:
         norm_factor = None
@@ -487,11 +417,11 @@ def _run_method(lr_res: pandas.DataFrame,
         if _score.magnitude is not None:
             fill_value = _assign_min_or_max(lr_res[_score.magnitude],
                                             _score.magnitude_ascending)
-            lr_res.loc[~lr_res['lrs_to_keep'], _score.magnitude] = fill_value
+            lr_res.loc[~lr_res[I.lrs_to_keep], _score.magnitude] = fill_value
         if _score.specificity is not None:
             fill_value = _assign_min_or_max(lr_res[_score.specificity],
                                             _score.specificity_ascending)
-            lr_res.loc[~lr_res['lrs_to_keep'], _score.specificity] = fill_value
+            lr_res.loc[~lr_res[I.lrs_to_keep], _score.specificity] = fill_value
 
     if _aggregate_flag:  # if consensus keep only the keys and the method scores
         lr_res = lr_res[_key_cols + [_score.magnitude, _score.specificity]]
@@ -511,18 +441,6 @@ def _assign_min_or_max(x, x_ascending):
 
 
 def _trimean(a, axis=0):
-    """
-    Tukey's mean / Trimean
-    Parameters
-    ----------
-    a
-        array (cell ident counts)
-
-    Returns
-    -------
-    Trimean value
-
-    """
     return np.mean(
         np.quantile(a.A,
                     q=[0.25, 0.5, 0.5, 0.75],

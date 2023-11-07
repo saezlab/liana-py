@@ -1,13 +1,17 @@
 import numpy as np
+from liana._constants import PrimaryColumns as P, DefaultValues as V
+from liana._docs import d
 
+@d.dedent
 def generate_lr_geneset(resource,
                         net,
-                        ligand_key='ligand',
-                        receptor_key='receptor',
-                        lr_separator='^',
+                        ligand_key=P.ligand,
+                        receptor_key=P.receptor,
+                        lr_sep=V.lr_sep,
                         source='source',
                         target='target',
-                        weight='weight'):
+                        weight='weight'
+                        ):
     """
     Generate a ligand-receptor gene set from a resource and a network.
 
@@ -18,20 +22,19 @@ def generate_lr_geneset(resource,
 
     Parameters
     ----------
-    resource : pandas.DataFrame
-        Ligand-receptor resource.
-    net : pandas.DataFrame
+    resource:
+        A pandas dataframe with [`ligand`, `receptor`] columns.
+    net
         Prior knowledge network in bipartite or decoupler format.
     ligand : str, optional
-        Name of the ligand column in the resource, by default 'ligand'
+        Name of the ligand column in the resource
     receptor : str, optional
-        Name of the receptor column in the resource, by default 'receptor'
-    lr_separator : str, optional
-        Separator to use when joining ligand and receptor, by default '&'
+        Name of the receptor column in the resource
+    %(lr_sep)s
     source : str, optional
-        Name of the source column in the network, by default 'source'
+        Name of the source column in the network.
     weight : str, optional
-        Name of the weight column in the network, by default 'weight'. If None, all weights are set to 1.
+        Name of the weight column in the network. If None, all weights are set to 1.
 
     Returns
     -------
@@ -66,7 +69,7 @@ def generate_lr_geneset(resource,
     resource.loc[:, weight] = resource.apply(lambda x: _sign_coherent_mean(np.array([x[ligand_weight], x[receptor_weight]])), axis=1)
 
     # unite ligand-receptor columns
-    resource = resource.assign(interaction = lambda x: x[ligand_key] + lr_separator + x[receptor_key])
+    resource = resource.assign(interaction = lambda x: x[ligand_key] + lr_sep + x[receptor_key])
 
     # keep only relevant columns
     resource = resource[[ligand_source, 'interaction', weight]].rename(columns={ligand_source: source})

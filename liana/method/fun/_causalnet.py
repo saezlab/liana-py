@@ -1,9 +1,14 @@
 import pandas as pd
 import numpy as np
 from liana._logging import _logg, _check_if_installed
+from liana._constants import DefaultValues as V
 
 
-def build_prior_network(ppis, input_nodes, output_nodes, lr_sep=None, verbose=True):
+def build_prior_network(ppis,
+                        input_nodes,
+                        output_nodes,
+                        lr_sep=None,
+                        verbose=V.verbose):
     """
     Build Prior Network from PPIs and input/output nodes.
 

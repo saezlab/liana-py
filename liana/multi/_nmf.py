@@ -9,7 +9,7 @@ from tqdm import tqdm
 from anndata import AnnData
 from liana.method._pipe_utils._pre import _choose_mtx_rep
 from liana._logging import _logg, _check_if_installed
-from liana._constants._docs import d
+from liana._docs import d
 
 @d.dedent
 def nmf(adata: AnnData,

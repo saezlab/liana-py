@@ -1,31 +1,36 @@
 import pandas as pd
 import plotnine as p9
 
+from liana._constants import Keys as K, DefaultValues as V
+from liana._docs import d
 
-def target_metrics(misty, stat, top_n=None, ascending=False, key=None, filterby=None, filter_lambda=None, figure_size=(7,5), return_fig=True):
+@d.dedent
+def target_metrics(misty,
+                   stat,
+                   top_n = None,
+                   ascending = False,
+                   key = None,
+                   filterby = None,
+                   filter_lambda: callable = None,
+                   figure_size: tuple = (7,5),
+                   return_fig: bool = V.return_fig):
     """
     Plot target metrics.
 
     Parameters
     ----------
-    misty : MistyData
-        MistyData object
+    %(misty)s
     stat : str
         Statistic to plot
-    top_n : int
-        Number of targets to plot
+    %(top_n)s
     ascending : bool
         Whether to sort in ascending order
     key : callable
         Function to use to sort the dataframe
-    filterby : str
-        Column to filter by
-    filter_lambda : callable
-        Function to use to filter the dataframe
-    figure_size : tuple
-        Figure size
-    return_fig : bool
-        Whether to return the plot or draw it. Default: True.
+    %(filterby)s
+    %(filter_lambda)s
+    %(figure_size)s
+    %(return_fig)s
 
     Returns
     -------
@@ -33,7 +38,7 @@ def target_metrics(misty, stat, top_n=None, ascending=False, key=None, filterby=
     Returns a plotnine plot.
 
     """
-    target_metrics = misty.uns['target_metrics'].copy()
+    target_metrics = misty.uns[K.target_metrics].copy()
 
     if filterby is not None:
         msk = target_metrics[filterby].apply(filter_lambda)
@@ -60,33 +65,34 @@ def target_metrics(misty, stat, top_n=None, ascending=False, key=None, filterby=
         return p
     p.draw()
 
-
-def contributions(misty, top_n=None, ascending=False, key=None, figure_size=(7, 5), return_fig=True):
+@d.dedent
+def contributions(misty,
+                  top_n=None,
+                  ascending=False,
+                  key=None,
+                  figure_size: tuple = (7, 5),
+                  return_fig: bool = V.return_fig):
     """
     Plot view contributions per target.
 
     Parameters
     ----------
 
-    misty : MistyData
-        MistyData object
-    figure_size : tuple
-        Figure size
-    top_n : int
-        Number of targets to plot
+    %(misty)s
+    %(top_n)s
     ascending : bool
         Whether to sort in ascending order
     key : callable
         Function to use to sort the dataframe
-    return_fig : bool
-        Whether to return the plot or draw it. Default: True.
+    %(figure_size)s
+    %(return_fig)s
 
     Returns
     -------
     A plotnine plot.
 
     """
-    target_metrics = misty.uns['target_metrics'].copy()
+    target_metrics = misty.uns[K.target_metrics].copy()
 
     view_names = misty.view_names.copy()
     if 'intra' not in target_metrics.columns:
@@ -111,39 +117,41 @@ def contributions(misty, top_n=None, ascending=False, key=None, figure_size=(7, 
         return p
     p.draw()
 
-
-def interactions(misty, view, top_n = None, ascending=False, key=None, filterby=None, filter_lambda=None, figure_size=(7,5), return_fig=True):
+@d.dedent
+def interactions(misty,
+                 view,
+                 top_n = None,
+                 ascending = False,
+                 key = None,
+                 filterby = None,
+                 filter_lambda: callable = None,
+                 figure_size: tuple = (7,5),
+                 return_fig: bool = V.return_fig):
     """
     Plot interaction importances.
 
     Parameters
     ----------
 
-    misty : MistyData
-        MistyData object
+    %(misty)s
     view : str
         A view to plot
-    top_n : int
-        Number of interactions to plot
+    %(top_n)s
     ascending : bool
         Whether to sort interactions in ascending order
     key : str
         Key to use when sorting interactions
-    filterby : str
-        Column to filter by
-    filter_lambda : callable
-        Function to use to filter the dataframe
-    figure_size : tuple
-        Figure size
-    return_fig : bool
-        Whether to return the plot or draw it. Default: True.
+    %(filterby)s
+    %(filter_lambda)s
+    %(figure_size)s
+    %(return_fig)s
 
     Returns
     -------
     A plotnine plot.
 
     """
-    interactions = misty.uns['interactions'].copy()
+    interactions = misty.uns[K.interactions].copy()
     interactions = interactions[interactions['view'] == view]
     grouped = interactions.groupby('predictor')['importances'].apply(lambda x: x.isna().all())
     interactions = interactions[~interactions['predictor'].isin(grouped[grouped].index)]

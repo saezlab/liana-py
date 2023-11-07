@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from scipy.sparse import csr_matrix, isspmatrix_csr
 from anndata import AnnData
 from mudata import MuData
-from liana.method._pipe_utils._common import _get_props
-from liana._constants._docs import d
 
+from liana.method._pipe_utils._common import _get_props
 from liana.method.sp._spatial_pipe import (
     _categorize,
     _rename_means,
@@ -14,16 +14,15 @@ from liana.method.sp._spatial_pipe import (
     _connectivity_to_weight,
     _add_complexes_to_var
     )
-
 from liana.utils.obsm_to_adata import obsm_to_adata
 from liana.utils.mdata_to_anndata import mdata_to_anndata
 from liana.resource._select_resource import _handle_resource
-
 from liana.method._pipe_utils import prep_check_adata, assert_covered
-
 from liana.method.sp._bivariate_funs import _handle_functions, _bivariate_functions
+
 from liana._logging import _logg
-from scipy.sparse import csr_matrix, isspmatrix_csr
+from liana._docs import d
+from liana._constants import Keys as K, DefaultValues as V
 
 
 class SpatialBivariate():
@@ -63,25 +62,25 @@ class SpatialBivariate():
                  interactions: (None | list) = None,
                  resource: (None | pd.DataFrame) = None,
                  resource_name: (None | str) = None,
-                 connectivity_key:str = 'spatial_connectivities',
-                 mod_added:str = "local_scores",
-                 key_added:str = 'global_res',
-                 mask_negatives:bool=False,
-                 add_categories:bool = False,
+                 connectivity_key:str = K.connectivity_key,
+                 mod_added: str = "local_scores",
+                 key_added: str = 'global_res',
+                 mask_negatives: bool = False,
+                 add_categories: bool = False,
                  n_perms: int = None,
-                 seed:int = 1337,
+                 seed:int = V.seed,
                  nz_threshold:float = 0, # NOTE: do I rename this?
-                 x_use_raw:bool = False,
-                 x_layer: (None | str) = None,
+                 x_use_raw: bool = V.use_raw,
+                 x_layer: (None | str) = V.layer,
                  x_transform: (bool | callable) = False,
-                 y_use_raw:bool = False,
-                 y_layer: (None | str) = None,
+                 y_use_raw: bool = V.use_raw,
+                 y_layer: (None | str) = V.layer,
                  y_transform: (bool | callable) = False,
-                 complex_sep: (None | str)=None,
-                 xy_sep:str = '^',
-                 remove_self_interactions:bool = True,
-                 inplace:bool = True,
-                 verbose:bool = False,
+                 complex_sep: (None | str) = None,
+                 xy_sep:str = V.lr_sep,
+                 remove_self_interactions: bool = True,
+                 inplace:bool = V.inplace,
+                 verbose:bool = V.verbose,
                  ):
         """
         A method for bivariate local spatial metrics.

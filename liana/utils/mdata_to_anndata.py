@@ -1,6 +1,6 @@
 import anndata as an
 from liana.method._pipe_utils._pre import _choose_mtx_rep
-from liana._constants._docs import d
+from liana._docs import d
 
 @d.dedent
 def mdata_to_anndata(mdata,
