@@ -1,8 +1,9 @@
-import os
+import sys
 import pathlib
-parent_dir = pathlib.Path(__file__).parent.parent.absolute()
+HERE = pathlib.Path(__file__).parent.parent
+sys.path.insert(0, str(HERE))
 
-with open(os.path.join(parent_dir, 'pyproject.toml'), 'r') as toml_file:
+with open('pyproject.toml', 'r') as toml_file:
     for line in toml_file:
         if line.strip().startswith('version'):
             version = line.split('=')[1].strip().strip('"')
