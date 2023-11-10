@@ -87,14 +87,14 @@ def _zscore(mat, local=True, axis=0):
 
 
 def _encode_cats(a, weight):
-    # if only positive
-    if np.all(a >= 0):
+    if np.all(a >= 0): # NOTE: this should work with sparse matrices!!
         a = _zscore(a.T).T
     a = a @ weight
     a = np.where(a > 0, 1, np.where(a < 0, -1, np.nan))
     return a
 
-def _categorize(x_mat, y_mat, weight, idx, columns):
+def _categorize(x_mat, y_mat, weight):
+    # NOTE: this should work with sparse matrices!!
     x_cats = _encode_cats(x_mat.A, weight)
     y_cats = _encode_cats(y_mat.A, weight)
 
@@ -414,22 +414,6 @@ def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, mask_negatives
             ).T
 
     return xy_stats
-
-
-def _connectivity_to_weight(connectivity, local_fun):
-    connectivity = csr_matrix(connectivity, dtype=np.float32)
-
-    if local_fun.__name__ == "_local_morans":
-        norm_factor = connectivity.shape[0] / connectivity.sum()
-        connectivity = norm_factor * connectivity
-
-        return csr_matrix(connectivity)
-
-    # NOTE vectorized is faster with non-sparse, masked_scores won't work with sparse
-    elif (connectivity.shape[0] < 5000) | local_fun.__name__.__contains__("masked"):
-            return connectivity.A
-    else:
-        return csr_matrix(connectivity)
 
 
 def _add_complexes_to_var(adata, entities, complex_sep='_'):

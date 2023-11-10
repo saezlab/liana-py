@@ -11,7 +11,6 @@ from liana.method.sp._spatial_pipe import (
     _categorize,
     _rename_means,
     _run_scores_pipeline,
-    _connectivity_to_weight,
     _add_complexes_to_var
     )
 from liana.utils.obsm_to_adata import obsm_to_adata
@@ -53,12 +52,29 @@ class SpatialBivariate():
 
         return connectivity
 
+    def _connectivity_to_weight(self, connectivity, local_fun):
+        if not isspmatrix_csr(connectivity) or (connectivity.dtype != np.float32):
+            connectivity = csr_matrix(connectivity, dtype=np.float32)
+
+        if local_fun.__name__ == "_local_morans":
+            norm_factor = connectivity.shape[0] / connectivity.sum()
+            connectivity = norm_factor * connectivity
+
+            return csr_matrix(connectivity)
+
+        # NOTE vectorized is faster with non-sparse, masked_scores won't work with sparse
+        elif (connectivity.shape[0] < 5000) | local_fun.__name__.__contains__("masked"):
+                return connectivity.A
+        else:
+            return csr_matrix(connectivity)
+
+
     @d.dedent
     def __call__(self,
                  mdata: (MuData | AnnData),
                  x_mod: str,
                  y_mod: str,
-                 function_name: str='cosine',
+                 function_name: str = 'cosine',
                  interactions: (None | list) = None,
                  resource: (None | pd.DataFrame) = None,
                  resource_name: (None | str) = None,
@@ -178,7 +194,7 @@ class SpatialBivariate():
 
 
         connectivity = self._handle_connectivity(adata=adata, connectivity_key=connectivity_key)
-        weight = _connectivity_to_weight(connectivity=connectivity, local_fun=local_fun)
+        weight = self._connectivity_to_weight(connectivity=connectivity, local_fun=local_fun)
 
         if complex_sep is not None:
             adata = _add_complexes_to_var(adata,
@@ -232,8 +248,6 @@ class SpatialBivariate():
             local_cats = _categorize(x_mat=x_mat,
                                      y_mat=y_mat,
                                      weight=weight,
-                                     idx=mdata.obs.index,
-                                     columns=xy_stats['interaction'],
                                      )
             local_msk = local_cats != 0
         else:

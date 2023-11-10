@@ -8,6 +8,7 @@ from liana.method._pipe_utils._common import _join_stats, _get_props
 from liana.method._pipe_utils._reassemble_complexes import explode_complexes
 from liana.resource._select_resource import _handle_resource
 
+from liana._logging import _logg
 from liana._docs import d
 from liana._constants import DefaultValues as V, InternalValues as I, PrimaryColumns as P
 
@@ -77,7 +78,7 @@ def df_to_lr(adata,
     if complex_col is not None:
         if complex_col not in stat_names:
             raise ValueError(f'complex_col must be one of {stat_names}')
-        stat_names = stat_names[stat_names.index(complex_col):]+stat_names[:stat_names.index(complex_col)]
+        stat_names = stat_names[stat_names.index(complex_col):] + stat_names[:stat_names.index(complex_col)]
     else:
         complex_col = 'expr'
 
@@ -91,7 +92,11 @@ def df_to_lr(adata,
                              )
 
     # reduce dim of adata
-    adata =  adata[:, dea_df.index.unique()]
+    intersect = np.intersect1d(adata.var_names, dea_df.index)
+    if intersect.shape[0]==adata.shape[1]:
+        _logg('Features in adata and dea_df are mismatched.', verbose=verbose, level='warn')
+
+    adata =  adata[:, intersect]
 
     # get label cats
     labels = adata.obs[I.label].cat.categories
