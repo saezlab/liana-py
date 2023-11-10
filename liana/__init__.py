@@ -1,5 +1,9 @@
-import importlib.metadata
-__version__ = importlib.metadata.version("liana")
+with open('pyproject.toml', 'r') as toml_file:
+    for line in toml_file:
+        if line.strip().startswith('version'):
+            version = line.split('=')[1].strip().strip('"')
+            break
+__version__ = version
 
 from liana import method as mt, plotting as pl, resource as rs, multi as mu, utils as ut, testing
 

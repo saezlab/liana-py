@@ -40,6 +40,7 @@ cylp = {version = "^0.91.5", optional = true}
 pre-commit = {version = ">=3.0.0", optional = true}
 
 [tool.poetry.dev-dependencies]
+docrep = ">=0.3.1"
 pytest = ">=6.0"
 pytest-cov = "*"
 flake8 = "*"
