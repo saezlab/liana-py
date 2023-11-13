@@ -15,6 +15,8 @@ Release notesconsistency
 
 - Various documentation improvements, including using ``docrep`` to ensure consistency.
 
+- ``__version__`` will now correctly reflect the version in pyproject.toml
+
 - Exported repeated value definitions to ``_constants.py``
 
 - Renamed some ``*_separator`` columns to ``*_sep`` for consistency.
