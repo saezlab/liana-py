@@ -177,7 +177,7 @@ def interactions(misty= None,
         Whether to sort interactions in ascending order
     key : str
         Key to use when sorting interactions
-    %(filter_lambda)s
+    %(filter_fun)s
     %(aggregate_fun)s
     %(figure_size)s
     %(return_fig)s

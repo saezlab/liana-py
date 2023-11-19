@@ -41,7 +41,7 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_per
     seed
         Reproducibility seed
     mask_negatives
-        Whether to mask negative correlations pvalue
+        Whether to mask negative correlations p-value
 
     Returns
     -------
@@ -131,7 +131,6 @@ def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, mask_nega
     1D array with same size as global_r
 
     """
-    assert isinstance(weight, csr_matrix)
     rng = np.random.default_rng(seed)
 
     # initialize mat /w n_perms * number of X->Y
@@ -148,7 +147,7 @@ def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, mask_nega
         global_pvals = 1 - (global_r > perm_mat).sum(axis=0) / n_perms
     else:
         # TODO Proof this makes sense
-        global_pvals = 2 * (1 - (np.abs(global_r) > np.abs(perm_mat)).sum(axis=0) / n_perms)
+        global_pvals = 1 - (np.abs(global_r) > np.abs(perm_mat)).sum(axis=0) / n_perms
 
     return global_pvals
 
@@ -170,7 +169,8 @@ def _global_zscore_pvals(weight, global_r, mask_negatives):
         1D array with the size of global_r
 
     """
-    weight = np.array(weight.todense())
+    if not isinstance(weight, np.ndarray):
+        weight = np.array(weight.todense())
     spot_n = weight.shape[0]
 
     # global distance/weight variance as in spatialDM
@@ -254,7 +254,10 @@ def _get_local_var(x_sigma, y_sigma, weight, spot_n):
     2D array of standard deviations with shape(n_spot, xy_n)
 
     """
-    weight_sq = (np.array(weight.todense()) ** 2).sum(axis=1)
+    if not isinstance(weight, np.ndarray):
+        weight = np.array(weight.todense())
+
+    weight_sq = (weight ** 2).sum(axis=1)
 
     n_weight = 2 * (spot_n - 1) ** 2 / spot_n ** 2
     sigma_prod = x_sigma * y_sigma
@@ -352,8 +355,7 @@ def _get_local_scores(x_mat,
     """
 
     if local_fun.__name__ == '_local_morans':
-        # TODO: probably just get rid of this
-        # and leave it to the user
+        # TODO: remove this and leave it to the user
         x_mat = _zscore(x_mat, local=True, axis=0)
         y_mat = _zscore(y_mat, local=True, axis=0)
 

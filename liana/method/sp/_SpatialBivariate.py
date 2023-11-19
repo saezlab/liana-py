@@ -60,13 +60,10 @@ class SpatialBivariate():
             norm_factor = connectivity.shape[0] / connectivity.sum()
             connectivity = norm_factor * connectivity
 
-            return csr_matrix(connectivity)
-
-        # NOTE vectorized is faster with non-sparse, masked_scores won't work with sparse
-        elif (connectivity.shape[0] < 5000) | local_fun.__name__.__contains__("masked"):
+        if (connectivity.shape[0] < 5000) | local_fun.__name__.__contains__("masked"):
                 return connectivity.A
         else:
-            return csr_matrix(connectivity)
+            return connectivity
 
 
     @d.dedent
