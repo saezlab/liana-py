@@ -141,7 +141,12 @@ class MethodMeta:
             if verbose:
                 progress_bar.set_description(f"Now running: {sample}")
 
-            temp = adata[adata.obs[sample_key]==sample].copy()
+
+            temp = adata[adata.obs[sample_key]==sample]
+            if temp.isbacked:
+                temp = temp.to_memory().copy() # NOTE do I need to copy?
+            else:
+                temp = temp.copy()
 
             sample_res = self.__call__(temp, inplace=False, verbose=full_verbose, **kwargs)
 

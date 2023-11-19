@@ -223,14 +223,14 @@ orderby_absolute
     If `top_n` is not `None`, whether to order by the absolute value of the `orderby` column.
 """
 
-_filterby = """\
-filterby
-    Column by which to filter the dataframe.
+_filter_fun = """\
+filter_fun
+    A function, applied along the columns (axis=1), used to filter the results to be plotted.
 """
 
-_filter_lambda = """\
-filter_lambda
-    If `filterby` is not `None`, provide a simple lambda function by which to filter the results to be plotted.
+_aggregate_fun = """\
+aggregate_fun
+    A function used to aggregate the results to be plotted.
 """
 
 _ligand_complex = """\
@@ -323,8 +323,8 @@ d = DocstringProcessor(
     orderby=_orderby,
     orderby_ascending=_orderby_ascending,
     orderby_absolute=_orderby_absolute,
-    filterby=_filterby,
-    filter_lambda=_filter_lambda,
+    filter_fun =_filter_fun,
+    aggregate_fun=_aggregate_fun,
     ligand_complex=_ligand_complex,
     receptor_complex=_receptor_complex,
     inverse_colour=_inverse_colour,
