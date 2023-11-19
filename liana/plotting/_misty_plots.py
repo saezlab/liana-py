@@ -11,8 +11,7 @@ def target_metrics(misty = None,
                    top_n = None,
                    ascending = False,
                    key = None,
-                   filterby = None,
-                   filter_lambda: callable = None,
+                   filter_fun: callable = None,
                    figure_size: tuple = (5, 5),
                    aggregate_fun = None,
                    return_fig: bool = V.return_fig):
@@ -31,10 +30,9 @@ def target_metrics(misty = None,
         Whether to sort in ascending order
     key : callable
         Function to use to sort the dataframe
-    %(filterby)s
-    %(filter_lambda)s
-    %(figure_size)s
+    %(filter_fun)s
     %(aggregate_fun)s
+    %(figure_size)s
     %(return_fig)s
 
     Returns
@@ -52,20 +50,17 @@ def target_metrics(misty = None,
     if stat is None:
         raise ValueError("Provide a statistic to plot")
 
-    if filterby is not None:
-        msk = target_metrics[filterby].apply(filter_lambda)
-        target_metrics = target_metrics[msk]
-    if top_n is not None:
-        target_metrics = target_metrics.sort_values(stat, ascending=ascending, key=key).head(top_n)
-
-    # get order of target by decreasing intra.R2
+    if filter_fun is not None:
+        target_metrics = target_metrics[target_metrics.apply(filter_fun, axis=1)]
     if aggregate_fun is not None:
-        targets = target_metrics.groupby(['target']).agg({stat: aggregate_fun}).reset_index()
+        targets = target_metrics.groupby(['target']).agg({stat: aggregate_fun})
+        targets = targets.sort_values(by=stat, ascending=ascending).index
     else:
-        targets = target_metrics.copy()
+        targets = target_metrics.sort_values(by=stat, ascending=ascending)['target'].unique()
+    if top_n is not None:
+        target_metrics = target_metrics[target_metrics['target'].isin(targets[:top_n])]
 
-    targets = targets.sort_values(by=stat, ascending=False)['target']
-    # targets as categorical variable
+    # keep order of targets
     target_metrics['target'] = pd.Categorical(target_metrics['target'],
                                               categories=targets,
                                               ordered=True)
@@ -89,6 +84,7 @@ def contributions(misty = None,
                   ascending=False,
                   key=None,
                   view_names: list=None,
+                  filter_fun: callable = None,
                   aggregate_fun: callable = None,
                   figure_size: tuple = (5, 5),
                   return_fig: bool = V.return_fig):
@@ -131,12 +127,14 @@ def contributions(misty = None,
         if 'intra' not in target_metrics.columns:
             view_names.remove('intra')
 
+    if filter_fun is not None:
+        target_metrics = target_metrics[target_metrics.apply(filter_fun, axis=1)]
+
     target_metrics = target_metrics[['target', *view_names]]
     target_metrics = target_metrics.melt(id_vars='target', var_name='view', value_name='contribution')
 
     if aggregate_fun is not None:
-        target_metrics = target_metrics.groupby(['target']).agg({'contribution': aggregate_fun}).reset_index()
-
+        target_metrics = target_metrics.groupby(['target', 'view']).agg({'contribution': aggregate_fun}).reset_index()
     if top_n is not None:
         target_metrics = target_metrics.sort_values('contribution', ascending=ascending, key=key).head(top_n)
 
@@ -161,8 +159,7 @@ def interactions(misty= None,
                  top_n = None,
                  ascending = False,
                  key = None,
-                 filterby = None,
-                 filter_lambda: callable = None,
+                 filter_fun: callable = None,
                  aggregate_fun: callable = None,
                  figure_size: tuple = (5,5),
                  return_fig: bool = V.return_fig):
@@ -180,7 +177,6 @@ def interactions(misty= None,
         Whether to sort interactions in ascending order
     key : str
         Key to use when sorting interactions
-    %(filterby)s
     %(filter_lambda)s
     %(aggregate_fun)s
     %(figure_size)s
@@ -204,17 +200,13 @@ def interactions(misty= None,
     grouped = interactions.groupby('predictor')['importances'].apply(lambda x: x.isna().all())
     interactions = interactions[~interactions['predictor'].isin(grouped[grouped].index)]
 
+    if filter_fun is not None:
+        interactions = interactions[interactions.apply(filter_fun, axis=1)]
     if aggregate_fun is not None:
         interactions = interactions.groupby(['target', 'predictor']).agg({'importances': aggregate_fun}).reset_index()
-
-    if filterby is not None:
-        top_interactions = interactions[interactions[filterby].apply(filter_lambda)]
-        top_interactions = top_interactions.drop_duplicates(['target', 'predictor'])
     if top_n is not None:
         interactions = interactions.sort_values(by='importances', key=key, ascending=ascending)
         top_interactions = interactions.drop_duplicates(['target', 'predictor']).head(top_n)
-
-    if (filterby is not None) or (top_n is not None):
         interactions = interactions[interactions['target'].isin(top_interactions['target']) &
                             interactions['predictor'].isin(top_interactions['predictor'])]
 

@@ -24,11 +24,13 @@ def test_target_contributions_plot():
 def test_target_metrics_plot():
     pl.target_metrics(misty=adata, stat='gain_R2')
     pl.target_metrics(misty=adata, stat='gain_R2', top_n=1, return_fig=False)
-    pl.target_metrics(misty=adata, stat='gain_R2', filterby='multi_R2', filter_lambda=lambda x: x > 0.5)
+    pl.target_metrics(misty=adata, stat='gain_R2', filter_fun = lambda x: x['multi_R2'] > 0.5)
 
 
 def test_interactions_plot():
     pl.interactions(misty=adata, top_n=3, view='extra', key=abs, ascending=False)
+    plot_data = pl.interactions(interactions=interactions, view='extra', filter_fun=lambda x: x['group']=='b').data
+    assert plot_data.shape[0] == 3
 
 
 def test_target_metrics_aggregate():
