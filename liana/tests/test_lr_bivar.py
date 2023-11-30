@@ -21,8 +21,8 @@ def test_morans_analytical():
     np.testing.assert_almost_equal(interaction['global_r'].values, 0.0994394)
     np.testing.assert_almost_equal(interaction['global_pvals'].values, 3.4125671e-07)
 
-    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].X), -0.008322, decimal=6)
-    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].layers['pvals']), 0.6546573748814639, decimal=6)
+    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].X), 0.005853, decimal=6)
+    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].layers['pvals']), 0.8947058567209883, decimal=6)
 
 
 def test_cosine_permutation():

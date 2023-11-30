@@ -68,7 +68,7 @@ def _inverse_scores(score):
 
 def _filter_by(liana_res, filter_fun):
     if filter_fun is not None:
-        msk = liana_res.apply(filter_fun, axis=1)
+        msk = liana_res.apply(filter_fun, axis=1).astype(bool)
         relevant_interactions = np.unique(liana_res[msk].interaction)
         liana_res = liana_res[np.isin(liana_res['interaction'], relevant_interactions)]
 

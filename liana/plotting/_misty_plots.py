@@ -51,7 +51,7 @@ def target_metrics(misty = None,
         raise ValueError("Provide a statistic to plot")
 
     if filter_fun is not None:
-        target_metrics = target_metrics[target_metrics.apply(filter_fun, axis=1)]
+        target_metrics = target_metrics[target_metrics.apply(filter_fun, axis=1).astype(bool)]
     if aggregate_fun is not None:
         targets = target_metrics.groupby(['target']).agg({stat: aggregate_fun})
         targets = targets.sort_values(by=stat, ascending=ascending).index
@@ -80,9 +80,6 @@ def target_metrics(misty = None,
 @d.dedent
 def contributions(misty = None,
                   target_metrics = None,
-                  top_n=None,
-                  ascending=False,
-                  key=None,
                   view_names: list=None,
                   filter_fun: callable = None,
                   aggregate_fun: callable = None,
@@ -97,11 +94,6 @@ def contributions(misty = None,
     %(misty)s
     target_metrics
         A target_metrics DataFrame
-    %(top_n)s
-    ascending : bool
-        Whether to sort in ascending order
-    key : callable
-        Function to use to sort the dataframe
     view_names
         A list of view names to plot
     %(aggregate_fun)s
@@ -128,15 +120,13 @@ def contributions(misty = None,
             view_names.remove('intra')
 
     if filter_fun is not None:
-        target_metrics = target_metrics[target_metrics.apply(filter_fun, axis=1)]
+        target_metrics = target_metrics[target_metrics.apply(filter_fun, axis=1).astype(bool)]
 
     target_metrics = target_metrics[['target', *view_names]]
     target_metrics = target_metrics.melt(id_vars='target', var_name='view', value_name='contribution')
 
     if aggregate_fun is not None:
         target_metrics = target_metrics.groupby(['target', 'view']).agg({'contribution': aggregate_fun}).reset_index()
-    if top_n is not None:
-        target_metrics = target_metrics.sort_values('contribution', ascending=ascending, key=key).head(top_n)
 
     p = (p9.ggplot(target_metrics, p9.aes(x='target', y='contribution', fill='view')) +
             p9.geom_bar(stat='identity') +
@@ -201,7 +191,7 @@ def interactions(misty= None,
     interactions = interactions[~interactions['predictor'].isin(grouped[grouped].index)]
 
     if filter_fun is not None:
-        interactions = interactions[interactions.apply(filter_fun, axis=1)]
+        interactions = interactions[interactions.apply(filter_fun, axis=1).astype(bool)]
     if aggregate_fun is not None:
         interactions = interactions.groupby(['target', 'predictor']).agg({'importances': aggregate_fun}).reset_index()
     if top_n is not None:

@@ -246,7 +246,7 @@ class SpatialBivariate():
                                      y_mat=y_mat,
                                      weight=weight,
                                      )
-            local_msk = local_cats != 0
+            local_msk = local_cats > 0
         else:
             local_cats = None
             local_msk = None

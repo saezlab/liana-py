@@ -18,7 +18,7 @@ interactions['group'] = ['a'] * 9 + ['b'] * 9
 
 def test_target_contributions_plot():
     pl.contributions(misty=adata)
-    pl.contributions(misty=adata, top_n=1, return_fig=False)
+    pl.contributions(misty=adata, return_fig=False)
 
 
 def test_target_metrics_plot():
