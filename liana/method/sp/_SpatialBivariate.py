@@ -13,7 +13,6 @@ from liana.method.sp._spatial_pipe import (
     _run_scores_pipeline,
     _add_complexes_to_var
     )
-from liana.utils.obsm_to_adata import obsm_to_adata
 from liana.utils.mdata_to_anndata import mdata_to_anndata
 from liana.resource._select_resource import _handle_resource
 from liana.method._pipe_utils import prep_check_adata, assert_covered
@@ -75,7 +74,6 @@ class SpatialBivariate():
                  resource_name: (None | str) = None,
                  connectivity_key:str = K.connectivity_key,
                  mod_added: str = "local_scores",
-                 key_added: str = 'global_res',
                  mask_negatives: bool = False,
                  add_categories: bool = False,
                  n_perms: int = None,
@@ -109,7 +107,6 @@ class SpatialBivariate():
         %(connectivity_key)s
         mod_added: str
             Key in `mdata.mod` where the local scores are stored.
-        %(key_added)s
         %(mask_negatives)s
         %(add_categories)s
         %(n_perms)s
@@ -263,10 +260,18 @@ class SpatialBivariate():
                                  local_msk=local_msk,
                                  verbose=verbose,
                                  )
-        local_scores = obsm_to_adata(adata=mdata, df=local_scores, _var=xy_stats.set_index("interaction"), obsm_key=None, _uns=mdata.uns)
 
+        # TODO deal with transposing upstraem
         if mask_negatives:
-            local_scores.X = local_scores.X * local_msk.T
+            local_scores = local_scores.T * local_msk.T
+        else:
+            local_scores = local_scores.T
+
+        local_scores = AnnData(csr_matrix(local_scores),
+                               obs=adata.obs,
+                               var=xy_stats.set_index('interaction')
+                               )
+
         if local_cats is not None:
             local_scores.layers['cats'] = csr_matrix(local_cats.T)
         if local_pvals is not None:
