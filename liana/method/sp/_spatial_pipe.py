@@ -326,7 +326,7 @@ def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, local_msk,
                                   verbose=verbose
                                   )
 
-    # convert to DataFrames
+    # TODO: Get rid of this; convert to DataFrames
     local_scores = _local_to_dataframe(array=local_scores,
                                        idx=idx,
                                        columns=xy_stats['interaction'])

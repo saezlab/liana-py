@@ -1,5 +1,10 @@
-Release notesconsistency
+Release notes
 =============
+
+1.0.4 (08.12.2023)
+
+- Moved the Global score summaries of ``SpatialBivariate`` from .uns to .var
+
 
 1.0.3 (06.11.2023)
 -------------------------------------------------
@@ -47,6 +52,7 @@ Essentially, it diminishes the effect of spatial proximity on the score, while s
 
 1.0.1 Stable Release (30.09.2023)
 -------------------------------------------------
+
 - Bumped CORNETO version and it's now installed via PyPI.
 
 1.0.0a2 (19.09.2023)

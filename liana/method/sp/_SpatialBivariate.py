@@ -30,11 +30,9 @@ class SpatialBivariate():
         self.x_name = x_name
         self.y_name = y_name
 
-    def _handle_return(self, data, stats, local_scores, key_added, x_added, inplace=False):
+    def _handle_return(self, data, stats, local_scores, x_added, inplace=False):
         if not inplace:
             return stats, local_scores
-
-        data.uns[key_added] = stats
 
         if isinstance(data, MuData):
             data.mod[x_added] = local_scores
@@ -265,8 +263,7 @@ class SpatialBivariate():
                                  local_msk=local_msk,
                                  verbose=verbose,
                                  )
-        local_scores = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
-        local_scores.uns[key_added] = xy_stats
+        local_scores = obsm_to_adata(adata=mdata, df=local_scores, _var=xy_stats.set_index("interaction"), obsm_key=None, _uns=mdata.uns)
 
         if mask_negatives:
             local_scores.X = local_scores.X * local_msk.T
@@ -275,7 +272,7 @@ class SpatialBivariate():
         if local_pvals is not None:
             local_scores.layers['pvals'] = csr_matrix(local_pvals.T)
 
-        return self._handle_return(mdata, xy_stats, local_scores, key_added, mod_added, inplace)
+        return self._handle_return(mdata, xy_stats, local_scores, mod_added, inplace)
 
     def show_functions(self):
         """
