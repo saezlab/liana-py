@@ -10,12 +10,11 @@ import numpy as np
 
 from liana.method._pipe_utils import prep_check_adata, assert_covered, \
     filter_resource, filter_reassemble_complexes
-from liana.method._pipe_utils._common import _join_stats
+from liana.method._pipe_utils._common import _join_stats, _get_props, _get_groupby_subset
 from liana.resource._select_resource import _handle_resource
 from liana.method._pipe_utils._reassemble_complexes import explode_complexes
 from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
 from liana.method._pipe_utils._aggregate import _aggregate
-from liana.method._pipe_utils._common import _get_props
 from liana._constants import MethodColumns as M, CommonColumns as C, \
                             PrimaryColumns as P, InternalValues as I
 
@@ -24,6 +23,7 @@ def liana_pipe(adata: anndata.AnnData,
                resource_name: str,
                resource: pd.DataFrame | None,
                interactions,
+               groupby_pairs: pd.DataFrame | None,
                expr_prop: float,
                min_cells: int,
                base: float,
@@ -113,10 +113,10 @@ def liana_pipe(adata: anndata.AnnData,
     mat_mean = None
     mat_max = None
 
-    # Check and Reformat Mat if needed
-    assert groupby is not None
+    groupby_subset = _get_groupby_subset(groupby_pairs=groupby_pairs)
     adata = prep_check_adata(adata=adata,
                              groupby=groupby,
+                             groupby_subset=groupby_subset,
                              min_cells=min_cells,
                              use_raw=use_raw,
                              layer=layer,
@@ -158,9 +158,12 @@ def liana_pipe(adata: anndata.AnnData,
     # Filter to only include the relevant genes
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
 
+
+
     # Get lr results
     lr_res = _get_lr(adata=adata,
                      resource=resource,
+                     groupby_pairs=groupby_pairs,
                      mat_mean=mat_mean,
                      mat_max=mat_max,
                      relevant_cols=_key_cols + _add_cols + _complex_cols,
@@ -236,7 +239,7 @@ def liana_pipe(adata: anndata.AnnData,
     return lr_res
 
 
-def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, verbose):
+def _get_lr(adata, resource, groupby_pairs, relevant_cols, mat_mean, mat_max, de_method, base, verbose):
     labels = adata.obs[I.label].cat.categories
 
     # Method-specific stats
@@ -291,11 +294,11 @@ def _get_lr(adata, resource, relevant_cols, mat_mean, mat_max, de_method, base, 
         if isinstance(mat_max, np.float32):  # cellchat flag
             dedict[label]['trimean'] = _trimean(temp.X / mat_max)
 
-    # Create df /w cell identity pairs
-    # pd.DataFrame(list(product(labels, labels))); TODO: check this
     pairs = (pd.DataFrame(np.array(np.meshgrid(labels, labels))
                           .reshape(2, np.size(labels) * np.size(labels)).T)
              .rename(columns={0: P.source, 1: P.target}))
+    if groupby_pairs is not None:
+        pairs = pairs.merge(groupby_pairs, on=[P.source, P.target], how='inner')
 
     # Join Stats
     lr_res = pd.concat(

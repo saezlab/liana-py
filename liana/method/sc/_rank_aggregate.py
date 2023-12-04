@@ -60,6 +60,7 @@ class AggregateClass(MethodMeta):
                  resource_name: str = V.resource_name,
                  expr_prop: float = V.expr_prop,
                  min_cells: int = V.min_cells,
+                 groupby_pairs = V.groupby_pairs,
                  base: float = V.logbase,
                  aggregate_method: str = 'rra',
                  consensus_opts: Optional[list] = None,
@@ -86,6 +87,7 @@ class AggregateClass(MethodMeta):
         %(resource_name)s
         %(expr_prop)s
         %(min_cells)s
+        %(groupby_pairs)s
         %(base)s
         aggregate_method
             Method aggregation approach, one of ['mean', 'rra'], where `mean` represents the
@@ -123,6 +125,7 @@ class AggregateClass(MethodMeta):
                                groupby=groupby,
                                resource_name=resource_name,
                                resource=resource,
+                               groupby_pairs = V.groupby_pairs,
                                interactions=interactions,
                                expr_prop=expr_prop,
                                min_cells=min_cells,

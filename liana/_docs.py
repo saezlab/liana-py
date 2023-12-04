@@ -1,6 +1,4 @@
 from __future__ import annotations
-
-
 from docrep import DocstringProcessor
 
 # Common docstrings

@@ -4,7 +4,7 @@ from itertools import product
 
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes, _check_groupby
-from liana.method._pipe_utils._common import _join_stats, _get_props
+from liana.method._pipe_utils._common import _join_stats, _get_props, _get_groupby_subset
 from liana.method._pipe_utils._reassemble_complexes import explode_complexes
 from liana.resource._select_resource import _handle_resource
 
@@ -20,6 +20,7 @@ def df_to_lr(adata,
              resource_name = V.resource_name,
              resource = V.resource,
              interactions = V.interactions,
+             groupby_pairs=V.groupby_pairs,
              layer = V.layer,
              use_raw = V.layer,
              expr_prop = V.expr_prop,
@@ -82,9 +83,12 @@ def df_to_lr(adata,
     else:
         complex_col = 'expr'
 
+    groupby_subset = _get_groupby_subset(groupby_pairs=groupby_pairs)
+
     # Check and Reformat Mat if needed
     adata = prep_check_adata(adata=adata,
                              groupby=groupby,
+                             groupby_subset=groupby_subset,
                              min_cells=min_cells,
                              use_raw=use_raw,
                              layer=layer,

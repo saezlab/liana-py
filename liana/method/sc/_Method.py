@@ -185,6 +185,7 @@ class Method(MethodMeta):
                  resource_name: str = V.resource_name,
                  expr_prop: float = V.expr_prop,
                  min_cells: int = V.min_cells,
+                 groupby_pairs = V.groupby_pairs,
                  base: float = V.logbase,
                  supp_columns: list = V.supp_columns,
                  return_all_lrs: bool = V.return_all_lrs,
@@ -210,6 +211,7 @@ class Method(MethodMeta):
         %(resource_name)s
         %(expr_prop)s
         %(min_cells)s
+        %(groupby_pairs)s
         %(base)s
         supp_columns
             Additional columns to be added from any of the methods implemented in liana,
@@ -251,6 +253,7 @@ class Method(MethodMeta):
                                min_cells=min_cells,
                                supp_columns=supp_columns,
                                return_all_lrs=return_all_lrs,
+                               groupby_pairs=groupby_pairs,
                                base=base,
                                de_method=de_method,
                                verbose=verbose,
