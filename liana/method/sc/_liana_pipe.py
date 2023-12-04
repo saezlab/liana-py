@@ -297,6 +297,7 @@ def _get_lr(adata, resource, groupby_pairs, relevant_cols, mat_mean, mat_max, de
     pairs = (pd.DataFrame(np.array(np.meshgrid(labels, labels))
                           .reshape(2, np.size(labels) * np.size(labels)).T)
              .rename(columns={0: P.source, 1: P.target}))
+
     if groupby_pairs is not None:
         pairs = pairs.merge(groupby_pairs, on=[P.source, P.target], how='inner')
 

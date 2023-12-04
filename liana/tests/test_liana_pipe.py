@@ -4,6 +4,7 @@ from pandas.testing import assert_frame_equal
 from pandas import read_csv
 import numpy as np
 from pandas import DataFrame
+from itertools import product
 
 from liana.method.sc._liana_pipe import liana_pipe, _expm1_base, _calc_log2fc
 from liana._constants import DefaultValues as V
@@ -75,9 +76,10 @@ def test_liana_pipe_not_defaults():
 
 
 def test_liana_pipe_subset():
-
-    groupby_pairs = DataFrame({'source': ['CD34+', 'Dendritic'],
-                               'target': ['CD56 NK', 'CD19+ B']})
+    cts = ['CD34+', 'Dendritic', 'CD56 NK', 'CD19+ B']
+    groupby_pairs = list(product(cts, cts))
+    groupby_pairs = DataFrame(groupby_pairs, columns=['source', 'target'])
+    groupby_pairs = groupby_pairs[groupby_pairs['source'] == 'Dendritic']
 
     subset = liana_pipe(adata=adata,
                         groupby=groupby,
@@ -96,7 +98,7 @@ def test_liana_pipe_subset():
                         interactions=V.interactions,
                         )
 
-    subset.shape == (12, 21)
+    subset.shape == (46, 21)
 
 
 def test_expm1_fun():

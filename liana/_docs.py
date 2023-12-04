@@ -117,6 +117,11 @@ de_method
     Differential expression method. `scanpy.tl.rank_genes_groups` is used to rank genes
     according to 1vsRest. The default method is 't-test'."""
 
+_groupby_pairs = """\
+groupby_pairs
+    A DataFrame with columns `source` and `target` to be used to subset the possible combinations of interacting cell types.
+    If None, all possible combinations are used."""
+
 
 # multi-condition specific docstrings
 _source_key = """\
@@ -278,6 +283,7 @@ d = DocstringProcessor(
     mdata=_mdata,
     misty=_misty,
     groupby=_groupby,
+    _groupby_pairs=_groupby_pairs,
     seed=_seed,
     resource=_resource,
     interactions=_interactions,
