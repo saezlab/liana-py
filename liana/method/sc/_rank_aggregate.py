@@ -125,7 +125,7 @@ class AggregateClass(MethodMeta):
                                groupby=groupby,
                                resource_name=resource_name,
                                resource=resource,
-                               groupby_pairs = V.groupby_pairs,
+                               groupby_pairs = groupby_pairs,
                                interactions=interactions,
                                expr_prop=expr_prop,
                                min_cells=min_cells,
