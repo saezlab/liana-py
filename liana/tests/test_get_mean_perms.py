@@ -5,6 +5,7 @@ from pandas import read_csv
 
 from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_positions
 from liana.method.sc._liana_pipe import _trimean
+from liana.method.sc._cellphonedb import _mean
 
 test_path = pathlib.Path(__file__).parent
 
@@ -18,9 +19,10 @@ all_defaults = read_csv(test_path.joinpath("data/all_defaults.csv"), index_col=0
 def test_perms():
     perms = _get_means_perms(adata=adata,
                              norm_factor=None,
-                             agg_fun=np.mean,
+                             agg_fun=_mean,
                              n_perms=100,
                              seed=1337,
+                             n_jobs=2,
                              verbose=False)
 
     assert perms.shape == (100, 10, 765)
@@ -49,6 +51,7 @@ def test_cellchat_perms():
                              agg_fun=_trimean,
                              n_perms=100,
                              seed=1337,
+                             n_jobs=1,
                              verbose=False
                              )
 
@@ -66,6 +69,7 @@ def test_cellchat_perms():
                              agg_fun=_trimean,
                              n_perms=100,
                              seed=1337,
+                             n_jobs=1,
                              verbose=False
                              )
     desired = np.array([5215.107487, 5599.082231, 5327.412358,

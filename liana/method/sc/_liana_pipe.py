@@ -32,6 +32,7 @@ def liana_pipe(adata: anndata.AnnData,
                seed: int,
                verbose: bool,
                use_raw: bool,
+               n_jobs: int,
                layer: str | None,
                supp_columns: list | None = None,
                return_all_lrs: bool = False,
@@ -200,6 +201,7 @@ def liana_pipe(adata: anndata.AnnData,
                                 n_perms=n_perms,
                                 seed=seed,
                                 return_all_lrs=return_all_lrs,
+                                n_jobs=n_jobs,
                                 verbose=verbose,
                                 _aggregate_flag=True
                                 )
@@ -221,6 +223,7 @@ def liana_pipe(adata: anndata.AnnData,
                                  _add_cols=_add_cols,
                                  n_perms=n_perms,
                                  return_all_lrs=return_all_lrs,
+                                 n_jobs=n_jobs,
                                  verbose=verbose,
                                  seed=seed)
     else:  # Just return lr_res
@@ -357,6 +360,7 @@ def _run_method(lr_res: pandas.DataFrame,
                 n_perms: int,
                 seed: int,
                 return_all_lrs: bool,
+                n_jobs: int,
                 verbose: bool,
                 _aggregate_flag: bool = False  # Indicates whether we're generating the consensus
                 ) -> pd.DataFrame:
@@ -393,6 +397,7 @@ def _run_method(lr_res: pandas.DataFrame,
                                      seed=seed,
                                      agg_fun=agg_fun,
                                      norm_factor=norm_factor,
+                                     n_jobs=n_jobs,
                                      verbose=verbose)
             # get tensor indexes for ligand, receptor, source, target
             ligand_idx, receptor_idx, source_idx, target_idx = _get_mat_idx(adata, lr_res)

@@ -31,6 +31,7 @@ def test_liana_pipe_defaults():
                               resource=V.resource,
                               use_raw=V.use_raw,
                               layer=V.layer,
+                              n_jobs=1,
                               interactions=V.interactions,
                               )
 
@@ -61,6 +62,7 @@ def test_liana_pipe_not_defaults():
                               use_raw=V.use_raw,
                               layer=V.layer,
                               return_all_lrs=True,
+                              n_jobs=1,
                               interactions=V.interactions,
                               )
 
@@ -95,6 +97,7 @@ def test_liana_pipe_subset():
                         resource=V.resource,
                         use_raw=V.use_raw,
                         layer=V.layer,
+                        n_jobs=1,
                         interactions=V.interactions,
                         )
 

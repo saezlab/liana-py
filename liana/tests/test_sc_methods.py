@@ -54,7 +54,7 @@ def test_cellphonedb_none():
 
 
 def test_geometric_mean():
-    geometric_mean(adata, groupby='bulk_labels', use_raw=True, n_perms=4)
+    geometric_mean(adata, groupby='bulk_labels', use_raw=True, n_perms=4, n_jobs=2)
 
     assert adata.shape == expected_shape
     assert 'liana_res' in adata.uns.keys()

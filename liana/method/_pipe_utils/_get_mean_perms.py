@@ -4,12 +4,14 @@ import anndata
 import numpy as np
 from tqdm import tqdm
 
+from joblib import Parallel, delayed
 
 def _get_means_perms(adata: anndata.AnnData,
                      n_perms: int,
                      seed: int,
                      agg_fun,
                      norm_factor: float | None,
+                     n_jobs: int,
                      verbose: bool):
     """
     Generate permutations and indices required for permutation-based methods
@@ -50,13 +52,19 @@ def _get_means_perms(adata: anndata.AnnData,
         labels_mask[:, ct_idx] = adata.obs['@label'] == label
 
     # Perm should be a cube /w dims: n_perms x idents x n_genes
-    perms = _generate_perms_cube(adata.X, n_perms, labels_mask, seed, agg_fun, verbose)
+    perms = _generate_perms_cube(adata.X, n_perms, labels_mask, seed, agg_fun, n_jobs, verbose)
 
     return perms
 
 
-# @nb.njit(nb.float32[:,:,:](nb.float32[:,:], nb.int32[:,:], nb.float32[:]), cache=True)
-def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fun, verbose):
+# Define a helper function for parallel processing
+def _permute_and_aggregate(perm, perm_idx, X, labels_mask, agg_fun):
+    perm_mat = X[perm_idx]
+    permuted_means = np.array([agg_fun(perm_mat[labels_mask[:, i]], axis=0) for i in range(labels_mask.shape[1])])
+    return perm, permuted_means
+
+
+def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fun, n_jobs, verbose):
     # initialize rng
     rng = np.random.default_rng(seed=seed)
 
@@ -64,16 +72,17 @@ def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fun, verbose):
     idx = np.arange(X.shape[0])
 
     # Perm should be a cube /w dims: n_perms x idents x n_genes
-    perms = np.zeros((n_perms, labels_mask.shape[1], X.shape[1])) # , dtype=np.float32
+    perms = np.zeros((n_perms, labels_mask.shape[1], X.shape[1]))
 
-    # Assign permuted matrix
-    for perm in tqdm(range(n_perms), disable=not verbose):
-        perm_idx = rng.permutation(idx)
-        perm_mat = X[perm_idx]
-        # populate matrix /w permuted means
-        for ct_idx in range(labels_mask.shape[1]):
-            ct_mask = labels_mask[:, ct_idx]
-            perms[perm, ct_idx] = agg_fun(perm_mat[ct_mask], axis=0)
+    # Use Parallel to enable parallelization
+    results = Parallel(n_jobs=n_jobs)(delayed(_permute_and_aggregate)
+                                      (perm, rng.permutation(idx), X, labels_mask, agg_fun)
+                                      for perm in tqdm(range(n_perms), disable=not verbose)
+                                      )
+
+    # Unpack results
+    for perm, permuted_means in results:
+        perms[perm] = np.reshape(permuted_means, (labels_mask.shape[1], X.shape[1]))
 
     return perms
 
