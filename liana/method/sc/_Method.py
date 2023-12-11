@@ -195,7 +195,7 @@ class Method(MethodMeta):
                  de_method: str = V.de_method,
                  n_perms: int = V.n_perms,
                  seed: int = V.seed,
-                 n_jobs=1,
+                 n_jobs: int = 1,
                  resource: Optional[DataFrame] = V.resource,
                  interactions: Optional[list] = V.interactions,
                  mdata_kwargs: dict = dict(),
@@ -226,6 +226,8 @@ class Method(MethodMeta):
         %(verbose)s
         %(n_perms_sc)s
         %(seed)s
+        n_jobs
+            Number of jobs to run in parallel.
         %(resource)s
         %(interactions)s
         %(mdata_kwargs)s

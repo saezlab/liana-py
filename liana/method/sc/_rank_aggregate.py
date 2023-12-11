@@ -105,6 +105,8 @@ class AggregateClass(MethodMeta):
         %(verbose)s
         %(n_perms_sc)s
         %(seed)s
+        n_jobs
+            Number of jobs to run in parallel.
         %(resource)s
         %(interactions)s
         %(mdata_kwargs)s
