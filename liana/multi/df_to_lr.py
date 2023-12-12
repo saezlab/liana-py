@@ -135,6 +135,9 @@ def df_to_lr(adata,
     pairs = pd.DataFrame(list(product(labels, labels))). \
         rename(columns={0: "source", 1: "target"})
 
+    if groupby_pairs is not None:
+        pairs = pairs.merge(groupby_pairs, on=[P.source, P.target], how='inner')
+
     if source_labels is not None:
         pairs = pairs[pairs['source'].isin(source_labels)]
     if target_labels is not None:
