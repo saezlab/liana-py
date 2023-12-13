@@ -1,7 +1,7 @@
 import pytest
 from anndata import AnnData
 import numpy as np
-from liana.utils.interpolate_adata import interpolate_adata  # replace 'your_module' with the actual module name
+from liana.utils.interpolate_adata import interpolate_adata
 
 def create_test_adata(n_cells, n_genes, spatial_key='spatial'):
     """
@@ -41,11 +41,8 @@ def test_invalid_spatial_key(reference_adata, target_adata):
         interpolate_adata(reference=reference_adata, target=target_adata, spatial_key='invalid_key')
 
 def test_use_raw_layer_parameters(reference_adata, target_adata):
-    # This test assumes that the use_raw and layer parameters change the behavior of the function.
-    # Additional checks should be added based on the specific implementation details.
     result_layer = interpolate_adata(reference=reference_adata, target=target_adata, spatial_key='spatial', layer='some_layer', use_raw=False)
     assert isinstance(result_layer, AnnData)
 
-    # expect a ValueError
     with pytest.raises(ValueError):
         interpolate_adata(reference=reference_adata, target=target_adata, spatial_key='spatial', layer='some_layer', use_raw=True)
