@@ -269,7 +269,9 @@ class SpatialBivariate():
 
         local_scores = AnnData(csr_matrix(local_scores),
                                obs=adata.obs,
-                               var=xy_stats.set_index('interaction')
+                               var=xy_stats.set_index('interaction'),
+                               uns=adata.uns,
+                               obsm=adata.obsm,
                                )
 
         if local_cats is not None:
