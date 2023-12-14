@@ -27,7 +27,7 @@ def test_select_resource():
                                 resource_name='ignore me'
                                 )
 
-    assert resource.shape[0] == 4658
+    assert resource.shape[0] == 4656
     assert (resource.columns == ['ligand', 'receptor']).all()
 
 

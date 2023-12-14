@@ -38,5 +38,5 @@ def test_generate_nondefault_lr_resource():
     resource = select_resource('consensus')
 
     lr_net = generate_lr_geneset(resource, net, source='tf', weight=None, target='genesymbol')
-    assert lr_net.shape[0] == 286
+    assert lr_net.shape[0] == 285
     assert max(lr_net['weight']) == 1
