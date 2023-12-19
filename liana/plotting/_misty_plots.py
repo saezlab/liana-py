@@ -14,7 +14,8 @@ def target_metrics(misty = None,
                    filter_fun: callable = None,
                    figure_size: tuple = (5, 5),
                    aggregate_fun = None,
-                   return_fig: bool = V.return_fig):
+                   return_fig: bool = V.return_fig
+                   ):
     """
     Plot target metrics.
 
@@ -56,7 +57,7 @@ def target_metrics(misty = None,
         targets = target_metrics.groupby(['target']).agg({stat: aggregate_fun})
         targets = targets.sort_values(by=stat, ascending=ascending).index
     else:
-        targets = target_metrics.sort_values(by=stat, ascending=ascending)['target'].unique()
+        targets = target_metrics.sort_values(by=stat, ascending=ascending, key=key)['target'].unique()
     if top_n is not None:
         target_metrics = target_metrics[target_metrics['target'].isin(targets[:top_n])]
 
