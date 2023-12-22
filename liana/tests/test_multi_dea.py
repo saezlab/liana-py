@@ -22,7 +22,7 @@ def test_dea_to_lr():
                        min_cells=10,
                        return_all_lrs=False,
                        )
-    assert lr_res.shape == (374, 20)
+    assert lr_res.shape == (374, 22)
     # assert ligand_stat, ligand_pval, and ligand_padjusted are in lr_res.columns
     columns = lr_res.columns
     expected_columns = ['ligand', 'ligand_stat', 'ligand_pval', 'ligand_padjusted', 'ligand_expr',
@@ -43,4 +43,4 @@ def test_dea_to_lr_params():
                       verbose=True,
                       return_all_lrs=True,
                       )
-    assert lr_res.shape == (3321, 21)
+    assert lr_res.shape == (3321, 23)

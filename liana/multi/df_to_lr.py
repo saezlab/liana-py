@@ -179,7 +179,7 @@ def df_to_lr(adata,
     lr_res = lr_res.drop(['prop_min', 'interaction', *_placeholders], axis=1)
 
     # summarise stats for each lr
-    for key in stat_keys:
+    for key in stat_names:
         stat_columns = lr_res.columns[lr_res.columns.str.endswith(key)]
         lr_res.loc[:, f'interaction_{key}'] = lr_res.loc[:, stat_columns].mean(axis=1)
 

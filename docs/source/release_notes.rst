@@ -5,6 +5,10 @@ Release notes
 
 - Moved the Global score summaries of ``SpatialBivariate`` from .uns to .var
 
+- ``df_to_lr`` will now also return the expression and proportion of expression for the interactions
+
+- ``li.multi.nfm`` will now also accept a DataFrame as input
+
 
 1.0.3 (06.11.2023)
 -------------------------------------------------

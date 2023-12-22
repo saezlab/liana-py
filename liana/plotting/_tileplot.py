@@ -23,6 +23,8 @@ def tileplot(adata: ad.AnnData = None,
              orderby_ascending: bool = False,
              orderby_absolute: bool = True,
              filter_fun: callable = None,
+             source_title=None,
+             target_title=None,
              cmap: str = V.cmap,
              figure_size: Tuple[float, float] = (5, 5),
              return_fig: bool = V.return_fig
@@ -50,6 +52,10 @@ def tileplot(adata: ad.AnnData = None,
     %(orderby_ascending)s
     %(orderby_absolute)s
     %(filter_fun)s
+    source_title
+        Title for the source facet. Default is 'Source'
+    target_title
+        Title for the target facet. Default is 'Target'
     %(cmap)s
     %(figure_size)s
 
@@ -75,7 +81,8 @@ def tileplot(adata: ad.AnnData = None,
     ligand_stats = _entity_stats(liana_res,
                                  entity='ligand',
                                  entity_type='source',
-                                 relevant_cols=relevant_cols)
+                                 relevant_cols=relevant_cols,
+                                 type_title=source_title)
 
     _check_var(ligand_stats, var=fill, var_name='fill')
     _check_var(ligand_stats, var=label, var_name='label')
@@ -83,7 +90,8 @@ def tileplot(adata: ad.AnnData = None,
     receptor_stats = _entity_stats(liana_res,
                                    entity='receptor',
                                    entity_type='target',
-                                   relevant_cols=relevant_cols)
+                                   relevant_cols=relevant_cols,
+                                   type_title=target_title)
 
     liana_res = pd.concat([ligand_stats, receptor_stats])
 
@@ -110,8 +118,10 @@ def tileplot(adata: ad.AnnData = None,
 
     p.draw()
 
-def _entity_stats(liana_res, entity, entity_type, relevant_cols):
+def _entity_stats(liana_res, entity, entity_type, relevant_cols, type_title=None):
     entity_stats = liana_res[['interaction', f"{entity}_complex", entity_type, *relevant_cols]].copy()
-    entity_stats = entity_stats.rename(columns={entity_type: 'cell_type'}).assign(type=entity_type.capitalize())
+    if type_title is None:
+        type_title = entity_type.capitalize()
+    entity_stats = entity_stats.rename(columns={entity_type: 'cell_type'}).assign(type=type_title)
     entity_stats.columns = entity_stats.columns.str.replace(entity + '_', '')
     return entity_stats
