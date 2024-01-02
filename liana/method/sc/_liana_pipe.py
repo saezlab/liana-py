@@ -8,11 +8,10 @@ import scanpy as sc
 import pandas as pd
 import numpy as np
 
-from liana.method._pipe_utils import prep_check_adata, assert_covered, \
-    filter_resource, filter_reassemble_complexes
+from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource
 from liana.method._pipe_utils._common import _join_stats, _get_props, _get_groupby_subset
 from liana.resource._select_resource import _handle_resource
-from liana.method._pipe_utils._reassemble_complexes import explode_complexes
+from liana.resource import explode_complexes, filter_reassemble_complexes
 from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
 from liana.method._pipe_utils._aggregate import _aggregate
 from liana._constants import MethodColumns as M, CommonColumns as C, \

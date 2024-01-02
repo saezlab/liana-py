@@ -109,6 +109,7 @@ Prior knowledge
    liana.resource.select_resource
    liana.resource.show_resources
    liana.resource.generate_lr_geneset
+   liana.resource.explode_complexes
 
 Intracellular
 ----------------------------------
