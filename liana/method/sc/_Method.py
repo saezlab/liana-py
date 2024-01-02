@@ -144,7 +144,7 @@ class MethodMeta:
 
             temp = adata[adata.obs[sample_key]==sample]
             if temp.isbacked:
-                temp = temp.to_memory().copy() # NOTE do I need to copy?
+                temp = temp.to_memory().copy() # NOTE does to_memory copy?
             else:
                 temp = temp.copy()
 

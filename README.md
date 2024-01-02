@@ -30,7 +30,7 @@ We welcome suggestions, ideas, and contributions! Please use do not hesitate to 
 
 ### Multi-condition
 
-- [Hypothesis-testing for CCC with PyDeSeq2](https://liana-py.readthedocs.io/en/latest/notebooks/targeted.html) that also shows the inference of causal **intracellular** signalling networks, downstream of CCC events.
+- [Differential Expression Analysis for CCC with PyDeSeq2](https://liana-py.readthedocs.io/en/latest/notebooks/targeted.html) that also shows the inference of causal **intracellular** signalling networks, downstream of CCC events.
 
 - [Multicellular programmes with MOFA](https://liana-py.readthedocs.io/en/latest/notebooks/mofacellular.html). Using MOFA to obtain coordinates gene expression programmes across samples and conditions, as done in [Ramirez et al., 2023](https://europepmc.org/article/ppr/ppr620471).
 

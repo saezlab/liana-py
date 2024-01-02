@@ -1,13 +1,16 @@
 Release notes
 =============
 
-1.0.4 (08.12.2023)
+1.0.4 (02.01.2024)
 
 - Moved the Global score summaries of ``SpatialBivariate`` from .uns to .var
 
 - ``df_to_lr`` will now also return the expression and proportion of expression for the interactions
 
 - ``li.multi.nfm`` will now also accept a DataFrame as input
+
+- Filtered putative interactions in the Consensus resource, coming from CellTalkDB.
+
 
 
 1.0.3 (06.11.2023)
