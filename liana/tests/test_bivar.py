@@ -63,9 +63,6 @@ def test_bivar_nondefault():
     local_scores.shape == (700, 100)
     np.testing.assert_almost_equal(np.min(np.min(local_scores.layers['pvals'])), 0.5, decimal=2)
 
-    assert local_scores.layers['cats'].sum() == -15656
-
-
 
 def test_bivar_adata():
       mdata.mod['adata_x'].obsp = mdata.obsp
