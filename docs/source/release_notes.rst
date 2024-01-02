@@ -9,7 +9,7 @@ Release notes
 
 - ``li.multi.nfm`` will now also accept a DataFrame as input
 
-- Filtered putative interactions in the Consensus resource, coming from CellTalkDB.
+- Filtered putative interactions in the Consensus resource, mostly such coming from CellTalkDB.
 
 - Changed ``filter_lambda`` parameter to ``filter_fun`` for consistency and now any function can be passed to be applied as a row-wise filter.
 
@@ -29,7 +29,7 @@ Release notes
 
 - Local categories will now be only calculated for positive interactions (not non-ambigous as before).
 
-- Names of source and target can now be passed to ``li.pl.tileplot``.
+- Names of source and target panels can now be passed to ``li.pl.tileplot``.
 
 
 1.0.3 (06.11.2023)

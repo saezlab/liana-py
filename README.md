@@ -22,13 +22,7 @@ We welcome suggestions, ideas, and contributions! Please use do not hesitate to 
 
 - [LIANA's basic tutorial](https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html) in dissociated single-cell data
 
-### Spatial Data
-
-- [Learn spatially-informed relationships with MISTy](https://liana-py.readthedocs.io/en/latest/notebooks/misty.html) across (multi-) views.
-
-- [Estimate local spatially-informed bivariate metrics](https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html). This tutorial shows how to estimate local spatially-informed bivariate metrics, such as the spatially-informed Pearson correlation coefficient or Cosine similarity.
-
-### Multi-condition
+#### Multi-condition
 
 - [Differential Expression Analysis for CCC with PyDeSeq2](https://liana-py.readthedocs.io/en/latest/notebooks/targeted.html) that also shows the inference of causal **intracellular** signalling networks, downstream of CCC events.
 
@@ -37,6 +31,13 @@ We welcome suggestions, ideas, and contributions! Please use do not hesitate to 
 - [LIANA with MOFA](https://liana-py.readthedocs.io/en/latest/notebooks/mofatalk.html). Using MOFA to infer intercellular communication programmes across samples and conditions, as initially proposed by Tensor-cell2cell.
 
 - [LIANA with Tensor-cell2cell](https://liana-py.readthedocs.io/en/latest/notebooks/liana_c2c.html) to extract intercellular communication programmes across samples and conditions. Extensive tutorials combining LIANA & [Tensor-cell2cell](https://www.nature.com/articles/s41467-022-31369-2) are available [here](https://ccc-protocols.readthedocs.io/en/latest/index.html).
+
+
+### Spatial Data
+
+- [Learn spatially-informed relationships with MISTy](https://liana-py.readthedocs.io/en/latest/notebooks/misty.html) across (multi-) views.
+
+- [Estimate local spatially-informed bivariate metrics](https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html). This tutorial shows how to estimate local spatially-informed bivariate metrics, such as the spatially-informed Pearson correlation coefficient or Cosine similarity.
 
 
 ### Others
