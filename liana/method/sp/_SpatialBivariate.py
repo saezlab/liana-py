@@ -249,7 +249,7 @@ class SpatialBivariate():
                                      y_mat=y_mat,
                                      weight=weight,
                                      )
-            local_msk = local_cats > 0
+            local_msk = (local_cats > 0).astype(np.int8)
         else:
             local_cats = None
             local_msk = None
@@ -269,9 +269,9 @@ class SpatialBivariate():
                                  verbose=verbose,
                                  )
 
-        # TODO deal with transposing upstraem
+        # TODO deal with transposing upstream
         if mask_negatives:
-            local_scores = local_scores.T * local_msk.T
+            local_scores = (local_scores * local_msk).T
         else:
             local_scores = local_scores.T
 
