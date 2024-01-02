@@ -104,6 +104,10 @@ def prep_check_adata(adata: AnnData,
     else:
         var = DataFrame(index=adata.var_names)
 
+    if obsm is not None:
+        # discard any instances of AnnData if in obsm
+        obsm = {k: v for k, v in obsm.items() if not isinstance(v, AnnData)}
+
     adata = sc.AnnData(X=X,
                        obs=adata.obs.copy(),
                        dtype="float32",

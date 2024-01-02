@@ -11,6 +11,17 @@ Release notes
 
 - Filtered putative interactions in the Consensus resource, coming from CellTalkDB.
 
+- Changed ``filter_lambda`` parameter to ``filter_fun`` for consistency and now any function can be passed to be applied as a row-wise filter.
+
+- Global results of ``SpatialBivariate`` will now be saved to ``.var``
+
+- LIANA's spatial methods will now works with non-aligned AnnData objects, i.e. when observations across modalities are not aligned.
+= Added ``li.ut.interpolate_adata`` utility function to interpolate the data to a common space.
+= MISTy will also work with directly non-aligned data with spatial connectivities from one modality to the other being passed via ``obsm`` rather than ``obsp``. Making use of ``li.ut.spatial_neighbors`` by passing reference coordinates.
+
+- Fixed a bug where ``li.ut.obsm_to_adata`` would assign var as a method rather than DataFrame
+
+- Fixed a bug where p-values for Global Moran's were not calculated correctly.
 
 
 1.0.3 (06.11.2023)

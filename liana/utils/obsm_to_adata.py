@@ -51,8 +51,7 @@ def obsm_to_adata(adata: AnnData,
 
     obsp = adata.obsp
     if _var is None:
-        var = pd.DataFrame(index = df.columns).var
-
+        var = pd.DataFrame(index = df.columns)
     else:
         var = _var
 

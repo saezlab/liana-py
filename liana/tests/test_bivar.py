@@ -79,6 +79,11 @@ def test_bivar_adata():
             connectivity_key='ones',
             interactions=interactions)
 
+      bdata = mdata.mod['adata_x']
+      assert 'spatial' in bdata.obsm.keys()
+      assert 'louvain' in bdata.uns.keys()
+      assert 'spatial_connectivities' in bdata.obsp.keys()
+
 
 def test_masked_spearman():
     bivar(mdata,
