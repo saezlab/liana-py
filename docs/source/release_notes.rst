@@ -31,6 +31,7 @@ Release notes
 
 - Names of source and target panels can now be passed to ``li.pl.tileplot``.
 
+- ``li.rs.explode_complexes`` is now consistently exported to ``li.rs`` (as previous versions)
 
 1.0.3 (06.11.2023)
 -------------------------------------------------
