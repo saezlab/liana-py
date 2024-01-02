@@ -7,7 +7,7 @@ from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
 def _lr_probability(perm_stats, axis=0):
     lr_prob = np.product(perm_stats, axis=axis)
 
-    return lr_prob / (0.5 + lr_prob)  # Kh=0.5
+    return lr_prob / (cellchat._kh + lr_prob)
 
 
 # Internal Function to calculate CellPhoneDB LR_mean and p-values
@@ -50,3 +50,4 @@ _cellchat = MethodMeta(method_name="CellChat",
                        )
 
 cellchat = Method(_method=_cellchat)
+cellchat._kh = 0.5

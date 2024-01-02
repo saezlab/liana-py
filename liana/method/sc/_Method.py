@@ -141,7 +141,12 @@ class MethodMeta:
             if verbose:
                 progress_bar.set_description(f"Now running: {sample}")
 
-            temp = adata[adata.obs[sample_key]==sample].copy()
+
+            temp = adata[adata.obs[sample_key]==sample]
+            if temp.isbacked:
+                temp = temp.to_memory().copy() # NOTE does to_memory copy?
+            else:
+                temp = temp.copy()
 
             sample_res = self.__call__(temp, inplace=False, verbose=full_verbose, **kwargs)
 
@@ -180,6 +185,7 @@ class Method(MethodMeta):
                  resource_name: str = V.resource_name,
                  expr_prop: float = V.expr_prop,
                  min_cells: int = V.min_cells,
+                 groupby_pairs: Optional[DataFrame] = V.groupby_pairs,
                  base: float = V.logbase,
                  supp_columns: list = V.supp_columns,
                  return_all_lrs: bool = V.return_all_lrs,
@@ -189,6 +195,7 @@ class Method(MethodMeta):
                  de_method: str = V.de_method,
                  n_perms: int = V.n_perms,
                  seed: int = V.seed,
+                 n_jobs: int = 1,
                  resource: Optional[DataFrame] = V.resource,
                  interactions: Optional[list] = V.interactions,
                  mdata_kwargs: dict = dict(),
@@ -205,6 +212,7 @@ class Method(MethodMeta):
         %(resource_name)s
         %(expr_prop)s
         %(min_cells)s
+        %(groupby_pairs)s
         %(base)s
         supp_columns
             Additional columns to be added from any of the methods implemented in liana,
@@ -218,6 +226,8 @@ class Method(MethodMeta):
         %(verbose)s
         %(n_perms_sc)s
         %(seed)s
+        n_jobs
+            Number of jobs to run in parallel.
         %(resource)s
         %(interactions)s
         %(mdata_kwargs)s
@@ -246,12 +256,14 @@ class Method(MethodMeta):
                                min_cells=min_cells,
                                supp_columns=supp_columns,
                                return_all_lrs=return_all_lrs,
+                               groupby_pairs=groupby_pairs,
                                base=base,
                                de_method=de_method,
                                verbose=verbose,
                                _score=self._method,
                                n_perms=n_perms,
                                seed=seed,
+                               n_jobs=n_jobs,
                                use_raw=use_raw,
                                layer=layer,
                                )

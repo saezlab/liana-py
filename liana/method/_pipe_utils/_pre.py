@@ -65,6 +65,7 @@ def assert_covered(
 def prep_check_adata(adata: AnnData,
                      groupby: (str | None),
                      min_cells: (int | None),
+                     groupby_subset: (np.array | None) = None,
                      use_raw: Optional[bool] = False,
                      layer: Optional[str] = None,
                      obsm = None,
@@ -103,6 +104,10 @@ def prep_check_adata(adata: AnnData,
     else:
         var = DataFrame(index=adata.var_names)
 
+    if obsm is not None:
+        # discard any instances of AnnData if in obsm
+        obsm = {k: v for k, v in obsm.items() if not isinstance(v, AnnData)}
+
     adata = sc.AnnData(X=X,
                        obs=adata.obs.copy(),
                        dtype="float32",
@@ -136,7 +141,11 @@ def prep_check_adata(adata: AnnData,
 
     if groupby is not None:
         _check_groupby(adata, groupby, verbose)
-        adata.obs.loc[:, '@label'] = adata.obs[groupby]
+
+        if groupby_subset is not None:
+            adata = adata[adata.obs[groupby].isin(groupby_subset), :]
+
+        adata.obs['@label'] = adata.obs[groupby]
 
         # Remove any cell types below X number of cells per cell type
         count_cells = adata.obs.groupby(groupby)[groupby].size().reset_index(name='count').copy()
@@ -149,7 +158,6 @@ def prep_check_adata(adata: AnnData,
             adata = adata[msk]
             _logg("The following cell identities were excluded: {0}".format(", ".join(lowly_abundant_idents)),
                  level='warn', verbose=verbose)
-
 
     check_vars(adata.var_names,
                complex_sep=complex_sep,

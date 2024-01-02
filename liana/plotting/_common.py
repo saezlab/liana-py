@@ -66,11 +66,11 @@ def _inverse_scores(score):
     return -np.log10(score + np.finfo(float).eps)
 
 
-def _filter_by(liana_res, filterby, filter_lambda):
-    if filterby is not None:
-        msk = liana_res[filterby].apply(filter_lambda)
+def _filter_by(liana_res, filter_fun):
+    if filter_fun is not None:
+        msk = liana_res.apply(filter_fun, axis=1).astype(bool)
         relevant_interactions = np.unique(liana_res[msk].interaction)
-        liana_res = liana_res[np.isin(liana_res.interaction, relevant_interactions)]
+        liana_res = liana_res[np.isin(liana_res['interaction'], relevant_interactions)]
 
     return liana_res
 

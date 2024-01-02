@@ -98,6 +98,7 @@ Utility functions
    liana.utils.spatial_neighbors
    liana.utils.get_factor_scores
    liana.utils.get_variable_loadings
+   liana.utils.interpolate_adata
 
 Prior knowledge
 ----------------------------------

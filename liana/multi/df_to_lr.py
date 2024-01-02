@@ -4,10 +4,11 @@ from itertools import product
 
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, \
     filter_reassemble_complexes, _check_groupby
-from liana.method._pipe_utils._common import _join_stats, _get_props
+from liana.method._pipe_utils._common import _join_stats, _get_props, _get_groupby_subset
 from liana.method._pipe_utils._reassemble_complexes import explode_complexes
 from liana.resource._select_resource import _handle_resource
 
+from liana._logging import _logg
 from liana._docs import d
 from liana._constants import DefaultValues as V, InternalValues as I, PrimaryColumns as P
 
@@ -19,11 +20,12 @@ def df_to_lr(adata,
              resource_name = V.resource_name,
              resource = V.resource,
              interactions = V.interactions,
+             groupby_pairs=V.groupby_pairs,
              layer = V.layer,
              use_raw = V.layer,
              expr_prop = V.expr_prop,
              min_cells = V.min_cells,
-             complex_col=None,
+             complex_col = None,
              return_all_lrs=V.return_all_lrs,
              source_labels = None,
              target_labels = None,
@@ -77,13 +79,16 @@ def df_to_lr(adata,
     if complex_col is not None:
         if complex_col not in stat_names:
             raise ValueError(f'complex_col must be one of {stat_names}')
-        stat_names = stat_names[stat_names.index(complex_col):]+stat_names[:stat_names.index(complex_col)]
+        stat_names = stat_names[stat_names.index(complex_col):] + stat_names[:stat_names.index(complex_col)]
     else:
         complex_col = 'expr'
+
+    groupby_subset = _get_groupby_subset(groupby_pairs=groupby_pairs)
 
     # Check and Reformat Mat if needed
     adata = prep_check_adata(adata=adata,
                              groupby=groupby,
+                             groupby_subset=groupby_subset,
                              min_cells=min_cells,
                              use_raw=use_raw,
                              layer=layer,
@@ -91,7 +96,11 @@ def df_to_lr(adata,
                              )
 
     # reduce dim of adata
-    adata =  adata[:, dea_df.index.unique()]
+    intersect = np.intersect1d(adata.var_names, dea_df.index)
+    if intersect.shape[0]==adata.shape[1]:
+        _logg('Features in adata and dea_df are mismatched.', verbose=verbose, level='warn')
+
+    adata =  adata[:, intersect]
 
     # get label cats
     labels = adata.obs[I.label].cat.categories
@@ -125,6 +134,9 @@ def df_to_lr(adata,
     # Create df /w cell identity pairs
     pairs = pd.DataFrame(list(product(labels, labels))). \
         rename(columns={0: "source", 1: "target"})
+
+    if groupby_pairs is not None:
+        pairs = pairs.merge(groupby_pairs, on=[P.source, P.target], how='inner')
 
     if source_labels is not None:
         pairs = pairs[pairs['source'].isin(source_labels)]
@@ -167,7 +179,7 @@ def df_to_lr(adata,
     lr_res = lr_res.drop(['prop_min', 'interaction', *_placeholders], axis=1)
 
     # summarise stats for each lr
-    for key in stat_keys:
+    for key in stat_names:
         stat_columns = lr_res.columns[lr_res.columns.str.endswith(key)]
         lr_res.loc[:, f'interaction_{key}'] = lr_res.loc[:, stat_columns].mean(axis=1)
 

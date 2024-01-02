@@ -15,6 +15,7 @@ class DefaultValues():
     return_all_lrs = False
     supp_columns = None
     inplace = True
+    groupby_pairs = None
 
     return_fig = True
     cmap = 'viridis'

@@ -60,6 +60,7 @@ class AggregateClass(MethodMeta):
                  resource_name: str = V.resource_name,
                  expr_prop: float = V.expr_prop,
                  min_cells: int = V.min_cells,
+                 groupby_pairs: Optional[DataFrame] = V.groupby_pairs,
                  base: float = V.logbase,
                  aggregate_method: str = 'rra',
                  consensus_opts: Optional[list] = None,
@@ -70,6 +71,7 @@ class AggregateClass(MethodMeta):
                  de_method: str = V.de_method,
                  n_perms: int = V.n_perms,
                  seed: int = V.seed,
+                 n_jobs: int = 1,
                  resource: Optional[DataFrame] = V.resource,
                  interactions: Optional[list] = V.interactions,
                  mdata_kwargs: dict = dict(),
@@ -86,6 +88,7 @@ class AggregateClass(MethodMeta):
         %(resource_name)s
         %(expr_prop)s
         %(min_cells)s
+        %(groupby_pairs)s
         %(base)s
         aggregate_method
             Method aggregation approach, one of ['mean', 'rra'], where `mean` represents the
@@ -102,6 +105,8 @@ class AggregateClass(MethodMeta):
         %(verbose)s
         %(n_perms_sc)s
         %(seed)s
+        n_jobs
+            Number of jobs to run in parallel.
         %(resource)s
         %(interactions)s
         %(mdata_kwargs)s
@@ -123,6 +128,7 @@ class AggregateClass(MethodMeta):
                                groupby=groupby,
                                resource_name=resource_name,
                                resource=resource,
+                               groupby_pairs = groupby_pairs,
                                interactions=interactions,
                                expr_prop=expr_prop,
                                min_cells=min_cells,
@@ -135,6 +141,7 @@ class AggregateClass(MethodMeta):
                                layer=layer,
                                n_perms=n_perms,
                                seed=seed,
+                               n_jobs=n_jobs,
                                _methods=self.methods,
                                _aggregate_method=aggregate_method,
                                _consensus_opts=consensus_opts

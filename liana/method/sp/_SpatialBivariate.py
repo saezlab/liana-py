@@ -11,10 +11,8 @@ from liana.method.sp._spatial_pipe import (
     _categorize,
     _rename_means,
     _run_scores_pipeline,
-    _connectivity_to_weight,
     _add_complexes_to_var
     )
-from liana.utils.obsm_to_adata import obsm_to_adata
 from liana.utils.mdata_to_anndata import mdata_to_anndata
 from liana.resource._select_resource import _handle_resource
 from liana.method._pipe_utils import prep_check_adata, assert_covered
@@ -31,11 +29,9 @@ class SpatialBivariate():
         self.x_name = x_name
         self.y_name = y_name
 
-    def _handle_return(self, data, stats, local_scores, key_added, x_added, inplace=False):
+    def _handle_return(self, data, stats, local_scores, x_added, inplace=False):
         if not inplace:
             return stats, local_scores
-
-        data.uns[key_added] = stats
 
         if isinstance(data, MuData):
             data.mod[x_added] = local_scores
@@ -53,18 +49,31 @@ class SpatialBivariate():
 
         return connectivity
 
+    def _connectivity_to_weight(self, connectivity, local_fun):
+        if not isspmatrix_csr(connectivity) or (connectivity.dtype != np.float32):
+            connectivity = csr_matrix(connectivity, dtype=np.float32)
+
+        if local_fun.__name__ == "_local_morans":
+            norm_factor = connectivity.shape[0] / connectivity.sum()
+            connectivity = norm_factor * connectivity
+
+        if (connectivity.shape[0] < 5000) | local_fun.__name__.__contains__("masked"):
+                return connectivity.A
+        else:
+            return connectivity
+
+
     @d.dedent
     def __call__(self,
                  mdata: (MuData | AnnData),
                  x_mod: str,
                  y_mod: str,
-                 function_name: str='cosine',
+                 function_name: str = 'cosine',
                  interactions: (None | list) = None,
                  resource: (None | pd.DataFrame) = None,
                  resource_name: (None | str) = None,
                  connectivity_key:str = K.connectivity_key,
                  mod_added: str = "local_scores",
-                 key_added: str = 'global_res',
                  mask_negatives: bool = False,
                  add_categories: bool = False,
                  n_perms: int = None,
@@ -98,7 +107,6 @@ class SpatialBivariate():
         %(connectivity_key)s
         mod_added: str
             Key in `mdata.mod` where the local scores are stored.
-        %(key_added)s
         %(mask_negatives)s
         %(add_categories)s
         %(n_perms)s
@@ -130,7 +138,13 @@ class SpatialBivariate():
         -------
 
         If `inplace` is `True`, the results are added to `mdata` and `None` is returned.
+        Note that `obsm`, `varm`, `obsp` and `varp` are copied to the output `AnnData` object.
+        When an MuData object is passed, `obsm`, `varm`, `obsp` and `varp` are copied to `mdata.mod`.
+        When mdata is an AnnData object, `obsm`, `varm`, `obsp` and `varp` are copied to `mdata.obsm`.
+        `AnnData` objects in `obsm` will not be copied to the output object.
+
         If `inplace` is `False`, the results are returned.
+
         """
 
         if n_perms is not None:
@@ -167,10 +181,12 @@ class SpatialBivariate():
         else:
             raise ValueError("Invalid type, `adata/mdata` must be an AnnData/MuData object")
 
+        _uns = adata.uns
         adata = prep_check_adata(adata=adata,
                                  use_raw=use_raw,
                                  layer=layer,
                                  verbose=verbose,
+                                 obsm = adata.obsm.copy(),
                                  groupby=None,
                                  min_cells=None,
                                  complex_sep=complex_sep,
@@ -178,7 +194,7 @@ class SpatialBivariate():
 
 
         connectivity = self._handle_connectivity(adata=adata, connectivity_key=connectivity_key)
-        weight = _connectivity_to_weight(connectivity=connectivity, local_fun=local_fun)
+        weight = self._connectivity_to_weight(connectivity=connectivity, local_fun=local_fun)
 
         if complex_sep is not None:
             adata = _add_complexes_to_var(adata,
@@ -232,10 +248,8 @@ class SpatialBivariate():
             local_cats = _categorize(x_mat=x_mat,
                                      y_mat=y_mat,
                                      weight=weight,
-                                     idx=mdata.obs.index,
-                                     columns=xy_stats['interaction'],
                                      )
-            local_msk = local_cats != 0
+            local_msk = (local_cats > 0).astype(np.int8)
         else:
             local_cats = None
             local_msk = None
@@ -254,17 +268,26 @@ class SpatialBivariate():
                                  local_msk=local_msk,
                                  verbose=verbose,
                                  )
-        local_scores = obsm_to_adata(adata=mdata, df=local_scores, obsm_key=None, _uns=mdata.uns)
-        local_scores.uns[key_added] = xy_stats
 
+        # TODO deal with transposing upstream
         if mask_negatives:
-            local_scores.X = local_scores.X * local_msk.T
+            local_scores = (local_scores * local_msk).T
+        else:
+            local_scores = local_scores.T
+
+        local_scores = AnnData(csr_matrix(local_scores),
+                               obs=adata.obs,
+                               var=xy_stats.set_index('interaction'),
+                               uns=_uns,
+                               obsm=adata.obsm,
+                               )
+
         if local_cats is not None:
             local_scores.layers['cats'] = csr_matrix(local_cats.T)
         if local_pvals is not None:
             local_scores.layers['pvals'] = csr_matrix(local_pvals.T)
 
-        return self._handle_return(mdata, xy_stats, local_scores, key_added, mod_added, inplace)
+        return self._handle_return(mdata, xy_stats, local_scores, mod_added, inplace)
 
     def show_functions(self):
         """

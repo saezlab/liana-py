@@ -302,11 +302,11 @@ def _multi_model(y, predictions, intra_group, bypass_intra, view_str, target, k_
 
     if (predictions.shape[0] < k_cv) or (y.var() == 0.0):
         if predictions.shape[0] < k_cv:
-            error_message = (f"Number of samples is less than k_cv, {target} metrics set to NaN")
+            warning_message = (f"Number of samples is less than k_cv, {target} metrics set to NaN")
         else:
-            error_message = (f"Variance of '{target}' is 0.0, metrics set to NaN")
+            warning_message = (f"Variance of '{target}' is 0.0, metrics set to NaN")
 
-        _logg(error_message, verbose=True, level='warn')
+        _logg(warning_message, verbose=True, level='warn')
         return _format_targets(target,
                                intra_group,
                                view_str,

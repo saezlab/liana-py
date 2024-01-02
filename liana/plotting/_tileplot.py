@@ -1,5 +1,5 @@
 import plotnine as p9
-from typing import Union, List, Callable, Tuple
+from typing import Union, List, Tuple
 import anndata as ad
 import pandas as pd
 
@@ -12,7 +12,7 @@ def tileplot(adata: ad.AnnData = None,
              liana_res: pd.DataFrame = None,
              fill: str = None,
              label: str = None,
-             label_fun: Callable = None,
+             label_fun: callable = None,
              source_labels: Union[str, List[str]] = None,
              target_labels: Union[str, List[str]] = None,
              ligand_complex: Union[str, List[str]] = None,
@@ -22,8 +22,9 @@ def tileplot(adata: ad.AnnData = None,
              orderby: str = None,
              orderby_ascending: bool = False,
              orderby_absolute: bool = True,
-             filterby: str = None,
-             filter_lambda: Callable = None,
+             filter_fun: callable = None,
+             source_title=None,
+             target_title=None,
              cmap: str = V.cmap,
              figure_size: Tuple[float, float] = (5, 5),
              return_fig: bool = V.return_fig
@@ -50,8 +51,11 @@ def tileplot(adata: ad.AnnData = None,
     %(orderby)s
     %(orderby_ascending)s
     %(orderby_absolute)s
-    %(filterby)s
-    %(filter_lambda)s
+    %(filter_fun)s
+    source_title
+        Title for the source facet. Default is 'Source'
+    target_title
+        Title for the target facet. Default is 'Target'
     %(cmap)s
     %(figure_size)s
 
@@ -68,7 +72,7 @@ def tileplot(adata: ad.AnnData = None,
                                 receptor_complex=receptor_complex,
                                 uns_key=uns_key)
 
-    liana_res = _filter_by(liana_res, filterby, filter_lambda)
+    liana_res = _filter_by(liana_res, filter_fun)
     liana_res = _get_top_n(liana_res, top_n, orderby, orderby_ascending, orderby_absolute)
 
     # get columns which ends with fill or label
@@ -77,7 +81,8 @@ def tileplot(adata: ad.AnnData = None,
     ligand_stats = _entity_stats(liana_res,
                                  entity='ligand',
                                  entity_type='source',
-                                 relevant_cols=relevant_cols)
+                                 relevant_cols=relevant_cols,
+                                 type_title=source_title)
 
     _check_var(ligand_stats, var=fill, var_name='fill')
     _check_var(ligand_stats, var=label, var_name='label')
@@ -85,7 +90,8 @@ def tileplot(adata: ad.AnnData = None,
     receptor_stats = _entity_stats(liana_res,
                                    entity='receptor',
                                    entity_type='target',
-                                   relevant_cols=relevant_cols)
+                                   relevant_cols=relevant_cols,
+                                   type_title=target_title)
 
     liana_res = pd.concat([ligand_stats, receptor_stats])
 
@@ -112,8 +118,10 @@ def tileplot(adata: ad.AnnData = None,
 
     p.draw()
 
-def _entity_stats(liana_res, entity, entity_type, relevant_cols):
+def _entity_stats(liana_res, entity, entity_type, relevant_cols, type_title=None):
     entity_stats = liana_res[['interaction', f"{entity}_complex", entity_type, *relevant_cols]].copy()
-    entity_stats = entity_stats.rename(columns={entity_type: 'cell_type'}).assign(type=entity_type.capitalize())
+    if type_title is None:
+        type_title = entity_type.capitalize()
+    entity_stats = entity_stats.rename(columns={entity_type: 'cell_type'}).assign(type=type_title)
     entity_stats.columns = entity_stats.columns.str.replace(entity + '_', '')
     return entity_stats

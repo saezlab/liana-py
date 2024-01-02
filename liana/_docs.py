@@ -1,6 +1,4 @@
 from __future__ import annotations
-
-
 from docrep import DocstringProcessor
 
 # Common docstrings
@@ -119,6 +117,11 @@ de_method
     Differential expression method. `scanpy.tl.rank_genes_groups` is used to rank genes
     according to 1vsRest. The default method is 't-test'."""
 
+_groupby_pairs = """\
+groupby_pairs
+    A DataFrame with columns `source` and `target` to be used to subset the possible combinations of interacting cell types.
+    If None, all possible combinations are used."""
+
 
 # multi-condition specific docstrings
 _source_key = """\
@@ -223,14 +226,14 @@ orderby_absolute
     If `top_n` is not `None`, whether to order by the absolute value of the `orderby` column.
 """
 
-_filterby = """\
-filterby
-    Column by which to filter the dataframe.
+_filter_fun = """\
+filter_fun
+    A function, applied along the columns (axis=1), used to filter the results to be plotted.
 """
 
-_filter_lambda = """\
-filter_lambda
-    If `filterby` is not `None`, provide a simple lambda function by which to filter the results to be plotted.
+_aggregate_fun = """\
+aggregate_fun
+    A function used to aggregate the results to be plotted.
 """
 
 _ligand_complex = """\
@@ -280,6 +283,7 @@ d = DocstringProcessor(
     mdata=_mdata,
     misty=_misty,
     groupby=_groupby,
+    groupby_pairs=_groupby_pairs,
     seed=_seed,
     resource=_resource,
     interactions=_interactions,
@@ -323,8 +327,8 @@ d = DocstringProcessor(
     orderby=_orderby,
     orderby_ascending=_orderby_ascending,
     orderby_absolute=_orderby_absolute,
-    filterby=_filterby,
-    filter_lambda=_filter_lambda,
+    filter_fun =_filter_fun,
+    aggregate_fun=_aggregate_fun,
     ligand_complex=_ligand_complex,
     receptor_complex=_receptor_complex,
     inverse_colour=_inverse_colour,

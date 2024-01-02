@@ -29,7 +29,6 @@ class SpatialLR(SpatialBivariate):
                  layer: Optional[str] = V.layer,
                  connectivity_key = K.connectivity_key,
                  inplace = True,
-                 key_added='global_res',
                  obsm_added='local_scores',
                  lr_sep=V.lr_sep,
                  verbose: Optional[bool] = V.verbose,
@@ -53,7 +52,6 @@ class SpatialLR(SpatialBivariate):
         %(layer)s
         %(connectivity_key)s
         %(inplace)s
-        %(key_added)s
         obsm_added: str
             Key in `adata.obsm` where the local scores are stored.
         %(lr_sep)s
@@ -89,6 +87,6 @@ class SpatialLR(SpatialBivariate):
             complex_sep='_'
             )
 
-        return self._handle_return(adata, lr_res, local_scores, key_added, obsm_added, inplace)
+        return self._handle_return(adata, lr_res, local_scores, obsm_added, inplace)
 
 lr_bivar = SpatialLR()

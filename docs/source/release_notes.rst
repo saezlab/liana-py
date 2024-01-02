@@ -1,5 +1,36 @@
-Release notesconsistency
+Release notes
 =============
+
+1.0.4 (02.01.2024)
+
+- Moved the Global score summaries of ``SpatialBivariate`` from .uns to .var
+
+- ``df_to_lr`` will now also return the expression and proportion of expression for the interactions
+
+- ``li.multi.nfm`` will now also accept a DataFrame as input
+
+- Filtered putative interactions in the Consensus resource, mostly such coming from CellTalkDB.
+
+- Changed ``filter_lambda`` parameter to ``filter_fun`` for consistency and now any function can be passed to be applied as a row-wise filter.
+
+- Global results of ``SpatialBivariate`` will now be saved to ``.var``
+
+- LIANA's spatial methods will now work with non-aligned AnnData objects, i.e. when observations across modalities are not aligned.
+= Added ``li.ut.interpolate_adata`` utility function to interpolate the data to a common space.
+= MISTy will also work with directly non-aligned data with spatial connectivities from one modality to the other being passed via ``obsm`` rather than ``obsp``. Making use of ``li.ut.spatial_neighbors`` by passing reference coordinates.
+
+- Fixed a bug where ``li.ut.obsm_to_adata`` would assign var as a method rather than DataFrame
+
+- Fixed a bug where p-values for Global Moran's were not calculated correctly.
+
+- Enabled ``cell_pairs`` of interest to be passed to single-cell methods.
+
+- Enabled Parallelization of Permutation-based methods.
+
+- Local categories will now be only calculated for positive interactions (not non-ambigous as before).
+
+- Names of source and target panels can now be passed to ``li.pl.tileplot``.
+
 
 1.0.3 (06.11.2023)
 -------------------------------------------------
@@ -47,6 +78,7 @@ Essentially, it diminishes the effect of spatial proximity on the score, while s
 
 1.0.1 Stable Release (30.09.2023)
 -------------------------------------------------
+
 - Bumped CORNETO version and it's now installed via PyPI.
 
 1.0.0a2 (19.09.2023)

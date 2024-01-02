@@ -12,11 +12,12 @@ from liana._logging import _logg, _check_if_installed
 from liana._docs import d
 
 @d.dedent
-def nmf(adata: AnnData,
+def nmf(adata: AnnData=None,
+        df: pd.DataFrame=None,
         n_components: (int or None)=None,
         k_range: range =range(1, 10),
         use_raw: bool=False,
-        layer: (str or None) = None,
+        layer: (str or None)=None,
         inplace:bool=True,
         verbose:bool=False,
         **kwargs):
@@ -41,26 +42,40 @@ def nmf(adata: AnnData,
     If inplace is True, it will add ``NMF_W`` and ``NMF_H`` to the ``adata.obsm`` and ``adata.varm``.
     If n_components is None, it will also add ``nfm_errors`` and ``nfm_rank`` to ``adata.uns``.
 
-    If inplace is False, it will return ``W`` and ``H``.
+    If inplace is False, it will return ``W`` and ``H``, and if n_components is None, it will also return ``errors`` and ``n_components``.
+    If n_components is None and inplace, ``errors`` and ``n_components`` will be assigned to ``adata.uns``.
+    If ``df`` is provided, it will always return ``W`` and ``H``.
 
     """
+    if adata is not None:
+        if isinstance(adata, AnnData):
+            X = _choose_mtx_rep(adata, layer=layer, use_raw=use_raw)
+        else :
+            raise ValueError('Provide an AnnData object.')
+    elif df is not None:
+        X = df.values
+    else:
+        raise ValueError('Provide either an AnnData object or a DataFrame.')
+
 
     if n_components is None:
-        errors, n_components = estimate_elbow(adata.X, k_range=k_range, verbose=verbose, **kwargs)
+        errors, n_components = estimate_elbow(X, k_range=k_range, verbose=verbose, **kwargs)
         _plot_elbow(errors, n_components)
+    else:
+        errors, n_components = None, n_components
 
     nmf = NMF(n_components=n_components, **kwargs)
-    X = _choose_mtx_rep(adata, layer=layer, use_raw=use_raw)
     W = nmf.fit_transform(X)
     H = nmf.components_.T
 
+    inplace = inplace and (adata is not None)
     if inplace:
         adata.obsm['NMF_W'] = W
         adata.varm['NMF_H'] = H
         adata.uns['nfm_errors'] = errors
         adata.uns['nfm_rank'] = n_components
 
-    return None if inplace else (W, H)
+    return None if inplace else (W, H, errors, n_components)
 
 
 def estimate_elbow(X, k_range, verbose=False, **kwargs):
