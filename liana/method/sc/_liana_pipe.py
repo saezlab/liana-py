@@ -7,6 +7,7 @@ import pandas
 import scanpy as sc
 import pandas as pd
 import numpy as np
+from scipy.stats import norm
 
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource
 from liana.method._pipe_utils._common import _join_stats, _get_props, _get_groupby_subset
@@ -155,10 +156,9 @@ def liana_pipe(adata: anndata.AnnData,
     entities = np.union1d(np.unique(resource[P.ligand]),
                           np.unique(resource[P.receptor]))
 
+    adata_unfiltered = adata.copy()
     # Filter to only include the relevant genes
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
-
-
 
     # Get lr results
     lr_res = _get_lr(adata=adata,
@@ -171,6 +171,10 @@ def liana_pipe(adata: anndata.AnnData,
                      base=base,
                      verbose=verbose
                      )
+
+    # Ligand and receptor score based on unfiltered cluster mean and cluster std. Handles protein complexes
+    if any('_score' in col for col in _add_cols):
+        lr_res = _complex_score(lr_res, adata = adata_unfiltered)
 
     # Mean Sums required for NATMI (note done on subunits also)
     if M.ligand_means_sums in _add_cols:
@@ -454,3 +458,151 @@ def _trimean(a, axis=0):
                     q=[0.25, 0.5, 0.5, 0.75],
                     axis=axis),
         axis=axis)
+
+def _cluster_mean(lr_res, adata):
+    """
+    Evaluate the mean of the expression matrix for each cluster of cells.
+    Considers all the genes maintained in the expression matrix at this poit.
+
+    Parameters
+    ----------
+    lr_res
+        pd.DataFrame (Dataframe of results for each ligand-receptor pair)
+    adata
+        anndata.AnnData (Annotated data object. For scSeqComm must not be filtered by gene expression.)
+
+    Returns
+    ----------
+    lr_res (returns the ligand-receptor pair dataframe with a new column for the mean of the source and target cluster.)
+
+    """
+    labels = adata.obs['@label'].cat.categories
+    dedict = {label: None for label in labels}
+    for label in labels:
+        temp = adata[adata.obs['@label'].isin([label])]
+        dedict[label] = np.mean(temp.X.A,axis=None)
+
+    lr_res['source_cluster_mean'] = lr_res['source'].map(dedict)
+    lr_res['target_cluster_mean'] = lr_res['target'].map(dedict)
+    return lr_res
+
+def _cluster_sd(lr_res, adata):
+    """
+    Evaluate the standard deviation of the expression matrix for each cluster of cells.
+    Considers all the genes maintained in the expression matrix at this poit.
+
+    Parameters
+    ----------
+    lr_res
+        pd.DataFrame (Dataframe of results for each ligand-receptor pair)
+    adata
+        anndata.AnnData (Annotated data object. For scSeqComm must not be filtered by gene expression.)
+
+    Returns
+    ----------
+    lr_res (returns the ligand-receptor pair dataframe with a new column for the standard deviation of the source and target cluster.)
+
+    """
+    labels = adata.obs['@label'].cat.categories
+    dedict = {label: None for label in labels}
+    for label in labels:
+        temp = adata[adata.obs['@label'].isin([label])]
+
+        dedict[label] = np.std(temp.X.A,axis=None)
+    lr_res['source_cluster_std'] = lr_res['source'].map(dedict)
+    lr_res['target_cluster_std'] = lr_res['target'].map(dedict)
+
+    return lr_res
+
+def _cluster_counts(lr_res, adata):
+    """
+    Evaluate the cardinality of the expression matrix for each cluster of cells.
+
+    Parameters
+    ----------
+    lr_res
+        pd.DataFrame (Dataframe of results for each ligand-receptor pair)
+    adata
+        anndata.AnnData (Annotated data object. For scSeqComm must not be filtered by gene expression.)
+
+
+    Return
+    ----------
+    lr_res (returns the ligand-receptor pair dataframe with a new column for the cardinality of the source and target cluster.)
+
+    """
+    labels = adata.obs['@label'].cat.categories
+    dedict = {label: None for label in labels}
+    for label in labels:
+        temp = adata[adata.obs['@label'].isin([label])]
+        dedict[label] = temp.shape[0]
+
+    lr_res['source_cluster_counts'] = lr_res['source'].map(dedict)
+    lr_res['target_cluster_counts'] = lr_res['target'].map(dedict)
+    return lr_res
+
+def _gene_score(gene_mean, cluster_mean, cluster_std, cluster_counts):
+    """
+    Measures how much the observed ligand (receptor) average expression level X_g^k is high compared to the average expression levels observable by chance for random genes in the
+    same cluster k.
+
+    Parameters
+    ----------
+    gene_mean
+        pandas.core.series.Series ([num present LR pairs x 1] This is the gene average expression in each cluster. Column of lr_res dataframe. mean{X}_g^k, g=1,...,num genes & k=1,...,num clusters)
+    cluster_mean
+        pandas.core.series.Series ([num present LR pairs x 1] This is the average expression in each cluster. Column of lr_res dataframe. It considers all genes in that cluster. mean{X}^k, k=1,...,num clusters)
+    cluster_std
+        pandas.core.series.Series ([num present LR pairs x 1] This is the standard deviation expression in each cluster. Column of lr_res dataframe. It considers all genes in that cluster. std{X}^k, k=1,...,num clusters)
+    cluster_counts
+        pandas.core.series.Series ([num present LR pairs x 1] This is the gene average expression in each cluster. Column of lr_res dataframe. cardinality of each cluster. n_k, k=1,...,num clusters)
+
+    Returns
+    ----------
+    probability (pandas.core.series.Series [num present LR pairs x 1] This is the proportion that a normal distribution is less than the gene_mean.)
+
+    """
+    probability = norm.cdf(gene_mean, loc=cluster_mean, scale = cluster_std/np.sqrt(cluster_counts))
+    # If gene expression in specific cluster is 0, then the gene score must be 0.
+    probability[gene_mean==0] = 0
+
+    return probability
+
+def _complex_score(lr_res, adata):
+    """
+    Compute the ligand and receptor score for each ligand-receptor pair considering scSeqcomm method. The scores are
+    related to the genes expressed in each cluster of cells. The score takes into account the protein complexes to which
+    different subunits of ligand (receptor) are part of. The score is the geometric mean of the scores of the subunits.
+
+    Parameters
+    ----------
+    lr_res
+        pd.DataFrame (Dataframe of results for each ligand-receptor pair)
+    adata
+        anndata.AnnData (Annotated data object. For scSeqComm must not be filtered by gene expression.)
+
+    Returns
+    ----------
+    lr_res (returns the ligand-receptor pair dataframe with several new columns with gene scores and cluster statistics.)
+
+    """
+    lr_res = _cluster_mean(lr_res, adata)
+    lr_res = _cluster_sd(lr_res, adata)
+    lr_res = _cluster_counts(lr_res, adata)
+
+    lr_res['ligand_score'] = _gene_score(lr_res['ligand_means'],
+                                 lr_res['source_cluster_mean'],
+                                 lr_res['source_cluster_std'],
+                                 lr_res['source_cluster_counts'])
+    lr_res['receptor_score'] = _gene_score(lr_res['receptor_means'],
+                                lr_res['target_cluster_mean'],
+                                lr_res['target_cluster_std'],
+                                lr_res['target_cluster_counts'])
+
+    # if the ligand or the receptor is composed by different subunits of the same complex, we evaluate the
+    # geometric mean of the subunit scores.
+    lr_res['ligand_score'] = lr_res.groupby(['ligand_complex','source'])['ligand_score'] \
+                                    .transform(lambda x: np.prod(x)**(1/len(x)))
+    lr_res['receptor_score'] = lr_res.groupby(['receptor_complex','target'])['receptor_score'] \
+                                    .transform(lambda x: np.prod(x)**(1/len(x)))
+    return lr_res

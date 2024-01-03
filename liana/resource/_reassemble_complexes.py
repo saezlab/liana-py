@@ -80,7 +80,6 @@ def filter_reassemble_complexes(lr_res,
     return lr_res
 
 
-
 def _reduce_complexes(col: str,
                       lr_res: pd.DataFrame,
                       key_cols: list,

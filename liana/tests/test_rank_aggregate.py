@@ -14,7 +14,7 @@ test_path = pathlib.Path(__file__).parent
 adata = generate_toy_adata()
 
 
-def test_consensus():
+def test_consensus_meta():
     assert isinstance(rank_aggregate, AggregateClass)
     assert rank_aggregate.magnitude == 'magnitude_rank'
     assert rank_aggregate.specificity == 'specificity_rank'

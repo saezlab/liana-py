@@ -4,5 +4,6 @@ from ._logfc import logfc
 from ._natmi import natmi
 from ._connectome import connectome
 from ._singlecellsignalr import singlecellsignalr
+from ._scseqcomm import scseqcomm
 from ._geometric_mean import geometric_mean
 from ._cellchat import cellchat
