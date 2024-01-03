@@ -1,20 +1,14 @@
 from liana.method.sc._Method import Method, MethodMeta
 import numpy as np
 
-
-def _lr_score(x, axis=0):
-    inter_score = np.minimum(x[0],x[1])
-    return inter_score
-
-def _intercellular_score(x):
-    inter_score = _lr_score((x['ligand_score'], x['receptor_score']))
-
+def _inter_score(x):
+    inter_score = np.minimum(x['ligand_cdf'], x['receptor_cdf'])
     return inter_score, None
 
 _scseqcomm = MethodMeta(method_name="scSeqComm",
-                        complex_cols=["ligand_means","receptor_means"],
-                        add_cols=["ligand_score","receptor_score"],
-                        fun=_intercellular_score,
+                        complex_cols=["ligand_means", "receptor_means"],
+                        add_cols=["ligand_cdf", "receptor_cdf"],
+                        fun=_inter_score,
                         magnitude="inter_score",
                         magnitude_ascending=False,
                         specificity=None,

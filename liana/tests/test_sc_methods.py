@@ -99,8 +99,8 @@ def test_scseqcomm():
     assert_almost_equal(liana_res[(liana_res.ligand == "TIMP1") & \
                                 (liana_res.receptor == "CD63") & \
                                 (liana_res.source == "Dendritic") & \
-                                (liana_res.target == "CD4+/CD45RA+/CD25- Naive T")].inter_score.values, 0.6819619345, decimal = 5)
-    assert_almost_equal(max(liana_res[(liana_res.receptor_complex == "CD74_CXCR4")].inter_score), 0.9997214654, decimal = 6)
+                                (liana_res.target == "CD4+/CD45RA+/CD25- Naive T")]['inter_score'].values, 0.6819619345, decimal = 5)
+    assert_almost_equal(max(liana_res[(liana_res.receptor_complex == "CD74_CXCR4")]['inter_score']), 1, decimal = 6)
 
 
 def test_sca():

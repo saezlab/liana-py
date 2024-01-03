@@ -63,6 +63,8 @@ class MethodColumns():
     receptor_trimean = 'receptor_trimean'
     mat_mean = 'mat_mean'
     mat_max = 'mat_max'
+    ligand_cdf = 'ligand_cdf'
+    receptor_cdf = 'receptor_cdf'
 
     @classmethod
     def get_all_values(cls):

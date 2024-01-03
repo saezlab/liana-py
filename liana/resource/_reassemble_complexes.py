@@ -65,7 +65,6 @@ def filter_reassemble_complexes(lr_res,
                                    key_cols=_key_cols,
                                    aggs=aggs)
 
-
     # check if there are any duplicated subunits
     duplicate_mask = lr_res.duplicated(subset=_key_cols, keep=False)
     if duplicate_mask.any():
