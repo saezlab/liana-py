@@ -8,7 +8,7 @@ from liana.method.fun._causalnet import find_causalnet, build_prior_network
 import numpy as np
 
 # callable consensus instance
-_methods = [cellphonedb, connectome, logfc, natmi, singlecellsignalr, cellchat, scseqcomm]
+_methods = [cellphonedb, connectome, logfc, natmi, singlecellsignalr, cellchat]
 rank_aggregate = AggregateClass(aggregate_meta, methods=_methods)
 
 
@@ -18,7 +18,6 @@ def show_methods():
 
 def get_method_scores():
     """Returns a dict of all scoring functions, with a boolean indicating whether the score is ascending or not"""
-
     instances = np.array(MethodMeta.instances)
     relevant = np.array([(isinstance(instance, Method)) | (isinstance(instance, AggregateClass)) for instance in instances])
     instances = instances[relevant]
