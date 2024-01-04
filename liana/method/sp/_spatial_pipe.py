@@ -328,6 +328,12 @@ def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, local_msk,
 
     return xy_stats, local_scores, local_pvals
 
+def _norm_max(X):
+    X = _zscore(X, local=True, axis=0)
+    X = X / np.max(X, axis=0)
+    X = np.where(np.isnan(X), 0, X)
+
+    return X
 
 def _get_local_scores(x_mat,
                       y_mat,
@@ -350,14 +356,8 @@ def _get_local_scores(x_mat,
     """
 
     if local_fun.__name__ == '_local_morans':
-        # TODO: remove this and leave it to the user
-        x_mat = _zscore(x_mat, local=True, axis=0)
-        y_mat = _zscore(y_mat, local=True, axis=0)
-
-        # # NOTE: spatialdm do this, and also use .raw by default
-        # x_mat = x_mat / np.max(x_mat, axis=0)
-        # y_mat = y_mat / np.max(y_mat, axis=0)
-
+        x_mat = _norm_max(x_mat)
+        y_mat = _norm_max(y_mat)
     else:
         x_mat = x_mat.A
         y_mat = y_mat.A
@@ -402,8 +402,8 @@ def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, mask_negatives
                               mask_negatives=mask_negatives,
                               verbose=verbose
                               )
-        xy_stats['global_r'] = global_r
-        xy_stats['global_pvals'] = global_pvals
+        xy_stats['morans_r'] = global_r
+        xy_stats['pvals'] = global_pvals
     else:
         # any other local score
         xy_stats.loc[:, ['global_mean', 'global_sd']] = np.vstack(

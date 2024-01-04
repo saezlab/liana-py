@@ -21,7 +21,7 @@ def test_bivar_morans():
           interactions=interactions
           )
     assert 'local_scores' in mdata.mod.keys()
-    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -45.86797, decimal=5)
+    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -74.750305, decimal=5)
 
 
 def test_bivar_morans_perms():
@@ -59,7 +59,7 @@ def test_bivar_nondefault():
                 )
 
     # if all are the same weights, then everything is close to 0?
-    np.testing.assert_almost_equal(global_stats['global_r'].sum(), 0)
+    np.testing.assert_almost_equal(global_stats['morans_r'].sum(), 0)
     local_scores.shape == (700, 100)
     np.testing.assert_almost_equal(np.min(np.min(local_scores.layers['pvals'])), 0.5, decimal=2)
 
