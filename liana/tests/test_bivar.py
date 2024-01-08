@@ -99,9 +99,9 @@ def test_masked_spearman():
     # check global
     assert mdata.mod['local_scores'].var.shape == (90, 8)
     global_res = mdata.mod['local_scores'].var
-    assert set(['global_mean','global_sd']).issubset(global_res.columns)
-    np.testing.assert_almost_equal(global_res['global_mean'].mean(), 0.18438746, decimal=5)
-    np.testing.assert_almost_equal(global_res['global_sd'].mean(), 8.498836e-07, decimal=5)
+    assert set(['mean','std']).issubset(global_res.columns)
+    np.testing.assert_almost_equal(global_res['mean'].mean(), 0.18438746, decimal=5)
+    np.testing.assert_almost_equal(global_res['std'].mean(), 8.498836e-07, decimal=5)
 
 
 def test_vectorized_pearson():
@@ -123,6 +123,6 @@ def test_vectorized_pearson():
     # check global
     assert mdata.mod['local_scores'].var.shape == (90, 8)
     global_res = mdata.mod['local_scores'].var
-    assert set(['global_mean','global_sd']).issubset(global_res.columns)
-    np.testing.assert_almost_equal(global_res['global_mean'].mean(), 0.0011550438183169959, decimal=5)
-    np.testing.assert_almost_equal(global_res['global_sd'].mean(), 0.3227660823917939, decimal=5)
+    assert set(['mean','std']).issubset(global_res.columns)
+    np.testing.assert_almost_equal(global_res['mean'].mean(), 0.0011550438183169959, decimal=5)
+    np.testing.assert_almost_equal(global_res['std'].mean(), 0.3227660823917939, decimal=5)

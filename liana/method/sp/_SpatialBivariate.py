@@ -249,33 +249,27 @@ class SpatialBivariate():
                                      y_mat=y_mat,
                                      weight=weight,
                                      )
-            local_msk = (local_cats > 0).astype(np.int8)
         else:
             local_cats = None
-            local_msk = None
 
         # get local scores
         xy_stats, local_scores, local_pvals = \
             _run_scores_pipeline(xy_stats=xy_stats,
                                  x_mat=x_mat,
                                  y_mat=y_mat,
-                                 idx=mdata.obs.index,
                                  local_fun=local_fun,
                                  weight=weight,
                                  seed=seed,
                                  n_perms=n_perms,
                                  mask_negatives=mask_negatives,
-                                 local_msk=local_msk,
                                  verbose=verbose,
                                  )
 
-        # TODO deal with transposing upstream
         if mask_negatives:
-            local_scores = (local_scores * local_msk).T
-        else:
-            local_scores = local_scores.T
+            local_pvals = np.where(local_cats!=1, 1, local_pvals)
+            local_scores = np.where(local_cats!=1, 0, local_scores)
 
-        local_scores = AnnData(csr_matrix(local_scores),
+        local_scores = AnnData(csr_matrix(local_scores.T),
                                obs=adata.obs,
                                var=xy_stats.set_index('interaction'),
                                uns=_uns,
