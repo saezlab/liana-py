@@ -132,7 +132,7 @@ def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, mask_nega
 
     for perm in tqdm(range(n_perms), disable=not verbose):
         _idx = rng.permutation(idx)
-        perm_mat[perm, :] = ((x_mat[:, _idx] @ weight) * y_mat).sum(axis=1)  # flipped x_mat
+        perm_mat[perm, :] = ((x_mat[:, _idx] @ weight) * y_mat[:, _idx]).sum(axis=1)  # flipped x_mat
 
     if mask_negatives:
         global_pvals = 1 - (global_r > perm_mat).sum(axis=0) / n_perms
@@ -343,8 +343,8 @@ def _get_local_scores(x_mat,
     """
 
     if local_fun.__name__ == '_local_morans':
-        x_mat = _norm_max(x_mat).copy()
-        y_mat = _norm_max(y_mat).copy()
+        x_mat = _norm_max(x_mat)
+        y_mat = _norm_max(y_mat)
     else:
         x_mat = x_mat.A
         y_mat = y_mat.A
