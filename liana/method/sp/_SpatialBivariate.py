@@ -150,6 +150,8 @@ class SpatialBivariate():
         if n_perms is not None:
             if not isinstance(n_perms, int) or n_perms < 0:
                 raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")
+        if n_perms == 0 & function_name != "morans":
+            raise ValueError("An analytical solution is currently available only for Moran's R")
 
         local_fun = _handle_functions(function_name)
 
