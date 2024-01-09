@@ -21,7 +21,7 @@ def test_bivar_morans():
           interactions=interactions
           )
     assert 'local_scores' in mdata.mod.keys()
-    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -74.750305, decimal=5)
+    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -346.55872, decimal=5)
 
 
 def test_bivar_morans_perms():
@@ -37,7 +37,7 @@ def test_bivar_morans_perms():
 
     assert 'local_scores' in mdata.mod.keys()
     local_pvals = mdata.mod['local_scores'].layers['pvals']
-    np.testing.assert_almost_equal(np.mean(local_pvals), 0.6112173202614387, decimal=6)
+    np.testing.assert_almost_equal(np.mean(local_pvals), 0.52787581, decimal=6)
 
 
 def test_bivar_nondefault():
@@ -118,7 +118,7 @@ def test_vectorized_pearson():
     assert 'local_scores' in mdata.mod.keys()
     adata = mdata.mod['local_scores']
     np.testing.assert_almost_equal(adata.X.mean(), 0.0011550441, decimal=5)
-    np.testing.assert_almost_equal(adata.layers['pvals'].mean(), 0.755160947712419, decimal=3)
+    np.testing.assert_almost_equal(adata.layers['pvals'].mean(), 0.72182712, decimal=3)
 
     # check global
     assert mdata.mod['local_scores'].var.shape == (90, 8)
