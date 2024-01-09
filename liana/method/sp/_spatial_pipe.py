@@ -65,7 +65,7 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_per
 
 
 def _zscore(mat, local=True, axis=0):
-    spot_n = mat.shape[1]
+    spot_n = mat.shape[axis]
 
     # NOTE: specific to global SpatialDM
     if not local:
@@ -132,7 +132,9 @@ def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, mask_nega
 
     for perm in tqdm(range(n_perms), disable=not verbose):
         _idx = rng.permutation(idx)
-        perm_mat[perm, :] = ((x_mat[:, _idx] @ weight) * y_mat[:, _idx]).sum(axis=1)  # flipped x_mat
+        perm_mat[perm, :] = _global_r(x_mat=x_mat[:, _idx],
+                                      y_mat=y_mat[:, _idx],
+                                      weight=weight)
 
     if mask_negatives:
         global_pvals = 1 - (global_r > perm_mat).sum(axis=0) / n_perms
@@ -201,7 +203,7 @@ def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, mask_negatives):
     2D array of p-values with shape(n_spot, xy_n)
 
     """
-    spot_n = weight.shape[0]
+    spot_n = x_mat.shape[0]
 
     x_norm = np.apply_along_axis(norm.fit, axis=0, arr=x_mat)
     y_norm = np.apply_along_axis(norm.fit, axis=0, arr=y_mat)
@@ -248,14 +250,17 @@ def _get_local_var(x_sigma, y_sigma, weight, spot_n):
 
     weight_sq = (weight ** 2).sum(axis=1)
 
-    n_weight = 2 * (spot_n - 1) ** 2 / spot_n ** 2
+    dim = 2 * (spot_n - 1) ** 2 / spot_n ** 2
     sigma_prod = x_sigma * y_sigma
-    core = n_weight * sigma_prod
+    core = dim * sigma_prod
 
     var = np.multiply.outer(weight_sq, core) + core
     std = var ** 0.5
 
     return std.T
+
+def _global_r(x_mat, y_mat, weight):
+    return ((x_mat @ weight) * y_mat).sum(axis=1)
 
 def _global_spatialdm(x_mat,
                       y_mat,
@@ -266,7 +271,7 @@ def _global_spatialdm(x_mat,
                       verbose
                       ):
     # Get global r
-    global_r = ((x_mat @ weight) * y_mat).sum(axis=1)
+    global_r = _global_r(x_mat=x_mat, y_mat=y_mat, weight=weight)
 
     # calc p-values
     if n_perms is None:
@@ -316,9 +321,9 @@ def _run_scores_pipeline(xy_stats, x_mat, y_mat, local_fun,
 
     return xy_stats, local_scores, local_pvals
 
-def _norm_max(X):
-    X = X / X.max()
-    X = _zscore(X, local=True, axis=0)
+def _norm_max(X, axis=0):
+    X = X / X.max(axis=axis).A
+    X = _zscore(X, local=True, axis=axis)
     X = np.where(np.isnan(X), 0, X)
 
     return X
