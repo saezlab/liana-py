@@ -14,7 +14,7 @@ rank_aggregate = AggregateClass(aggregate_meta, methods=_methods)
 
 def show_methods():
     """Shows methods available in LIANA"""
-    return _show_methods(_methods + [rank_aggregate, geometric_mean])
+    return _show_methods(_methods + [rank_aggregate, geometric_mean, scseqcomm])
 
 def get_method_scores():
     """Returns a dict of all scoring functions, with a boolean indicating whether the score is ascending or not"""
