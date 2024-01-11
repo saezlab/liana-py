@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "liana"
-version = "1.0.4"
+version = "1.0.5"
 description = "LIANA+: a one-stop-shop framework for cell-cell communication"
 authors = ["Daniel Dimitrov <daniel.dimitrov@uni-heidelberg.de>"]
 classifiers = [

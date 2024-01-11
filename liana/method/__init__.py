@@ -1,11 +1,12 @@
+import numpy as np
+
 from liana.method.sc._Method import Method, MethodMeta, _show_methods
 from liana.method.sc._rank_aggregate import AggregateClass, _rank_aggregate_meta as aggregate_meta
 from liana.method.sc import cellphonedb, connectome, logfc, natmi, singlecellsignalr, geometric_mean, cellchat, scseqcomm
 
 from liana.method.sp import bivar, lr_bivar, genericMistyData, lrMistyData, MistyData
 from liana.method.fun._causalnet import find_causalnet, build_prior_network
-
-import numpy as np
+from liana._constants import DefaultValues as V
 
 # callable consensus instance
 _methods = [cellphonedb, connectome, logfc, natmi, singlecellsignalr, cellchat]
@@ -27,3 +28,18 @@ def get_method_scores():
 
     scores = {**specificity_scores, **magnitude_scores}
     return scores
+
+def process_scores(liana_res, score_key, inverse_fun=V.inverse_fun):
+
+    df = liana_res.copy()
+    scores = get_method_scores()
+
+    if not np.isin(score_key, list(scores.keys())).any():
+        raise ValueError(f"Score column {score_key} not found in liana's method scores. ")
+
+    # reverse if ascending order
+    ascending_order = scores[score_key]
+    if(ascending_order):
+        df[score_key] = inverse_fun(df[score_key])
+
+    return df
