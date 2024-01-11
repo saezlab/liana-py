@@ -9,13 +9,13 @@ from liana.method.fun._causalnet import find_causalnet, build_prior_network
 from liana._constants import DefaultValues as V
 
 # callable consensus instance
-_methods = [cellphonedb, connectome, logfc, natmi, singlecellsignalr, cellchat]
+_methods = [cellphonedb, connectome, logfc, natmi, singlecellsignalr]
 rank_aggregate = AggregateClass(aggregate_meta, methods=_methods)
 
 
 def show_methods():
     """Shows methods available in LIANA"""
-    return _show_methods(_methods + [rank_aggregate, geometric_mean, scseqcomm])
+    return _show_methods(_methods + [rank_aggregate, geometric_mean, scseqcomm, cellchat])
 
 def get_method_scores():
     """Returns a dict of all scoring functions, with a boolean indicating whether the score is ascending or not"""
