@@ -186,8 +186,8 @@ def find_causalnet(
 
     # E is the variable with 1 if edge activates or inhibits, 0 otherwhise
     E = P.symbols['reaction_sends_activation_c0'] + P.symbols['reaction_sends_inhibition_c0']
-    W = np.matrix(rng.normal(scale=1e-5, size=E.shape, ), )
-    P.add_objectives(W @ E)
+    W = rng.normal(scale=1e-5, size=E.shape)
+    P.add_objectives(W.T @ E)
 
     _logg(f"Solving with {solver}...", verbose=verbose)
     if (solver=='scipy') and verbose:
