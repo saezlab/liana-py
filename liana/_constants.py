@@ -1,6 +1,8 @@
+from numpy import log10, finfo, exp
+
 class DefaultValues():
     """Default Values"""
-    logbase = 2.718281828459045
+    logbase = exp(1)
     min_cells = 5
     expr_prop = 0.1
     n_perms = 1000
@@ -24,7 +26,7 @@ class DefaultValues():
     complex_sep = "_"
 
     def inverse_fun(x):
-        return 1 - x
+        return -log10(x + finfo(float).eps)
 
 class Keys():
     """Keys related to AnnData"""
