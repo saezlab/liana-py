@@ -172,7 +172,7 @@ def find_causalnet(
     # assign 0 penalties to input/output nodes, missing_penalty to missing nodes
     # add a small amount of noise to the penalties to ensure reproducible solutions
     rng = np.random.default_rng(seed=seed)
-    c_node_penalties = {k: node_penalties.get(k, missing_penalty) + rng.uniform(0.001, 0.003)
+    c_node_penalties = {k: node_penalties.get(k, missing_penalty) + rng.uniform(edge_penalty/100, edge_penalty/10)
                         if k not in measured_nodes else 0.0 for k in prior_graph.vertices}
 
     _logg("Building CORNETO problem...", verbose=verbose)
@@ -186,7 +186,7 @@ def find_causalnet(
 
     # E is the variable with 1 if edge activates or inhibits, 0 otherwise
     E = P.symbols['reaction_sends_activation_c0'] + P.symbols['reaction_sends_inhibition_c0']
-    W = rng.uniform(0.001, 0.003, size=E.shape)
+    W = rng.uniform(min_penalty/100, min_penalty/10, size=E.shape)
     P.add_objectives(W.T @ E)
 
     _logg(f"Solving with {solver}...", verbose=verbose)
