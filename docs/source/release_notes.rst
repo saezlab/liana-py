@@ -1,7 +1,7 @@
 Release notes
 =============
 
-1.0.4 (02.01.2024)
+1.0.4 (17.01.2024)
 
 - Moved the Global score summaries of ``SpatialBivariate`` from .uns to .var
 
@@ -32,6 +32,9 @@ Release notes
 - Names of source and target panels can now be passed to ``li.pl.tileplot``.
 
 - ``li.rs.explode_complexes`` is now consistently exported to ``li.rs`` (as previous versions)
+
+- ``li.mt.find_causalnet``: changed the noise assigned to nodes to be proportional to the minimum penalty of the model. Also, added noise to the edges to avoid multiple solutions to the same problem.
+
 
 1.0.3 (06.11.2023)
 -------------------------------------------------
