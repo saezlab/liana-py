@@ -1,7 +1,8 @@
 Release notes
 =============
 
-1.0.4 (02.01.2024)
+1.0.4 (17.01.2024)
+-------------------------------------------------
 
 - Moved the Global score summaries of ``SpatialBivariate`` from .uns to .var
 
@@ -15,9 +16,9 @@ Release notes
 
 - Global results of ``SpatialBivariate`` will now be saved to ``.var``
 
-- LIANA's spatial methods will now work with non-aligned AnnData objects, i.e. when observations across modalities are not aligned.
-= Added ``li.ut.interpolate_adata`` utility function to interpolate the data to a common space.
-= MISTy will also work with directly non-aligned data with spatial connectivities from one modality to the other being passed via ``obsm`` rather than ``obsp``. Making use of ``li.ut.spatial_neighbors`` by passing reference coordinates.
+- Added ``li.ut.interpolate_adata`` utility function to interpolate the data to a common space.
+
+- MISTy will also work with directly non-aligned data with spatial connectivities from one modality to the other being passed via ``obsm`` rather than ``obsp``. Making use of ``li.ut.spatial_neighbors`` by passing reference coordinates.
 
 - Fixed a bug where ``li.ut.obsm_to_adata`` would assign var as a method rather than DataFrame
 
@@ -33,8 +34,12 @@ Release notes
 
 - ``li.rs.explode_complexes`` is now consistently exported to ``li.rs`` (as previous versions)
 
+- ``li.mt.find_causalnet``: changed the noise assigned to nodes to be proportional to the minimum penalty of the model. Also, added noise to the edges to avoid multiple solutions to the same problem.
+
+
 1.0.3 (06.11.2023)
 -------------------------------------------------
+
 - Added ``filterby`` and ``filter_lambda`` parameters to ``li.pl.interactions`` and ``li.pl.target_metrics`` to allow filtering of interactions and metrics, respectively.
 
 - Removed unnecessary ``stat`` parameter from ``li.pl.contributions``
