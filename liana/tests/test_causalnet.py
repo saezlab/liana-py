@@ -26,10 +26,11 @@ def test_caulsalnet():
                                      output_scores,
                                      node_weights=node_weights,
                                      verbose=False,
-                                     solver='scipy'
+                                     solver='scipy',
+                                     seed=1337
                                      )
 
-    assert problem.weights == [1.0, 0.01, 1.0]
+    assert problem.weights == [1.0, 0.01, 1.0, 1.0]
     assert df_res['source_pred_val'].values.sum() == 5
     assert df_res['target_pred_val'].values.sum() == 8
     assert df_res[df_res['source_type']=='input']['source'].values[0] == 'I2'
