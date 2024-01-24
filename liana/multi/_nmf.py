@@ -15,7 +15,7 @@ from liana._docs import d
 def nmf(adata: AnnData=None,
         df: pd.DataFrame=None,
         n_components: (int or None)=None,
-        k_range: range =range(1, 10),
+        k_range: range = range(1, 11),
         use_raw: bool=False,
         layer: (str or None)=None,
         inplace:bool=True,

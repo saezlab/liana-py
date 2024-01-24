@@ -17,7 +17,8 @@ def test_run_nmf():
     assert 'NMF_H' in adata.varm
     assert adata.obsm['NMF_W'].shape == (adata.n_obs, 4)
     assert adata.varm['NMF_H'].shape == (adata.n_vars, 4)
-
+    assert adata.uns['nmf_errors'].shape == (10, 2)
+    assert adata.uns['nmf_rank'] == 4
 
 def test_estimate_elbow():
     errors, rank = estimate_elbow(adata.X, k_range=range(1, 10), random_state=0, max_iter=20)
