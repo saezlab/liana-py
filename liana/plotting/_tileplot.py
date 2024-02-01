@@ -27,6 +27,7 @@ def tileplot(adata: ad.AnnData = None,
              target_title=None,
              cmap: str = V.cmap,
              figure_size: Tuple[float, float] = (5, 5),
+             label_size: int = 12,
              return_fig: bool = V.return_fig
              ):
     """
@@ -57,7 +58,10 @@ def tileplot(adata: ad.AnnData = None,
     target_title
         Title for the target facet. Default is 'Target'
     %(cmap)s
+    label_size
+        Size of the label text
     %(figure_size)s
+    %(return_fig)s
 
     Returns
     -------
@@ -101,7 +105,7 @@ def tileplot(adata: ad.AnnData = None,
     p = (
         p9.ggplot(liana_res, p9.aes(x='cell_type', y='interaction', fill=fill)) +
         p9.geom_tile() +
-        p9.geom_text(p9.aes(label=label), size=10, color='white') +
+        p9.geom_text(p9.aes(label=label), size=label_size, color='white') +
         p9.facet_grid(facets='~ type', scales='free') +
         p9.theme_bw(base_size=14) +
         p9.theme(

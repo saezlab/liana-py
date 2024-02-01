@@ -77,7 +77,7 @@ def df_to_lr(adata,
     stat_names = ['expr', 'props'] + stat_keys
     if complex_col is not None:
         if complex_col not in stat_names:
-            raise ValueError(f'complex_col must be one of {stat_names}')
+            raise ValueError(f'complex_col must be one of `stat_keys`:{stat_keys} or the stats calculated by default: {stat_names}!')
         stat_names = stat_names[stat_names.index(complex_col):] + stat_names[:stat_names.index(complex_col)]
     else:
         complex_col = 'expr'
@@ -98,14 +98,11 @@ def df_to_lr(adata,
     intersect = np.intersect1d(adata.var_names, dea_df.index)
     if intersect.shape[0]==adata.shape[1]:
         _logg('Features in adata and dea_df are mismatched.', verbose=verbose, level='warn')
-
     adata =  adata[:, intersect]
 
     # get label cats
     labels = adata.obs[I.label].cat.categories
-
     dedict = {}
-
     for label in labels:
         temp = adata[adata.obs[I.label] == label, :]
         props = _get_props(temp.X)

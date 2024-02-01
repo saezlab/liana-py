@@ -41,7 +41,6 @@ def _join_stats(source, target, dedict, resource):
 def _get_props(X_mask):
     return X_mask.getnnz(axis=0) / X_mask.shape[0]
 
-
 def _get_groupby_subset(groupby_pairs):
     if groupby_pairs is not V.groupby_pairs:
         if not (P.source in groupby_pairs.columns) | (P.target in groupby_pairs.columns):
