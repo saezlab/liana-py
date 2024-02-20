@@ -92,11 +92,11 @@ def get_metalinks(db_path: str,
             where_clauses.append(where_clause)
 
     if hmdb_ids:
-        hmdb_str = ", ".join([f"'{id}'" for id in hmdb_ids])
+        hmdb_str = ", ".join([f"'{i}'" for i in hmdb_ids])
         where_clauses.append(f"m.hmdb IN ({hmdb_str})")
 
     if uniprot_ids:
-        uniprot_str = ", ".join([f"'{id}'" for id in uniprot_ids])
+        uniprot_str = ", ".join([f"'{i}'" for i in uniprot_ids])
         where_clauses.append(f"p.uniprot IN ({uniprot_str})")
 
     if source:
@@ -143,7 +143,7 @@ def get_metalinks_values(db_path, table_name, column_name):
     return [value[0] for value in distinct_values]
 
 
-def describe_metalinks(db_path):
+def describe_metalinks(db_path, return_output=False):
     """
     Prints the schema information and foreign key details for all tables in the specified SQLite database.
 
@@ -154,30 +154,32 @@ def describe_metalinks(db_path):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    # Get a list of all tables in the database
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
     tables = cursor.fetchall()
 
+    output = ""
     for table in tables:
         table_name = table[0]
-        print(f"Schema of table: {table_name}\n{'=' * len(f'Schema of table: {table_name}')}")
+        output += f"Schema of table: {table_name}\n{'=' * len(f'Schema of table: {table_name}')}\n"
 
-        # Retrieve and print schema information
         cursor.execute(f"PRAGMA table_info({table_name});")
         schema_info = cursor.fetchall()
         for column in schema_info:
-            cid, name, ctype, notnull, dflt_value, pk = column
-            print(f"Column ID: {cid}, Name: {name}, Type: {ctype}, Primary Key: {pk}")
+            cid, name, ctype, _, _, pk = column
+            output += f"Column ID: {cid}, Name: {name}, Type: {ctype}, Primary Key: {pk}\n"
 
-        # Retrieve and print foreign key information
         cursor.execute(f"PRAGMA foreign_key_list({table_name});")
         fk_info = cursor.fetchall()
         if fk_info:
-            print("\nForeign Keys:")
+            output += "\nForeign Keys:\n"
             for fk in fk_info:
-                id, seq, table, from_col, to_col, on_update, on_delete, match = fk
-                print(f"ID: {id}, Seq: {seq}, Table: {table}, From: {from_col}, To: {to_col}")
+                id, seq, table, from_col, to_col, _, _, _ = fk
+                output += f"ID: {id}, Seq: {seq}, Table: {table}, From: {from_col}, To: {to_col}\n"
         else:
-            print("\nNo Foreign Keys.")
-        print("-" * 40)
-        print()
+            output += "\nNo Foreign Keys.\n"
+        output += "-" * 40 + "\n"
+
+    if return_output:
+        return output
+    else:
+        print(output)
