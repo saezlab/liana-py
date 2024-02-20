@@ -5,7 +5,7 @@ from itertools import product
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource, _check_groupby
 from liana.method._pipe_utils._common import _join_stats, _get_props, _get_groupby_subset
 from liana.resource import explode_complexes, filter_reassemble_complexes
-from liana.resource._select_resource import _handle_resource
+from liana.resource.select_resource import _handle_resource
 
 from liana._logging import _logg
 from liana._docs import d

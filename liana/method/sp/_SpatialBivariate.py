@@ -14,7 +14,7 @@ from liana.method.sp._spatial_pipe import (
     _add_complexes_to_var
     )
 from liana.utils.mdata_to_anndata import mdata_to_anndata
-from liana.resource._select_resource import _handle_resource
+from liana.resource.select_resource import _handle_resource
 from liana.method._pipe_utils import prep_check_adata, assert_covered
 from liana.method.sp._bivariate_funs import _handle_functions, _bivariate_functions
 

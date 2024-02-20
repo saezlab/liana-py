@@ -11,7 +11,7 @@ from scipy.stats import norm
 
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource
 from liana.method._pipe_utils._common import _join_stats, _get_props, _get_groupby_subset
-from liana.resource._select_resource import _handle_resource
+from liana.resource.select_resource import _handle_resource
 from liana.resource import explode_complexes, filter_reassemble_complexes
 from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
 from liana.method._pipe_utils._aggregate import _aggregate
