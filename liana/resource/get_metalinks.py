@@ -1,8 +1,41 @@
+import os
+import requests
 import sqlite3
 import pandas as pd
 from typing import Optional, List
+from liana._logging import _logg
 
-def get_metalinks(db_path: str,
+
+
+def _download_metalinksdb(verbose=True):
+    """
+    Ensures the Metalinksdb is downloaded and available for use.
+    If the Metalinks database is not present in the current working directory, it downloads it.
+
+    Returns
+    -------
+    str
+        The path to the downloaded database file.
+    """
+
+    METALINKS_URL = "https://figshare.com/ndownloader/files/44624707?private_link=4744950f8768d5c8f68c"
+
+    # Define the local filename to save the downloaded database
+    db_file_name = 'metalinksdb.db'
+    db_path = os.path.join(os.getcwd(), db_file_name)
+
+    # Check if the database file already exists
+    if not os.path.exists(db_path):
+        _logg("Downloading database...", verbose=verbose)
+        response = requests.get(METALINKS_URL)
+        with open(db_path, 'wb') as f:
+            f.write(response.content)
+        _logg(f"Database downloaded and saved to {db_path}.", verbose=verbose)
+
+    return db_path
+
+
+def get_metalinks(db_path: Optional[str] = None,
                   cell_location: Optional[List[str]] = None,
                   tissue_location: Optional[List[str]] = None,
                   biospecimen_location: Optional[List[str]] = None,
@@ -21,7 +54,7 @@ def get_metalinks(db_path: str,
     Parameters
     ----------
     db_path
-        Path to the SQLite database file.
+        Path to the SQLite database file. If None, the database will be downloaded to the current working directory.
     cell_location
         Desired metabolite cell locations.
     tissue_location
@@ -44,6 +77,9 @@ def get_metalinks(db_path: str,
 
     A pandas DataFrame containing the query results without the source column.
     """
+
+    if db_path is None:
+        db_path = _download_metalinksdb()
     conn = sqlite3.connect(db_path)
 
     # Adjusted SELECT statement to exclude the source column
@@ -115,14 +151,14 @@ def get_metalinks(db_path: str,
     return df
 
 
-def get_metalinks_values(db_path, table_name, column_name):
+def get_metalinks_values(table_name, column_name, db_path: Optional[str] = None):
     """
     Fetches distinct values from a specified column in a specified table.
 
     Parameters
     ----------
     db_path : str
-        Path to the SQLite database file.
+        Path to the SQLite database file. If None, the database will be downloaded to the current working directory.
     table_name : str
         Name of the table from which to fetch distinct values.
     column_name : str
@@ -133,6 +169,9 @@ def get_metalinks_values(db_path, table_name, column_name):
     list
         A list of distinct values from the specified column.
     """
+    if db_path is None:
+        db_path = _download_metalinksdb()
+    conn = sqlite3.connect(db_path)
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -143,14 +182,17 @@ def get_metalinks_values(db_path, table_name, column_name):
     return [value[0] for value in distinct_values]
 
 
-def describe_metalinks(db_path, return_output=False):
+def describe_metalinks(db_path: Optional[str] = None, return_output: bool = False):
     """
     Prints the schema information and foreign key details for all tables in the specified SQLite database.
 
     Parameters
     ----------
-    db_path (str): Path to the SQLite database file.
+    db_path : str
+        Path to the SQLite database file. If None, the database will be downloaded to the current working directory.
     """
+    if db_path is None:
+        db_path = _download_metalinksdb()
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 

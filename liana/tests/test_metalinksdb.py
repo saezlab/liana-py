@@ -6,12 +6,10 @@ import pathlib
 import os
 filepath = pathlib.Path(__file__).parent.absolute()
 os.chdir(filepath)
-db_path = '../../metalinks.db'
 
 def test_get_metalinks():
     # set path to here
-    result = get_metalinks(db_path,
-                           tissue_location='Brain',
+    result = get_metalinks(tissue_location='Brain',
                            hmdb_ids='HMDB0000073',
                            uniprot_ids='P14416'
                            )
@@ -25,7 +23,7 @@ def test_get_metalinks():
 
 def test_get_metalinks_values():
     # Call the function with a test db_path, table_name, and column_name
-    result = get_metalinks_values(db_path, 'disease', 'disease')
+    result = get_metalinks_values('disease', 'disease')
 
     # Check that the result is a list
     assert isinstance(result, list)
@@ -36,7 +34,7 @@ def test_get_metalinks_values():
 
 
 def test_describe_metalinks():
-    out = describe_metalinks(db_path, return_output=True)
+    out = describe_metalinks(return_output=True)
     assert 'metabolites' in out
     assert 'proteins' in out
     assert 'Primary Key: 1' in out
