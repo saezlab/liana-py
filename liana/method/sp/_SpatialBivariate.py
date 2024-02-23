@@ -136,11 +136,10 @@ class SpatialBivariate():
 
         Returns
         -------
-
         If `inplace` is `True`, the results are added to `mdata` and `None` is returned.
         Note that `obsm`, `varm`, `obsp` and `varp` are copied to the output `AnnData` object.
-        When an MuData object is passed, `obsm`, `varm`, `obsp` and `varp` are copied to `mdata.mod`.
-        When mdata is an AnnData object, `obsm`, `varm`, `obsp` and `varp` are copied to `mdata.obsm`.
+        When an MuData object is passed, `obsm`, `varm`, `obsp` and `varp` are copied to `.mod`.
+        When `mdata` is an AnnData object, `obsm`, `varm`, `obsp` and `varp` are copied to `.obsm`.
         `AnnData` objects in `obsm` will not be copied to the output object.
 
         If `inplace` is `False`, the results are returned.

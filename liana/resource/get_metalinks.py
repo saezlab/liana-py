@@ -1,11 +1,8 @@
 import os
-import requests
 import sqlite3
 import pandas as pd
 from typing import Optional, List
-from liana._logging import _logg
-
-
+from liana._logging import _logg, _check_if_installed
 
 def _download_metalinksdb(verbose=True):
     """
@@ -17,6 +14,7 @@ def _download_metalinksdb(verbose=True):
     str
         The path to the downloaded database file.
     """
+    requests = _check_if_installed("requests")
 
     METALINKS_URL = "https://figshare.com/ndownloader/files/44624707?private_link=4744950f8768d5c8f68c"
 

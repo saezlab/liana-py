@@ -454,11 +454,9 @@ def _assign_min_or_max(x, x_ascending):
 
 
 def _trimean(a, axis=0):
-    return np.mean(
-        np.quantile(a.A,
-                    q=[0.25, 0.5, 0.5, 0.75],
-                    axis=axis),
-        axis=axis)
+    quantiles = np.quantile(a.A, q=[0.25, 0.75], axis=axis)
+    median = np.median(a.A, axis=axis)
+    return (quantiles[0] + 2 * median + quantiles[1]) / 4
 
 
 def _cluster_stats(adata):
