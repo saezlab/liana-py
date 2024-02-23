@@ -268,8 +268,9 @@ class SpatialBivariate():
                                  )
 
         if mask_negatives:
-            local_pvals = np.where(local_cats!=1, 1, local_pvals)
             local_scores = np.where(local_cats!=1, 0, local_scores)
+            if local_pvals is not None:
+                local_pvals = np.where(local_cats!=1, 1, local_pvals)
 
         local_scores = AnnData(csr_matrix(local_scores.T),
                                obs=adata.obs,
@@ -278,7 +279,7 @@ class SpatialBivariate():
                                obsm=adata.obsm,
                                )
 
-        if local_cats is not None:
+        if add_categories:
             local_scores.layers['cats'] = csr_matrix(local_cats.T)
         if local_pvals is not None:
             local_scores.layers['pvals'] = csr_matrix(local_pvals.T)

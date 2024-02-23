@@ -48,7 +48,7 @@ def spatial_neighbors(adata: AnnData,
         Values below this cutoff will be set to 0.
     max_neighbours
         Maximum nearest neighbours to be considered when generating spatial connectivity weights.
-        Essentially, the maximum number of edges in the graph. Default is `None`, which will use n = adata.shape[0]/2.
+        Essentially, the maximum number of edges in the graph. Default is `None`, which will use n = adata.shape[0]/10.
     kernel
         Kernel function used to generate connectivity weights.
         It controls the shape of the connectivity weights.
@@ -101,7 +101,7 @@ def spatial_neighbors(adata: AnnData,
         _reference = reference
 
     if max_neighbours is None:
-        max_neighbours = int(adata.shape[0] / 2)
+        max_neighbours = int(adata.shape[0] / 10)
 
     tree = NearestNeighbors(n_neighbors=max_neighbours,
                         algorithm='ball_tree',
