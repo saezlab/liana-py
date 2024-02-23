@@ -458,7 +458,6 @@ def _trimean(a, axis=0):
     median = np.median(a.A, axis=axis)
     return (quantiles[0] + 2 * median + quantiles[1]) / 4
 
-
 def _cluster_stats(adata):
     cluster_stats = adata.obs.groupby('@label').size().to_frame(name='counts')
     labels = adata.obs['@label'].cat.categories

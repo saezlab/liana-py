@@ -1,6 +1,29 @@
 Release notes
 =============
 
+1.0.5 (25.02.2024)
+-------------------------------------------------
+
+- Added ScSeqComm Method, implemented by @BaldanMatt (#68)
+
+- Added functions to query a metabolite-receptor interactions database ([MetalinksDB](https://github.com/biocypher/metalinks)), including:
+=> ``li.rs.get_metalinks`` to get the database
+=> ``li.rs.get_metalinks_values`` to get the distinct annotation values of the database
+=> ``describe_metalinks`` to get a description of the database
+
+
+- Added a metabolite-mediated CCC tutorial in spatially-resolved multi-omics data.
+
+- Changed hardcoded constants to be defined in _constants.py
+
+- Excluded CellChat from the default ``rank_aggregate`` method
+
+- Fixed return logic of SpatialBivariate
+
+- ``li.mt.process_scores`` is now exported to ``li.mt``
+
+- Changed the default ``max_neighbours`` in ``li.ut.spatial_neighbors`` to 1/10 of the number of spots.
+
 1.0.4 (17.01.2024)
 -------------------------------------------------
 
