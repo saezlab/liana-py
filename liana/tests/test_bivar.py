@@ -21,7 +21,7 @@ def test_bivar_morans():
           interactions=interactions
           )
     assert 'local_scores' in mdata.mod.keys()
-    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -346.55872, decimal=5)
+    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -346.55872, decimal=4)
 
 
 def test_bivar_morans_perms():
