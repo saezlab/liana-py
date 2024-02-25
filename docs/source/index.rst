@@ -42,6 +42,8 @@ spatially-resolved, and multi-modal omics data.
 
    notebooks/basic_usage
 
+   notebooks/prior_knowledge
+
    notebooks/liana_c2c
 
    notebooks/mofacellular
@@ -59,3 +61,5 @@ spatially-resolved, and multi-modal omics data.
    notebooks/misty
 
    notebooks/bivariate
+
+   notebooks/sma
