@@ -388,10 +388,10 @@ def _run_method(lr_res: pandas.DataFrame,
     if (M.mat_max in _add_cols) & (_score.method_name == "CellChat"):
         # CellChat matrix_max
         norm_factor = np.unique(lr_res[M.mat_max].values)[0]
-        agg_fun = _trimean
+        agg_fun = _trimean # Calculate sparse matrix quantiles?
     else:
         norm_factor = None
-        agg_fun = np.mean
+        agg_fun = np.mean # NOTE: change to sparse matrix mean?
 
     if _score.permute:
         # get permutations

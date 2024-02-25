@@ -11,8 +11,7 @@ Release notes
 => ``li.rs.get_metalinks_values`` to get the distinct annotation values of the database
 => ``describe_metalinks`` to get a description of the database
 
-
-- Added a metabolite-mediated CCC tutorial in spatially-resolved multi-omics data.
+- Added a metabolite-mediated CCC tutorial in spatially-resolved multi-omics data (#45).
 
 - Changed hardcoded constants to be defined in _constants.py
 
