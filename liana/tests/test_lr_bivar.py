@@ -15,11 +15,11 @@ def test_morans_analytical():
     assert 'pvals' in lrdata.layers.keys()
 
     interaction = lrdata.var[lrdata.var.index == 'S100A9^ITGB2']
-    np.testing.assert_almost_equal(interaction['global_r'].values, 0.0994394)
-    np.testing.assert_almost_equal(interaction['global_pvals'].values, 3.4125671e-07)
+    np.testing.assert_almost_equal(interaction['morans_r'].values, 0.0994394)
+    np.testing.assert_almost_equal(interaction['morans_pvals'].values, 3.4125671e-07)
 
-    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].X), 0.005853, decimal=6)
-    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].layers['pvals']), 0.501560072481213, decimal=6)
+    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].X), 0.12803833, decimal=6)
+    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].layers['pvals']), 0.8764923, decimal=6)
 
 
 def test_cosine_permutation():
@@ -30,11 +30,11 @@ def test_cosine_permutation():
     assert 'pvals' in lrdata.layers.keys()
 
     interaction = lrdata.var[lrdata.var.index == 'S100A9^ITGB2']
-    np.testing.assert_almost_equal(interaction['global_mean'].values, 0.56016606)
-    np.testing.assert_almost_equal(interaction['global_sd'].values, 0.33243373)
+    np.testing.assert_almost_equal(interaction['mean'].values, 0.56016606)
+    np.testing.assert_almost_equal(interaction['std'].values, 0.33243373)
 
     np.testing.assert_almost_equal(lrdata[:,'MIF^CD74_CXCR4'].X.mean(), 0.32514292, decimal=6)
-    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].layers['pvals']), 0.6274714285714286, decimal=4)
+    np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].layers['pvals']), 0.601228, decimal=4)
 
 
 def test_morans_pval_none_cats():

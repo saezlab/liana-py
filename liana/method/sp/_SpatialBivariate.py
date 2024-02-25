@@ -14,7 +14,7 @@ from liana.method.sp._spatial_pipe import (
     _add_complexes_to_var
     )
 from liana.utils.mdata_to_anndata import mdata_to_anndata
-from liana.resource._select_resource import _handle_resource
+from liana.resource.select_resource import _handle_resource
 from liana.method._pipe_utils import prep_check_adata, assert_covered
 from liana.method.sp._bivariate_funs import _handle_functions, _bivariate_functions
 
@@ -136,11 +136,10 @@ class SpatialBivariate():
 
         Returns
         -------
-
         If `inplace` is `True`, the results are added to `mdata` and `None` is returned.
         Note that `obsm`, `varm`, `obsp` and `varp` are copied to the output `AnnData` object.
-        When an MuData object is passed, `obsm`, `varm`, `obsp` and `varp` are copied to `mdata.mod`.
-        When mdata is an AnnData object, `obsm`, `varm`, `obsp` and `varp` are copied to `mdata.obsm`.
+        When an MuData object is passed, `obsm`, `varm`, `obsp` and `varp` are copied to `.mod`.
+        When `mdata` is an AnnData object, `obsm`, `varm`, `obsp` and `varp` are copied to `.obsm`.
         `AnnData` objects in `obsm` will not be copied to the output object.
 
         If `inplace` is `False`, the results are returned.
@@ -150,6 +149,8 @@ class SpatialBivariate():
         if n_perms is not None:
             if not isinstance(n_perms, int) or n_perms < 0:
                 raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")
+        if (n_perms == 0) and (function_name != "morans"):
+            raise ValueError("An analytical solution is currently available only for Moran's R")
 
         local_fun = _handle_functions(function_name)
 
@@ -249,40 +250,35 @@ class SpatialBivariate():
                                      y_mat=y_mat,
                                      weight=weight,
                                      )
-            local_msk = (local_cats > 0).astype(np.int8)
         else:
             local_cats = None
-            local_msk = None
 
         # get local scores
         xy_stats, local_scores, local_pvals = \
             _run_scores_pipeline(xy_stats=xy_stats,
                                  x_mat=x_mat,
                                  y_mat=y_mat,
-                                 idx=mdata.obs.index,
                                  local_fun=local_fun,
                                  weight=weight,
                                  seed=seed,
                                  n_perms=n_perms,
                                  mask_negatives=mask_negatives,
-                                 local_msk=local_msk,
                                  verbose=verbose,
                                  )
 
-        # TODO deal with transposing upstream
         if mask_negatives:
-            local_scores = (local_scores * local_msk).T
-        else:
-            local_scores = local_scores.T
+            local_scores = np.where(local_cats!=1, 0, local_scores)
+            if local_pvals is not None:
+                local_pvals = np.where(local_cats!=1, 1, local_pvals)
 
-        local_scores = AnnData(csr_matrix(local_scores),
+        local_scores = AnnData(csr_matrix(local_scores.T),
                                obs=adata.obs,
                                var=xy_stats.set_index('interaction'),
                                uns=_uns,
                                obsm=adata.obsm,
                                )
 
-        if local_cats is not None:
+        if add_categories:
             local_scores.layers['cats'] = csr_matrix(local_cats.T)
         if local_pvals is not None:
             local_scores.layers['pvals'] = csr_matrix(local_pvals.T)

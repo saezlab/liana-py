@@ -8,7 +8,7 @@ from anndata import AnnData
 from mudata import MuData
 from tqdm import tqdm
 
-from ._common import _process_scores
+from ..method import process_scores
 from liana._logging import _check_if_installed
 from liana.method._pipe_utils import _check_groupby
 from liana._docs import d
@@ -212,7 +212,7 @@ def lrs_to_views(adata: AnnData,
     liana_res = liana_res[[sample_key, 'ct_pair', 'interaction', score_key]]
 
     # get scores & invert if necessary
-    liana_res = _process_scores(liana_res=liana_res,
+    liana_res = process_scores(liana_res=liana_res,
                                 score_key=score_key,
                                 inverse_fun=inverse_fun)
 

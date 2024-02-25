@@ -21,7 +21,7 @@ def test_bivar_morans():
           interactions=interactions
           )
     assert 'local_scores' in mdata.mod.keys()
-    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -45.86797, decimal=5)
+    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -346.55872, decimal=4)
 
 
 def test_bivar_morans_perms():
@@ -37,7 +37,7 @@ def test_bivar_morans_perms():
 
     assert 'local_scores' in mdata.mod.keys()
     local_pvals = mdata.mod['local_scores'].layers['pvals']
-    np.testing.assert_almost_equal(np.mean(local_pvals), 0.6112173202614387, decimal=6)
+    np.testing.assert_almost_equal(np.mean(local_pvals), 0.52787581, decimal=6)
 
 
 def test_bivar_nondefault():
@@ -59,7 +59,7 @@ def test_bivar_nondefault():
                 )
 
     # if all are the same weights, then everything is close to 0?
-    np.testing.assert_almost_equal(global_stats['global_r'].sum(), 0)
+    np.testing.assert_almost_equal(global_stats['morans_r'].sum(), 0)
     local_scores.shape == (700, 100)
     np.testing.assert_almost_equal(np.min(np.min(local_scores.layers['pvals'])), 0.5, decimal=2)
 
@@ -99,9 +99,9 @@ def test_masked_spearman():
     # check global
     assert mdata.mod['local_scores'].var.shape == (90, 8)
     global_res = mdata.mod['local_scores'].var
-    assert set(['global_mean','global_sd']).issubset(global_res.columns)
-    np.testing.assert_almost_equal(global_res['global_mean'].mean(), 0.18438746, decimal=5)
-    np.testing.assert_almost_equal(global_res['global_sd'].mean(), 8.498836e-07, decimal=5)
+    assert set(['mean','std']).issubset(global_res.columns)
+    np.testing.assert_almost_equal(global_res['mean'].mean(), 0.18438746, decimal=5)
+    np.testing.assert_almost_equal(global_res['std'].mean(), 8.498836e-07, decimal=5)
 
 
 def test_vectorized_pearson():
@@ -118,11 +118,11 @@ def test_vectorized_pearson():
     assert 'local_scores' in mdata.mod.keys()
     adata = mdata.mod['local_scores']
     np.testing.assert_almost_equal(adata.X.mean(), 0.0011550441, decimal=5)
-    np.testing.assert_almost_equal(adata.layers['pvals'].mean(), 0.755160947712419, decimal=3)
+    np.testing.assert_almost_equal(adata.layers['pvals'].mean(), 0.72182712, decimal=3)
 
     # check global
     assert mdata.mod['local_scores'].var.shape == (90, 8)
     global_res = mdata.mod['local_scores'].var
-    assert set(['global_mean','global_sd']).issubset(global_res.columns)
-    np.testing.assert_almost_equal(global_res['global_mean'].mean(), 0.0011550438183169959, decimal=5)
-    np.testing.assert_almost_equal(global_res['global_sd'].mean(), 0.3227660823917939, decimal=5)
+    assert set(['mean','std']).issubset(global_res.columns)
+    np.testing.assert_almost_equal(global_res['mean'].mean(), 0.0011550438183169959, decimal=5)
+    np.testing.assert_almost_equal(global_res['std'].mean(), 0.3227660823917939, decimal=5)

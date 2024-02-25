@@ -5,7 +5,7 @@ import numpy as np
 from anndata import AnnData
 from pandas import DataFrame
 
-from ._common import _process_scores
+from liana.method import process_scores
 from liana._logging import _check_if_installed
 from liana._docs import d
 from liana._constants import DefaultValues as V, Keys as K, PrimaryColumns as P
@@ -86,7 +86,7 @@ def to_tensor_c2c(adata:AnnData=None,
     if liana_res[[sample_key, source_key, target_key, ligand_key, receptor_key]].duplicated().any():
         raise ValueError("Duplicate rows found in the input data")
 
-    liana_res = _process_scores(liana_res, score_key, inverse_fun)
+    liana_res = process_scores(liana_res, score_key, inverse_fun)
 
     # set negative to 0
     if non_negative:

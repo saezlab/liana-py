@@ -43,9 +43,14 @@ def generate_lr_geneset(resource,
     - weight: mean weight of the interaction
     - source: source of the interaction
     """
+    # TODO: Fix this if else, it's not very elegant
     if weight is None:
         weight = 'weight'
         net[weight] = 1
+
+        drop_weight = True
+    else:
+        drop_weight = False
 
     # supp keys
     ligand_weight = ligand_key + '_' + weight
@@ -76,6 +81,9 @@ def generate_lr_geneset(resource,
 
     # drop nan weights
     resource = resource.dropna()
+
+    if drop_weight:
+        resource.drop(columns=['weight'], inplace=True)
 
     return resource
 

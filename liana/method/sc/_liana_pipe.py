@@ -7,10 +7,11 @@ import pandas
 import scanpy as sc
 import pandas as pd
 import numpy as np
+from scipy.stats import norm
 
 from liana.method._pipe_utils import prep_check_adata, assert_covered, filter_resource
 from liana.method._pipe_utils._common import _join_stats, _get_props, _get_groupby_subset
-from liana.resource._select_resource import _handle_resource
+from liana.resource.select_resource import _handle_resource
 from liana.resource import explode_complexes, filter_reassemble_complexes
 from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_idx
 from liana.method._pipe_utils._aggregate import _aggregate
@@ -122,7 +123,6 @@ def liana_pipe(adata: anndata.AnnData,
                              layer=layer,
                              verbose=verbose)
 
-    # get mat mean for SCA (before reducing the features)
     if M.mat_mean in _add_cols:
         mat_mean = np.mean(adata.X, dtype='float32')
 
@@ -147,18 +147,19 @@ def liana_pipe(adata: anndata.AnnData,
     # Filter Resource
     resource = filter_resource(resource, adata.var_names)
 
-    if verbose:
-        print(f"Generating ligand-receptor stats for {adata.shape[0]} samples "
-              f"and {adata.shape[1]} features")
+    # Cluster stats
+    if (M.ligand_cdf in _add_cols) or (M.receptor_cdf in _add_cols):
+        cluster_stats = _cluster_stats(adata)
 
     # Create Entities
     entities = np.union1d(np.unique(resource[P.ligand]),
                           np.unique(resource[P.receptor]))
-
     # Filter to only include the relevant genes
     adata = adata[:, np.intersect1d(entities, adata.var.index)]
 
-
+    if verbose:
+        print(f"Generating ligand-receptor stats for {adata.shape[0]} samples "
+              f"and {adata.shape[1]} features")
 
     # Get lr results
     lr_res = _get_lr(adata=adata,
@@ -171,6 +172,10 @@ def liana_pipe(adata: anndata.AnnData,
                      base=base,
                      verbose=verbose
                      )
+
+    # Ligand and receptor score based on unfiltered cluster mean and cluster std. Handles protein complexes
+    if (M.ligand_cdf in _add_cols) or (M.receptor_cdf in _add_cols):
+        lr_res = _complex_score(lr_res, cluster_stats)
 
     # Mean Sums required for NATMI (note done on subunits also)
     if M.ligand_means_sums in _add_cols:
@@ -383,10 +388,10 @@ def _run_method(lr_res: pandas.DataFrame,
     if (M.mat_max in _add_cols) & (_score.method_name == "CellChat"):
         # CellChat matrix_max
         norm_factor = np.unique(lr_res[M.mat_max].values)[0]
-        agg_fun = _trimean
+        agg_fun = _trimean # Calculate sparse matrix quantiles?
     else:
         norm_factor = None
-        agg_fun = np.mean
+        agg_fun = np.mean # NOTE: change to sparse matrix mean?
 
     if _score.permute:
         # get permutations
@@ -449,8 +454,39 @@ def _assign_min_or_max(x, x_ascending):
 
 
 def _trimean(a, axis=0):
-    return np.mean(
-        np.quantile(a.A,
-                    q=[0.25, 0.5, 0.5, 0.75],
-                    axis=axis),
-        axis=axis)
+    quantiles = np.quantile(a.A, q=[0.25, 0.75], axis=axis)
+    median = np.median(a.A, axis=axis)
+    return (quantiles[0] + 2 * median + quantiles[1]) / 4
+
+def _cluster_stats(adata):
+    cluster_stats = adata.obs.groupby('@label').size().to_frame(name='counts')
+    labels = adata.obs['@label'].cat.categories
+    for label in labels:
+        temp = adata[adata.obs['@label'].isin([label])]
+
+        cluster_stats.loc[label, 'mean'] = temp.X.mean()
+        cluster_stats.loc[label, 'std'] = np.std(temp.X.A)
+
+    return cluster_stats
+
+
+def _gene_cdf(gene_mean, cluster_mean, cluster_std, cluster_counts):
+    probability = norm.cdf(gene_mean, loc=cluster_mean, scale = cluster_std / np.sqrt(cluster_counts))
+    probability[gene_mean==0] = 0
+
+    return probability
+
+def _complex_score(lr_res, cluster_stats):
+    _lr_res = lr_res.merge(cluster_stats.add_prefix('source_'), left_on='source', right_index=True, how='left')
+    _lr_res = _lr_res.merge(cluster_stats.add_prefix('target_'), left_on='target', right_index=True, how='left')
+
+    lr_res['ligand_cdf'] = _gene_cdf(_lr_res['ligand_means'],
+                                       _lr_res['source_mean'],
+                                       _lr_res['source_std'],
+                                       _lr_res['source_counts'])
+    lr_res['receptor_cdf'] = _gene_cdf(_lr_res['receptor_means'],
+                                         _lr_res['target_mean'],
+                                         _lr_res['target_std'],
+                                         _lr_res['target_counts'])
+
+    return lr_res

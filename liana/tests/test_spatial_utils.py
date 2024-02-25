@@ -71,7 +71,7 @@ def test_global_permutation_pvals():
                                       verbose=False
                                       )
     assert pvals.shape == (10, )
-    assert pvals.sum().round(3)==4.65
+    assert pvals.sum().round(3)==5.16
 
 
 
@@ -87,7 +87,6 @@ def test_local_permutation_pvals():
                                      n_perms = n_perms,
                                      seed = seed,
                                      mask_negatives=mask_negatives,
-                                     local_msk=np.ones((10, 10), dtype=bool),
                                      verbose=False
                                      )
     assert pvals.shape == (10, 10)
@@ -105,6 +104,11 @@ def test_global_zscore_pvals():
 def test_local_zscore_pvals():
     local_truth = rng.normal(size=(10, 10))
     pvals = _local_zscore_pvals(x_mat=x_mat, y_mat=y_mat, weight=weight,
-                                local_truth=local_truth, mask_negatives=mask_negatives,
-                                local_msk=np.ones((10, 10), dtype=bool))
+                                local_truth=local_truth, mask_negatives=mask_negatives)
+    actual = _local_zscore_pvals(x_mat=x_mat, y_mat=y_mat,
+                                 weight=weight, local_truth=local_truth,
+                                 mask_negatives=mask_negatives).mean(axis=0)[0:3]
+    np.testing.assert_almost_equal(actual, np.array([0.51388, 0.48678, 0.49618]), decimal=5)
+
+
     assert pvals.shape == (10, 10)

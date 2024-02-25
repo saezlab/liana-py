@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
-from pandas import DataFrame, Series
+from pandas import Series
 
 from scipy.sparse import csr_matrix, isspmatrix_csr, hstack
 from scipy.stats import norm
@@ -15,14 +15,8 @@ def _rename_means(lr_stats, entity):
     return df.rename(columns={'gene': entity})
 
 
-def _local_to_dataframe(array, idx, columns):
-    if array is None:
-        return None
-    return DataFrame(array.T, index=idx, columns=columns)
-
-
 def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_perms, seed,
-                             mask_negatives, local_msk, verbose):
+                             mask_negatives, verbose):
     """
     Calculate local pvalues for a given local score function.
 
@@ -59,22 +53,19 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_per
     # shuffle the matrix
     for i in tqdm(range(n_perms), disable=not verbose):
         _idx = rng.permutation(spot_n)
-        perm_score = local_fun(x_mat=x_mat[_idx, :], y_mat=y_mat, weight=weight)
+        perm_score = local_fun(x_mat=x_mat[_idx, :], y_mat=y_mat[_idx, :], weight=weight)
         if mask_negatives:
             local_pvals += np.array(perm_score >= local_truth, dtype=int)
         else:
-            local_pvals += (np.array(np.abs(perm_score) >= np.abs(local_truth), dtype=int))
+            local_pvals += np.array(np.abs(perm_score) >= np.abs(local_truth))
 
     local_pvals = local_pvals / n_perms
-
-    if mask_negatives:
-        local_pvals[~local_msk] = 1
 
     return local_pvals
 
 
 def _zscore(mat, local=True, axis=0):
-    spot_n = mat.shape[1]
+    spot_n = mat.shape[axis]
 
     # NOTE: specific to global SpatialDM
     if not local:
@@ -141,12 +132,13 @@ def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, mask_nega
 
     for perm in tqdm(range(n_perms), disable=not verbose):
         _idx = rng.permutation(idx)
-        perm_mat[perm, :] = ((x_mat[:, _idx] @ weight) * y_mat).sum(axis=1)  # flipped x_mat
+        perm_mat[perm, :] = _global_r(x_mat=x_mat[:, _idx],
+                                      y_mat=y_mat[:, _idx],
+                                      weight=weight)
 
     if mask_negatives:
         global_pvals = 1 - (global_r > perm_mat).sum(axis=0) / n_perms
     else:
-        # TODO Proof this makes sense
         global_pvals = 1 - (np.abs(global_r) > np.abs(perm_mat)).sum(axis=0) / n_perms
 
     return global_pvals
@@ -190,7 +182,7 @@ def _global_zscore_pvals(weight, global_r, mask_negatives):
     return global_zpvals
 
 
-def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, mask_negatives, local_msk):
+def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, mask_negatives):
     """
 
     Parameters
@@ -211,7 +203,7 @@ def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, mask_negatives, local
     2D array of p-values with shape(n_spot, xy_n)
 
     """
-    spot_n = weight.shape[0]
+    spot_n = x_mat.shape[0]
 
     x_norm = np.apply_along_axis(norm.fit, axis=0, arr=x_mat)
     y_norm = np.apply_along_axis(norm.fit, axis=0, arr=y_mat)
@@ -227,7 +219,6 @@ def _local_zscore_pvals(x_mat, y_mat, local_truth, weight, mask_negatives, local
 
     if mask_negatives:
         local_zpvals = norm.sf(local_zscores)
-        local_zpvals[~local_msk] = 1
     else:
         local_zpvals = norm.sf(np.abs(local_zscores))
 
@@ -259,14 +250,17 @@ def _get_local_var(x_sigma, y_sigma, weight, spot_n):
 
     weight_sq = (weight ** 2).sum(axis=1)
 
-    n_weight = 2 * (spot_n - 1) ** 2 / spot_n ** 2
+    dim = 2 * (spot_n - 1) ** 2 / spot_n ** 2
     sigma_prod = x_sigma * y_sigma
-    core = n_weight * sigma_prod
+    core = dim * sigma_prod
 
     var = np.multiply.outer(weight_sq, core) + core
     std = var ** 0.5
 
     return std.T
+
+def _global_r(x_mat, y_mat, weight):
+    return ((x_mat @ weight) * y_mat).sum(axis=1)
 
 def _global_spatialdm(x_mat,
                       y_mat,
@@ -277,7 +271,7 @@ def _global_spatialdm(x_mat,
                       verbose
                       ):
     # Get global r
-    global_r = ((x_mat @ weight) * y_mat).sum(axis=1)
+    global_r = _global_r(x_mat=x_mat, y_mat=y_mat, weight=weight)
 
     # calc p-values
     if n_perms is None:
@@ -300,7 +294,7 @@ def _global_spatialdm(x_mat,
     return global_r, global_pvals
 
 
-def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, local_msk,
+def _run_scores_pipeline(xy_stats, x_mat, y_mat, local_fun,
                          weight, mask_negatives, n_perms, seed, verbose):
     local_scores, local_pvals = _get_local_scores(x_mat=x_mat.T,
                                                   y_mat=y_mat.T,
@@ -309,7 +303,6 @@ def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, local_msk,
                                                   seed=seed,
                                                   n_perms=n_perms,
                                                   mask_negatives=mask_negatives,
-                                                  local_msk=local_msk,
                                                   verbose=verbose
                                                   )
 
@@ -328,6 +321,12 @@ def _run_scores_pipeline(xy_stats, x_mat, y_mat, idx, local_fun, local_msk,
 
     return xy_stats, local_scores, local_pvals
 
+def _norm_max(X, axis=0):
+    X = X / X.max(axis=axis).A
+    X = _zscore(X, local=True, axis=axis)
+    X = np.where(np.isnan(X), 0, X)
+
+    return X
 
 def _get_local_scores(x_mat,
                       y_mat,
@@ -336,7 +335,6 @@ def _get_local_scores(x_mat,
                       n_perms,
                       seed,
                       mask_negatives,
-                      local_msk,
                       verbose
                       ):
     """
@@ -350,14 +348,8 @@ def _get_local_scores(x_mat,
     """
 
     if local_fun.__name__ == '_local_morans':
-        # TODO: remove this and leave it to the user
-        x_mat = _zscore(x_mat, local=True, axis=0)
-        y_mat = _zscore(y_mat, local=True, axis=0)
-
-        # # NOTE: spatialdm do this, and also use .raw by default
-        # x_mat = x_mat / np.max(x_mat, axis=0)
-        # y_mat = y_mat / np.max(y_mat, axis=0)
-
+        x_mat = _norm_max(x_mat)
+        y_mat = _norm_max(y_mat)
     else:
         x_mat = x_mat.A
         y_mat = y_mat.A
@@ -375,7 +367,6 @@ def _get_local_scores(x_mat,
                                                n_perms=n_perms,
                                                seed=seed,
                                                mask_negatives=mask_negatives,
-                                               local_msk=local_msk,
                                                verbose=verbose
                                                )
     elif n_perms == 0:
@@ -383,8 +374,7 @@ def _get_local_scores(x_mat,
                                           y_mat=y_mat,
                                           local_truth=local_scores,
                                           weight=weight,
-                                          mask_negatives=mask_negatives,
-                                          local_msk=local_msk
+                                          mask_negatives=mask_negatives
                                           )
 
     return local_scores, local_pvals
@@ -402,11 +392,11 @@ def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, mask_negatives
                               mask_negatives=mask_negatives,
                               verbose=verbose
                               )
-        xy_stats['global_r'] = global_r
-        xy_stats['global_pvals'] = global_pvals
+        xy_stats['morans_r'] = global_r
+        xy_stats['morans_pvals'] = global_pvals
     else:
         # any other local score
-        xy_stats.loc[:, ['global_mean', 'global_sd']] = np.vstack(
+        xy_stats.loc[:, ['mean', 'std']] = np.vstack(
             [np.mean(local_scores, axis=1), np.std(local_scores, axis=1)]
             ).T
 

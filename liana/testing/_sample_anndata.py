@@ -1,11 +1,9 @@
 import numpy as np
 from numpy import random
 from scanpy.datasets import pbmc68k_reduced
+from liana.utils.spatial_neighbors import spatial_neighbors
 
 def generate_toy_spatial():
-    from scanpy.datasets import pbmc68k_reduced
-    from liana.utils.spatial_neighbors import spatial_neighbors
-
     adata = pbmc68k_reduced()
 
     rng = np.random.default_rng(seed=1337)

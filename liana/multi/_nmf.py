@@ -15,7 +15,7 @@ from liana._docs import d
 def nmf(adata: AnnData=None,
         df: pd.DataFrame=None,
         n_components: (int or None)=None,
-        k_range: range =range(1, 10),
+        k_range: range = range(1, 11),
         use_raw: bool=False,
         layer: (str or None)=None,
         inplace:bool=True,
@@ -44,7 +44,7 @@ def nmf(adata: AnnData=None,
 
     If inplace is False, it will return ``W`` and ``H``, and if n_components is None, it will also return ``errors`` and ``n_components``.
     If n_components is None and inplace, ``errors`` and ``n_components`` will be assigned to ``adata.uns``.
-    If ``df`` is provided, it will always return ``W`` and ``H``.
+    If ``df`` is provided, inplace is always False.
 
     """
     if adata is not None:
@@ -72,8 +72,8 @@ def nmf(adata: AnnData=None,
     if inplace:
         adata.obsm['NMF_W'] = W
         adata.varm['NMF_H'] = H
-        adata.uns['nfm_errors'] = errors
-        adata.uns['nfm_rank'] = n_components
+        adata.uns['nmf_errors'] = errors
+        adata.uns['nmf_rank'] = n_components
 
     return None if inplace else (W, H, errors, n_components)
 

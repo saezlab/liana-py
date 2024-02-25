@@ -59,10 +59,13 @@ class SpatialLR(SpatialBivariate):
 
         Returns
         -------
-        Returns `adata` with the following fields, if `inplace=True`:
-            - `adata.uns[key_added]` - global results (pd.DataFrame)
-            - `adata.obsm[obsm_added]` - local scores (AnnData object)
-        if `inplace=False`, returns a the above.
+        If `inplace` is `True`, the results are added to `mdata` and `None` is returned.
+        Note that `obsm`, `varm`, `obsp` and `varp` are copied to the output `AnnData` object.
+        When an MuData object is passed, `obsm`, `varm`, `obsp` and `varp` are copied to `.mod`.
+        When `mdata` is an AnnData object, `obsm`, `varm`, `obsp` and `varp` are copied to `.obsm`.
+        `AnnData` objects in `obsm` will not be copied to the output object.
+
+        If `inplace` is `False`, the results are returned.
         """
 
         lr_res, local_scores = super().__call__(
