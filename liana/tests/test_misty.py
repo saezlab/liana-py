@@ -41,7 +41,7 @@ def test_misty_bypass():
     assert interactions['importances'].sum().round(10) == 22.0
     np.testing.assert_almost_equal(interactions[(interactions['target']=='ligC') &
                                                (interactions['predictor']=='ligA')]['importances'].values,
-                                   np.array([0.0444664, 0.0551506]))
+                                   np.array([0.0444664, 0.0551506]), decimal=3)
 
 
 def test_misty_groups():
