@@ -34,6 +34,7 @@ spatially-resolved, and multi-modal omics data.
    api
    release_notes
    reference
+   notebooks/prior_knowledge
 
 .. toctree::
    :maxdepth: 1
@@ -41,8 +42,6 @@ spatially-resolved, and multi-modal omics data.
    :caption: Single-cell Vignettes
 
    notebooks/basic_usage
-
-   notebooks/prior_knowledge
 
    notebooks/liana_c2c
 

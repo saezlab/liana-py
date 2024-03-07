@@ -17,33 +17,7 @@ LIANA+ is a scalable framework that integrates and extends existing methods and 
 We welcome suggestions, ideas, and contributions! Please use do not hesitate to contact us, or use the issues or the [LIANA+ Development project](https://github.com/orgs/saezlab/projects/16) to make suggestions.
 
 ## Tutorials
-
-### Single-cell/Dissociated Data
-
-- [LIANA's basic tutorial](https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html) in dissociated single-cell data
-
-#### Multi-condition
-
-- [Differential Expression Analysis for CCC with PyDeSeq2](https://liana-py.readthedocs.io/en/latest/notebooks/targeted.html) that also shows the inference of causal **intracellular** signalling networks, downstream of CCC events.
-
-- [Multicellular programmes with MOFA](https://liana-py.readthedocs.io/en/latest/notebooks/mofacellular.html). Using MOFA to obtain coordinates gene expression programmes across samples and conditions, as done in [Ramirez et al., 2023](https://europepmc.org/article/ppr/ppr620471).
-
-- [LIANA with MOFA](https://liana-py.readthedocs.io/en/latest/notebooks/mofatalk.html). Using MOFA to infer intercellular communication programmes across samples and conditions, as initially proposed by Tensor-cell2cell.
-
-- [LIANA with Tensor-cell2cell](https://liana-py.readthedocs.io/en/latest/notebooks/liana_c2c.html) to extract intercellular communication programmes across samples and conditions. Extensive tutorials combining LIANA & [Tensor-cell2cell](https://www.nature.com/articles/s41467-022-31369-2) are available [here](https://ccc-protocols.readthedocs.io/en/latest/index.html).
-
-
-### Spatial Data
-
-- [Learn spatially-informed relationships with MISTy](https://liana-py.readthedocs.io/en/latest/notebooks/misty.html) across (multi-) views.
-
-- [Estimate local spatially-informed bivariate metrics](https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html). This tutorial shows how to estimate local spatially-informed bivariate metrics, such as the spatially-informed Pearson correlation coefficient or Cosine similarity.
-
-
-### Others
-
-- We also refer users to the [Cell-cell communication chapter](https://www.sc-best-practices.org/mechanisms/cell_cell_communication.html) in the [best-practices guide from Theis lab](https://www.nature.com/articles/s41576-023-00586-w). There we provide an overview of the common limitations and assumptions in CCC inference from (dissociated single-cell) transcriptomics data.
-
+A set of extensive tutorials can be found in the [LIANA+ documentation](https://liana-py.readthedocs.io/en/latest/).
 
 ## API
 For further information please check LIANA's [API documentation](https://liana-py.readthedocs.io/en/latest/api.html).
