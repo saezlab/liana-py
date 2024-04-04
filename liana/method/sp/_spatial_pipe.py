@@ -294,8 +294,9 @@ def _global_spatialdm(x_mat,
     return global_r, global_pvals
 
 
-def _run_scores_pipeline(xy_stats, x_mat, y_mat, local_fun,
-                         weight, mask_negatives, n_perms, seed, verbose):
+def _run_scores_pipeline(x_mat, y_mat, local_fun,
+                         weight, mask_negatives,
+                         n_perms, seed, verbose):
     local_scores, local_pvals = _get_local_scores(x_mat=x_mat.T,
                                                   y_mat=y_mat.T,
                                                   local_fun=local_fun,
@@ -306,20 +307,7 @@ def _run_scores_pipeline(xy_stats, x_mat, y_mat, local_fun,
                                                   verbose=verbose
                                                   )
 
-    # global scores fun
-    xy_stats = _get_global_scores(xy_stats=xy_stats,
-                                  x_mat=x_mat,
-                                  y_mat=y_mat,
-                                  local_fun=local_fun,
-                                  weight=weight,
-                                  seed=seed,
-                                  n_perms=n_perms,
-                                  mask_negatives=mask_negatives,
-                                  local_scores=local_scores,
-                                  verbose=verbose
-                                  )
-
-    return xy_stats, local_scores, local_pvals
+    return local_scores, local_pvals
 
 def _norm_max(X, axis=0):
     X = X / X.max(axis=axis).A
@@ -378,29 +366,6 @@ def _get_local_scores(x_mat,
                                           )
 
     return local_scores, local_pvals
-
-
-def _get_global_scores(xy_stats, x_mat, y_mat, local_fun, weight, mask_negatives,
-                       n_perms, seed, local_scores, verbose):
-    if local_fun.__name__ == "_local_morans":
-        global_r, global_pvals = \
-            _global_spatialdm(x_mat=_zscore(x_mat, local=False, axis=1),
-                              y_mat=_zscore(y_mat, local=False, axis=1),
-                              weight=weight,
-                              seed=seed,
-                              n_perms=n_perms,
-                              mask_negatives=mask_negatives,
-                              verbose=verbose
-                              )
-        xy_stats['morans_r'] = global_r
-        xy_stats['morans_pvals'] = global_pvals
-    else:
-        # any other local score
-        xy_stats.loc[:, ['mean', 'std']] = np.vstack(
-            [np.mean(local_scores, axis=1), np.std(local_scores, axis=1)]
-            ).T
-
-    return xy_stats
 
 
 def _add_complexes_to_var(adata, entities, complex_sep='_'):

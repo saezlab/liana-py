@@ -11,7 +11,9 @@ from liana.method.sp._spatial_pipe import (
     _categorize,
     _rename_means,
     _run_scores_pipeline,
-    _add_complexes_to_var
+    _add_complexes_to_var,
+    _global_spatialdm,
+    _zscore
     )
 from liana.utils.mdata_to_anndata import mdata_to_anndata
 from liana.resource.select_resource import _handle_resource
@@ -77,7 +79,7 @@ class SpatialBivariate():
                  mask_negatives: bool = False,
                  add_categories: bool = False,
                  n_perms: int = None,
-                 seed:int = V.seed,
+                 seed: int = V.seed,
                  nz_threshold:float = 0, # NOTE: do I rename this?
                  x_use_raw: bool = V.use_raw,
                  x_layer: (None | str) = V.layer,
@@ -90,7 +92,7 @@ class SpatialBivariate():
                  remove_self_interactions: bool = True,
                  inplace:bool = V.inplace,
                  verbose:bool = V.verbose,
-                 ):
+                 ) -> AnnData | None:
         """
         A method for bivariate local spatial metrics.
 
@@ -193,7 +195,6 @@ class SpatialBivariate():
                                  complex_sep=complex_sep,
                                 )
 
-
         connectivity = self._handle_connectivity(adata=adata, connectivity_key=connectivity_key)
         weight = self._connectivity_to_weight(connectivity=connectivity, local_fun=local_fun)
 
@@ -232,7 +233,6 @@ class SpatialBivariate():
         xy_stats = resource.merge(_rename_means(xy_stats, entity=self.x_name)).merge(
             _rename_means(xy_stats, entity=self.y_name))
 
-        # TODO: nz_threshold to nz_prop? For consistency with other methods
         # filter according to props
         xy_stats = xy_stats[(xy_stats[f'{self.x_name}_props'] >= nz_threshold) &
                             (xy_stats[f'{self.y_name}_props'] >= nz_threshold)]
@@ -242,8 +242,18 @@ class SpatialBivariate():
         x_mat = adata[:, xy_stats[self.x_name]].X.T
         y_mat = adata[:, xy_stats[self.y_name]].X.T
 
-        # reorder columns, NOTE: why?
-        xy_stats = xy_stats.reindex(columns=sorted(xy_stats.columns))
+        if local_fun.__name__ == "_local_morans":
+            global_r, global_pvals = \
+                _global_spatialdm(x_mat=_zscore(x_mat, local=False, axis=1),
+                                  y_mat=_zscore(y_mat, local=False, axis=1),
+                                  weight=weight,
+                                  seed=seed,
+                                  n_perms=n_perms,
+                                  mask_negatives=mask_negatives,
+                                  verbose=verbose
+                                  )
+            xy_stats['morans_r'] = global_r
+            xy_stats['morans_pvals'] = global_pvals
 
         if add_categories or mask_negatives:
             local_cats = _categorize(x_mat=x_mat,
@@ -254,9 +264,8 @@ class SpatialBivariate():
             local_cats = None
 
         # get local scores
-        xy_stats, local_scores, local_pvals = \
-            _run_scores_pipeline(xy_stats=xy_stats,
-                                 x_mat=x_mat,
+        local_scores, local_pvals = \
+            _run_scores_pipeline(x_mat=x_mat,
                                  y_mat=y_mat,
                                  local_fun=local_fun,
                                  weight=weight,
@@ -265,6 +274,11 @@ class SpatialBivariate():
                                  mask_negatives=mask_negatives,
                                  verbose=verbose,
                                  )
+
+        xy_stats.loc[:, ['mean', 'std']] = np.vstack(
+            [np.mean(local_scores, axis=1), np.std(local_scores, axis=1)]
+            ).T
+
 
         if mask_negatives:
             local_scores = np.where(local_cats!=1, 0, local_scores)

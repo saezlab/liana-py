@@ -186,12 +186,13 @@ def find_causalnet(
 
     # E is the variable with 1 if edge activates or inhibits, 0 otherwise
     E = P.symbols['reaction_sends_activation_c0'] + P.symbols['reaction_sends_inhibition_c0']
-    W = rng.uniform(edge_penalty/20, edge_penalty/10, size=E.shape)
+    W = rng.uniform(edge_penalty / 20, edge_penalty / 10, size=E.shape)
     P.add_objectives(W.T @ E)
 
     _logg(f"Solving with {solver}...", verbose=verbose)
     if (solver=='scipy') and verbose:
         kwargs.update(scipy_options=dict(disp='true'))
+
     P.solve(
         solver=solver,
         max_seconds=max_seconds,
