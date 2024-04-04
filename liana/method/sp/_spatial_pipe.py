@@ -8,14 +8,15 @@ from scipy.stats import norm
 from tqdm import tqdm
 from anndata import AnnData
 
-
 def _rename_means(lr_stats, entity):
     df = lr_stats.copy()
     df.columns = df.columns.map(lambda x: entity + '_' + str(x) if x != 'gene' else 'gene')
     return df.rename(columns={'gene': entity})
 
 
-def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_perms, seed,
+def _local_permutation_pvals(x_mat, y_mat, weight,
+                             local_truth, local_fun,
+                             n_perms, seed,
                              mask_negatives, verbose):
     """
     Calculate local pvalues for a given local score function.
@@ -44,11 +45,11 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_per
     """
     rng = np.random.default_rng(seed)
 
-    xy_n = local_truth.shape[0]
-    spot_n = local_truth.shape[1]
+    spot_n = local_truth.shape[0]
+    xy_n = local_truth.shape[1]
 
     # permutation cubes to be populated
-    local_pvals = np.zeros((xy_n, spot_n))
+    local_pvals = np.zeros((spot_n, xy_n))
 
     # shuffle the matrix
     for i in tqdm(range(n_perms), disable=not verbose):
@@ -57,7 +58,7 @@ def _local_permutation_pvals(x_mat, y_mat, weight, local_truth, local_fun, n_per
         if mask_negatives:
             local_pvals += np.array(perm_score >= local_truth, dtype=int)
         else:
-            local_pvals += np.array(np.abs(perm_score) >= np.abs(local_truth))
+            local_pvals += np.array(np.abs(perm_score) >= np.abs(local_truth), dtype=int)
 
     local_pvals = local_pvals / n_perms
 
@@ -71,16 +72,16 @@ def _zscore(mat, local=True, axis=0):
     if not local:
         spot_n = 1
 
-    mat = np.array(mat - np.array(mat.mean(axis=axis)))
-    mat = mat / np.sqrt(np.sum(mat ** 2, axis=axis, keepdims=True) / spot_n)
+    mat = mat - mat.mean(axis=axis)
+    mat = mat / np.sqrt(np.sum(np.power(mat, 2), axis=axis) / spot_n)
 
-    return mat
+    return np.array(mat)
 
 
 def _encode_cats(a, weight):
     if np.all(a >= 0): # NOTE: this should work with sparse matrices!!
-        a = _zscore(a.T).T
-    a = a @ weight
+        a = _zscore(a)
+    a = weight @ a
     a = np.where(a > 0, 1, np.where(a < 0, -1, np.nan))
     return a
 
@@ -125,15 +126,15 @@ def _global_permutation_pvals(x_mat, y_mat, weight, global_r, n_perms, mask_nega
     rng = np.random.default_rng(seed)
 
     # initialize mat /w n_perms * number of X->Y
-    idx = x_mat.shape[1]
+    idx = x_mat.shape[0]
 
     # permutation mat /w n_permss x LR_n
     perm_mat = np.zeros((n_perms, global_r.shape[0]))
 
     for perm in tqdm(range(n_perms), disable=not verbose):
         _idx = rng.permutation(idx)
-        perm_mat[perm, :] = _global_r(x_mat=x_mat[:, _idx],
-                                      y_mat=y_mat[:, _idx],
+        perm_mat[perm, :] = _global_r(x_mat=x_mat[_idx, :],
+                                      y_mat=y_mat[_idx, :],
                                       weight=weight)
 
     if mask_negatives:
@@ -257,10 +258,10 @@ def _get_local_var(x_sigma, y_sigma, weight, spot_n):
     var = np.multiply.outer(weight_sq, core) + core
     std = var ** 0.5
 
-    return std.T
+    return std
 
 def _global_r(x_mat, y_mat, weight):
-    return ((x_mat @ weight) * y_mat).sum(axis=1)
+    return ((weight @ x_mat) * y_mat).sum(axis=0)
 
 def _global_spatialdm(x_mat,
                       y_mat,
@@ -292,22 +293,6 @@ def _global_spatialdm(x_mat,
                                             mask_negatives=mask_negatives)
 
     return global_r, global_pvals
-
-
-def _run_scores_pipeline(x_mat, y_mat, local_fun,
-                         weight, mask_negatives,
-                         n_perms, seed, verbose):
-    local_scores, local_pvals = _get_local_scores(x_mat=x_mat.T,
-                                                  y_mat=y_mat.T,
-                                                  local_fun=local_fun,
-                                                  weight=weight,
-                                                  seed=seed,
-                                                  n_perms=n_perms,
-                                                  mask_negatives=mask_negatives,
-                                                  verbose=verbose
-                                                  )
-
-    return local_scores, local_pvals
 
 def _norm_max(X, axis=0):
     X = X / X.max(axis=axis).A

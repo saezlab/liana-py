@@ -10,7 +10,7 @@ from liana.method._pipe_utils._common import _get_props
 from liana.method.sp._spatial_pipe import (
     _categorize,
     _rename_means,
-    _run_scores_pipeline,
+    _get_local_scores,
     _add_complexes_to_var,
     _global_spatialdm,
     _zscore
@@ -58,8 +58,7 @@ class SpatialBivariate():
         if local_fun.__name__ == "_local_morans":
             norm_factor = connectivity.shape[0] / connectivity.sum()
             connectivity = norm_factor * connectivity
-
-        if (connectivity.shape[0] < 5000) | local_fun.__name__.__contains__("masked"):
+        if local_fun.__name__.__contains__("masked"):
                 return connectivity.A
         else:
             return connectivity
@@ -239,13 +238,13 @@ class SpatialBivariate():
         # create interaction column
         xy_stats['interaction'] = xy_stats[self.x_name] + xy_sep + xy_stats[self.y_name]
 
-        x_mat = adata[:, xy_stats[self.x_name]].X.T
-        y_mat = adata[:, xy_stats[self.y_name]].X.T
+        x_mat = adata[:, xy_stats[self.x_name]].X
+        y_mat = adata[:, xy_stats[self.y_name]].X
 
         if local_fun.__name__ == "_local_morans":
             global_r, global_pvals = \
-                _global_spatialdm(x_mat=_zscore(x_mat, local=False, axis=1),
-                                  y_mat=_zscore(y_mat, local=False, axis=1),
+                _global_spatialdm(x_mat=_zscore(x_mat, local=False, axis=0),
+                                  y_mat=_zscore(y_mat, local=False, axis=0),
                                   weight=weight,
                                   seed=seed,
                                   n_perms=n_perms,
@@ -265,19 +264,21 @@ class SpatialBivariate():
 
         # get local scores
         local_scores, local_pvals = \
-            _run_scores_pipeline(x_mat=x_mat,
-                                 y_mat=y_mat,
-                                 local_fun=local_fun,
-                                 weight=weight,
-                                 seed=seed,
-                                 n_perms=n_perms,
-                                 mask_negatives=mask_negatives,
-                                 verbose=verbose,
-                                 )
+            _get_local_scores(x_mat=x_mat,
+                              y_mat=y_mat,
+                              local_fun=local_fun,
+                              weight=weight,
+                              seed=seed,
+                              n_perms=n_perms,
+                              mask_negatives=mask_negatives,
+                              verbose=verbose,
+                              )
 
-        xy_stats.loc[:, ['mean', 'std']] = np.vstack(
-            [np.mean(local_scores, axis=1), np.std(local_scores, axis=1)]
-            ).T
+        xy_stats.loc[:, ['mean', 'std']] = \
+            np.vstack(
+                [np.mean(local_scores, axis=0),
+                 np.std(local_scores, axis=0)]
+                ).T
 
 
         if mask_negatives:
@@ -285,7 +286,7 @@ class SpatialBivariate():
             if local_pvals is not None:
                 local_pvals = np.where(local_cats!=1, 1, local_pvals)
 
-        local_scores = AnnData(csr_matrix(local_scores.T),
+        local_scores = AnnData(csr_matrix(local_scores),
                                obs=adata.obs,
                                var=xy_stats.set_index('interaction'),
                                uns=_uns,
@@ -293,9 +294,9 @@ class SpatialBivariate():
                                )
 
         if add_categories:
-            local_scores.layers['cats'] = csr_matrix(local_cats.T)
+            local_scores.layers['cats'] = csr_matrix(local_cats)
         if local_pvals is not None:
-            local_scores.layers['pvals'] = csr_matrix(local_pvals.T)
+            local_scores.layers['pvals'] = csr_matrix(local_pvals)
 
         return self._handle_return(mdata, xy_stats, local_scores, mod_added, inplace)
 

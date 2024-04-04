@@ -45,7 +45,7 @@ def _masked_spearman(x_mat, y_mat, weight):
     # NOTE done due to numpy/numba sum imprecision, https://github.com/numba/numba/issues/8749
     local_corrs = np.clip(a=local_corrs, a_min=-1.0, a_max=1.0, out=local_corrs)
 
-    return local_corrs.T
+    return local_corrs
 
 
 def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
@@ -57,24 +57,20 @@ def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
     """
     if method not in ["pearson", "spearman"]:
         raise ValueError("method must be one of 'pearson', 'spearman'")
-
-    # transpose
-    x_mat, y_mat, weight = x_mat.T, y_mat.T, weight.T
-
-    weight_sums = np.array(np.sum(weight, axis = 0)).flatten()
+    weight_sums = np.array(weight.sum(axis=1))
 
     if method=="spearman":
-        x_mat = rankdata(x_mat, axis=1)
-        y_mat = rankdata(y_mat, axis=1)
+        x_mat = rankdata(x_mat, axis=0)
+        y_mat = rankdata(y_mat, axis=0)
 
     # standard pearson
-    n1 = ((x_mat * y_mat) @ weight) * weight_sums
-    n2 = (x_mat @ weight) * (y_mat @ weight)
+    n1 = weight_sums * (weight @ (x_mat * y_mat))
+    n2 = (weight @ x_mat) * (weight @ y_mat)
     numerator = n1 - n2
 
-    denominator_x = (weight_sums * (x_mat ** 2 @ weight)) - (x_mat @ weight)**2
-    denominator_y = (weight_sums * (y_mat ** 2 @ weight)) - (y_mat @ weight)**2
-    denominator = (denominator_x * denominator_y)
+    denominator_x = (weight_sums * (weight @ x_mat ** 2)) - (weight @ x_mat)**2
+    denominator_y = (weight_sums * (weight @ y_mat ** 2)) - (weight @ y_mat)**2
+    denominator = denominator_x * denominator_y
 
     # numpy sum is unstable below 1e-6...
     denominator[denominator < 1e-6] = 0
@@ -98,26 +94,18 @@ def _vectorized_spearman(x_mat, y_mat, weight):
 
 
 def _vectorized_cosine(x_mat, y_mat, weight):
-
-    x_mat, y_mat = x_mat.T, y_mat.T
-
-    xy_dot = (x_mat * y_mat) @ weight.T
-    x_dot = ((x_mat ** 2) @ weight.T)
-    y_dot = ((y_mat ** 2) @ weight.T)
+    xy_dot = weight @ (x_mat * y_mat)
+    x_dot = weight @ (x_mat**2)
+    y_dot = weight @ (y_mat**2)
     denominator = (x_dot * y_dot) + np.finfo(np.float32).eps
 
     return xy_dot / denominator**0.5
 
 
 def _vectorized_jaccard(x_mat, y_mat, weight):
-    # binarize
-    x_mat, y_mat = x_mat > 0, y_mat > 0 ## TODO, only positive?
-    # transpose
-    x_mat, y_mat, weight = x_mat.T, y_mat.T, weight.T
-
-    # intersect and union
-    numerator = np.minimum(x_mat, y_mat) @ weight
-    denominator = np.maximum(x_mat, y_mat) @ weight + np.finfo(np.float32).eps
+    x_mat, y_mat = x_mat > 0, y_mat > 0 ## NOTE only positive
+    numerator = weight @ np.minimum(x_mat, y_mat)
+    denominator = weight @ np.maximum(x_mat, y_mat) + np.finfo(np.float32).eps
 
     return numerator / denominator
 
@@ -140,23 +128,22 @@ def _local_morans(x_mat, y_mat, weight):
 
     local_x = x_mat * (weight @ y_mat)
     local_y = y_mat * (weight @ x_mat)
-    local_r = (local_x + local_y).T
+    local_r = (local_x + local_y)
 
     return local_r
 
 
 def _product(x_mat, y_mat, weight):
-    x_mat = (weight @ x_mat)
-    y_mat = (weight @ y_mat)
+    x_mat = weight @ x_mat
+    y_mat = weight @ y_mat
     score = x_mat * y_mat
 
-    return score.T
+    return score
 
 
 def _norm_product(x_mat, y_mat, weight):
-
-    x_mat = (weight @ x_mat)
-    y_mat = (weight @ y_mat)
+    x_mat = weight @ x_mat
+    y_mat = weight @ y_mat
 
     x_norm = np.max(np.abs(x_mat), axis=0)
     y_norm = np.max(np.abs(y_mat), axis=0)
@@ -169,7 +156,7 @@ def _norm_product(x_mat, y_mat, weight):
 
     score = x_mat * y_mat
 
-    return score.T
+    return score
 
 
 class SpatialFunction:

@@ -13,11 +13,10 @@ x_mat = rng.normal(size=(20, 5)).astype(np.float32)
 y_mat = rng.normal(size=(20, 5)).astype(np.float32)
 weight = csr_matrix(rng.uniform(size=(20, 20)).astype(np.float32))
 
-
 def _assert_bivariate(function, desired, x_mat, y_mat, weight):
     actual = function(x_mat, y_mat, weight)
-    assert actual.shape == (5, 20)
-    np.testing.assert_almost_equal(actual[:, 0], desired, decimal=5)
+    assert actual.shape == (20, 5)
+    np.testing.assert_almost_equal(actual[0, :], desired, decimal=5)
 
 
 def test_pc_vectorized():

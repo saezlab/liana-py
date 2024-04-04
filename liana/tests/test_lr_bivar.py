@@ -42,7 +42,7 @@ def test_morans_pval_none_cats():
     lr_bivar(adata, function_name='morans', n_perms=None, use_raw=True, add_categories=True)
 
     assert 'local_scores' in adata.obsm_keys()
-    assert adata.obsm['local_scores'].var.shape == (32, 8)
+    assert adata.obsm['local_scores'].var.shape == (32, 10)
     # NOT IN
     lrdata = adata.obsm['local_scores']
     assert 'pvals' not in adata.layers.keys()
