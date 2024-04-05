@@ -16,8 +16,8 @@ class SpatialLR(SpatialBivariate):
     @d.dedent
     def __call__(self,
                  adata: AnnData,
-                 function_name: str,
-                 global_name: Optional[str] = None,
+                 local_name: str = 'cosine',
+                 global_name: (None | str | list) = None,
                  resource_name: str = V.resource_name,
                  resource: Optional[pd.DataFrame] = V.resource,
                  interactions: list = V.interactions,
@@ -40,7 +40,8 @@ class SpatialLR(SpatialBivariate):
         Parameters
         ----------
         %(adata)s
-        %(function_name)s
+        %(local_name)s
+        %(global_name)s
         %(resource_name)s
         %(resource)s
         %(interactions)s
@@ -71,7 +72,7 @@ class SpatialLR(SpatialBivariate):
 
         lr_res, local_scores = super().__call__(
             mdata=adata,
-            function_name=function_name,
+            local_name=local_name,
             global_name=global_name,
             connectivity_key=connectivity_key,
             resource_name=resource_name,

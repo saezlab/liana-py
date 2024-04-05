@@ -11,24 +11,11 @@ ones = np.ones((mdata.shape[0], mdata.shape[0]), dtype=np.float64)
 mdata.obsp['ones'] = ones
 
 
-def test_bivar_morans():
-    bivar(mdata,
-          x_mod='adata_x',
-          y_mod='adata_y',
-          function_name='morans',
-          x_use_raw=False,
-          y_use_raw=False,
-          interactions=interactions
-          )
-    assert 'local_scores' in mdata.mod.keys()
-    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -346.55872, decimal=4)
-
-
 def test_bivar_morans_perms():
     bivar(mdata,
           x_mod='adata_x',
           y_mod='adata_y',
-          function_name='morans',
+          local_name='morans',
           n_perms=2,
           x_use_raw=False,
           y_use_raw=False,
@@ -37,6 +24,7 @@ def test_bivar_morans_perms():
 
     assert 'local_scores' in mdata.mod.keys()
     local_pvals = mdata.mod['local_scores'].layers['pvals']
+    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -346.55872, decimal=4)
     np.testing.assert_almost_equal(np.mean(local_pvals), 0.52787581, decimal=6)
 
 
@@ -45,7 +33,7 @@ def test_bivar_nondefault():
           bivar(mdata,
                 x_mod='adata_x',
                 y_mod='adata_y',
-                function_name='morans',
+                local_name='morans',
                 global_name=['morans', 'lee'],
                 n_perms=0,
                 connectivity_key='ones',
@@ -76,7 +64,7 @@ def test_bivar_adata():
             y_mod=None,
             x_use_raw=False,
             y_use_raw=False,
-            function_name='morans',
+            local_name='morans',
             connectivity_key='ones',
             interactions=interactions)
 
@@ -92,7 +80,7 @@ def test_masked_spearman():
           y_mod='adata_y',
           x_use_raw=False,
           y_use_raw=False,
-          function_name='masked_spearman',
+          local_name='masked_spearman',
           interactions=interactions,
           connectivity_key='ones'
           )
@@ -115,7 +103,7 @@ def test_vectorized_pearson():
           y_mod='adata_y',
           x_use_raw=False,
           y_use_raw=False,
-          function_name='pearson',
+          local_name='pearson',
           n_perms=100,
           interactions=interactions
           )

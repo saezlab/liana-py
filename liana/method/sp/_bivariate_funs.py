@@ -1,6 +1,206 @@
 import numba as nb
 import numpy as np
 from scipy.stats import rankdata
+from scipy.stats import norm
+from tqdm import tqdm
+from liana.method.sp._utils import _zscore, _spatialdm_weight_norm
+
+
+class LocalFunction:
+    """
+    Class representing information about bivariate spatial functions.
+    """
+
+    instances = {}
+
+    def __init__(self, name, metadata, fun, reference=None):
+        self.name = name
+        self.metadata = metadata
+        self.fun = fun
+        self.reference = reference
+
+        LocalFunction.instances[name] = self
+
+    def __call__(self,
+                 x_mat,
+                 y_mat,
+                 weight,
+                 n_perms,
+                 seed,
+                 mask_negatives,
+                 verbose
+                 ):
+        """
+        Local Moran's Bivariate I as implemented in SpatialDM
+
+        Returns
+        -------
+            Tupple of two 2D Numpy arrays of size (n_spots, n_xy),
+            or in other words calculates local_I and local_pval for
+            each interaction in `xy_dataframe` and each sample in mat
+        """
+
+        if self.name == 'morans':
+            x_mat = self._norm_max(x_mat)
+            y_mat = self._norm_max(y_mat)
+            weight = _spatialdm_weight_norm(weight)
+        else:
+            x_mat = x_mat.A
+            y_mat = y_mat.A
+
+        if self.name.__contains__("masked"):
+            weight = weight.A
+
+        local_scores = self.fun(x_mat, y_mat, weight)
+
+        if n_perms is None:
+            local_pvals = None
+        elif n_perms > 0:
+            local_pvals = self._permutation_pvals(x_mat=x_mat,
+                                                  y_mat=y_mat,
+                                                  weight=weight,
+                                                  local_truth=local_scores,
+                                                  n_perms=n_perms,
+                                                  seed=seed,
+                                                  mask_negatives=mask_negatives,
+                                                  verbose=verbose
+                                                  )
+        elif n_perms == 0:
+            local_pvals = self._zscore_pvals(x_mat=x_mat,
+                                             y_mat=y_mat,
+                                             weight=weight,
+                                             local_truth=local_scores,
+                                             mask_negatives=mask_negatives
+                                             )
+
+        return local_scores, local_pvals
+
+    def __repr__(self):
+        return f"{self.name}: {self.metadata}"
+
+    def _permutation_pvals(self,
+                           x_mat,
+                           y_mat,
+                           weight,
+                           local_truth,
+                           n_perms,
+                           seed,
+                           mask_negatives,
+                           verbose):
+        rng = np.random.default_rng(seed)
+
+        spot_n = local_truth.shape[0]
+        xy_n = local_truth.shape[1]
+
+        local_pvals = np.zeros((spot_n, xy_n))
+
+        # shuffle the matrix
+        for i in tqdm(range(n_perms), disable=not verbose):
+            _idx = rng.permutation(spot_n)
+            perm_score = self.fun(x_mat=x_mat[_idx, :], y_mat=y_mat[_idx, :], weight=weight)
+            if mask_negatives:
+                local_pvals += np.array(perm_score >= local_truth, dtype=int)
+            else:
+                local_pvals += np.array(np.abs(perm_score) >= np.abs(local_truth), dtype=int)
+
+        local_pvals = local_pvals / n_perms
+
+        return local_pvals
+
+
+    def _zscore_pvals(self, x_mat, y_mat, local_truth, weight, mask_negatives):
+        """
+
+        Parameters
+        ----------
+        x_mat
+            2D array with x variables
+        y_mat
+            2D array with y variables
+        local_r
+            2D array with Local Moran's I
+        weight
+            connectivity weights
+        mask_negatives
+            Whether to mask negative correlations pvalue
+
+        Returns
+        -------
+        2D array of p-values with shape(n_spot, xy_n)
+
+        """
+        spot_n = x_mat.shape[0]
+
+        x_norm = np.apply_along_axis(norm.fit, axis=0, arr=x_mat)
+        y_norm = np.apply_along_axis(norm.fit, axis=0, arr=y_mat)
+
+        # get x,y std
+        x_sigma, y_sigma = x_norm[1, :], y_norm[1, :]
+
+        x_sigma = x_sigma * spot_n / (spot_n - 1)
+        y_sigma = y_sigma * spot_n / (spot_n - 1)
+
+        std = self._get_local_var(x_sigma, y_sigma, weight, spot_n)
+        local_zscores = local_truth / std
+
+        if mask_negatives:
+            local_zpvals = norm.sf(local_zscores)
+        else:
+            local_zpvals = norm.sf(np.abs(local_zscores))
+
+        return local_zpvals
+
+
+    def _get_local_var(self, x_sigma, y_sigma, weight, spot_n):
+        """
+        Spatial weight variance as in spatialDM (Li et al., 2022)
+
+        Parameters
+        ----------
+        x_sigma
+            Standard deviations for each x (e.g. std of all ligands in the matrix)
+        y_sigma
+            Standard deviations for each y (e.g. std of all receptors in the matrix)
+        weight
+            connectivity weight matrix
+        spot_n
+            number of spots/cells in the matrix
+
+        Returns
+        -------
+        2D array of standard deviations with shape(n_spot, xy_n)
+
+        """
+        if not isinstance(weight, np.ndarray):
+            weight = np.array(weight.todense())
+
+        weight_sq = (weight ** 2).sum(axis=1)
+
+        dim = 2 * (spot_n - 1) ** 2 / spot_n ** 2
+        sigma_prod = x_sigma * y_sigma
+        core = dim * sigma_prod
+
+        var = np.multiply.outer(weight_sq, core) + core
+        std = var ** 0.5
+
+        return std
+
+    def _norm_max(self, X, axis=0):
+        X = X / X.max(axis=axis).A
+        X = _zscore(X, axis=axis)
+        X = np.where(np.isnan(X), 0, X)
+
+        return X
+
+    @classmethod
+    def _get_instance(cls, name):
+        name = name.lower()
+        instances = cls.instances.keys()
+        if name not in instances:
+            raise ValueError(f"Function {name} not found. Available functions are: {', '.join(instances)}")
+
+        return cls.instances[name]
+
 
 @nb.njit(nb.float32(nb.float32[:], nb.float32[:], nb.float32[:], nb.float32), cache=True)
 def _wcorr(x, y, w, wsum):
@@ -157,21 +357,6 @@ def _norm_product(x_mat, y_mat, weight):
 
     return score
 
-
-class LocalFunction:
-    """
-    Class representing information about bivariate spatial functions.
-    """
-    def __init__(self, name, metadata, fun, reference=None):
-        self.name = name
-        self.metadata = metadata
-        self.fun = fun
-        self.reference = reference
-
-    def __repr__(self):
-        return f"{self.name}: {self.metadata}"
-
-
 _bivariate_functions = [
         LocalFunction(
             name="pearson",
@@ -220,11 +405,3 @@ _bivariate_functions = [
             "Investigating higher-order interactions in single-cell data with scHOT. Nature methods, 17(8), pp.799-806."
         ),
     ]
-
-
-def _handle_functions(name, functions = _bivariate_functions):
-    name = name.lower()
-    for function in functions:
-        if function.name == name:
-            return function.fun
-    raise ValueError(f"Function {name} not found.")

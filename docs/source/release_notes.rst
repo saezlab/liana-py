@@ -4,8 +4,13 @@ Release notes
 1.X.X (XX.04.2024)
 -------------------------------------------------
 
--  Added a check for the subset of cell types in li.multi.dea_to_lr #92
+- Added a check for the subset of cell types in li.multi.dea_to_lr #92
 
+- Split Local and Global Bivariate metrics #44
+
+- Added Global [Lee's statistic](https://onlinelibrary.wiley.com/doi/abs/10.1111/gean.12106), along with a note on weighted product that upon z-scaling it is equivalent to Lee's local statistic.
+
+- Changed the ``li.mt.bivar`` parameter ``function_name`` to ``local_name`` for consistency and to avoid ambiguity with the newly-added ``global_name`` parameter.
 
 
 1.0.5 (25.02.2024)

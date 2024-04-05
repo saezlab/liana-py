@@ -1,11 +1,8 @@
 import numpy as np
 from  scipy.sparse import csr_matrix
 
-from liana.method.sp._spatial_pipe import (_global_r,
-                                           _local_permutation_pvals,
-                                           _local_zscore_pvals
-                                           )
-from liana.method.sp._bivariate_funs import _local_morans
+from liana.method.sp._spatial_pipe import _global_r
+from liana.method.sp._bivariate_funs import LocalFunction
 from liana.utils.spatial_neighbors import spatial_neighbors
 
 from liana.testing._sample_anndata import generate_toy_spatial
@@ -61,29 +58,28 @@ n_perms = 100
 mask_negatives = True
 
 
-
+local_morans = LocalFunction._get_instance('morans')
 def test_local_permutation_pvals():
     local_truth = rng.normal(size=(10, 10))
     mask_negatives = True
 
-    pvals = _local_permutation_pvals(x_mat = x_mat,
-                                     y_mat = y_mat,
-                                     local_truth = local_truth,
-                                     local_fun = _local_morans,
-                                     weight = weight,
-                                     n_perms = n_perms,
-                                     seed = seed,
-                                     mask_negatives=mask_negatives,
-                                     verbose=False
-                                     )
+    pvals = local_morans._permutation_pvals(x_mat = x_mat,
+                                            y_mat = y_mat,
+                                            local_truth = local_truth,
+                                            weight = weight,
+                                            n_perms = n_perms,
+                                            seed = seed,
+                                            mask_negatives=mask_negatives,
+                                            verbose=False
+                                            )
     assert pvals.shape == (10, 10)
 
 
 def test_local_zscore_pvals():
     local_truth = rng.normal(size=(10, 10))
-    actual = _local_zscore_pvals(x_mat=x_mat, y_mat=y_mat,
-                                 weight=weight, local_truth=local_truth,
-                                 mask_negatives=mask_negatives)
+    actual = local_morans._zscore_pvals(x_mat=x_mat, y_mat=y_mat,
+                                        weight=weight, local_truth=local_truth,
+                                        mask_negatives=mask_negatives)
     np.testing.assert_almost_equal(actual.mean(axis=0)[0:3], np.array([0.51747, 0.47383, 0.49125]), decimal=5)
     assert actual.shape == (10, 10)
 

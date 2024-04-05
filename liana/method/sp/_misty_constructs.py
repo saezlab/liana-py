@@ -12,7 +12,7 @@ from liana.method._pipe_utils._pre import _choose_mtx_rep
 
 from liana.resource import select_resource
 from liana.method._pipe_utils import prep_check_adata
-from liana.method.sp._spatial_pipe import _add_complexes_to_var
+from liana.method.sp._utils import _add_complexes_to_var
 from liana._logging import _check_if_installed
 
 def _make_view(adata, nz_threshold=0.1, add_obs=False, use_raw=False,

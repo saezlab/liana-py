@@ -7,16 +7,13 @@ from anndata import AnnData
 from mudata import MuData
 
 from liana.method._pipe_utils._common import _get_props
-from liana.method.sp._spatial_pipe import (
-    _get_local_scores,
-    _add_complexes_to_var,
-    _zscore,
-    GlobalFunction
-    )
 from liana.utils.mdata_to_anndata import mdata_to_anndata
 from liana.resource.select_resource import _handle_resource
 from liana.method._pipe_utils import prep_check_adata, assert_covered
-from liana.method.sp._bivariate_funs import _handle_functions, _bivariate_functions
+
+from liana.method.sp._utils import _add_complexes_to_var, _zscore
+from liana.method.sp._spatial_pipe import GlobalFunction
+from liana.method.sp._bivariate_funs import LocalFunction
 
 from liana._logging import _logg
 from liana._docs import d
@@ -29,67 +26,12 @@ class SpatialBivariate():
         self.x_name = x_name
         self.y_name = y_name
 
-    def _rename_means(self, lr_stats, entity):
-        df = lr_stats.copy()
-        df.columns = df.columns.map(lambda x: entity + '_' + str(x) if x != 'gene' else 'gene')
-        return df.rename(columns={'gene': entity})
-
-    def _handle_return(self, data, stats, local_scores, x_added, inplace=False):
-        if not inplace:
-            return stats, local_scores
-
-        if isinstance(data, MuData):
-            data.mod[x_added] = local_scores
-        else:
-            data.obsm[x_added] = local_scores
-
-
-    def _handle_connectivity(self, adata, connectivity_key):
-        if connectivity_key not in adata.obsp.keys():
-            raise ValueError(f'No connectivity matrix founds in mdata.obsp[{connectivity_key}]')
-        connectivity = adata.obsp[connectivity_key]
-
-        if not isspmatrix_csr(connectivity):
-            connectivity = csr_matrix(connectivity, dtype=np.float32)
-
-        return connectivity
-
-    def _connectivity_to_weight(self, connectivity, local_fun):
-        if not isspmatrix_csr(connectivity) or (connectivity.dtype != np.float32):
-            connectivity = csr_matrix(connectivity, dtype=np.float32)
-
-        if local_fun.__name__ == "_local_morans":
-            norm_factor = connectivity.shape[0] / connectivity.sum()
-            connectivity = norm_factor * connectivity
-        if local_fun.__name__.__contains__("masked"):
-                return connectivity.A
-        else:
-            return connectivity
-
-    def _encode_cats(self, a, weight):
-        if np.all(a >= 0):
-            a = _zscore(a)
-        a = weight @ a
-        a = np.where(a > 0, 1, np.where(a < 0, -1, np.nan))
-        return a
-
-    def _categorize(self, x_mat, y_mat, weight):
-        x_cats = self._encode_cats(x_mat.A, weight)
-        y_cats = self._encode_cats(y_mat.A, weight)
-
-        # add the two categories, and simplify them to ints
-        cats = x_cats + y_cats
-        cats = np.where(cats == 2, 1, np.where(cats == 0, -1, 0))
-
-        return cats
-
-
     @d.dedent
     def __call__(self,
                  mdata: (MuData | AnnData),
                  x_mod: str,
                  y_mod: str,
-                 function_name: str = 'cosine',
+                 local_name: (str | None) = 'cosine',
                  global_name: (None | str | list) = None,
                  interactions: (None | list) = None,
                  resource: (None | pd.DataFrame) = None,
@@ -100,7 +42,7 @@ class SpatialBivariate():
                  add_categories: bool = False,
                  n_perms: int = None,
                  seed: int = V.seed,
-                 nz_threshold:float = 0, # NOTE: do I rename this?
+                 nz_threshold: float = 0, # NOTE: do I rename this?
                  x_use_raw: bool = V.use_raw,
                  x_layer: (None | str) = V.layer,
                  x_transform: (bool | callable) = False,
@@ -122,7 +64,8 @@ class SpatialBivariate():
         %(mdata)s
         %(x_mod)s
         %(y_mod)s
-        %(function_name)s
+        %(local_name)s
+        %(global_name)s
         %(interactions)s
         %(resource)s
         %(resource_name)s
@@ -171,7 +114,7 @@ class SpatialBivariate():
         if n_perms is not None:
             if not isinstance(n_perms, int) or n_perms < 0:
                 raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")
-        if (n_perms == 0) and (function_name != "morans"):
+        if (n_perms == 0) and (local_name != "morans"):
             raise ValueError("An analytical solution is currently available only for Moran's R")
         if global_name is not None:
             if isinstance(global_name, str):
@@ -182,7 +125,8 @@ class SpatialBivariate():
                 if g_fun not in global_funs:
                     raise ValueError(f"Invalid global function: {g_fun}. Must be in {global_funs}")
 
-        local_fun = _handle_functions(function_name)
+        if local_name is not None:
+            local_fun = LocalFunction._get_instance(name=local_name)
 
         resource = _handle_resource(interactions=interactions,
                                     resource=resource,
@@ -223,8 +167,7 @@ class SpatialBivariate():
                                  complex_sep=complex_sep,
                                 )
 
-        connectivity = self._handle_connectivity(adata=adata, connectivity_key=connectivity_key)
-        weight = self._connectivity_to_weight(connectivity=connectivity, local_fun=local_fun)
+        weight = self._handle_connectivity(adata=adata, connectivity_key=connectivity_key)
 
         if complex_sep is not None:
             adata = _add_complexes_to_var(adata,
@@ -282,6 +225,9 @@ class SpatialBivariate():
                            verbose=verbose,
                            )
 
+        if local_name is None:
+            return xy_stats
+
         # Calculate local scores
         if add_categories or mask_negatives:
             local_cats = self._categorize(x_mat=x_mat,
@@ -293,15 +239,14 @@ class SpatialBivariate():
 
         # get local scores
         local_scores, local_pvals = \
-            _get_local_scores(x_mat=x_mat,
-                              y_mat=y_mat,
-                              local_fun=local_fun,
-                              weight=weight,
-                              seed=seed,
-                              n_perms=n_perms,
-                              mask_negatives=mask_negatives,
-                              verbose=verbose,
-                              )
+            local_fun(x_mat=x_mat,
+                      y_mat=y_mat,
+                      weight=weight,
+                      seed=seed,
+                      n_perms=n_perms,
+                      mask_negatives=mask_negatives,
+                      verbose=verbose,
+                      )
 
         xy_stats.loc[:, ['mean', 'std']] = \
             np.vstack(
@@ -330,12 +275,53 @@ class SpatialBivariate():
 
         return self._handle_return(mdata, xy_stats, local_scores, mod_added, inplace)
 
+    def _rename_means(self, lr_stats, entity):
+        df = lr_stats.copy()
+        df.columns = df.columns.map(lambda x: entity + '_' + str(x) if x != 'gene' else 'gene')
+        return df.rename(columns={'gene': entity})
+
+    def _handle_return(self, data, stats, local_scores, x_added, inplace=False):
+        if not inplace:
+            return stats, local_scores
+
+        if isinstance(data, MuData):
+            data.mod[x_added] = local_scores
+        else:
+            data.obsm[x_added] = local_scores
+
+    def _handle_connectivity(self, adata, connectivity_key):
+        if connectivity_key not in adata.obsp.keys():
+            raise ValueError(f'No connectivity matrix founds in mdata.obsp[{connectivity_key}]')
+        connectivity = adata.obsp[connectivity_key]
+
+        if not isspmatrix_csr(connectivity) or (connectivity.dtype != np.float32):
+            connectivity = csr_matrix(connectivity, dtype=np.float32)
+
+        return connectivity
+
+    def _encode_cats(self, a, weight):
+        if np.all(a >= 0):
+            a = _zscore(a)
+        a = weight @ a
+        a = np.where(a > 0, 1, np.where(a < 0, -1, np.nan))
+        return a
+
+    def _categorize(self, x_mat, y_mat, weight):
+        x_cats = self._encode_cats(x_mat.A, weight)
+        y_cats = self._encode_cats(y_mat.A, weight)
+
+        # add the two categories, and simplify them to ints
+        cats = x_cats + y_cats
+        cats = np.where(cats == 2, 1, np.where(cats == 0, -1, 0))
+
+        return cats
+
     def show_functions(self):
         """
         Print information about all bivariate local metrics.
         """
-        funs = dict()
-        for function in _bivariate_functions:
+        funs = LocalFunction.instances
+        for function in funs.keys():
             funs[function.name] = {
                 "metadata":function.metadata,
                 "reference":function.reference,
