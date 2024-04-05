@@ -12,8 +12,8 @@ from liana.resource.select_resource import _handle_resource
 from liana.method._pipe_utils import prep_check_adata, assert_covered
 
 from liana.method.sp._utils import _add_complexes_to_var, _zscore
-from liana.method.sp._bivariate._spatial_pipe import GlobalFunction
-from liana.method.sp._bivariate._bivariate_funs import LocalFunction
+from liana.method.sp._bivariate._global_functions import GlobalFunction
+from liana.method.sp._bivariate._local_functions import LocalFunction
 
 from liana._logging import _logg
 from liana._docs import d
@@ -32,7 +32,7 @@ class SpatialBivariate():
                  x_mod: str,
                  y_mod: str,
                  local_name: (str | None) = 'cosine',
-                 global_name: (None | str | list) = None,
+                 global_name: (None | str | list) = 'morans',
                  interactions: (None | list) = None,
                  resource: (None | pd.DataFrame) = None,
                  resource_name: (None | str) = None,

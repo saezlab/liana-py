@@ -1,6 +1,6 @@
 import numpy as np
 
-from liana.method.sp._bivariate._bivariate_funs import _vectorized_pearson, _vectorized_spearman, \
+from liana.method.sp._bivariate._local_functions import _vectorized_pearson, _vectorized_spearman, \
     _vectorized_cosine, _vectorized_jaccard, _masked_spearman, _local_morans, _product, \
     _norm_product
 

@@ -17,7 +17,7 @@ class SpatialLR(SpatialBivariate):
     def __call__(self,
                  adata: AnnData,
                  local_name: str = 'cosine',
-                 global_name: (None | str | list) = None,
+                 global_name: (None | str | list) = 'morans',
                  resource_name: str = V.resource_name,
                  resource: Optional[pd.DataFrame] = V.resource,
                  interactions: list = V.interactions,
