@@ -17,6 +17,7 @@ class SpatialLR(SpatialBivariate):
     def __call__(self,
                  adata: AnnData,
                  function_name: str,
+                 global_name: Optional[str] = None,
                  resource_name: str = V.resource_name,
                  resource: Optional[pd.DataFrame] = V.resource,
                  interactions: list = V.interactions,
@@ -71,6 +72,7 @@ class SpatialLR(SpatialBivariate):
         lr_res, local_scores = super().__call__(
             mdata=adata,
             function_name=function_name,
+            global_name=global_name,
             connectivity_key=connectivity_key,
             resource_name=resource_name,
             resource=resource,

@@ -1,7 +1,10 @@
 import numpy as np
 from  scipy.sparse import csr_matrix
 
-from liana.method.sp._spatial_pipe import _global_zscore_pvals, _global_permutation_pvals, _local_permutation_pvals, _local_zscore_pvals
+from liana.method.sp._spatial_pipe import (_global_r,
+                                           _local_permutation_pvals,
+                                           _local_zscore_pvals
+                                           )
 from liana.method.sp._bivariate_funs import _local_morans
 from liana.utils.spatial_neighbors import spatial_neighbors
 
@@ -58,22 +61,6 @@ n_perms = 100
 mask_negatives = True
 
 
-def test_global_permutation_pvals():
-    global_truth = rng.normal(size=(10))
-
-    pvals = _global_permutation_pvals(x_mat=x_mat,
-                                      y_mat=y_mat,
-                                      global_r=global_truth,
-                                      seed=seed,
-                                      n_perms=n_perms,
-                                      mask_negatives=mask_negatives,
-                                      weight=weight,
-                                      verbose=False
-                                      )
-    assert pvals.shape == (10, )
-    assert pvals.sum().round(3)==5.07
-
-
 
 def test_local_permutation_pvals():
     local_truth = rng.normal(size=(10, 10))
@@ -92,19 +79,35 @@ def test_local_permutation_pvals():
     assert pvals.shape == (10, 10)
 
 
-def test_global_zscore_pvals():
-    global_truth = rng.normal(size=(10))
-    pvals = _global_zscore_pvals(global_r=global_truth,
-                                 weight=weight,
-                                 mask_negatives=mask_negatives
-    )
-    assert pvals.shape == (10, )
-
-
 def test_local_zscore_pvals():
     local_truth = rng.normal(size=(10, 10))
     actual = _local_zscore_pvals(x_mat=x_mat, y_mat=y_mat,
                                  weight=weight, local_truth=local_truth,
                                  mask_negatives=mask_negatives)
-    np.testing.assert_almost_equal(actual.mean(axis=0)[0:3], np.array([0.51205, 0.48012, 0.49023]), decimal=5)
+    np.testing.assert_almost_equal(actual.mean(axis=0)[0:3], np.array([0.51747, 0.47383, 0.49125]), decimal=5)
     assert actual.shape == (10, 10)
+
+
+
+def test_global_zscore_pvals():
+    global_stat = rng.normal(size=(10))
+    pvals = _global_r._zscore_pvals(global_stat=global_stat,
+                                    weight=weight,
+                                    mask_negatives=mask_negatives
+    )
+    assert pvals.shape == (10,)
+
+
+def test_global_permutation_pvals():
+    global_stat = rng.normal(size=(10))
+    pvals = _global_r._permutation_pvals(x_mat=x_mat,
+                                         y_mat=y_mat,
+                                         global_stat=global_stat,
+                                         seed=seed,
+                                         n_perms=n_perms,
+                                         mask_negatives=mask_negatives,
+                                         weight=weight,
+                                         verbose=False
+                                      )
+    assert pvals.shape == (10, )
+    assert pvals.sum().round(3)==4.97

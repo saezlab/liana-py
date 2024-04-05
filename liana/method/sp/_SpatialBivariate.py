@@ -8,12 +8,10 @@ from mudata import MuData
 
 from liana.method._pipe_utils._common import _get_props
 from liana.method.sp._spatial_pipe import (
-    _categorize,
-    _rename_means,
     _get_local_scores,
     _add_complexes_to_var,
-    _global_spatialdm,
-    _zscore
+    _zscore,
+    GlobalFunction
     )
 from liana.utils.mdata_to_anndata import mdata_to_anndata
 from liana.resource.select_resource import _handle_resource
@@ -30,6 +28,11 @@ class SpatialBivariate():
     def __init__(self, x_name='x', y_name='y'):
         self.x_name = x_name
         self.y_name = y_name
+
+    def _rename_means(self, lr_stats, entity):
+        df = lr_stats.copy()
+        df.columns = df.columns.map(lambda x: entity + '_' + str(x) if x != 'gene' else 'gene')
+        return df.rename(columns={'gene': entity})
 
     def _handle_return(self, data, stats, local_scores, x_added, inplace=False):
         if not inplace:
@@ -63,6 +66,23 @@ class SpatialBivariate():
         else:
             return connectivity
 
+    def _encode_cats(self, a, weight):
+        if np.all(a >= 0):
+            a = _zscore(a)
+        a = weight @ a
+        a = np.where(a > 0, 1, np.where(a < 0, -1, np.nan))
+        return a
+
+    def _categorize(self, x_mat, y_mat, weight):
+        x_cats = self._encode_cats(x_mat.A, weight)
+        y_cats = self._encode_cats(y_mat.A, weight)
+
+        # add the two categories, and simplify them to ints
+        cats = x_cats + y_cats
+        cats = np.where(cats == 2, 1, np.where(cats == 0, -1, 0))
+
+        return cats
+
 
     @d.dedent
     def __call__(self,
@@ -70,10 +90,11 @@ class SpatialBivariate():
                  x_mod: str,
                  y_mod: str,
                  function_name: str = 'cosine',
+                 global_name: (None | str | list) = None,
                  interactions: (None | list) = None,
                  resource: (None | pd.DataFrame) = None,
                  resource_name: (None | str) = None,
-                 connectivity_key:str = K.connectivity_key,
+                 connectivity_key: str = K.connectivity_key,
                  mod_added: str = "local_scores",
                  mask_negatives: bool = False,
                  add_categories: bool = False,
@@ -87,10 +108,10 @@ class SpatialBivariate():
                  y_layer: (None | str) = V.layer,
                  y_transform: (bool | callable) = False,
                  complex_sep: (None | str) = None,
-                 xy_sep:str = V.lr_sep,
+                 xy_sep: str = V.lr_sep,
                  remove_self_interactions: bool = True,
-                 inplace:bool = V.inplace,
-                 verbose:bool = V.verbose,
+                 inplace: bool = V.inplace,
+                 verbose: bool = V.verbose,
                  ) -> AnnData | None:
         """
         A method for bivariate local spatial metrics.
@@ -152,6 +173,14 @@ class SpatialBivariate():
                 raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")
         if (n_perms == 0) and (function_name != "morans"):
             raise ValueError("An analytical solution is currently available only for Moran's R")
+        if global_name is not None:
+            if isinstance(global_name, str):
+                global_name = [global_name]
+
+            global_funs = GlobalFunction.instances.keys()
+            for g_fun in global_funs:
+                if g_fun not in global_funs:
+                    raise ValueError(f"Invalid global function: {g_fun}. Must be in {global_funs}")
 
         local_fun = _handle_functions(function_name)
 
@@ -209,7 +238,6 @@ class SpatialBivariate():
         resource = resource[(np.isin(resource[self.x_name], adata.var_names)) &
                             (np.isin(resource[self.y_name], adata.var_names))]
 
-        # NOTE: Should I just get rid of remove_self_interactions?
         self_interactions = resource[self.x_name] == resource[self.y_name]
         if self_interactions.any() & remove_self_interactions:
             _logg(f"Removing {self_interactions.sum()} self-interactions", verbose=verbose)
@@ -229,8 +257,8 @@ class SpatialBivariate():
                                 index=adata.var_names
                                 ).reset_index().rename(columns={'index': 'gene'})
         # join global stats to LRs from resource
-        xy_stats = resource.merge(_rename_means(xy_stats, entity=self.x_name)).merge(
-            _rename_means(xy_stats, entity=self.y_name))
+        xy_stats = resource.merge(self._rename_means(xy_stats, entity=self.x_name)).merge(
+                                    self._rename_means(xy_stats, entity=self.y_name))
 
         # filter according to props
         xy_stats = xy_stats[(xy_stats[f'{self.x_name}_props'] >= nz_threshold) &
@@ -241,24 +269,25 @@ class SpatialBivariate():
         x_mat = adata[:, xy_stats[self.x_name]].X
         y_mat = adata[:, xy_stats[self.y_name]].X
 
-        if local_fun.__name__ == "_local_morans":
-            global_r, global_pvals = \
-                _global_spatialdm(x_mat=_zscore(x_mat, local=False, axis=0),
-                                  y_mat=_zscore(y_mat, local=False, axis=0),
-                                  weight=weight,
-                                  seed=seed,
-                                  n_perms=n_perms,
-                                  mask_negatives=mask_negatives,
-                                  verbose=verbose
-                                  )
-            xy_stats['morans_r'] = global_r
-            xy_stats['morans_pvals'] = global_pvals
+        if global_name is not None:
+            for gname in global_name:
+                global_fun = GlobalFunction.instances[gname]
+                global_fun(xy_stats,
+                           x_mat=x_mat,
+                           y_mat=y_mat,
+                           weight=weight,
+                           seed=seed,
+                           n_perms=n_perms,
+                           mask_negatives=mask_negatives,
+                           verbose=verbose,
+                           )
 
+        # Calculate local scores
         if add_categories or mask_negatives:
-            local_cats = _categorize(x_mat=x_mat,
-                                     y_mat=y_mat,
-                                     weight=weight,
-                                     )
+            local_cats = self._categorize(x_mat=x_mat,
+                                          y_mat=y_mat,
+                                          weight=weight,
+                                          )
         else:
             local_cats = None
 
@@ -291,6 +320,7 @@ class SpatialBivariate():
                                var=xy_stats.set_index('interaction'),
                                uns=_uns,
                                obsm=adata.obsm,
+                               obsp=adata.obsp,
                                )
 
         if add_categories:

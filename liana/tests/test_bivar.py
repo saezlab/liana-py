@@ -46,6 +46,7 @@ def test_bivar_nondefault():
                 x_mod='adata_x',
                 y_mod='adata_y',
                 function_name='morans',
+                global_name=['morans'],
                 n_perms=0,
                 connectivity_key='ones',
                 remove_self_interactions=False,
@@ -59,7 +60,7 @@ def test_bivar_nondefault():
                 )
 
     # if all are the same weights, then everything is close to 0?
-    np.testing.assert_almost_equal(global_stats['morans_r'].sum(), 0)
+    np.testing.assert_almost_equal(global_stats['morans'].sum(), 0)
     local_scores.shape == (700, 100)
     np.testing.assert_almost_equal(np.min(np.min(local_scores.layers['pvals'])), 0.5, decimal=2)
 
@@ -90,7 +91,8 @@ def test_masked_spearman():
           y_use_raw=False,
           function_name='masked_spearman',
           interactions=interactions,
-          connectivity_key='ones')
+          connectivity_key='ones'
+          )
 
     # check local
     assert 'local_scores' in mdata.mod.keys()
@@ -112,7 +114,8 @@ def test_vectorized_pearson():
           y_use_raw=False,
           function_name='pearson',
           n_perms=100,
-          interactions=interactions)
+          interactions=interactions
+          )
 
     # check local
     assert 'local_scores' in mdata.mod.keys()
