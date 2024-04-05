@@ -2,7 +2,7 @@ import os
 import pathlib
 import numpy as np
 import scanpy as sc
-from liana.method.sp._misty_constructs import lrMistyData, genericMistyData
+from liana.method.sp._misty._misty_constructs import lrMistyData, genericMistyData
 from liana.testing._sample_anndata import generate_toy_spatial
 from liana.method import MistyData
 

@@ -5,7 +5,7 @@ from anndata import AnnData
 from types import ModuleType
 from liana.method._pipe_utils._common import _get_props
 
-from liana.method.sp._Misty import MistyData
+from liana.method.sp._misty._Misty import MistyData
 
 from liana.utils.spatial_neighbors import spatial_neighbors
 from liana.method._pipe_utils._pre import _choose_mtx_rep

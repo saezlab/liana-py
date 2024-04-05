@@ -12,8 +12,8 @@ from liana.resource.select_resource import _handle_resource
 from liana.method._pipe_utils import prep_check_adata, assert_covered
 
 from liana.method.sp._utils import _add_complexes_to_var, _zscore
-from liana.method.sp._spatial_pipe import GlobalFunction
-from liana.method.sp._bivariate_funs import LocalFunction
+from liana.method.sp._bivariate._spatial_pipe import GlobalFunction
+from liana.method.sp._bivariate._bivariate_funs import LocalFunction
 
 from liana._logging import _logg
 from liana._docs import d

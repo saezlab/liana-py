@@ -1,7 +1,7 @@
 import numpy as np
 from liana.testing._sample_anndata import generate_toy_spatial
 
-from liana.method.sp._lr_bivar import lr_bivar
+from liana.method.sp._bivariate._lr_bivar import lr_bivar
 
 adata = generate_toy_spatial()
  # NOTE: these should be the same regardless of the local function

@@ -4,7 +4,7 @@ from anndata import AnnData
 import pandas as pd
 from typing import Optional
 
-from liana.method.sp._SpatialBivariate import SpatialBivariate
+from liana.method.sp._bivariate._SpatialBivariate import SpatialBivariate
 from liana._docs import d
 from liana._constants import Keys as K, DefaultValues as V
 
