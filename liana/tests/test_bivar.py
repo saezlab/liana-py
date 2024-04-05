@@ -46,7 +46,7 @@ def test_bivar_nondefault():
                 x_mod='adata_x',
                 y_mod='adata_y',
                 function_name='morans',
-                global_name=['morans'],
+                global_name=['morans', 'lee'],
                 n_perms=0,
                 connectivity_key='ones',
                 remove_self_interactions=False,
@@ -59,8 +59,11 @@ def test_bivar_nondefault():
                 interactions=interactions
                 )
 
-    # if all are the same weights, then everything is close to 0?
     np.testing.assert_almost_equal(global_stats['morans'].sum(), 0)
+    np.testing.assert_almost_equal(global_stats['lee'].sum(), 0)
+    assert global_stats['lee_pvals'].unique()[0] is None
+    np.testing.assert_almost_equal(global_stats['morans_pvals'].mean(), 1, decimal=5)
+
     local_scores.shape == (700, 100)
     np.testing.assert_almost_equal(np.min(np.min(local_scores.layers['pvals'])), 0.5, decimal=2)
 

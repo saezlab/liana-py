@@ -28,7 +28,11 @@ def test_morans_analytical():
 
 def test_cosine_permutation():
     adata = generate_toy_spatial()
-    lr_bivar(adata, function_name='cosine', n_perms=100, use_raw=True)
+    lr_bivar(adata,
+             function_name='cosine',
+             global_name=['morans', 'lee'],
+             n_perms=100,
+             use_raw=True)
     lrdata = adata.obsm['local_scores']
 
     assert 'pvals' in lrdata.layers.keys()
@@ -39,6 +43,10 @@ def test_cosine_permutation():
     interaction = lrdata.var[lrdata.var.index == 'S100A9^ITGB2']
     np.testing.assert_almost_equal(interaction['mean'].values, 0.56016606)
     np.testing.assert_almost_equal(interaction['std'].values, 0.33243373)
+    np.testing.assert_almost_equal(interaction['morans'].values, 0.25603265)
+    np.testing.assert_almost_equal(interaction['lee'].values, 0.04854206)
+    np.testing.assert_almost_equal(interaction['morans_pvals'].values, 0.85)
+    np.testing.assert_almost_equal(interaction['lee_pvals'].values, 0.93)
 
 
 def test_morans_pval_none_cats():

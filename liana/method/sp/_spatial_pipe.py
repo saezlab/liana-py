@@ -7,6 +7,7 @@ from scipy.sparse import csr_matrix, isspmatrix_csr, hstack
 from scipy.stats import norm
 from tqdm import tqdm
 from anndata import AnnData
+from liana._logging import _logg
 
 
 class GlobalFunction:
@@ -91,11 +92,17 @@ class GlobalFunction:
                  mask_negatives,
                  verbose
                  ):
+        # NOTE: these are out of functions for permute efficiency
         if self.name == 'morans':
             x_mat = _zscore(x_mat, axis=0, global_r=True)
             y_mat = _zscore(y_mat, axis=0, global_r=True)
+        if self.name == 'lee':
+            x_mat = _zscore(x_mat)
+            y_mat = _zscore(y_mat)
+            weight = weight * weight
 
         global_stat = self.fun(x_mat=x_mat, y_mat=y_mat, weight=weight)
+
 
         if n_perms is None:
             global_pvals = None
@@ -110,15 +117,15 @@ class GlobalFunction:
                                         seed=seed,
                                         verbose=verbose
                                         )
-        elif n_perms==0:
-            if self.name == 'morans':
-                global_pvals = \
-                    self._zscore_pvals(weight=weight,
-                                       global_stat=global_stat,
-                                       mask_negatives=mask_negatives
-                                       )
-            else:
-                raise ValueError("Analytical p-values are supported only for Moran's R.")
+        elif n_perms==0 and self.name == 'morans':
+            global_pvals = \
+                self._zscore_pvals(weight=weight,
+                                   global_stat=global_stat,
+                                   mask_negatives=mask_negatives
+                                   )
+        elif n_perms==0 and self.name == 'lee':
+            global_pvals = None
+            _logg('Global Lee does not support analytical p-values', 'warning', verbose=verbose)
 
         xy_stats[self.name] = global_stat
         xy_stats[self.pvals_name] = global_pvals
@@ -129,8 +136,7 @@ def _global_r(x_mat, y_mat, weight):
 
 
 def _global_l(x_mat, y_mat, weight):
-    w2 = weight * weight
-    return ((w2 @ x_mat) * y_mat).sum(axis=0) / w2.sum()
+    return ((weight @ x_mat) * y_mat).sum(axis=0) / weight.sum()
 
 _global_r = GlobalFunction(_global_r, 'morans')
 _global_l = GlobalFunction(_global_l, 'lee')
