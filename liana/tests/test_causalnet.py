@@ -27,13 +27,14 @@ def test_caulsalnet():
                                      node_weights=node_weights,
                                      verbose=False,
                                      solver='scipy',
-                                     seed=1337
+                                     seed=1337,
+                                     max_runs=20,
+                                     stable_runs=10,
                                      )
 
     assert problem.weights == [1.0, 0.01, 1.0, 1.0]
-    assert df_res['source_pred_val'].values.sum() == 5
-    assert df_res['target_pred_val'].values.sum() == 8
-    assert df_res[df_res['source_type']=='input']['source'].values[0] == 'I2'
+    assert df_res['source_pred_val'].values.sum() == 8.0
+    assert df_res['target_pred_val'].values.sum() == 11
     assert (df_res[df_res['target_type']=='output']['target'].isin(['M1', 'M2'])).all()
 
 

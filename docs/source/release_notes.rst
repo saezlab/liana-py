@@ -6,9 +6,7 @@ Release notes
 
 - Added a check for the subset of cell types in li.multi.dea_to_lr #92
 
-- Split Local and Global Bivariate metrics #44. Specifically, I reworked completely the underlying code, though the API should remain relatively unchanged. With the exceptions of:
-1) ``lr_bivar`` is now removed and ``bivar`` has been renamed to ``bivariate``. This allowed me to remove a lot of redundancies between the two functions.
-2) ``nz_threshold`` has been renamed to ``nz_prop`` for consistency with ``expr_prop`` in the remainder of the package.
+- Split Local and Global Bivariate metrics #44. Specifically, I reworked completely the underlying code, though the API should remain relatively unchanged. With the exceptions of: 1) ``lr_bivar`` is now removed and ``bivar`` has been renamed to ``bivariate``. This allowed me to remove a lot of redundancies between the two functions. 2) ``nz_threshold`` has been renamed to ``nz_prop`` for consistency with ``expr_prop`` in the remainder of the package.
 
 - Added Global [Lee's statistic](https://onlinelibrary.wiley.com/doi/abs/10.1111/gean.12106), along with a note on weighted product that upon z-scaling it is equivalent to Lee's local statistic.
 
@@ -16,6 +14,7 @@ Release notes
 
 - Changed the ``li.mt.bivar`` parameter ``function_name`` to ``local_name`` for consistency and to avoid ambiguity with the newly-added ``global_name`` parameter.
 
+- Added ``bumpversion`` to manage versioning. #73
 
 1.0.5 (25.02.2024)
 -------------------------------------------------

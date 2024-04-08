@@ -52,6 +52,7 @@ ipython = "^7.0"
 ipykernel = "^6.0"
 pandoc = "^1.0"
 numpydoc = "^1.1"
+bumpversion = "^0.6.0"
 
 [tool.poetry.extras]
 common = ["decoupler", "omnipath", "requests"]
