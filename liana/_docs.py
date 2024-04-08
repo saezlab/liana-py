@@ -189,6 +189,14 @@ _y_mod = """\
 y_mod
     Name of the modality to use for the y-axis."""
 
+_x_name = """\
+x_name
+    Name of the x-variable. If passing a `resource` dataframe, this should match the first column."""
+
+_y_name = """\
+y_name
+    Name of the y-variable. If passing a `resource` dataframe, this should match the second column."""
+
 _mask_negatives = """\
 mask_negatives
     Whether to mask negative-negative (low-low) or uncategorized interactions."""
@@ -323,6 +331,8 @@ d = DocstringProcessor(
     add_categories=_add_categories,
     x_mod=_x_mod,
     y_mod=_y_mod,
+    x_name=_x_name,
+    y_name=_y_name,
     mask_negatives=_mask_negatives,
     colour=_colour,
     size=_size,

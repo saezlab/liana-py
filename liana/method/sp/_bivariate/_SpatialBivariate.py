@@ -27,62 +27,6 @@ class SpatialBivariate():
         self.x_name = x_name
         self.y_name = y_name
 
-    def _process_anndata(self,
-                         adata,
-                         complex_sep,
-                         verbose,
-                         **kwargs):
-        self.x_name = kwargs.get('x_name', 'ligand')
-        self.y_name = kwargs.get('y_name', 'receptor')
-
-        return prep_check_adata(adata=adata,
-                                use_raw=kwargs.get('use_raw', V.use_raw),
-                                layer=kwargs.get('layer', V.layer),
-                                verbose=verbose,
-                                obsm=adata.obsm.copy(),
-                                uns=adata.uns.copy(),
-                                groupby=None,
-                                min_cells=None,
-                                complex_sep=complex_sep,
-                                )
-
-    def _process_mudata(self,
-                        mdata,
-                        complex_sep,
-                        verbose,
-                        **kwargs):
-        self.x_name = kwargs.get('x_name', self.x_name)
-        self.y_name = kwargs.get('y_name', self.y_name)
-
-        x_mod = kwargs.get('x_mod')
-        y_mod = kwargs.get('y_mod')
-
-        if x_mod is None or y_mod is None:
-            raise ValueError("MuData processing requires 'x_mod' and 'y_mod' parameters.")
-
-        adata = mdata_to_anndata(mdata,
-                                 x_mod=x_mod,
-                                 y_mod=y_mod,
-                                 x_use_raw=kwargs.get('x_use_raw', V.use_raw),
-                                 x_layer=kwargs.get('x_layer', V.layer),
-                                 y_use_raw=kwargs.get('y_use_raw', V.use_raw),
-                                 y_layer=kwargs.get('y_layer', V.layer),
-                                 x_transform=kwargs.get('x_transform', False),
-                                 y_transform=kwargs.get('y_transform', False),
-                                 verbose=verbose
-                                 )
-
-        return prep_check_adata(adata=adata,
-                                use_raw=False,
-                                layer=None,
-                                verbose=verbose,
-                                obsm = adata.obsm.copy(),
-                                uns=adata.uns.copy(),
-                                groupby=None,
-                                min_cells=None,
-                                complex_sep=complex_sep, # NOTE
-                                )
-
     @d.dedent
     def __call__(self,
                  mdata: (MuData | AnnData),
@@ -112,8 +56,6 @@ class SpatialBivariate():
         ----------
 
         %(mdata)s
-        %(x_mod)s
-        %(y_mod)s
         %(local_name)s
         %(global_name)s
         %(interactions)s
@@ -128,18 +70,6 @@ class SpatialBivariate():
             Minimum proportion of non-zero values for each features. For example, if working with gene expression data,
             this would be the proportion of cells expressing a gene. Both features must have a proportion greater than
             `nz_prop` to be considered in the analysis.
-        x_use_raw: bool
-            Whether to use the raw counts for the x-mod.
-        x_layer: str
-            Layer to use for x-mod.
-        x_transform: bool
-            Function to transform the x-mod.
-        y_use_raw: bool
-            Whether to use the raw counts for y-mod.
-        y_layer: str
-            Layer to use for y-mod.
-        y_transform: bool
-            Function to transform the y-mod.
         complex_sep: str
             Separator to use for complex names.
         xy_sep: str
@@ -151,12 +81,37 @@ class SpatialBivariate():
             Key in `mdata.mod` (if MuData) or `adata.obsm` (if AnnData) where the local scores will be stored.
         %(verbose)s
 
+        **kwargs : dict, optional
+            Additional keyword arguments:
+            - For AnnData:
+                %(x_name)s By default: 'ligand'.
+                %(y_name)s By default: 'receptor'.
+
+            - For MuData:
+                %(x_mod)s
+                %(y_mod)s
+                %(x_name)s By default: 'x'.
+                %(y_name)s By default: 'y'.
+                x_use_raw: bool
+                    Whether to use the raw counts for the x-mod.
+                y_use_raw: bool
+                    Whether to use the raw counts for y-mod.
+                x_layer: str
+                    Layer to use for x-mod.
+                y_layer: str
+                    Layer to use for y-mod.
+                x_transform: bool
+                    Function to transform the x-mod.
+                y_transform: bool
+                    Function to transform the y-mod.
+
         Returns
         -------
         If `inplace` is `True`, the results are added to `mdata` and `None` is returned.
-        Note that `obsm`, `varm`, `obsp` and `varp` are copied to the output `AnnData` object.
-        When an MuData object is passed, `obsm`, `varm`, `obsp` and `varp` are copied to `.mod`.
-        When `mdata` is an AnnData object, `obsm`, `varm`, `obsp` and `varp` are copied to `.obsm`.
+        Note that `var`, `obs`, `obsm`, `uns` and `obsp` attributes are copied to the output object.
+        When `mdata` is an `AnnData` object, the results are stored in `mdata.obsm[key_added]`
+        When `mdata` is an `MuData` object, the results are stored in `mdata.mod[key_added]`
+
         `AnnData` objects in `obsm` will not be copied to the output object.
 
         If `inplace` is `False`, the results are returned.
@@ -180,14 +135,6 @@ class SpatialBivariate():
         if local_name is not None:
             local_fun = LocalFunction._get_instance(name=local_name)
 
-        resource = _handle_resource(interactions=interactions,
-                                    resource=resource,
-                                    resource_name=resource_name,
-                                    x_name=self.x_name,
-                                    y_name=self.y_name,
-                                    verbose=verbose
-                                    )
-
         if isinstance(mdata, MuData):
             adata = self._process_mudata(mdata, complex_sep, verbose=verbose, **kwargs)
         elif isinstance(mdata, AnnData):
@@ -195,6 +142,13 @@ class SpatialBivariate():
         else:
             raise ValueError("Invalid type, `adata/mdata` must be an AnnData/MuData object")
 
+        resource = _handle_resource(interactions=interactions,
+                                    resource=resource,
+                                    resource_name=resource_name,
+                                    x_name=self.x_name,
+                                    y_name=self.y_name,
+                                    verbose=verbose
+                                    )
         weight = self._handle_connectivity(adata=adata, connectivity_key=connectivity_key)
 
         if complex_sep is not None:
@@ -217,7 +171,6 @@ class SpatialBivariate():
         # get entities
         entities = np.union1d(np.unique(resource[self.x_name]),
                                 np.unique(resource[self.y_name]))
-        # Check overlap between resource and adata TODO check if this works
         assert_covered(entities, adata.var_names, verbose=verbose)
 
         # Filter to only include the relevant features
@@ -302,6 +255,63 @@ class SpatialBivariate():
 
         return self._handle_return(mdata, xy_stats, local_scores, key_added, inplace)
 
+    def _process_anndata(self,
+                         adata,
+                         complex_sep,
+                         verbose,
+                         **kwargs):
+        self.x_name = kwargs.get('x_name', 'ligand')
+        self.y_name = kwargs.get('y_name', 'receptor')
+
+        return prep_check_adata(adata=adata,
+                                use_raw=kwargs.get('use_raw', V.use_raw),
+                                layer=kwargs.get('layer', V.layer),
+                                verbose=verbose,
+                                obsm=adata.obsm.copy(),
+                                uns=adata.uns.copy(),
+                                groupby=None,
+                                min_cells=None,
+                                complex_sep=complex_sep,
+                                )
+
+    def _process_mudata(self,
+                        mdata,
+                        complex_sep,
+                        verbose,
+                        **kwargs):
+        self.x_name = kwargs.get('x_name', self.x_name)
+        self.y_name = kwargs.get('y_name', self.y_name)
+
+        x_mod = kwargs.get('x_mod')
+        y_mod = kwargs.get('y_mod')
+
+        if x_mod is None or y_mod is None:
+            raise ValueError("MuData processing requires 'x_mod' and 'y_mod' parameters.")
+
+        adata = mdata_to_anndata(mdata,
+                                 x_mod=x_mod,
+                                 y_mod=y_mod,
+                                 x_use_raw=kwargs.get('x_use_raw', V.use_raw),
+                                 x_layer=kwargs.get('x_layer', V.layer),
+                                 y_use_raw=kwargs.get('y_use_raw', V.use_raw),
+                                 y_layer=kwargs.get('y_layer', V.layer),
+                                 x_transform=kwargs.get('x_transform', False),
+                                 y_transform=kwargs.get('y_transform', False),
+                                 verbose=verbose
+                                 )
+
+        return prep_check_adata(adata=adata,
+                                use_raw=False,
+                                layer=None,
+                                verbose=verbose,
+                                obsm = adata.obsm.copy(),
+                                uns=adata.uns.copy(),
+                                groupby=None,
+                                min_cells=None,
+                                complex_sep=complex_sep, # NOTE
+                                )
+
+
     def _rename_means(self, lr_stats, entity):
         df = lr_stats.copy()
         df.columns = df.columns.map(lambda x: entity + '_' + str(x) if x != 'gene' else 'gene')
@@ -336,8 +346,6 @@ class SpatialBivariate():
     def _categorize(self, x_mat, y_mat, weight):
         x_cats = self._encode_cats(x_mat.A, weight)
         y_cats = self._encode_cats(y_mat.A, weight)
-
-        # add the two categories, and simplify them to ints
         cats = x_cats + y_cats
         cats = np.where(cats == 2, 1, np.where(cats == 0, -1, 0))
 
