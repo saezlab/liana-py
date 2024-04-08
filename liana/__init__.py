@@ -1,4 +1,4 @@
-__version__ = '1.0.6'
+__version__ = '1.0.7'
 
 from liana import method as mt, plotting as pl, resource as rs, multi as mu, utils as ut, testing
 
