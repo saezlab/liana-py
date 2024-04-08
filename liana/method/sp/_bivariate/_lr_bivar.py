@@ -70,7 +70,7 @@ class SpatialLR(SpatialBivariate):
         If `inplace` is `False`, the results are returned.
         """
 
-        lr_res, local_scores = super().__call__(
+        return super().__call__(
             mdata=adata,
             local_name=local_name,
             global_name=global_name,
@@ -89,10 +89,8 @@ class SpatialLR(SpatialBivariate):
             seed=seed,
             verbose=verbose,
             xy_sep=lr_sep,
-            inplace=False,
+            inplace=inplace,
             complex_sep='_'
             )
-
-        return self._handle_return(adata, lr_res, local_scores, obsm_added, inplace)
 
 lr_bivar = SpatialLR()

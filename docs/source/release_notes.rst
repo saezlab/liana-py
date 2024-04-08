@@ -1,7 +1,7 @@
 Release notes
 =============
 
-1.X.X (XX.04.2024)
+1.1.0 (XX.04.2024)
 -------------------------------------------------
 
 - Added a check for the subset of cell types in li.multi.dea_to_lr #92
@@ -10,7 +10,7 @@ Release notes
 
 - Added Global [Lee's statistic](https://onlinelibrary.wiley.com/doi/abs/10.1111/gean.12106), along with a note on weighted product that upon z-scaling it is equivalent to Lee's local statistic.
 
-- The Global L statistic and Global [Moran's R](https://www.nature.com/articles/s41467-023-39608-w) are themselves basically identical.
+- The Global [L statistic](https://onlinelibrary.wiley.com/doi/abs/10.1111/gean.12106) and Global [Moran's R](https://www.nature.com/articles/s41467-023-39608-w) are themselves basically identical. See Eq.22 from Lee and Eq.1 in Supps of SpatialDM.
 
 - Changed the ``li.mt.bivar`` parameter ``function_name`` to ``local_name`` for consistency and to avoid ambiguity with the newly-added ``global_name`` parameter.
 

@@ -32,7 +32,7 @@ class SpatialBivariate():
                  x_mod: str,
                  y_mod: str,
                  local_name: (str | None) = 'cosine',
-                 global_name: (None | str | list) = 'morans',
+                 global_name: (None | str | list) = None,
                  interactions: (None | list) = None,
                  resource: (None | pd.DataFrame) = None,
                  resource_name: (None | str) = None,
