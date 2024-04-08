@@ -69,6 +69,7 @@ def prep_check_adata(adata: AnnData,
                      use_raw: Optional[bool] = False,
                      layer: Optional[str] = None,
                      obsm = None,
+                     uns = None,
                      complex_sep='_',
                      verbose: Optional[bool] = False) -> AnnData:
     """
@@ -113,6 +114,7 @@ def prep_check_adata(adata: AnnData,
                        dtype="float32",
                        var=var,
                        obsp=adata.obsp.copy(),
+                       uns=uns,
                        obsm=obsm
                        ).copy()
     adata.var_names_make_unique()

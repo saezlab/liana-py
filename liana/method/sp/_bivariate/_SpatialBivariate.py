@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Union, Optional
 
 import numpy as np
 import pandas as pd
@@ -22,39 +23,88 @@ from liana._constants import Keys as K, DefaultValues as V
 
 class SpatialBivariate():
     """ A class for bivariate local spatial metrics. """
-    def __init__(self, x_name='x', y_name='y'):
+    def __init__(self, x_name: str = 'x', y_name: str = 'y'):
         self.x_name = x_name
         self.y_name = y_name
+
+    def _process_anndata(self,
+                         adata,
+                         complex_sep,
+                         verbose,
+                         **kwargs):
+        self.x_name = kwargs.get('x_name', 'ligand')
+        self.y_name = kwargs.get('y_name', 'receptor')
+
+        return prep_check_adata(adata=adata,
+                                use_raw=kwargs.get('use_raw', V.use_raw),
+                                layer=kwargs.get('layer', V.layer),
+                                verbose=verbose,
+                                obsm=adata.obsm.copy(),
+                                uns=adata.uns.copy(),
+                                groupby=None,
+                                min_cells=None,
+                                complex_sep=complex_sep,
+                                )
+
+    def _process_mudata(self,
+                        mdata,
+                        complex_sep,
+                        verbose,
+                        **kwargs):
+        self.x_name = kwargs.get('x_name', self.x_name)
+        self.y_name = kwargs.get('y_name', self.y_name)
+
+        x_mod = kwargs.get('x_mod')
+        y_mod = kwargs.get('y_mod')
+
+        if x_mod is None or y_mod is None:
+            raise ValueError("MuData processing requires 'x_mod' and 'y_mod' parameters.")
+
+        adata = mdata_to_anndata(mdata,
+                                 x_mod=x_mod,
+                                 y_mod=y_mod,
+                                 x_use_raw=kwargs.get('x_use_raw', V.use_raw),
+                                 x_layer=kwargs.get('x_layer', V.layer),
+                                 y_use_raw=kwargs.get('y_use_raw', V.use_raw),
+                                 y_layer=kwargs.get('y_layer', V.layer),
+                                 x_transform=kwargs.get('x_transform', False),
+                                 y_transform=kwargs.get('y_transform', False),
+                                 verbose=verbose
+                                 )
+
+        return prep_check_adata(adata=adata,
+                                use_raw=False,
+                                layer=None,
+                                verbose=verbose,
+                                obsm = adata.obsm.copy(),
+                                uns=adata.uns.copy(),
+                                groupby=None,
+                                min_cells=None,
+                                complex_sep=complex_sep, # NOTE
+                                )
 
     @d.dedent
     def __call__(self,
                  mdata: (MuData | AnnData),
-                 x_mod: str,
-                 y_mod: str,
                  local_name: (str | None) = 'cosine',
                  global_name: (None | str | list) = None,
-                 interactions: (None | list) = None,
-                 resource: (None | pd.DataFrame) = None,
-                 resource_name: (None | str) = None,
+                 resource_name: str = None,
+                 resource: Optional[pd.DataFrame] = V.resource,
+                 interactions: list = V.interactions,
                  connectivity_key: str = K.connectivity_key,
-                 mod_added: str = "local_scores",
                  mask_negatives: bool = False,
                  add_categories: bool = False,
                  n_perms: int = None,
                  seed: int = V.seed,
-                 nz_threshold: float = 0, # NOTE: do I rename this?
-                 x_use_raw: bool = V.use_raw,
-                 x_layer: (None | str) = V.layer,
-                 x_transform: (bool | callable) = False,
-                 y_use_raw: bool = V.use_raw,
-                 y_layer: (None | str) = V.layer,
-                 y_transform: (bool | callable) = False,
-                 complex_sep: (None | str) = None,
-                 xy_sep: str = V.lr_sep,
+                 nz_prop: float = 0.05,
                  remove_self_interactions: bool = True,
+                 complex_sep: (None | str) = "_",
+                 xy_sep: str = V.lr_sep,
                  inplace: bool = V.inplace,
+                 key_added: str = "local_scores",
                  verbose: bool = V.verbose,
-                 ) -> AnnData | None:
+                 **kwargs
+                 ) -> Union[AnnData, pd.DataFrame] | None:
         """
         A method for bivariate local spatial metrics.
 
@@ -70,14 +120,14 @@ class SpatialBivariate():
         %(resource)s
         %(resource_name)s
         %(connectivity_key)s
-        mod_added: str
-            Key in `mdata.mod` where the local scores are stored.
         %(mask_negatives)s
         %(add_categories)s
         %(n_perms)s
         %(seed)s
-        nz_threshold: float
-            Minimum proportion of cells expressing the ligand and receptor.
+        nz_prop: float
+            Minimum proportion of non-zero values for each features. For example, if working with gene expression data,
+            this would be the proportion of cells expressing a gene. Both features must have a proportion greater than
+            `nz_prop` to be considered in the analysis.
         x_use_raw: bool
             Whether to use the raw counts for the x-mod.
         x_layer: str
@@ -97,6 +147,8 @@ class SpatialBivariate():
         remove_self_interactions: bool
             Whether to remove self-interactions. `True` by default.
         %(inplace)s
+        key_added: str
+            Key in `mdata.mod` (if MuData) or `adata.obsm` (if AnnData) where the local scores will be stored.
         %(verbose)s
 
         Returns
@@ -133,39 +185,15 @@ class SpatialBivariate():
                                     resource_name=resource_name,
                                     x_name=self.x_name,
                                     y_name=self.y_name,
-                                    verbose=verbose)
+                                    verbose=verbose
+                                    )
 
         if isinstance(mdata, MuData):
-            adata = mdata_to_anndata(mdata,
-                                     x_mod=x_mod,
-                                     y_mod=y_mod,
-                                     x_use_raw=x_use_raw,
-                                     x_layer=x_layer,
-                                     y_use_raw=y_use_raw,
-                                     y_layer=y_layer,
-                                     x_transform=x_transform,
-                                     y_transform=y_transform,
-                                     verbose=verbose,
-                                     )
-            use_raw = False
-            layer = None
+            adata = self._process_mudata(mdata, complex_sep, verbose=verbose, **kwargs)
         elif isinstance(mdata, AnnData):
-            adata = mdata
-            use_raw = x_use_raw
-            layer = x_layer
+            adata = self._process_anndata(mdata, complex_sep, verbose=verbose, **kwargs)
         else:
             raise ValueError("Invalid type, `adata/mdata` must be an AnnData/MuData object")
-
-        _uns = adata.uns
-        adata = prep_check_adata(adata=adata,
-                                 use_raw=use_raw,
-                                 layer=layer,
-                                 verbose=verbose,
-                                 obsm = adata.obsm.copy(),
-                                 groupby=None,
-                                 min_cells=None,
-                                 complex_sep=complex_sep,
-                                )
 
         weight = self._handle_connectivity(adata=adata, connectivity_key=connectivity_key)
 
@@ -204,8 +232,8 @@ class SpatialBivariate():
                                     self._rename_means(xy_stats, entity=self.y_name))
 
         # filter according to props
-        xy_stats = xy_stats[(xy_stats[f'{self.x_name}_props'] >= nz_threshold) &
-                            (xy_stats[f'{self.y_name}_props'] >= nz_threshold)]
+        xy_stats = xy_stats[(xy_stats[f'{self.x_name}_props'] >= nz_prop) &
+                            (xy_stats[f'{self.y_name}_props'] >= nz_prop)]
         # create interaction column
         xy_stats['interaction'] = xy_stats[self.x_name] + xy_sep + xy_stats[self.y_name]
 
@@ -254,7 +282,6 @@ class SpatialBivariate():
                  np.std(local_scores, axis=0)]
                 ).T
 
-
         if mask_negatives:
             local_scores = np.where(local_cats!=1, 0, local_scores)
             if local_pvals is not None:
@@ -263,7 +290,7 @@ class SpatialBivariate():
         local_scores = AnnData(csr_matrix(local_scores),
                                obs=adata.obs,
                                var=xy_stats.set_index('interaction'),
-                               uns=_uns,
+                               uns=adata.uns,
                                obsm=adata.obsm,
                                obsp=adata.obsp,
                                )
@@ -273,21 +300,21 @@ class SpatialBivariate():
         if local_pvals is not None:
             local_scores.layers['pvals'] = csr_matrix(local_pvals)
 
-        return self._handle_return(mdata, xy_stats, local_scores, mod_added, inplace)
+        return self._handle_return(mdata, xy_stats, local_scores, key_added, inplace)
 
     def _rename_means(self, lr_stats, entity):
         df = lr_stats.copy()
         df.columns = df.columns.map(lambda x: entity + '_' + str(x) if x != 'gene' else 'gene')
         return df.rename(columns={'gene': entity})
 
-    def _handle_return(self, data, stats, local_scores, x_added, inplace=False):
+    def _handle_return(self, data, stats, local_scores, key_added, inplace=False):
         if not inplace:
             return stats, local_scores
 
         if isinstance(data, MuData):
-            data.mod[x_added] = local_scores
+            data.mod[key_added] = local_scores
         else:
-            data.obsm[x_added] = local_scores
+            data.obsm[key_added] = local_scores
 
     def _handle_connectivity(self, adata, connectivity_key):
         if connectivity_key not in adata.obsp.keys():
@@ -326,7 +353,6 @@ class SpatialBivariate():
                 "metadata":function.metadata,
                 "reference":function.reference,
                 }
-
         return pd.DataFrame(funs).T.reset_index().rename(columns={"index":"name"})
 
-bivar = SpatialBivariate()
+bivariate = SpatialBivariate()

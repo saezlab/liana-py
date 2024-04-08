@@ -4,7 +4,7 @@ from liana.method.sc._Method import Method, MethodMeta, _show_methods
 from liana.method.sc._rank_aggregate import AggregateClass, _rank_aggregate_meta as aggregate_meta
 from liana.method.sc import cellphonedb, connectome, logfc, natmi, singlecellsignalr, geometric_mean, cellchat, scseqcomm
 
-from liana.method.sp import bivar, lr_bivar, genericMistyData, lrMistyData, MistyData
+from liana.method.sp import bivariate, genericMistyData, lrMistyData, MistyData
 from liana.method.fun._causalnet import find_causalnet, build_prior_network
 from liana._constants import DefaultValues as V
 
@@ -35,7 +35,7 @@ def process_scores(liana_res, score_key, inverse_fun=V.inverse_fun):
     scores = get_method_scores()
 
     if not np.isin(score_key, list(scores.keys())).any():
-        raise ValueError(f"Score column {score_key} not found in liana's method scores. ")
+        raise ValueError(f"Score column {score_key} not found in liana's method scores.")
 
     # reverse if ascending order
     ascending_order = scores[score_key]
