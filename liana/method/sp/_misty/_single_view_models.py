@@ -1,7 +1,8 @@
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
 import statsmodels.api as sm
 import numpy as np
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, cross_val_predict
 
 class SingleViewModel:
     """
@@ -39,10 +40,14 @@ class SingleViewModel:
             y_train = y[train_index]
             model = fit_method(y_train, X_train)
             y_pred = model.predict(X_test)
-            predictions[test_index] = y_pred
+            predictions[test_index] = y_pred.flatten()
         return predictions
 
 class RandomForestModel(SingleViewModel):
+    """
+    Random forest model (from sklearn) using out-of-bag predictions for feature importances.
+    """
+
     def fit(self, y, X, predictors, k_cv=None):
         self.model = RandomForestRegressor(oob_score=True, random_state=self.seed, **self.kwargs)
         self.model.fit(X, y)
@@ -50,16 +55,32 @@ class RandomForestModel(SingleViewModel):
         self.importances = dict(zip(predictors, self.model.feature_importances_))
 
 class LinearModel(SingleViewModel):
+    """
+    Linear regression model using statsmodels.OLS for feature importances, and cross_val_predict with sklearn LinearRegression for predictions.
+    **kwargs are passed to statsmodels.OLS.
+    """
     def fit(self, y, X, predictors, k_cv):
+        # pop n_jobs if it exists
+        n_jobs = self.kwargs.pop('n_jobs', -1)
+        model = LinearRegression(n_jobs=1)
+        self.predictions = cross_val_predict(model,
+                                             X, y,
+                                             cv=KFold(n_splits=k_cv,
+                                                      random_state = self.seed,
+                                                      shuffle=True),
+                                             n_jobs=n_jobs
+                                             )
         X = sm.add_constant(X)
-        self.predictions = self._k_fold_predict(y, X, k_cv, self._fit_ols)
         model_full = sm.OLS(y, X, **self.kwargs).fit()
         self.importances = dict(zip(predictors, model_full.tvalues[1:]))
 
     def _fit_ols(self, y, X):
-        return sm.OLS(y, X, **self.kwargs).fit()
+        return LinearRegression(**self.kwargs).fit(y=y, X=X)
 
 class RobustLinearModel(SingleViewModel):
+    """
+    Robust linear regression model using statsmodels.RLM.
+    """
     def fit(self, y, X, predictors, k_cv):
         X = sm.add_constant(X)
         self.predictions = self._k_fold_predict(y, X, k_cv, self._fit_robust)

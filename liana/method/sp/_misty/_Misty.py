@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from scipy.sparse import isspmatrix_csr, csr_matrix
 from mudata import MuData
 from sklearn.linear_model import LinearRegression, RidgeCV
 from sklearn.model_selection import KFold
@@ -60,9 +59,6 @@ class MistyData(MuData):
         assert "intra" in self.view_names, "views must contain an intra view"
 
         for view in self.view_names:
-            if not isspmatrix_csr(self.mod[view].X):
-                _logg(f"view {view} is not a csr_matrix. Converting to csr_matrix", verbose=True, level='warn')
-                self.mod[view].X = csr_matrix(self.mod[view].X)
             if view=="intra":
                 continue
             if self.enforce_obs:
@@ -164,7 +160,7 @@ class MistyData(MuData):
                     progress_bar.set_description(d)
 
                 predictors_nonself, insert_index = _get_nonself(target, intra_features)
-                y = intra[msk, target].X.toarray().reshape(-1)
+                y = intra[msk, target].X.toarray().flatten()
                 X = intra[msk, predictors_nonself].X.toarray()
 
                 if not bypass_intra:

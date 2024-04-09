@@ -22,7 +22,7 @@ Release notes
 
 - MISTy models are now passed externally, rather than being hardcoded. This allows for more flexibility in the models used. As an example, I also added a RobustLinearModel from statsmodels. Related to #74.
 
-
+- Removed forced conversion to sparse csr_matrix matrices in MISTy. Related to #57.
 
 1.0.5 (25.02.2024)
 -------------------------------------------------
