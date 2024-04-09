@@ -69,11 +69,25 @@ class MistyData(MuData):
                 if f"{self.spatial_key}_connectivities" not in self.mod[view].obsm.keys():
                     raise ValueError(f"view {view} does not contain `{self.spatial_key}_connectivities` key in .obsm")
 
-    def _get_conn(self, view_name):
+            self._set_weighted_matrix(view)
+
+    def _set_weighted_matrix(self, view_name):
         if self.enforce_obs:
-            return self.mod[view_name].obsp[f"{self.spatial_key}_connectivities"]
+            weights = self.mod[view_name].obsp[f"{self.spatial_key}_connectivities"]
+            self.mod[view_name].layers['weighted'] = weights @ self.mod[view_name].X
         else:
-            return self.mod[view_name].obsm[f"{self.spatial_key}_connectivities"].T
+            weights = self.mod[view_name].obsm[f"{self.spatial_key}_connectivities"].T
+            self.mod[view_name].varm['weighted'] = (weights @ self.mod[view_name].X).T
+
+    def get_weighted_matrix(self, view_name, predictors=None):
+        if predictors is None:
+            predictors = self.mod[view_name].var_names
+
+        if self.enforce_obs:
+            return self.mod[view_name][:, predictors].layers['weighted']
+        else:
+            return self.mod[view_name][:, predictors].varm['weighted'].T
+
 
     @d.dedent
     def __call__(self,
@@ -82,7 +96,7 @@ class MistyData(MuData):
                  predict_self: bool = False,
                  maskby = None,
                  k_cv: int = 10,
-                 alphas = [0.1, 1, 10],
+                 alphas = np.array([0.1, 1, 10]),
                  seed: int = V.seed,
                  inplace: bool = V.inplace,
                  verbose: bool = V.verbose,
@@ -154,7 +168,7 @@ class MistyData(MuData):
                               k_cv=k_cv,
                               )
                     predictions_intra, importance_dict["intra"] = \
-                        model.get_predictions(), model.get_importances()
+                        model.predictions, model.importances
 
                     if insert_index is not None and predict_self:
                         # add self-interactions as nan
@@ -173,9 +187,7 @@ class MistyData(MuData):
                     extra_features = extra.var_names.to_list()
                     _predictors, _ =  _get_nonself(target, extra_features) if not predict_self else (extra_features, None)
 
-                    # NOTE: we multiply before masking
-                    weights = self._get_conn(view_name)
-                    X = weights @ extra[:, _predictors].X.toarray()
+                    X = self.get_weighted_matrix(view_name, _predictors).toarray()
                     X = X[msk, :]
                     model.fit(y=y,
                               X=X,
@@ -183,7 +195,7 @@ class MistyData(MuData):
                               k_cv=k_cv,
                               )
                     predictions_extra, importance_dict[view_name] = \
-                        model.get_predictions(), model.get_importances()
+                        model.predictions, model.importances
 
                     predictions_list.append(predictions_extra)
 

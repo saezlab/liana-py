@@ -14,12 +14,6 @@ class SingleViewModel:
     def fit(self, y, X, predictors, k_cv=None):
         raise NotImplementedError("This method should be implemented by subclasses")
 
-    def get_predictions(self):
-        return self.predictions
-
-    def get_importances(self):
-        return self.importances
-
     def _k_fold_predict(self, y, X, k_cv, fit_method):
         predictions = np.zeros_like(y)
         kf = KFold(n_splits=k_cv, random_state=self.seed, shuffle=True)

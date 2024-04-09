@@ -146,3 +146,18 @@ def test_misty_custom():
     np.testing.assert_almost_equal(misty.uns['interactions']['importances'].min(), -2.8430222384873396, decimal=3)
     # the data is random
     np.testing.assert_almost_equal(misty.uns['target_metrics']['multi_R2'].mean(), 0, decimal=3)
+
+
+def test_misty_nonaligned():
+    adata = generate_toy_spatial()
+
+    intra = adata[:, :10].copy()
+    intra.var.index = 'x' + intra.var.index
+    para = adata[:int(adata.n_obs*0.9), -10:].copy()
+    para.var.index = 'y' + para.var.index
+    # Generate connectivities with shape (para.n_obs, intra.n_obs)
+    para.obsm['spatial_connectivities'] = np.ones((para.n_obs, intra.n_obs))
+    misty = MistyData({'intra': intra, 'ydata': para},
+                      enforce_obs=False, # NOTE: This is the key parameter
+                      verbose=True)
+    misty(model=LinearModel, k_cv=3)
