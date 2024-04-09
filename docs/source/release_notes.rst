@@ -4,9 +4,9 @@ Release notes
 1.1.0 (XX.04.2024)
 -------------------------------------------------
 
-- Added a check for the subset of cell types in li.multi.dea_to_lr #92
+- Added a check for the subset of cell types in li.multi.dea_to_lr. Related to #92.
 
-- Split Local and Global Bivariate metrics #44. Specifically, I reworked completely the underlying code, though the API should remain relatively unchanged. With the exceptions of: 1) ``lr_bivar`` is now removed and ``bivar`` has been renamed to ``bivariate``. This allowed me to remove a lot of redundancies between the two functions. 2) ``nz_threshold`` has been renamed to ``nz_prop`` for consistency with ``expr_prop`` in the remainder of the package.
+- Split Local and Global Bivariate metrics. Specifically, I reworked completely the underlying code, though the API should remain relatively unchanged. With the exceptions of: 1) ``lr_bivar`` is now removed and ``bivar`` has been renamed to ``bivariate``. This allowed me to remove a lot of redundancies between the two functions. 2) ``nz_threshold`` has been renamed to ``nz_prop`` for consistency with ``expr_prop`` in the remainder of the package. Related to #44.
 
 - Added Global [Lee's statistic](https://onlinelibrary.wiley.com/doi/abs/10.1111/gean.12106), along with a note on weighted product that upon z-scaling it is equivalent to Lee's local statistic.
 
@@ -14,9 +14,14 @@ Release notes
 
 - Changed the ``li.mt.bivar`` parameter ``function_name`` to ``local_name`` for consistency and to avoid ambiguity with the newly-added ``global_name`` parameter.
 
-- Added ``bumpversion`` to manage versioning. #73
+- Added ``bumpversion`` to manage versioning. Related to #73.
 
-- Added ``max_runs`` and ``stable_runs`` parameters to enable the inference of robust causal networks with CORNETO.
+- Added ``max_runs`` and ``stable_runs`` parameters to enable the inference of robust causal networks with CORNETO. Related to #82.
+
+- Optimized MISTy such that the matrix multiplication by weights is done only once, rather than for each target. Users can now obtain the weighted matrix via the ``misty.get_weighted_matrix`` function.
+
+- MISTy models are now passed externally, rather than being hardcoded. This allows for more flexibility in the models used. As an example, I also added a RobustLinearModel from statsmodels. Related to #74.
+
 
 
 1.0.5 (25.02.2024)

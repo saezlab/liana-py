@@ -22,8 +22,8 @@ class MistyData(MuData):
     def __init__(self,
                  data:(dict | MuData),
                  obs:(pd.DataFrame | None)=None,
-                 spatial_key: str=K.spatial_key, # NOTE: change to spatial_connectivities?
-                 enforce_obs=True,
+                 spatial_key: str=K.spatial_key,
+                 enforce_obs:bool=True,
                  **kwargs):
         """
         Construct a MistyData object from a dictionary of views (anndatas).
@@ -36,6 +36,12 @@ class MistyData(MuData):
         obs : `pd.DataFrame`
             DataFrame of observations. If None, the obs of the intra-view is used.
         %(spatial_key)s
+        enforce_obs : `bool`, optional (default: True)
+            If True, the number of observations in each extra-view must match the intra-view.
+            Then the connectivities are stored in the .obsp attribute, while the weighted matrix is stored in .layers['weighted'].
+
+            If False, the connectivities are stored in the .obsm attribute, while the weighted matrix is transposed and stored in .varm['weighted'].
+
         **kwargs
             Keyword arguments passed to the MuData Super class
         """
@@ -108,8 +114,8 @@ class MistyData(MuData):
         Parameters
         ----------
         model : `str`, optional (default: 'rf')
-            Model used to model the single views. Default is 'rf'.
-            Can be either 'rf' (random forest) or 'linear' (linear regression).
+            Single-view model of class SingleViewModel. Default options are RandomForestModel, LinearModel, and RobustLinearModel
+            available via ``liana.method.sp._misty._single_view_models``.
         bypass_intra : `bool`, optional (default: False)
             Whether to bypass modeling the intraview via leave-one-feature-out (LOFO).
             In other words, whether to bypass modelling each target by LOFO within the same spots.

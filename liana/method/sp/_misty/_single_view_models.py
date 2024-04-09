@@ -4,6 +4,9 @@ import numpy as np
 from sklearn.model_selection import KFold
 
 class SingleViewModel:
+    """
+    Base class for single view models. Subclasses should implement the fit method.
+    """
     def __init__(self, seed, **kwargs):
         self.seed = seed
         self.kwargs = kwargs  # Store kwargs to be used in fit method
@@ -12,6 +15,20 @@ class SingleViewModel:
         self.importances = None
 
     def fit(self, y, X, predictors, k_cv=None):
+        """
+        Fit the model to the data and store the predictions and importances.
+
+        Parameters
+        ----------
+        y : np.ndarray
+            Target variable
+        X : np.ndarray
+            Feature matrix
+        predictors : list
+            List of feature names
+        k_cv : int
+            Number of cross-validation folds. If None, no cross-validation is performed.
+        """
         raise NotImplementedError("This method should be implemented by subclasses")
 
     def _k_fold_predict(self, y, X, k_cv, fit_method):
