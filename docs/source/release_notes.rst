@@ -16,6 +16,9 @@ Release notes
 
 - Added ``bumpversion`` to manage versioning. #73
 
+- Added ``max_runs`` and ``stable_runs`` parameters to enable the inference of robust causal networks with CORNETO.
+
+
 1.0.5 (25.02.2024)
 -------------------------------------------------
 

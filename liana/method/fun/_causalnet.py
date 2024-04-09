@@ -99,7 +99,6 @@ def find_causalnet(
         seed=1337,
         max_runs=1,
         stable_runs=5,
-        max_seconds=None,
         verbose=True,
         **kwargs
         ):
@@ -137,11 +136,11 @@ def find_causalnet(
     seed : int, optional
         The seed to use for the random number generator. Default: 1337
     max_runs : int, optional
-        The maximum number of runs to perform. Consider increasing this value if the solver does not converge. By default, only 1 run is performed.
+        The maximum number of runs to perform. Consider increasing this value if the solver does not converge.
+        In each run, the noise added to the edge and node penalties is perturbed slightly (iterating over the seed).
+        By default, only 1 run is performed.
     stable_runs : int, optional
-        The number of stable solutions to require before stopping. Only used if max_runs is not == 1. Default: 5
-    max_seconds : int, optional
-        The maximum number of seconds to run the solver. Default: None
+        The number of consecutive stable solutions requires to interrupt the iteration over max_runs. Only used if max_runs is not == 1. Default: 5
     verbose : bool, optional
         Whether to print progress information. Default: True
     **kwargs : dict, optional
@@ -180,12 +179,12 @@ def find_causalnet(
     df_all = None # df with all solutions
 
     while run_count < max_runs:
+        current_seed = seed + run_count
         if run_count > 0:
-            _logg(f"Run {run_count} with seed ", verbose=verbose)
+            _logg(f"Run {run_count} with seed {current_seed}", verbose=verbose)
 
         # assign 0 penalties to input/output nodes, missing_penalty to missing nodes
         # add a small amount of noise to the penalties to ensure reproducible solutions
-        current_seed = seed + run_count
         rng = np.random.default_rng(seed=current_seed)
         c_node_penalties = {k: node_penalties.get(k, missing_penalty) + rng.uniform(min_penalty/20, min_penalty/10)
                             if k not in measured_nodes else 0.0 for k in prior_graph.vertices}
@@ -210,7 +209,6 @@ def find_causalnet(
 
         P.solve(
             solver=solver,
-            max_seconds=max_seconds,
             verbosity=int(verbose),
             **kwargs)
 
