@@ -2,18 +2,18 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from liana._logging import _logg
 from tqdm import tqdm
 
 from scipy.sparse import isspmatrix_csr, csr_matrix
-import statsmodels.api as sm
 from mudata import MuData
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression, RidgeCV
-from sklearn.model_selection import KFold, cross_val_predict
+from sklearn.model_selection import KFold
+
+from liana.method.sp._misty._single_view_models import SingleViewModel
 
 from liana._docs import d
 from liana._constants import Keys as K, DefaultValues as V
+from liana._logging import _logg
 
 
 class MistyData(MuData):
@@ -21,8 +21,8 @@ class MistyData(MuData):
     @d.dedent
     def __init__(self,
                  data:(dict | MuData),
-                 obs:(pd.DataFrame | None)= None,
-                 spatial_key:str=K.spatial_key, # NOTE: change to spatial_connectivities?
+                 obs:(pd.DataFrame | None)=None,
+                 spatial_key: str=K.spatial_key, # NOTE: change to spatial_connectivities?
                  enforce_obs=True,
                  **kwargs):
         """
@@ -77,13 +77,12 @@ class MistyData(MuData):
 
     @d.dedent
     def __call__(self,
-                 model: str = 'rf',
+                 model: SingleViewModel,
                  bypass_intra: bool = False,
                  predict_self: bool = False,
+                 maskby = None,
                  k_cv: int = 10,
                  alphas = [0.1, 1, 10],
-                 maskby = None,
-                 n_jobs = -1,
                  seed: int = V.seed,
                  inplace: bool = V.inplace,
                  verbose: bool = V.verbose,
@@ -94,16 +93,14 @@ class MistyData(MuData):
 
         Parameters
         ----------
-        n_estimators : `int`, optional (default: 100)
-            Number of trees in the random forest models used to model single views
         model : `str`, optional (default: 'rf')
             Model used to model the single views. Default is 'rf'.
             Can be either 'rf' (random forest) or 'linear' (linear regression).
-        predict_self : `bool`, optional (default: False)
-            Whether to predict self-interactions. These are determined purely by the feature names.
         bypass_intra : `bool`, optional (default: False)
             Whether to bypass modeling the intraview via leave-one-feature-out (LOFO).
             In other words, whether to bypass modelling each target by LOFO within the same spots.
+        predict_self : `bool`, optional (default: False)
+            Whether to predict self-interactions. These are determined purely by the feature names.
         maskby : `str`, optional (default: None)
             Column in the .obs attribute used to group or mask observations in the intra-view
             If None, all cells are considered as one group.
@@ -113,13 +110,11 @@ class MistyData(MuData):
         alphas : `list`, optional (default: [0.1, 1, 10])
             List of alpha values used to choose from, that control the strength of the ridge regression,
             used for the multi-view part of the model. Only used if there are more than 2 views being modeled (including intra).
-        n_jobs : `int`, optional (default: -1)
-            Number of cores used to construct random forest models
         %(seed)s
         %(inplace)s
         %(verbose)s
         **kwargs : `dict`
-            Keyword arguments passed to the Regressors. Note that n_jobs & random_state are already set.
+            Keyword arguments passed to the Regressors. Note that random_state is already set via ``seed``.
 
         Returns
         -------
@@ -127,6 +122,7 @@ class MistyData(MuData):
         Otherwise two DataFrames are returned, one for target metrics and one for importances.
 
         """
+        model = model(seed, **kwargs)
         view_str = list(self.view_names)
         obs_masks = _create_obs_masks(self.mod['intra'], maskby)
 
@@ -152,16 +148,14 @@ class MistyData(MuData):
                 X = intra[msk, predictors_nonself].X.toarray()
 
                 if not bypass_intra:
+                    model.fit(y=y,
+                              X=X,
+                              predictors=predictors_nonself,
+                              k_cv=k_cv,
+                              )
                     predictions_intra, importance_dict["intra"] = \
-                        _single_view_model(y,
-                                           X,
-                                           predictors_nonself,
-                                           model=model,
-                                           k_cv=k_cv,
-                                           seed=seed,
-                                           n_jobs=n_jobs,
-                                           **kwargs
-                                           )
+                        model.get_predictions(), model.get_importances()
+
                     if insert_index is not None and predict_self:
                         # add self-interactions as nan
                         importance_dict["intra"][target] = np.nan
@@ -183,17 +177,14 @@ class MistyData(MuData):
                     weights = self._get_conn(view_name)
                     X = weights @ extra[:, _predictors].X.toarray()
                     X = X[msk, :]
-
+                    model.fit(y=y,
+                              X=X,
+                              predictors=_predictors,
+                              k_cv=k_cv,
+                              )
                     predictions_extra, importance_dict[view_name] = \
-                        _single_view_model(y,
-                                           X,
-                                           _predictors,
-                                           model=model,
-                                           k_cv=k_cv,
-                                           seed=seed,
-                                           n_jobs=n_jobs,
-                                           **kwargs
-                                           )
+                        model.get_predictions(), model.get_importances()
+
                     predictions_list.append(predictions_extra)
 
                 target_metrics = _multi_model(y,
@@ -267,36 +258,6 @@ def _concat_dataframes(targets_list, importances_list, view_str):
     return target_metrics, importances
 
 
-def _single_view_model(y, X, predictors, model, k_cv, seed, n_jobs, **kwargs):
-    if model=='rf':
-        model = RandomForestRegressor(oob_score=True,
-                                      n_jobs=n_jobs,
-                                      random_state=seed,
-                                      **kwargs,
-                                      )
-        model = model.fit(y=y, X=X)
-        predictions = model.oob_prediction_
-        importances = model.feature_importances_
-
-    elif model=='linear':
-        model = LinearRegression(n_jobs=1, **kwargs)
-        predictions = cross_val_predict(model,
-                                        X, y,
-                                        cv=KFold(n_splits=k_cv,
-                                                 random_state = seed,
-                                                 shuffle=True),
-                                        n_jobs=n_jobs
-                                        )
-        importances = sm.OLS(y, X).fit().tvalues
-
-    else:
-        raise ValueError(f"model {model} is not supported")
-
-    importances = dict(zip(predictors, importances))
-
-    return predictions, importances
-
-
 def _multi_model(y, predictions, intra_group, bypass_intra, view_str, target, k_cv, alphas, seed):
     n_views = len(view_str)
 
@@ -361,6 +322,7 @@ def _get_nonself(target, predictors):
         predictors_subset = predictors
         insert_idx = None
     return predictors_subset, insert_idx
+
 
 def _create_obs_masks(intra, maskby):
     obs_masks = {}

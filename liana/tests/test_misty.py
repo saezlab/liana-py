@@ -3,6 +3,7 @@ import pathlib
 import numpy as np
 import scanpy as sc
 from liana.method.sp._misty._misty_constructs import lrMistyData, genericMistyData
+from liana.method.sp._misty._single_view_models import RandomForestModel, LinearModel, RobustLinearModel
 from liana.testing._sample_anndata import generate_toy_spatial
 from liana.method import MistyData
 
@@ -13,10 +14,14 @@ adata = sc.pp.subsample(adata, n_obs=100, copy=True)
 
 
 def test_misty_para():
-    misty = genericMistyData(adata, bandwidth=10,
-                             cutoff=0, add_juxta=False,
-                             set_diag=False, seed=133)
-    misty(bypass_intra=False, seed=42, n_estimators=11)
+    misty = genericMistyData(adata,
+                             bandwidth=10,
+                             cutoff=0,
+                             add_juxta=False,
+                             set_diag=False,
+                             seed=133
+                             )
+    misty(model=RandomForestModel, bypass_intra=False, seed=42, n_estimators=11)
     assert np.isin(list(misty.uns.keys()), ['target_metrics', 'interactions']).all()
     target_metrics = misty.uns['target_metrics']
     assert np.sum(target_metrics[['intra', 'para']].values, axis=1).sum() == 11.0
@@ -28,9 +33,14 @@ def test_misty_para():
 
 
 def test_misty_bypass():
-    misty = genericMistyData(adata, bandwidth=10, add_juxta=True, set_diag=True,
-                             cutoff=0, coord_type="generic", delaunay=True)
-    misty(alphas=1, bypass_intra=True, seed=42, n_estimators=11)
+    misty = genericMistyData(adata,
+                             bandwidth=10,
+                             add_juxta=True,
+                             set_diag=True,
+                             cutoff=0,
+                             coord_type="generic",
+                             delaunay=True)
+    misty(model=RandomForestModel, alphas=1, bypass_intra=True, seed=42, n_estimators=11)
     assert np.isin(['juxta', 'para'], misty.uns['target_metrics'].columns).all()
     assert ~np.isin(['intra'], misty.uns['target_metrics'].columns).all()
     assert misty.uns['target_metrics'].shape == (11, 6)
@@ -53,7 +63,8 @@ def test_misty_groups():
                              coord_type="generic",
                              delaunay=True
                              )
-    misty(alphas=1,
+    misty(model=RandomForestModel,
+          alphas=1,
           bypass_intra=False,
           seed=42,
           predict_self=True,
@@ -81,7 +92,7 @@ def test_lr_misty():
     misty = lrMistyData(adata, bandwidth=10, set_diag=True, cutoff=0)
     assert misty.shape == (700, 42)
 
-    misty(n_estimators=10, bypass_intra=True)
+    misty(model=RandomForestModel, n_estimators=10, bypass_intra=True)
     assert misty.uns['target_metrics'].shape == (16, 5)
 
     interactions = misty.uns['interactions']
@@ -94,12 +105,12 @@ def test_linear_misty():
     misty = genericMistyData(adata, bandwidth=10, set_diag=False, cutoff=0)
     assert misty.shape == (100, 33)
 
-    misty(model='linear')
+    misty(model=LinearModel)
     assert misty.uns['target_metrics'].shape == (11, 7)
 
     assert misty.uns['interactions'].shape == (330, 4)
     actual = misty.uns['interactions']['importances'].values.mean()
-    np.testing.assert_almost_equal(actual, 0.6683044, decimal=2)
+    np.testing.assert_almost_equal(actual, 0.4941761900911731, decimal=3)
 
 
 def test_misty_mask():
@@ -108,17 +119,17 @@ def test_misty_mask():
     assert misty.shape == (100, 33)
 
     misty.mod['intra'].obs['mask'] = misty.mod['intra'].obs=='A'
-    misty(model='linear', maskby='mask')
+    misty(model=LinearModel, maskby='mask')
 
     assert misty.uns['target_metrics'].shape == (11, 7)
     np.testing.assert_almost_equal(misty.uns['target_metrics']['multi_R2'].mean(), 0.4203699749106394, decimal=3)
     np.testing.assert_almost_equal(misty.uns['target_metrics']['intra_R2'].mean(), 0.4248588250759459, decimal=3)
 
     assert misty.uns['interactions'].shape == (330, 4)
-    np.testing.assert_almost_equal(misty.uns['interactions']['importances'].sum(), 184, decimal=0)
+    np.testing.assert_almost_equal(misty.uns['interactions']['importances'].sum(), 141.05332654128952, decimal=3)
 
 
-def test_misty_multivew():
+def test_misty_custom():
     adata = generate_toy_spatial()
     # keep first 10 vars
     xdata = adata[:, :10].copy()
@@ -128,6 +139,10 @@ def test_misty_multivew():
     ydata.var.index = 'y' + ydata.var.index
     intra = adata[:, 25:30].copy()
     misty = MistyData({'intra': intra, 'xdata': xdata, 'ydata': ydata}, verbose=True)
-    misty(model='linear')
+    misty(model=RobustLinearModel, k_cv=25, seed=420)
 
     misty.uns['interactions'].shape == (120, 4)
+    np.testing.assert_almost_equal(misty.uns['interactions']['importances'].max(), 7.427809495362697, decimal=3)
+    np.testing.assert_almost_equal(misty.uns['interactions']['importances'].min(), -2.8430222384873396, decimal=3)
+    # the data is random
+    np.testing.assert_almost_equal(misty.uns['target_metrics']['multi_R2'].mean(), 0, decimal=3)
