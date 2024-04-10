@@ -54,5 +54,5 @@ def _zscore(mat, axis=0, global_r=False):
 
 def _spatialdm_weight_norm(weight):
     norm_factor = weight.shape[0] / weight.sum()
-    weight = csr_matrix(norm_factor * weight)
+    weight = norm_factor * weight
     return weight

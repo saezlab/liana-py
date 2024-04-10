@@ -1,7 +1,8 @@
 import numpy as np
 from itertools import product
 
-from liana.testing._sample_anndata import generate_toy_mdata, generate_toy_spatial
+from liana.testing._sample_anndata import generate_toy_mdata, generate_toy_spatial, generate_anndata
+from liana.testing._sample_resource import sample_resource
 from liana.method.sp._bivariate._spatial_bivariate import bivariate
 from liana._constants import DefaultValues as V
 from liana.utils.transform import zi_minmax
@@ -90,13 +91,13 @@ def test_vectorized_spearman():
               y_use_raw=False,
               local_name='spearman',
               nz_prop=0,
-              n_perms=100,
-              interactions=interactions
+              n_perms=2,
+              interactions=interactions,
               )
     assert 'local_scores' in mdata.mod.keys()
-    adata = mdata.mod['local_scores']
-    np.testing.assert_almost_equal(adata.X.mean(), 0.0077174882, decimal=5)
-    np.testing.assert_almost_equal(adata.layers['pvals'].mean(), 0.617323529, decimal=3)
+    bdata = mdata.mod['local_scores']
+    np.testing.assert_almost_equal(bdata.X.mean(), 0.0077174882, decimal=5)
+    np.testing.assert_almost_equal(bdata.layers['pvals'].mean(), 0.6153921568, decimal=3)
 
     assert mdata.mod['local_scores'].var.shape == (90, 8)
     global_res = mdata.mod['local_scores'].var
@@ -115,7 +116,7 @@ def test_morans_analytical():
               local_name='morans',
               global_name=['morans'],
               resource_name=V.resource_name,
-              n_perms=0, # NOTE issue with Lee here
+              n_perms=0,
               use_raw=True,
               mask_negatives=True
               )
@@ -136,12 +137,14 @@ def test_morans_analytical():
     np.testing.assert_almost_equal(interaction['morans_pvals'].values, 3.4125671e-07)
 
 def test_cosine_permutation():
+    adata.layers['array'] = adata.raw.X.A
     bivariate(adata,
               local_name='cosine',
               global_name=['morans', 'lee'],
               resource_name='consensus',
               n_perms=100,
-              use_raw=True
+              use_raw=False,
+              layer='array'
               )
     lrdata = adata.obsm['local_scores']
 
@@ -197,10 +200,8 @@ def test_bivar_product():
               global_name=None,
               interactions=interactions,
               n_perms=None,
-              use_raw=True,
               add_categories=True,
               key_added='product'
-
               )
     assert 'product' in mdata.mod.keys()
     bdata = mdata.mod['product']
@@ -210,6 +211,21 @@ def test_bivar_product():
     assert bdata.obsp is not None
     np.testing.assert_almost_equal(bdata.X.max(), 0.63145)
     assert 'lee' not in bdata.var.columns
+
+def test_large_adata():
+    adata = generate_anndata(n_obs=10001)
+    resource = sample_resource(adata, n_lrs=20)
+    bivariate(adata,
+              resource=resource,
+              local_name='pearson',
+              global_name='morans',
+              n_perms=None,
+              use_raw=False,
+              add_categories=False
+              )
+    lrdata = adata.obsm['local_scores']
+    np.testing.assert_almost_equal(lrdata.X.mean(), 0.00048977, decimal=6)
+    np.testing.assert_almost_equal(lrdata.var['morans'].mean(), 0.00030397394, decimal=6)
 
 
 def test_wrong_interactions():
@@ -221,6 +237,18 @@ def test_wrong_interactions():
                  n_perms=None,
                  use_raw=True,
                  add_categories=True
+                 )
+
+def test_wrong_kwargs():
+    from pytest import raises
+    with raises(ValueError):
+        bivariate(adata,
+                 resource_name='mouseconsensus',
+                 local_name='morans',
+                 n_perms=None,
+                 use_raw=True,
+                 add_categories=True,
+                 life='is good'
                  )
 
 

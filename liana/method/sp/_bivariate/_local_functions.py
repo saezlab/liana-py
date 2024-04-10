@@ -1,7 +1,7 @@
 import numba as nb
 import numpy as np
-from scipy.stats import rankdata
-from scipy.stats import norm
+from scipy.stats import rankdata,norm
+from scipy.sparse import issparse
 from tqdm import tqdm
 from liana.method.sp._utils import _zscore, _spatialdm_weight_norm
 
@@ -35,11 +35,13 @@ class LocalFunction:
             y_mat = self._norm_max(y_mat)
             weight = _spatialdm_weight_norm(weight)
         else:
-            x_mat = x_mat.A
-            y_mat = y_mat.A
+            if issparse(x_mat):
+               x_mat = x_mat.A
+            if issparse(y_mat):
+                y_mat = y_mat.A
 
-        if self.name.__contains__("masked") or weight.shape[0] < 5000:
-            weight = weight.A
+        if self.name.__contains__("masked") or weight.shape[0] < 10000:
+            weight = weight.todense().A
 
         local_scores = self.fun(x_mat, y_mat, weight)
 
@@ -248,7 +250,7 @@ def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
     """
     if method not in ["pearson", "spearman"]:
         raise ValueError("method must be one of 'pearson', 'spearman'")
-    weight_sums = np.array(np.sum(weight, axis=1).reshape(-1, 1))
+    weight_sums = np.array(np.sum(weight, axis=1)).reshape(-1, 1)
 
     if method=="spearman":
         x_mat = rankdata(x_mat, axis=0)

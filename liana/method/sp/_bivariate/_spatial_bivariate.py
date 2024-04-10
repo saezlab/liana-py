@@ -260,6 +260,9 @@ class SpatialBivariate():
                          complex_sep,
                          verbose,
                          **kwargs):
+        expected_params = {'x_name', 'y_name', 'use_raw', 'layer'}
+        self.validate_kwargs(expected_params=expected_params, **kwargs)
+
         self.x_name = kwargs.get('x_name', 'ligand')
         self.y_name = kwargs.get('y_name', 'receptor')
 
@@ -279,6 +282,13 @@ class SpatialBivariate():
                         complex_sep,
                         verbose,
                         **kwargs):
+        expected_params = {'x_name', 'y_name',
+                           'x_mod', 'y_mod',
+                           'x_use_raw', 'x_layer',
+                           'y_use_raw', 'y_layer',
+                           'x_transform', 'y_transform'}
+        self.validate_kwargs(expected_params=expected_params, **kwargs)
+
         self.x_name = kwargs.get('x_name', self.x_name)
         self.y_name = kwargs.get('y_name', self.y_name)
 
@@ -310,6 +320,12 @@ class SpatialBivariate():
                                 min_cells=None,
                                 complex_sep=complex_sep, # NOTE
                                 )
+
+
+    def validate_kwargs(self, expected_params, **kwargs):
+        unexpected_kwargs = set(kwargs) - expected_params
+        if unexpected_kwargs:
+            raise ValueError(f"Unexpected keyword arguments: {unexpected_kwargs}")
 
 
     def _rename_means(self, lr_stats, entity):
