@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.neighbors import BallTree
-from plotnine import ggplot, aes, geom_line, geom_point, theme_bw, xlab, ylab
+from plotnine import ggplot, aes, geom_line, geom_point, theme_bw, xlab, ylab, scale_y_continuous
 from pandas import DataFrame
 
 def query_bandwidth(coordinates: np.ndarray,
@@ -55,6 +55,7 @@ def query_bandwidth(coordinates: np.ndarray,
     p = (ggplot(df, aes(x='bandwith', y='neighbours')) +
          geom_line() +
          geom_point() +
+         scale_y_continuous(breaks=range(start, end, interval_n)) +
          theme_bw(base_size=16) +
          xlab("Bandwidth") +
          ylab("Number of Neighbors")

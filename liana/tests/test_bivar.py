@@ -2,8 +2,9 @@ import numpy as np
 from itertools import product
 
 from liana.testing._sample_anndata import generate_toy_mdata, generate_toy_spatial
-from liana.method.sp._bivariate._SpatialBivariate import bivariate
+from liana.method.sp._bivariate._spatial_bivariate import bivariate
 from liana._constants import DefaultValues as V
+from liana.utils.transform import zi_minmax
 
 mdata = generate_toy_mdata()
 interactions = list(product(mdata.mod['adata_x'].var.index,
@@ -14,14 +15,14 @@ mdata.obsp['ones'] = ones
 
 def test_bivar_morans_perms():
     bivariate(mdata,
-          x_mod='adata_x',
-          y_mod='adata_y',
-          local_name='morans',
-          n_perms=2,
-          nz_prop=0,
-          x_use_raw=False,
-          y_use_raw=False,
-          interactions=interactions)
+              x_mod='adata_x',
+              y_mod='adata_y',
+              local_name='morans',
+              n_perms=2,
+              nz_prop=0,
+              x_use_raw=False,
+              y_use_raw=False,
+              interactions=interactions)
 
 
     assert 'local_scores' in mdata.mod.keys()
@@ -61,21 +62,19 @@ def test_bivar_nondefault():
 
 def test_masked_spearman():
     bivariate(mdata,
-          x_mod='adata_x',
-          y_mod='adata_y',
-          x_use_raw=False,
-          y_use_raw=False,
-          nz_prop=0,
-          local_name='masked_spearman',
-          interactions=interactions,
-          connectivity_key='ones'
-          )
+              x_mod='adata_x',
+              y_mod='adata_y',
+              x_use_raw=False,
+              y_use_raw=False,
+              nz_prop=0,
+              local_name='masked_spearman',
+              interactions=interactions,
+              connectivity_key='ones'
+              )
 
-    # check local
     assert 'local_scores' in mdata.mod.keys()
     np.testing.assert_almost_equal(mdata.mod['local_scores'].X.mean(), 0.18438724, decimal=5)
 
-    # check global
     assert mdata.mod['local_scores'].var.shape == (90, 8)
     global_res = mdata.mod['local_scores'].var
     assert set(['mean','std']).issubset(global_res.columns)
@@ -83,30 +82,27 @@ def test_masked_spearman():
     np.testing.assert_almost_equal(global_res['std'].mean(), 8.498836e-07, decimal=5)
 
 
-def test_vectorized_pearson():
+def test_vectorized_spearman():
     bivariate(mdata,
-          x_mod='adata_x',
-          y_mod='adata_y',
-          x_use_raw=False,
-          y_use_raw=False,
-          local_name='pearson',
-          nz_prop=0,
-          n_perms=100,
-          interactions=interactions
-          )
-
-    # check local
+              x_mod='adata_x',
+              y_mod='adata_y',
+              x_use_raw=False,
+              y_use_raw=False,
+              local_name='spearman',
+              nz_prop=0,
+              n_perms=100,
+              interactions=interactions
+              )
     assert 'local_scores' in mdata.mod.keys()
     adata = mdata.mod['local_scores']
-    np.testing.assert_almost_equal(adata.X.mean(), 0.0011550441, decimal=5)
-    np.testing.assert_almost_equal(adata.layers['pvals'].mean(), 0.72182712, decimal=3)
+    np.testing.assert_almost_equal(adata.X.mean(), 0.0077174882, decimal=5)
+    np.testing.assert_almost_equal(adata.layers['pvals'].mean(), 0.617323529, decimal=3)
 
-    # check global
     assert mdata.mod['local_scores'].var.shape == (90, 8)
     global_res = mdata.mod['local_scores'].var
     assert set(['mean','std']).issubset(global_res.columns)
-    np.testing.assert_almost_equal(global_res['mean'].mean(), 0.0011550438183169959, decimal=5)
-    np.testing.assert_almost_equal(global_res['std'].mean(), 0.3227660823917939, decimal=5)
+    np.testing.assert_almost_equal(global_res['mean'].mean(), 0.0077174, decimal=5)
+    np.testing.assert_almost_equal(global_res['std'].mean(), 0.46906388, decimal=5)
 
 ### Test on AnnData and LRs
  # NOTE: these should be the same regardless of the local function
@@ -185,6 +181,37 @@ def test_jaccard_pval_none_cats():
 
     np.testing.assert_almost_equal(lrdata[:,'S100A9^ITGB2'].X.mean(), 0.4117572, decimal=6)
 
+
+def test_bivar_product():
+    conn = mdata.obsp['spatial_connectivities']
+    mdata.obsp['norm'] = conn / conn.sum(axis=1)
+    bivariate(mdata,
+              x_mod='adata_x',
+              y_mod='adata_y',
+              x_transform=zi_minmax,
+              y_transform=zi_minmax,
+              x_use_raw=False,
+              y_use_raw=False,
+              connectivity_key='norm',
+              local_name='product',
+              global_name=None,
+              interactions=interactions,
+              n_perms=None,
+              use_raw=True,
+              add_categories=True,
+              key_added='product'
+
+              )
+    assert 'product' in mdata.mod.keys()
+    bdata = mdata.mod['product']
+    assert 'cats' in bdata.layers.keys()
+    assert bdata.uns is not None
+    assert bdata.obsm is not None
+    assert bdata.obsp is not None
+    np.testing.assert_almost_equal(bdata.X.max(), 0.63145)
+    assert 'lee' not in bdata.var.columns
+
+
 def test_wrong_interactions():
     from pytest import raises
     with raises(ValueError):
@@ -195,3 +222,8 @@ def test_wrong_interactions():
                  use_raw=True,
                  add_categories=True
                  )
+
+
+def test_show_bivariate():
+    local_scores = bivariate.show_functions()
+    assert local_scores.shape == (8, 3)

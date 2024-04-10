@@ -8,6 +8,8 @@ Release notes
 
 - Split Local and Global Bivariate metrics. Specifically, I reworked completely the underlying code, though the API should remain relatively unchanged. With the exceptions of: 1) ``lr_bivar`` is now removed and ``bivar`` has been renamed to ``bivariate``. This allowed me to remove a lot of redundancies between the two functions. 2) ``nz_threshold`` has been renamed to ``nz_prop`` for consistency with ``expr_prop`` in the remainder of the package. Related to #44.
 
+- ``li.mt.bivariate`` parameter ``mod_added`` has been renamed to ``key_added`` due to this now refer to both ``.obsm`` and ``.mod`` - depedening whether an AnnData or MuData object is passed.
+
 - Added Global [Lee's statistic](https://onlinelibrary.wiley.com/doi/abs/10.1111/gean.12106), along with a note on weighted product that upon z-scaling it is equivalent to Lee's local statistic.
 
 - The Global [L statistic](https://onlinelibrary.wiley.com/doi/abs/10.1111/gean.12106) and Global [Moran's R](https://www.nature.com/articles/s41467-023-39608-w) are themselves basically identical. See Eq.22 from Lee and Eq.1 in Supps of SpatialDM.

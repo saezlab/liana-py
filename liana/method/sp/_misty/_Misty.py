@@ -30,8 +30,8 @@ class MistyData(MuData):
         Parameters
         ----------
         data : `dict`
-            Dictionary of views (anndatas) or an mdata object.
-            Requires an intra-view called "intra".
+            Dictionary of views (anndatas) or a MuData object. Note that only the .X attribute is used.
+            An intra-view called "intra" is required.
         obs : `pd.DataFrame`
             DataFrame of observations. If None, the obs of the intra-view is used.
         %(spatial_key)s

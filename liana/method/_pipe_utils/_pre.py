@@ -164,14 +164,10 @@ def prep_check_adata(adata: AnnData,
     check_vars(adata.var_names,
                complex_sep=complex_sep,
                verbose=verbose)
-
     # Re-order adata vars alphabetically
     adata = adata[:, np.sort(adata.var_names)]
-
     return adata
 
-
-# format variable names
 def check_vars(var_names, complex_sep, verbose=False) -> list:
     """
     Raise a warning if `complex_sep` is part of any variable name.

@@ -121,7 +121,7 @@ class SpatialBivariate():
         if n_perms is not None:
             if not isinstance(n_perms, int) or n_perms < 0:
                 raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")
-        if (n_perms == 0) and (local_name != "morans"):
+        if (n_perms == 0) and ((local_name != "morans") or (global_name=='morans')):
             raise ValueError("An analytical solution is currently available only for Moran's R")
         if global_name is not None:
             if isinstance(global_name, str):
@@ -355,8 +355,8 @@ class SpatialBivariate():
         """
         Print information about all bivariate local metrics.
         """
-        funs = LocalFunction.instances
-        for function in funs.keys():
+        funs = LocalFunction.instances.copy()
+        for function in funs.values():
             funs[function.name] = {
                 "metadata":function.metadata,
                 "reference":function.reference,

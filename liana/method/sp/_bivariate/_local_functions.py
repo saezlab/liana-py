@@ -30,16 +30,6 @@ class LocalFunction:
                  mask_negatives,
                  verbose
                  ):
-        """
-        Local Moran's Bivariate I as implemented in SpatialDM
-
-        Returns
-        -------
-            Tupple of two 2D Numpy arrays of size (n_spots, n_xy),
-            or in other words calculates local_I and local_pval for
-            each interaction in `xy_dataframe` and each sample in mat
-        """
-
         if self.name == 'morans':
             x_mat = self._norm_max(x_mat)
             y_mat = self._norm_max(y_mat)
@@ -48,7 +38,7 @@ class LocalFunction:
             x_mat = x_mat.A
             y_mat = y_mat.A
 
-        if self.name.__contains__("masked"):
+        if self.name.__contains__("masked") or weight.shape[0] < 5000:
             weight = weight.A
 
         local_scores = self.fun(x_mat, y_mat, weight)
@@ -110,6 +100,8 @@ class LocalFunction:
 
     def _zscore_pvals(self, x_mat, y_mat, local_truth, weight, mask_negatives):
         """
+        Local Moran's R analytical p-values as in spatialDM (Li et al., 2022)
+
 
         Parameters
         ----------
@@ -195,7 +187,7 @@ class LocalFunction:
     @classmethod
     def _get_instance(cls, name):
         name = name.lower()
-        instances = cls.instances.keys()
+        instances = cls.instances
         if name not in instances:
             raise ValueError(f"Function {name} not found. Available functions are: {', '.join(instances)}")
 
@@ -256,7 +248,7 @@ def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
     """
     if method not in ["pearson", "spearman"]:
         raise ValueError("method must be one of 'pearson', 'spearman'")
-    weight_sums = np.array(weight.sum(axis=1))
+    weight_sums = np.array(np.sum(weight, axis=1).reshape(-1, 1))
 
     if method=="spearman":
         x_mat = rankdata(x_mat, axis=0)
@@ -324,7 +316,6 @@ def _local_morans(x_mat, y_mat, weight):
     Returns 2D array of local Moran's I with shape(n_spot, xy_n)
 
     """
-
     local_x = x_mat * (weight @ y_mat)
     local_y = y_mat * (weight @ x_mat)
     local_r = (local_x + local_y)

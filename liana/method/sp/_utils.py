@@ -26,8 +26,13 @@ def _add_complexes_to_var(adata, entities, complex_sep='_'):
                 X = hstack((X, new_array))
 
     adata = AnnData(X=hstack((adata.X, X)),
-                    obs=adata.obs, var=adata.var,
-                    obsm=adata.obsm, obsp=adata.obsp)
+                    obs=adata.obs,
+                    var=adata.var,
+                    obsm=adata.obsm,
+                    varm = adata.varm,
+                    obsp=adata.obsp,
+                    uns = adata.uns,
+                    )
 
     if not isspmatrix_csr(adata.X):
         adata.X = adata.X.tocsr()
