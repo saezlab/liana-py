@@ -1,7 +1,7 @@
 Release notes
 =============
 
-1.1.0 (XX.04.2024)
+1.1.0 (12.04.2024)
 -------------------------------------------------
 
 - Added a check for the subset of cell types in li.multi.dea_to_lr. Related to #92.
