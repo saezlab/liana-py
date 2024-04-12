@@ -2288,6 +2288,25 @@ lint = ["black (>=23.1.0)", "ruff"]
 test = ["pytest-cov"]
 
 [[package]]
+name = "mofapy2"
+version = "0.7.1"
+description = "Multi-omics factor analysis"
+optional = true
+python-versions = "<4.0,>=3.8"
+files = [
+    {file = "mofapy2-0.7.1-py3-none-any.whl", hash = "sha256:17a7e5446bd6f836a1abdada4462dcf772da056cfc6875a01c1db48cba85e0fc"},
+    {file = "mofapy2-0.7.1.tar.gz", hash = "sha256:937c385e07cebcc20039cff4782b7f7d6ebb7b576c4f5a12f5e74364dcec16c3"},
+]
+
+[package.dependencies]
+anndata = ">0.8"
+h5py = ">=3,<4"
+numpy = ">=1,<2"
+pandas = ">1"
+scikit-learn = ">=1,<2"
+scipy = ">=1,<2"
+
+[[package]]
 name = "mofax"
 version = "0.3.6"
 description = "Work with MOFA+ models in Python"
@@ -2888,8 +2907,8 @@ files = [
 [package.dependencies]
 numpy = [
     {version = ">=1.20.3", markers = "python_version < \"3.10\""},
-    {version = ">=1.21.0", markers = "python_version >= \"3.10\" and python_version < \"3.11\""},
     {version = ">=1.23.2", markers = "python_version >= \"3.11\""},
+    {version = ">=1.21.0", markers = "python_version >= \"3.10\" and python_version < \"3.11\""},
 ]
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
@@ -5014,9 +5033,9 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 
 [extras]
 common = ["decoupler", "omnipath", "requests"]
-full = ["cell2cell", "corneto", "cvxpy", "cylp", "decoupler", "mofax", "muon", "omnipath", "pydeseq2", "requests", "squidpy"]
+full = ["cell2cell", "corneto", "cvxpy", "cylp", "decoupler", "mofapy2", "mofax", "muon", "omnipath", "pydeseq2", "requests", "squidpy"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8 <3.12"
-content-hash = "cafd4fa762bf5ceb1c94374ecf7f0b91fd3faa857fe33910a4885b2e648a9161"
+content-hash = "aab890483e997aef796e1703b7c9f9fe8278121370a26704c855f2dc0c4bbb2d"
