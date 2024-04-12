@@ -88,7 +88,6 @@ class GlobalFunction:
                  mask_negatives,
                  verbose
                  ):
-        # NOTE: these are out of functions for permute efficiency
         if self.name == 'morans':
             x_mat = _zscore(x_mat, axis=0, global_r=True)
             y_mat = _zscore(y_mat, axis=0, global_r=True)
