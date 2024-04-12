@@ -18,8 +18,8 @@ def nmf(adata: AnnData=None,
         k_range: range = range(1, 11),
         use_raw: bool=False,
         layer: (str or None)=None,
-        inplace:bool=True,
-        verbose:bool=False,
+        inplace: bool=True,
+        verbose: bool=False,
         **kwargs):
     """
     Fits NMF to an AnnData object.

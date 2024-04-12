@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "liana"
-version = "1.0.5"
+version = "1.1.0"
 description = "LIANA+: a one-stop-shop framework for cell-cell communication"
 authors = ["Daniel Dimitrov <daniel.dimitrov@uni-heidelberg.de>"]
 classifiers = [
@@ -34,6 +34,7 @@ squidpy = {version = "*", optional = true}
 cell2cell = {version = "*", optional = true}
 muon = {version = "*", optional = true}
 mofax = {version = "*", optional = true}
+mofapy2 = {version = ">=0.7.0", optional = true}
 corneto = {version = "0.9.1-alpha.4", optional = true}
 cvxpy = {version = "^1.2.1", optional = true}
 cylp = {version = "^0.91.5", optional = true}
@@ -52,10 +53,11 @@ ipython = "^7.0"
 ipykernel = "^6.0"
 pandoc = "^1.0"
 numpydoc = "^1.1"
+bumpversion = "^0.6.0"
 
 [tool.poetry.extras]
 common = ["decoupler", "omnipath", "requests"]
-full = ["decoupler", "omnipath", "pydeseq2", "squidpy", "cell2cell", "muon", "mofax", "corneto", "cvxpy", "cylp", "requests"]
+full = ["decoupler", "omnipath", "pydeseq2", "squidpy", "cell2cell", "muon", "mofax", "mofapy2", "corneto", "cvxpy", "cylp", "requests"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -1,6 +1,6 @@
 import numpy as np
 
-from liana.method.sp._bivariate_funs import _vectorized_pearson, _vectorized_spearman, \
+from liana.method.sp._bivariate._local_functions import _vectorized_pearson, _vectorized_spearman, \
     _vectorized_cosine, _vectorized_jaccard, _masked_spearman, _local_morans, _product, \
     _norm_product
 
@@ -13,11 +13,10 @@ x_mat = rng.normal(size=(20, 5)).astype(np.float32)
 y_mat = rng.normal(size=(20, 5)).astype(np.float32)
 weight = csr_matrix(rng.uniform(size=(20, 20)).astype(np.float32))
 
-
 def _assert_bivariate(function, desired, x_mat, y_mat, weight):
     actual = function(x_mat, y_mat, weight)
-    assert actual.shape == (5, 20)
-    np.testing.assert_almost_equal(actual[:, 0], desired, decimal=5)
+    assert actual.shape == (20, 5)
+    np.testing.assert_almost_equal(actual[0, :], desired, decimal=5)
 
 
 def test_pc_vectorized():

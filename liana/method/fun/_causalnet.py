@@ -97,7 +97,8 @@ def find_causalnet(
         edge_penalty=0.01,
         solver=None,
         seed=1337,
-        max_seconds=None,
+        max_runs=1,
+        stable_runs=5,
         verbose=True,
         **kwargs
         ):
@@ -134,8 +135,12 @@ def find_causalnet(
         It will default to the solver included in SCIPY, if no other solver is available.
     seed : int, optional
         The seed to use for the random number generator. Default: 1337
-    max_seconds : int, optional
-        The maximum number of seconds to run the solver. Default: None
+    max_runs : int, optional
+        The maximum number of runs to perform. Consider increasing this value if the solver does not converge.
+        In each run, the noise added to the edge and node penalties is perturbed slightly (iterating over the seed).
+        By default, only 1 run is performed.
+    stable_runs : int, optional
+        The number of consecutive stable solutions requires to interrupt the iteration over max_runs. Only used if max_runs is not == 1. Default: 5
     verbose : bool, optional
         Whether to print progress information. Default: True
     **kwargs : dict, optional
@@ -169,45 +174,73 @@ def find_causalnet(
                                                max_penalty=max_penalty,
                                                min_penalty=min_penalty)
 
-    # assign 0 penalties to input/output nodes, missing_penalty to missing nodes
-    # add a small amount of noise to the penalties to ensure reproducible solutions
-    rng = np.random.default_rng(seed=seed)
-    c_node_penalties = {k: node_penalties.get(k, missing_penalty) + rng.uniform(min_penalty/20, min_penalty/10)
-                        if k not in measured_nodes else 0.0 for k in prior_graph.vertices}
+    run_count = 0 # total runs
+    stable_count = 0 # stable solutions in a row
+    df_all = None # df with all solutions
 
-    _logg("Building CORNETO problem...", verbose=verbose)
-    P, G = cn.methods.carnival._extended_carnival_problem(
-        prior_graph,
-        input_node_scores,
-        output_node_scores,
-        node_penalties=c_node_penalties,
-        edge_penalty=edge_penalty
-    )
+    while run_count < max_runs:
+        current_seed = seed + run_count
+        if run_count > 0:
+            _logg(f"Run {run_count} with seed {current_seed}", verbose=verbose)
 
-    # E is the variable with 1 if edge activates or inhibits, 0 otherwise
-    E = P.symbols['reaction_sends_activation_c0'] + P.symbols['reaction_sends_inhibition_c0']
-    W = rng.uniform(edge_penalty/20, edge_penalty/10, size=E.shape)
-    P.add_objectives(W.T @ E)
+        # assign 0 penalties to input/output nodes, missing_penalty to missing nodes
+        # add a small amount of noise to the penalties to ensure reproducible solutions
+        rng = np.random.default_rng(seed=current_seed)
+        c_node_penalties = {k: node_penalties.get(k, missing_penalty) + rng.uniform(min_penalty/20, min_penalty/10)
+                            if k not in measured_nodes else 0.0 for k in prior_graph.vertices}
 
-    _logg(f"Solving with {solver}...", verbose=verbose)
-    if (solver=='scipy') and verbose:
-        kwargs.update(scipy_options=dict(disp='true'))
-    P.solve(
-        solver=solver,
-        max_seconds=max_seconds,
-        verbosity=int(verbose),
-        **kwargs)
+        _logg("Building CORNETO problem...", verbose=verbose)
+        P, G = cn.methods.carnival._extended_carnival_problem(
+            prior_graph,
+            input_node_scores,
+            output_node_scores,
+            node_penalties=c_node_penalties,
+            edge_penalty=edge_penalty
+        )
 
-    _logg("Done.", verbose=verbose)
+        # E is the variable with 1 if edge activates or inhibits, 0 otherwise
+        E = P.symbols['reaction_sends_activation_c0'] + P.symbols['reaction_sends_inhibition_c0']
+        W = rng.uniform(edge_penalty / 20, edge_penalty / 10, size=E.shape)
+        P.add_objectives(W.T @ E)
 
-    obj_names = ["Loss (unfitted inputs/output)", "Edge penalty error", "Node penalty error"]
-    _logg("Solution summary:", verbose=verbose)
-    for s, o in zip(obj_names, P.objectives):
-        _logg(f" - {s}: {o.value}", verbose=verbose)
-    rows, cols = cn.methods.carnival.export_results(P, G, input_node_scores, output_node_scores)
-    df = pd.DataFrame(rows, columns=cols)
+        _logg(f"Solving with {solver}...", verbose=verbose)
+        if (solver=='scipy') and verbose:
+            kwargs.update(scipy_options=dict(disp='true'))
 
-    return df, P
+        P.solve(
+            solver=solver,
+            verbosity=int(verbose),
+            **kwargs)
+
+        obj_names = ["Loss (unfitted inputs/output)", "Edge penalty error", "Node penalty error"]
+        _logg("Solution summary:", verbose=verbose)
+        for s, o in zip(obj_names, P.objectives):
+            _logg(f" - {s}: {o.value}", verbose=verbose)
+
+        rows, cols = cn.methods.carnival.export_results(P, G, input_node_scores, output_node_scores)
+        df = pd.DataFrame(rows, columns=cols)
+
+        # Check if all rows from df are contained in df_all
+        if df_all is None:
+            df_all = df
+            continue
+        else:
+            set_df = set(tuple(row) for row in df.values)
+            set_df_all = set(tuple(row) for row in df_all.values)
+
+            if set_df.issubset(set_df_all):
+                stable_count += 1
+            else:
+                stable_count = 0
+
+            df_all = pd.concat([df_all, df]).drop_duplicates()
+
+        if stable_count >= stable_runs:
+            break
+
+        run_count += 1
+
+    return df_all, P
 
 
 def _weights_to_penalties(props,

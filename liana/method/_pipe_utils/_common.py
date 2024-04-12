@@ -47,7 +47,7 @@ def _get_groupby_subset(groupby_pairs):
             raise AssertionError(f"{P.source} and {P.target} must be in groupby_pairs")
         groupby_subset = union1d(groupby_pairs[P.source].unique(),
                                  groupby_pairs[P.target].unique())
+
     else:
         groupby_subset = None
-
     return groupby_subset

@@ -1,3 +1,3 @@
-from ._lr_bivar import lr_bivar
-from ._SpatialBivariate import bivar
-from ._misty_constructs import genericMistyData, lrMistyData, MistyData
+from liana.method.sp._bivariate._spatial_bivariate import bivariate
+from liana.method.sp._misty._misty_constructs import lrMistyData, MistyData, genericMistyData
+from liana.method.sp._misty._single_view_models import SingleViewModel, RandomForestModel, LinearModel, RobustLinearModel

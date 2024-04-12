@@ -69,6 +69,7 @@ def prep_check_adata(adata: AnnData,
                      use_raw: Optional[bool] = False,
                      layer: Optional[str] = None,
                      obsm = None,
+                     uns = None,
                      complex_sep='_',
                      verbose: Optional[bool] = False) -> AnnData:
     """
@@ -113,6 +114,7 @@ def prep_check_adata(adata: AnnData,
                        dtype="float32",
                        var=var,
                        obsp=adata.obsp.copy(),
+                       uns=uns,
                        obsm=obsm
                        ).copy()
     adata.var_names_make_unique()
@@ -162,14 +164,10 @@ def prep_check_adata(adata: AnnData,
     check_vars(adata.var_names,
                complex_sep=complex_sep,
                verbose=verbose)
-
     # Re-order adata vars alphabetically
     adata = adata[:, np.sort(adata.var_names)]
-
     return adata
 
-
-# format variable names
 def check_vars(var_names, complex_sep, verbose=False) -> list:
     """
     Raise a warning if `complex_sep` is part of any variable name.

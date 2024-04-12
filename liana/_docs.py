@@ -165,9 +165,13 @@ _connectivity_key = """\
 connectivity_key
     Key in `adata.obsp` that contains the spatial connectivity matrix. Default is `'spatial_connectivity'`. """
 
-_function_name = """\
-function_name
-    Name of the function to use for the analysis."""
+_local_name = """\
+local_name
+    Name of the local function to use for the analysis. Passing `None` will return only the Global scores."""
+
+_global_name = """\
+global_name
+    Name or names (list) of the global function(s) to use for the analysis. Passing `None` will not calculate any global scores"""
 
 _positive_only = """\
 positive_only
@@ -184,6 +188,14 @@ x_mod
 _y_mod = """\
 y_mod
     Name of the modality to use for the y-axis."""
+
+_x_name = """\
+x_name
+    Name of the x-variable. If passing a `resource` dataframe, this should match the first column."""
+
+_y_name = """\
+y_name
+    Name of the y-variable. If passing a `resource` dataframe, this should match the second column."""
 
 _mask_negatives = """\
 mask_negatives
@@ -313,11 +325,14 @@ d = DocstringProcessor(
     inverse_fun=_inverse_fun,
     spatial_key=_spatial_key,
     connectivity_key=_connectivity_key,
-    function_name=_function_name,
+    local_name=_local_name,
+    global_name=_global_name,
     positive_only=_positive_only,
     add_categories=_add_categories,
     x_mod=_x_mod,
     y_mod=_y_mod,
+    x_name=_x_name,
+    y_name=_y_name,
     mask_negatives=_mask_negatives,
     colour=_colour,
     size=_size,
