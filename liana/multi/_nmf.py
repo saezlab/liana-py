@@ -125,4 +125,4 @@ def _plot_elbow(errors, n_components, x='k', y='error'):
         p9.labs(x='Component number (k)', y='Reconstruction error') +
         p9.geom_vline(xintercept=n_components, linetype='dashed', color='red')
     )
-    print(p)
+    p.draw()
