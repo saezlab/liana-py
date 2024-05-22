@@ -55,12 +55,11 @@ def test_complex_cases():
     )
     untranslated = keep_missing["symbol"].isin(["HCST_KLRK1"])
     assert untranslated.any()
-    assert keep_missing[untranslated]["orthology_symbol"].isna().all()
 
 
 def test_translate_resource():
     resource = select_resource()
-    map_df = get_hcop_orthologs()
+    map_df = get_hcop_orthologs(columns=['human_symbol', 'mouse_symbol'], min_evidence=3)
     map_df = map_df.rename(columns={"human_symbol": "source", "mouse_symbol": "target"})
 
     translated = translate_resource(resource, map_df, one_to_many=1)

@@ -106,15 +106,14 @@ def translate_column(
     # replace orthologs
     if replace:
         resource[column] = resource["orthology_target"]
-        resource = resource.drop(columns=["orthology_target"])
     else:
-        resource[column] = resource.apply(
+        resource[f"orthology_{column}"] = resource.apply(
             lambda x: x["orthology_target"]
             if not pd.isnull(x["orthology_target"])
             else x[column],
             axis=1,
         )
-        resource.rename(columns={"orthology_target": f"orthology_{column}"}, inplace=True)
+    resource = resource.drop(columns=["orthology_target"])
 
     resource = resource.dropna(subset=[column])
     return resource
@@ -148,9 +147,9 @@ def translate_resource(resource, map_df, columns=['ligand', 'receptor'], **kwarg
 
 
 def get_hcop_orthologs(url="https://ftp.ebi.ac.uk/pub/databases/genenames/hcop/human_mouse_hcop_fifteen_column.txt.gz",
-                       filename="human_mouse_hcop_fifteen_column.txt.gz",
+                       filename=None,
                        min_evidence=3,
-                       columns = ['human_symbol', 'mouse_symbol']
+                       columns = None
                        ):
     """
     Simple function to download the HCOP file from the EBI FTP server and filter it by minimum evidence.
@@ -184,10 +183,13 @@ def get_hcop_orthologs(url="https://ftp.ebi.ac.uk/pub/databases/genenames/hcop/h
     or alternatively check the bulk download FTP links page: https://ftp.ebi.ac.uk/pub/databases/genenames/hcop/
     """
     # check if exists
+    if filename is None:
+        filename = os.path.basename(url.split("/")[-1])
     if not os.path.exists(filename):
         urllib.request.urlretrieve(url, filename)
     else:
         _logg(f"File {filename} already exists. Skipping download.", level="info")
+
     mapping = pd.read_csv(filename, sep="\t")
     mapping['evidence'] = mapping['support'].apply(lambda x: len(x.split(",")))
     mapping = mapping[mapping['evidence'] >= min_evidence]
