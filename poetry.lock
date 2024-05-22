@@ -5021,9 +5021,9 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more
 
 [extras]
 common = ["decoupler", "omnipath", "requests"]
-full = ["cell2cell", "corneto", "cvxpy", "cylp", "decoupler", "ecos", "mofapy2", "mofax", "muon", "omnipath", "pydeseq2", "requests", "squidpy"]
+full = ["cell2cell", "corneto", "cvxpy", "cylp", "decoupler", "mofapy2", "mofax", "muon", "omnipath", "pydeseq2", "requests", "squidpy"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8 <3.12"
-content-hash = "db653cd7a77014754d6f451fcf2d11fc9d650fb2582b172cc4d65abdc14fc075"
+content-hash = "aab890483e997aef796e1703b7c9f9fe8278121370a26704c855f2dc0c4bbb2d"
