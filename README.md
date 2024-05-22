@@ -16,8 +16,8 @@ LIANA+ is a scalable framework that integrates and extends existing methods and 
 
 We welcome suggestions, ideas, and contributions! Please use do not hesitate to contact us, or use the issues or the [LIANA+ Development project](https://github.com/orgs/saezlab/projects/16) to make suggestions.
 
-## Tutorials
-A set of extensive tutorials can be found in the [LIANA+ documentation](https://liana-py.readthedocs.io/en/latest/).
+## Vignettes
+A set of extensive vignettes can be found in the [LIANA+ documentation](https://liana-py.readthedocs.io/en/latest/).
 
 ## API
 For further information please check LIANA's [API documentation](https://liana-py.readthedocs.io/en/latest/api.html).

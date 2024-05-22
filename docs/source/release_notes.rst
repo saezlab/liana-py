@@ -8,6 +8,8 @@ These include: ``li.rs.get_hcop_orthology`` to obtain a dataframe of orthologs f
 
 - Merged #109 to address a backward compatibility issue with plotnine's facets.
 
+- Updated MOFAcell & MOFAtalk tutorials, by making some parameters a bit more explicit (#102), and using decoupler's association plot to do ANOVA + plot metadata associations.
+
 
 1.1.0 (12.04.2024)
 -------------------------------------------------
