@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 import pandas as pd
-
+from liana._logging import _logg
 
 def _replace_subunits(lst, my_dict, one_to_many):
     result = []
@@ -89,6 +89,8 @@ def translate_column(
     """
     if not isinstance(one_to_many, int):
         raise ValueError("`one_to_many` should be a positive integer!")
+    if ['source', 'target'] != map_df.columns.tolist():
+        raise ValueError("The `map_df` DataFrame must have two columns named 'source' and 'target'!")
 
     # get orthologs
     map_df = map_df.set_index("source")
@@ -185,7 +187,7 @@ def get_hcop_orthologs(url="https://ftp.ebi.ac.uk/pub/databases/genenames/hcop/h
     if not os.path.exists(filename):
         urllib.request.urlretrieve(url, filename)
     else:
-        print(f"File {filename} already exists. Skipping download.")
+        _logg(f"File {filename} already exists. Skipping download.", level="info")
     mapping = pd.read_csv(filename, sep="\t")
     mapping['evidence'] = mapping['support'].apply(lambda x: len(x.split(",")))
     mapping = mapping[mapping['evidence'] >= min_evidence]
