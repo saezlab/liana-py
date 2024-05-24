@@ -22,7 +22,8 @@ def _aggregate(lrs: dict,
         should represent unique LRs columns by which to join
     aggregate_method
         method by which we aggregate the ranks. Options are ['rra', 'mean'],
-        where 'rra' corresponds to the RRA method, 'mean' is just the mean of the ranks.
+        where 'rra' corresponds to the RRA method;
+        while 'mean' is just the mean of the ranks divided by the number of interactions
     _consensus_opts
         consensus ranks to be obtained
 
@@ -103,7 +104,7 @@ def _rank_aggregate(lr_res, specs, aggregate_method) -> np.array:
     if aggregate_method == 'rra':
         return _robust_rank_aggregate(rmat)
     elif aggregate_method == 'mean':
-        return np.mean(rmat, axis=1)
+        return np.mean(rmat, axis=1) / rmat.shape[0]
 
 
 def _corr_beta_pvals(p, k) -> np.array:
