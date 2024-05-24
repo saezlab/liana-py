@@ -82,6 +82,12 @@ def translate_column(
     one_to_many : int, optional
         Maximum number of orthologs allowed per gene. Default is 1.
 
+    Details
+    -------
+    This function generates orthologs for a given column in a DataFrame.
+    It handles complex names by splitting them into subunits and generating all possible combinations of orthologs.
+    It assumes that subunits are separated by an underscore ("_").
+
     Returns
     -------
     Resulting DataFrame with translated column.
@@ -161,7 +167,7 @@ def get_hcop_orthologs(url="https://ftp.ebi.ac.uk/pub/databases/genenames/hcop/h
     filename : str
         Name of the file to save the HCOP file.
     min_evidence : int
-        Minimum number of evidences to keep the interaction.
+        Minimum number of evidences to keep the interaction, where evidence is the number of orthology resources supporting the interaction.
     columns : list
         Columns to keep in the final DataFrame. If None, it will keep the default columns.
 
