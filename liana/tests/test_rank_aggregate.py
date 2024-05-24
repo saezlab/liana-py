@@ -21,7 +21,6 @@ def test_consensus_meta():
     assert rank_aggregate.specificity == 'specificity_rank'
     assert rank_aggregate.method_name == 'Rank_Aggregate'
 
-
 def test_aggregate_specs():
     specificity_specs = {'CellPhoneDB': ('cellphone_pvals', True),
                          'Connectome': ('scaled_weight', False),
@@ -46,7 +45,12 @@ def test_aggregate_res():
 
 
 def test_aggregate_all():
-    rank_aggregate(adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, key_added='all_res')
+    rank_aggregate(adata,
+                   groupby='bulk_labels',
+                   aggregate_method='mean',
+                   use_raw=True,
+                   return_all_lrs=True,
+                   key_added='all_res')
     assert adata.uns['all_res'].shape == (4200, 13)
 
 

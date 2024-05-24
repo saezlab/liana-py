@@ -21,7 +21,7 @@ class MistyData(MuData):
     def __init__(self,
                  data:(dict | MuData),
                  obs:(pd.DataFrame | None)=None,
-                 spatial_key: str=K.spatial_key,
+                 spatial_key:str=K.spatial_key,
                  enforce_obs:bool=True,
                  **kwargs):
         """

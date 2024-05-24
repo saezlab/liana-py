@@ -106,7 +106,7 @@ def tileplot(adata: ad.AnnData = None,
         p9.ggplot(liana_res, p9.aes(x='cell_type', y='interaction', fill=fill)) +
         p9.geom_tile() +
         p9.geom_text(p9.aes(label=label), size=label_size, color='white') +
-        p9.facet_grid(facets='~ type', scales='free') +
+        p9.facet_grid('~ type', scales='free') +
         p9.theme_bw(base_size=14) +
         p9.theme(
             axis_text_x=p9.element_text(angle=90),

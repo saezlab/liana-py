@@ -1,6 +1,21 @@
 Release notes
 =============
 
+1.2.0 (24.05.2024)
+-------------------------------------------------
+
+- Added inbuilt orthology conversion functions to convert between species in the ligand-receptor resources (addressing #76)
+These include: ``li.rs.get_hcop_orthology`` to obtain a dataframe of orthologs from [HCOP](https://www.genenames.org/tools/hcop/), ``li.rs.translate_column`` to translate a single column in a dataframe, and ``li.rs.translate_resource`` as a simple wrapper from the latter function to be applied on dataframes.
+
+- Merged #109 to address a backward compatibility issue with plotnine's facets.
+
+- Updated MOFAcell & MOFAtalk tutorials, by making some parameters a bit more explicit (#102), and using decoupler's association plot to do ANOVA + plot metadata associations.
+
+- The mean rank returned by ``rank_aggregate`` when ``aggregate_metod`` = 'mean' is now normalized by the total number of interactions.
+
+- Fixed a minor logic issue when calculating analytical p-values for Moran's R
+
+
 1.1.0 (12.04.2024)
 -------------------------------------------------
 
