@@ -1,12 +1,12 @@
 import numpy as np
 from sklearn.neighbors import BallTree
-from plotnine import ggplot, aes, geom_line, geom_point, theme_bw, xlab, ylab, scale_y_continuous
+from plotnine import ggplot, aes, geom_line, geom_point, theme_bw, xlab, ylab
 from pandas import DataFrame
 
 def query_bandwidth(coordinates: np.ndarray,
                     start: int = 0,
                     end: int = 500,
-                    interval_n:int = 50,
+                    interval_n: int = 50,
                     reference: np.ndarray = None
                     ):
     """
@@ -49,13 +49,12 @@ def query_bandwidth(coordinates: np.ndarray,
         num_neighbors = tree.query_radius(_reference, r=max_distance, count_only=True)
 
         # calculate the average number of neighbors
-        avg_nn = np.mean(num_neighbors)
-        df.loc[n, 'neighbours'] = avg_nn
+        avg_nn = np.ceil(np.median(num_neighbors))
+        df.loc[n, 'neighbours'] = avg_nn - 1
 
     p = (ggplot(df, aes(x='bandwith', y='neighbours')) +
          geom_line() +
          geom_point() +
-         scale_y_continuous(breaks=range(start, end, interval_n)) +
          theme_bw(base_size=16) +
          xlab("Bandwidth") +
          ylab("Number of Neighbors")

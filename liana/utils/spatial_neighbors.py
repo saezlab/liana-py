@@ -23,7 +23,7 @@ def _linear(distance_mtx, bandwidth):
 @d.dedent
 def spatial_neighbors(adata: AnnData,
                       bandwidth=None,
-                      cutoff=None,
+                      cutoff=0.1,
                       max_neighbours=None,
                       kernel='gaussian',
                       set_diag=False,
@@ -103,9 +103,9 @@ def spatial_neighbors(adata: AnnData,
     if max_neighbours is None:
         max_neighbours = int(adata.shape[0] / 10)
 
-    tree = NearestNeighbors(n_neighbors=max_neighbours,
-                        algorithm='ball_tree',
-                        metric='euclidean').fit(_reference)
+    tree = NearestNeighbors(n_neighbors=max_neighbours + 1, # +1 to exclude self
+                            algorithm='ball_tree',
+                            metric='euclidean').fit(_reference)
     dist = tree.kneighbors_graph(coordinates, mode='distance')
 
     # prevent float overflow
@@ -114,7 +114,7 @@ def spatial_neighbors(adata: AnnData,
     # define zone of indifference
     dist.data[dist.data < zoi] = np.inf
 
-    # NOTE: dist gets converted to a connectivity matrix
+    # NOTE: dist gets converted to a connectivity (proximity) matrix
     if kernel == 'gaussian':
         dist.data = _gaussian(dist.data, bandwidth)
     elif kernel == 'misty_rbf':

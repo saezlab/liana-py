@@ -19,7 +19,6 @@ def test_misty_para():
                              cutoff=0,
                              add_juxta=False,
                              set_diag=False,
-                             seed=133
                              )
     misty(model=RandomForestModel, bypass_intra=False, seed=42, n_estimators=11)
     assert np.isin(list(misty.uns.keys()), ['target_metrics', 'interactions']).all()
@@ -37,9 +36,7 @@ def test_misty_bypass():
                              bandwidth=10,
                              add_juxta=True,
                              set_diag=True,
-                             cutoff=0,
-                             coord_type="generic",
-                             delaunay=True)
+                             cutoff=0)
     misty(model=RandomForestModel, alphas=1, bypass_intra=True, seed=42, n_estimators=11)
     assert np.isin(['juxta', 'para'], misty.uns['target_metrics'].columns).all()
     assert ~np.isin(['intra'], misty.uns['target_metrics'].columns).all()
@@ -51,7 +48,7 @@ def test_misty_bypass():
     assert interactions['importances'].sum().round(10) == 22.0
     np.testing.assert_almost_equal(interactions[(interactions['target']=='ligC') &
                                                (interactions['predictor']=='ligA')]['importances'].values,
-                                   np.array([0.0444664, 0.0551506]), decimal=3)
+                                   np.array([0.095, 0.07]), decimal=3)
 
 
 def test_misty_groups():
@@ -60,8 +57,6 @@ def test_misty_groups():
                              add_juxta=True,
                              set_diag=False,
                              cutoff=0,
-                             coord_type="generic",
-                             delaunay=True
                              )
     misty(model=RandomForestModel,
           alphas=1,
@@ -82,7 +77,7 @@ def test_misty_groups():
     # assert that there are self interactions = var_n * var_n
     interactions = misty.uns['interactions']
     self_interactions = interactions[(interactions['target']==interactions['predictor'])]
-    # 11 vars * 4 envs * 3 views = 132; NOTE: However, I drop NAs -> to be refactored...
+    # 11 vars * 4 envs * 3 views = 132; NOTE: However, I drop NAs
     assert self_interactions.shape == (44, 5)
     assert self_interactions[self_interactions['view']=='intra']['importances'].isna().all()
 
@@ -110,7 +105,7 @@ def test_linear_misty():
 
     assert misty.uns['interactions'].shape == (330, 4)
     actual = misty.uns['interactions']['importances'].values.mean()
-    np.testing.assert_almost_equal(actual, 0.4941761900911731, decimal=3)
+    np.testing.assert_almost_equal(actual, 0.5135328101662447, decimal=3)
 
 
 def test_misty_mask():
@@ -126,7 +121,7 @@ def test_misty_mask():
     np.testing.assert_almost_equal(misty.uns['target_metrics']['intra_R2'].mean(), 0.4248588250759459, decimal=3)
 
     assert misty.uns['interactions'].shape == (330, 4)
-    np.testing.assert_almost_equal(misty.uns['interactions']['importances'].sum(), 141.05332654128952, decimal=0)
+    np.testing.assert_almost_equal(misty.uns['interactions']['importances'].sum(), 149.30560405771703, decimal=0)
 
 
 def test_misty_custom():
