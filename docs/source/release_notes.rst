@@ -1,6 +1,16 @@
 Release notes
 =============
 
+1.2.1 (11.06.2024)
+-------------------------------------------------
+- Added +1 to the max_neighbours to account for the spot itself in the spatial connectivities.
+
+- Replaced Squidpy's neighbourhood graph with liana's radial basis kernel, but with a fixed number of neighbours for each spot. This does not account for edges, but differences are minimal does not require squidpy as a dependency. One can easily replace it on demand. (# https://github.com/saezlab/liana-py/issues/112)
+
+- Fixed Python version range between 3.8 and 3.12 (Merged #112)
+
+- Improved the Differential Expression Vignette be more explicit about the causal subnetwork search results (related to #66)
+
 1.2.0 (24.05.2024)
 -------------------------------------------------
 

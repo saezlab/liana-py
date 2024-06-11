@@ -13,7 +13,6 @@ from liana.method._pipe_utils._pre import _choose_mtx_rep
 from liana.resource import select_resource
 from liana.method._pipe_utils import prep_check_adata
 from liana.method.sp._utils import _add_complexes_to_var
-from liana._logging import _check_if_installed
 
 def _make_view(adata, nz_threshold=0.1, add_obs=False, use_raw=False,
                layer=None, connecitivity=None, spatial_key=None, verbose=False):
@@ -57,8 +56,7 @@ def genericMistyData(intra,
                      cutoff = 0.1,
                      add_juxta=True,
                      n_neighs = 6,
-                     verbose=False,
-                     **kwargs,
+                     verbose=False
                      ):
 
     """
@@ -96,14 +94,12 @@ def genericMistyData(intra,
     cutoff : `float`, optional (default: 0.1)
         The cutoff for the connectivity matrix.
     add_juxta : `bool`, optional (default: True)
-        Whether to add the juxtaview. The juxtaview is constructed using `squidpy.gr.spatial_neighbors`,
-        and should represent the direct spatial neighbors of each cell/spot.
+        Whether to add the juxtaview. The juxtaview is constructed using only the nearest neighbors.
+        A bandwidth of 5 times the bandwidth of the paraview is used to ensure that the nearest neighbors within the radius.
     n_neighs : `int`, optional (default: 6)
         The number of neighbors to consider when constructing the juxtaview.
     verbose : `bool`, optional (default: False)
         Whether to print progress.
-    **kwargs : `dict`, optional
-        Additional arguments to pass to `squidpy.gr.spatial_neighbors`.
 
     Returns
     -------
@@ -121,14 +117,12 @@ def genericMistyData(intra,
         extra = intra
 
     if add_juxta:
-        sq = _check_if_installed('squidpy')
-        neighbors, _ = sq.gr.spatial_neighbors(adata=extra,
-                                               copy=True,
-                                               spatial_key=spatial_key,
-                                               set_diag=set_diag,
-                                               n_neighs=n_neighs,
-                                               **kwargs
-                                               )
+        neighbors = spatial_neighbors(extra,
+                                      bandwidth=bandwidth*5,
+                                      spatial_key=spatial_key,
+                                      max_neighbours=n_neighs,
+                                      set_diag=set_diag,
+                                      inplace=False)
 
         views['juxta'] = _make_view(adata=extra, nz_threshold=nz_threshold,
                                     use_raw=extra_use_raw, layer=extra_layer,

@@ -225,7 +225,7 @@ def test_large_adata():
               )
     lrdata = adata.obsm['local_scores']
     np.testing.assert_almost_equal(lrdata.X.mean(), 0.00048977, decimal=4)
-    np.testing.assert_almost_equal(lrdata.var['morans'].mean(), 0.00030397394, decimal=4)
+    np.testing.assert_almost_equal(lrdata.var['morans'].mean(), 0.00012773558, decimal=4)
 
 
 def test_wrong_interactions():

@@ -23,7 +23,8 @@ class MistyData(MuData):
                  obs:(pd.DataFrame | None)=None,
                  spatial_key:str=K.spatial_key,
                  enforce_obs:bool=True,
-                 **kwargs):
+                 **kwargs
+                 ):
         """
         Construct a MistyData object from a dictionary of views (anndatas).
 
