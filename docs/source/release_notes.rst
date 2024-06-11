@@ -9,7 +9,7 @@ Release notes
 
 - Fixed Python version range between 3.8 and 3.12 (Merged #112)
 
-- Be more explicit about the causal subnetwork search results (related to #66)
+- Improved the Differential Expression Vignette be more explicit about the causal subnetwork search results (related to #66)
 
 1.2.0 (24.05.2024)
 -------------------------------------------------
