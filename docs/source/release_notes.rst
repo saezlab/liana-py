@@ -1,4 +1,4 @@
-Release notes
+Changelog
 =============
 
 1.2.1 (11.06.2024)

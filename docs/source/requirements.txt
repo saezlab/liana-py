@@ -1,7 +1,7 @@
 docrep
+furo
 ipykernel
 ipython
 nbsphinx
 numpydoc
 pandoc
-sphinx_rtd_theme
