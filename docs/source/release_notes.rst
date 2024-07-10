@@ -1,6 +1,17 @@
 Changelog
 =============
 
+1.3.0 (12.07.2024)
+
+- Minor improvements to documentation, specifically changed to the furo theme. Resolved issues with latex not being rendered and plot sizes being off.
+
+- An exception will now be reaised if ``nz_prop`` is too high in ``li.mt.bivariate``. #121
+
+- Updated MetalinksDB to v0.4.5 (the latest version of the MetalinksDB paper)
+
+- Fixed some edgecases where an external ``resource`` or ``interactions`` can have duplicated entries, also resolving a pandas name index issue (#120)
+
+
 1.2.1 (11.06.2024)
 -------------------------------------------------
 - Added +1 to the max_neighbours to account for the spot itself in the spatial connectivities.

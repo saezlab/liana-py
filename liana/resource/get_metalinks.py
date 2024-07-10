@@ -16,7 +16,7 @@ def _download_metalinksdb(verbose=True):
     """
     requests = _check_if_installed("requests")
 
-    METALINKS_URL = "https://figshare.com/ndownloader/files/44624707?private_link=4744950f8768d5c8f68c"
+    METALINKS_URL = "https://figshare.com/ndownloader/files/47548619"
 
     # Define the local filename to save the downloaded database
     db_file_name = 'metalinksdb.db'
@@ -32,8 +32,13 @@ def _download_metalinksdb(verbose=True):
 
     return db_path
 
+def _format_clauses(input_data, column_name, table_ref, where_clauses):
+    if input_data:
+        formatted_str = ", ".join([f"'{i}'" for i in input_data])
+        where_clauses.append(f"{table_ref}.{column_name} IN ({formatted_str})")
 
 def get_metalinks(db_path: Optional[str] = None,
+                  types: Optional[List[str]] = None,
                   cell_location: Optional[List[str]] = None,
                   tissue_location: Optional[List[str]] = None,
                   biospecimen_location: Optional[List[str]] = None,
@@ -45,14 +50,15 @@ def get_metalinks(db_path: Optional[str] = None,
                   ):
     """
     Fetches edges of metabolite-proteins with specified annotations, applying filters if they are not None.
-    Allows filtering by lists of hmdb and uniprot IDs and uses source for filtering without including it in the result,
-    avoids duplicate column names, and returns the results as a pandas DataFrame.
+    Allows filtering by lists of hmdb and uniprot IDs and avoids duplicate column names, and returns the results as a pandas DataFrame.
     Filters are applied using INNER JOINs and WHERE clauses - i.e. the results are the intersection of the filters.
 
     Parameters
     ----------
     db_path
         Path to the SQLite database file. If None, the database will be downloaded to the current working directory.
+    types
+        Desired edge types. Options are: ['lr', 'pd'], where 'lr' stands for 'ligand-receptor' and 'pd' stands for 'production-degradation'.
     cell_location
         Desired metabolite cell locations.
     tissue_location
@@ -67,8 +73,6 @@ def get_metalinks(db_path: Optional[str] = None,
         Desired HMDB IDs.
     uniprot_ids
         Desired UniProt IDs.
-    source
-        Desired sources for filtering.
 
     Returns
     ----------
@@ -82,15 +86,18 @@ def get_metalinks(db_path: Optional[str] = None,
 
     # Adjusted SELECT statement to exclude the source column
     base_query = """
-    SELECT m.metabolite AS metabolite, m.hmdb as hmdb, p.uniprot AS uniprot, p.gene_symbol as gene_symbol
+    SELECT DISTINCT m.hmdb as hmdb,
+                p.uniprot AS uniprot,
+                p.gene_symbol as gene_symbol,
+                m.metabolite AS metabolite,
+                e.mor as mor,
+                e.transport_direction as transport_direction,
+                e.type AS type,
+                e.source AS source
     FROM edges e
-    JOIN metabolites m ON e.hmdb = m.hmdb
-    JOIN proteins p ON e.uniprot = p.uniprot
+    LEFT JOIN metabolites m ON e.hmdb = m.hmdb
+    LEFT JOIN proteins p ON e.uniprot = p.uniprot
     """
-
-    # Source table join is conditional based on source being provided
-    if source:
-        base_query += "JOIN source s ON e.hmdb = s.hmdb AND e.uniprot = s.uniprot "
 
     def _to_list(x):
         if isinstance(x, str):
@@ -104,7 +111,7 @@ def get_metalinks(db_path: Optional[str] = None,
     pathway = _to_list(pathway)
     hmdb_ids = _to_list(hmdb_ids)
     uniprot_ids = _to_list(uniprot_ids)
-    source = _to_list(source)
+    types = _to_list(types)
 
     annotations_filters = {
         'cell_location': cell_location,
@@ -125,17 +132,10 @@ def get_metalinks(db_path: Optional[str] = None,
             where_clause = f"{annotation_table}.{annotation_table} IN ({values_str})"
             where_clauses.append(where_clause)
 
-    if hmdb_ids:
-        hmdb_str = ", ".join([f"'{i}'" for i in hmdb_ids])
-        where_clauses.append(f"m.hmdb IN ({hmdb_str})")
-
-    if uniprot_ids:
-        uniprot_str = ", ".join([f"'{i}'" for i in uniprot_ids])
-        where_clauses.append(f"p.uniprot IN ({uniprot_str})")
-
-    if source:
-        source_str = ", ".join([f"'{src}'" for src in source])
-        where_clauses.append(f"s.source IN ({source_str})")
+    _format_clauses(types, "type", "e", where_clauses)
+    _format_clauses(hmdb_ids, "hmdb", "m", where_clauses)
+    _format_clauses(uniprot_ids, "uniprot", "p", where_clauses)
+    _format_clauses(source, "source", "e", where_clauses)
 
     full_query = base_query
     if join_clauses:
