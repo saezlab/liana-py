@@ -7,7 +7,7 @@ Changelog
 
 - An exception will now be reaised if ``nz_prop`` is too high in ``li.mt.bivariate``. #121
 
-- Updated MetalinksDB to v0.4.5 (the latest version of the MetalinksDB paper)
+- Updated MetalinksDB to v0.4.5 (the latest version of the MetalinksDB paper), extended to also include production-degradation information.
 
 - Fixed some edgecases where an external ``resource`` or ``interactions`` can have duplicated entries, also resolving a pandas name index issue (#120)
 
