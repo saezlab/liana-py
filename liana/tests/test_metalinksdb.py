@@ -30,7 +30,7 @@ def test_get_metalinks_values():
 
     assert 'Obesity' in result
     assert 'Schizophrenia' in result
-    assert len(result) == 457
+    assert len(result) == 567
 
 
 def test_describe_metalinks():

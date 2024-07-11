@@ -16,7 +16,7 @@ def _download_metalinksdb(verbose=True):
     """
     requests = _check_if_installed("requests")
 
-    METALINKS_URL = "https://figshare.com/ndownloader/files/47548619"
+    METALINKS_URL = "https://figshare.com/ndownloader/files/47567597"
 
     # Define the local filename to save the downloaded database
     db_file_name = 'metalinksdb.db'
@@ -86,8 +86,8 @@ def get_metalinks(db_path: Optional[str] = None,
 
     # Adjusted SELECT statement to exclude the source column
     base_query = """
-    SELECT DISTINCT m.hmdb as hmdb,
-                p.uniprot AS uniprot,
+    SELECT DISTINCT e.hmdb as hmdb,
+                e.uniprot AS uniprot,
                 p.gene_symbol as gene_symbol,
                 m.metabolite AS metabolite,
                 e.mor as mor,
