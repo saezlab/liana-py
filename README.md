@@ -20,27 +20,26 @@ We welcome suggestions, ideas, and contributions! Please use do not hesitate to 
 A set of extensive vignettes can be found in the [LIANA+ documentation](https://liana-py.readthedocs.io/en/latest/).
 
 ## Decision Tree
+### Q: Does the data contain spatial coordinates?
+#### Yes
+- **Q: Bivariate or unsupervised, multi-variate, and multi-view analysis?**
+  - **Bivariate:**
+    - **Q: Are you interested in identifying the subregions of interactions (i.e., local interactions)?**
+      - **Yes:** Check the [**Local** Bivariate Metrics](https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html#Bivariate-Ligand-Receptor-Relationships)
+      - **No:** Check the [**Global** Bivariate Metrics](https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html#Bivariate-Ligand-Receptor-Relationships)
+  - **Unsupervised:** [Multi-view learning](https://liana-py.readthedocs.io/en/latest/notebooks/misty.html)
 
-C1: Does the data contain spatial coordinates?
-├── Yes
-│   ├── Q: Bivariate or unsupervised, multi-variate, and multi-view analysis?
-│       ├── Bivariate:
-│       │       ├── Q: Are you interested in identifying the subregions of interactions (i.e., local interactions)?
-│       │           ├── Yes -> Check the [**Local** Bivariate Metrics](https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html#Bivariate-Ligand-Receptor-Relationships)
-│       │           ├── No -> Check the [**Global** Bivariate Metrics](https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html#Bivariate-Ligand-Receptor-Relationships)
-│       └── Unsupervised: [Multi-view learning](https://liana-py.readthedocs.io/en/latest/notebooks/misty.html)
-└── No
-    ├── Q: Are you interested in Comparing CCC across Samples?
-        ├── Yes
-        │   ├── Q: Are you interested in a specific contrast?
-        │   │   ├── Yes -> [Differential Contrasts and Downstream Signalling](https://liana-py.readthedocs.io/en/latest/notebooks/targeted.html)
-        │   │   └── No -> Unsupervised Cross-conditional LR inference with [MOFA+](https://liana-py.readthedocs.io/en/latest/notebooks/mofatalk.html) or [Tensor-cell2cell](https://liana-py.readthedocs.io/en/latest/notebooks/liana_c2c.html)
-        └── No -> [Steady-state Ligand-Receptor inference](https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html)
+#### No
+- **Q: Are you interested in comparing CCC across samples?**
+  - **Yes:**
+    - **Q: Are you interested in a specific contrast?**
+      - **Yes:** [Differential Contrasts and Downstream Signalling](https://liana-py.readthedocs.io/en/latest/notebooks/targeted.html)
+      - **No:** Unsupervised Cross-conditional LR inference with [MOFA+](https://liana-py.readthedocs.io/en/latest/notebooks/mofatalk.html) or [Tensor-cell2cell](https://liana-py.readthedocs.io/en/latest/notebooks/liana_c2c.html)
+  - **No:** [Steady-state Ligand-Receptor inference](https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html)
 
-Is your data Multi-modal?
-├── Spatial: [Integrating Multi-Modal Spatially-Resolved Technologies](https://liana-py.readthedocs.io/en/latest/notebooks/sma.html)
-└── Non-Spatial: [Integrating Multi-Modal Single-Cell Technologies](https://liana-py.readthedocs.io/en/latest/notebooks/sc_multi.html)
-
+### Is your data Multi-modal?
+- **Spatial:** [Integrating Multi-Modal Spatially-Resolved Technologies](https://liana-py.readthedocs.io/en/latest/notebooks/sma.html)
+- **Non-Spatial:** [Integrating Multi-Modal Single-Cell Technologies](https://liana-py.readthedocs.io/en/latest/notebooks/sc_multi.html)
 
 ## API
 For further information please check LIANA's [API documentation](https://liana-py.readthedocs.io/en/latest/api.html).
