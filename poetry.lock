@@ -2257,8 +2257,8 @@ files = [
 [package.dependencies]
 numpy = [
     {version = ">=1.20.3", markers = "python_version < \"3.10\""},
-    {version = ">=1.21.0", markers = "python_version >= \"3.10\" and python_version < \"3.11\""},
     {version = ">=1.23.2", markers = "python_version >= \"3.11\""},
+    {version = ">=1.21.0", markers = "python_version >= \"3.10\" and python_version < \"3.11\""},
 ]
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
@@ -4026,4 +4026,4 @@ full = ["cell2cell", "corneto", "cvxpy", "cylp", "decoupler", "mofapy2", "mofax"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8 <3.12"
-content-hash = "9a4fe22f5a00877f59a4b33a26b85a3237030b29e613ba2966a64e84ae7195ac"
+content-hash = "3e3a4409429aab20fd67b61795e80c1833f79ead55555482dacd96e76ce92300"
