@@ -1,16 +1,16 @@
 from scipy.sparse import csr_matrix, isspmatrix_csr
 import numpy as np
 
-def zi_minmax(X, cutoff=0.25):
+def zi_minmax(X, cutoff=0.5):
     """
-    Zero-inflated min-max scaling.
+    Zero-inflated min-max scaling, adopted from CiteFuse (Kim et al., 2020; https://academic.oup.com/bioinformatics/article/36/14/4137/5827474).
 
     Parameters
     ----------
     X : array-like
         Data to be scaled.
     cutoff : float
-        Cutoff value for zero-inflation - values less than this are set to 0. Default is 0.25.
+        Cutoff value for zero-inflation - values less than this are set to 0. Default is 0.5.
 
     Returns
     -------
@@ -50,7 +50,6 @@ def neg_to_zero(X, cutoff=0):
     A csr_matrix.
 
     """
-
     X = X.copy()
     if not isspmatrix_csr(X):
         X = csr_matrix(X)

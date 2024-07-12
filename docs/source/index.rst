@@ -52,6 +52,8 @@ spatially-resolved, and multi-modal omics data.
 
    notebooks/targeted
 
+   notebooks/sc_multi
+
 
 .. toctree::
    :maxdepth: 1

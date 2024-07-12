@@ -17,6 +17,8 @@ from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_mat_
 from liana.method._pipe_utils._aggregate import _aggregate
 from liana._constants import MethodColumns as M, CommonColumns as C, \
                             PrimaryColumns as P, InternalValues as I
+from mudata import MuData
+from liana.utils import mdata_to_anndata
 
 def liana_pipe(adata: anndata.AnnData,
                groupby: str,
@@ -39,7 +41,8 @@ def liana_pipe(adata: anndata.AnnData,
                _score=None,
                _methods: list = None,
                _consensus_opts: list = None,
-               _aggregate_method: str | None = None
+               _aggregate_method: str | None = None,
+               mdata_kwargs: dict = dict(),
                ):
     """
     Parameters
@@ -114,6 +117,17 @@ def liana_pipe(adata: anndata.AnnData,
     mat_mean = None
     mat_max = None
 
+    resource = _handle_resource(interactions=interactions,
+                                resource=resource,
+                                resource_name=resource_name,
+                                verbose=verbose)
+    resource = explode_complexes(resource)
+
+    if isinstance(adata, MuData):
+        adata = mdata_to_anndata(adata, **mdata_kwargs, verbose=verbose)
+        use_raw = False
+        layer = None
+
     groupby_subset = _get_groupby_subset(groupby_pairs=groupby_pairs)
     adata = prep_check_adata(adata=adata,
                              groupby=groupby,
@@ -130,14 +144,6 @@ def liana_pipe(adata: anndata.AnnData,
     if M.mat_max in _add_cols:
         mat_max = adata.X.max()
         assert isinstance(mat_max, np.float32)
-
-    resource = _handle_resource(interactions=interactions,
-                                resource=resource,
-                                resource_name=resource_name,
-                                verbose=verbose)
-
-    # explode complexes/decomplexify
-    resource = explode_complexes(resource)
 
     # Check overlap between resource and adata
     assert_covered(np.union1d(np.unique(resource[P.ligand]),

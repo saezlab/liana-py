@@ -3,7 +3,6 @@ from __future__ import annotations
 from liana.method.sc._Method import MethodMeta
 from liana.method.sc._liana_pipe import liana_pipe
 from liana._docs import d
-from liana.utils import mdata_to_anndata
 from mudata import MuData
 from liana._constants import Keys as K, DefaultValues as V
 
@@ -119,12 +118,7 @@ class AggregateClass(MethodMeta):
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
         """
 
-        if isinstance(adata, MuData):
-            ad = mdata_to_anndata(adata, **mdata_kwargs, verbose=verbose)
-        else:
-            ad = adata
-
-        liana_res = liana_pipe(adata=ad,
+        liana_res = liana_pipe(adata=adata,
                                groupby=groupby,
                                resource_name=resource_name,
                                resource=resource,
@@ -144,7 +138,8 @@ class AggregateClass(MethodMeta):
                                n_jobs=n_jobs,
                                _methods=self.methods,
                                _aggregate_method=aggregate_method,
-                               _consensus_opts=consensus_opts
+                               _consensus_opts=consensus_opts,
+                               mdata_kwargs=mdata_kwargs
                                )
 
         if inplace:

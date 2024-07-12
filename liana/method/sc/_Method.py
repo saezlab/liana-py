@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from liana.method.sc._liana_pipe import liana_pipe
-from liana.utils import mdata_to_anndata
 from liana._logging import _logg
 from liana._docs import d
 from liana._constants import Keys as K, DefaultValues as V
@@ -242,12 +241,7 @@ class Method(MethodMeta):
         if supp_columns is None:
             supp_columns = []
 
-        if isinstance(adata, MuData):
-            ad = mdata_to_anndata(adata, **mdata_kwargs, verbose=verbose)
-        else:
-            ad = adata
-
-        liana_res = liana_pipe(adata=ad,
+        liana_res = liana_pipe(adata=adata,
                                groupby=groupby,
                                resource_name=resource_name,
                                resource=resource,
@@ -266,6 +260,7 @@ class Method(MethodMeta):
                                n_jobs=n_jobs,
                                use_raw=use_raw,
                                layer=layer,
+                               mdata_kwargs=mdata_kwargs
                                )
         if inplace:
             adata.uns[key_added] = liana_res
