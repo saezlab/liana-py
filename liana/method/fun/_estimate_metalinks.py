@@ -1,4 +1,4 @@
-from muon import MuData
+from mudata import MuData
 import numpy as np
 from pandas import concat
 from liana.utils import obsm_to_adata
