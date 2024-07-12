@@ -1,5 +1,17 @@
-Release notes
+Changelog
 =============
+
+1.3.0 (12.07.2024)
+
+- Minor improvements to documentation, specifically changed to the furo theme. Resolved issues with latex not being rendered and plot sizes being off.
+
+- An exception will now be reaised if ``nz_prop`` is too high in ``li.mt.bivariate``. #121
+
+- Updated MetalinksDB to v0.4.5 (the latest version of the MetalinksDB paper), extended to also include production-degradation information.
+
+- Fixed some edgecases where an external ``resource`` or ``interactions`` can have duplicated entries, also resolving a pandas name index issue (#120)
+
+- Added simple tutorial how to process multi-omics and multi-modal (e.g. metabolite inference) data with LIANA+. #41 #124
 
 1.2.1 (11.06.2024)
 -------------------------------------------------

@@ -63,7 +63,10 @@ def _handle_mod(mdata, mod, use_raw, layer, transform, verbose):
 
     # NOTE, maybe instead of copying I can just create a minimal AnnData?
     md = mdata.mod[mod].copy()
-    md.X = _choose_mtx_rep(md, use_raw = use_raw, layer = layer, verbose=verbose)
+    if use_raw:
+        md = md.raw.to_adata()
+    else:
+        md.X = _choose_mtx_rep(md, use_raw = use_raw, layer = layer, verbose=verbose)
 
     if transform:
         if verbose:

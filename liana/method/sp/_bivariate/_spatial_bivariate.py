@@ -127,11 +127,6 @@ class SpatialBivariate():
         if (n_perms == 0) and ((local_name not in ["morans", None]) or ~np.isin(global_name, ["morans", None]).any()):
             raise ValueError("An analytical solution is currently available only for Moran's R")
 
-            global_funs = GlobalFunction.instances.keys()
-            for g_fun in global_funs:
-                if g_fun not in global_funs:
-                    raise ValueError(f"Invalid global function: {g_fun}. Must be in {global_funs}")
-
         if local_name is not None:
             local_fun = LocalFunction._get_instance(name=local_name)
 
@@ -187,6 +182,9 @@ class SpatialBivariate():
         # filter according to props
         xy_stats = xy_stats[(xy_stats[f'{self.x_name}_props'] >= nz_prop) &
                             (xy_stats[f'{self.y_name}_props'] >= nz_prop)]
+        if xy_stats.empty:
+            raise ValueError("No features with non-zero proportions")
+
         # create interaction column
         xy_stats['interaction'] = xy_stats[self.x_name] + xy_sep + xy_stats[self.y_name]
 

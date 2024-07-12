@@ -33,6 +33,7 @@ spatially-resolved, and multi-modal omics data.
    installation
    api
    release_notes
+   contributing
    reference
    notebooks/prior_knowledge
 
@@ -50,6 +51,8 @@ spatially-resolved, and multi-modal omics data.
    notebooks/mofatalk
 
    notebooks/targeted
+
+   notebooks/sc_multi
 
 
 .. toctree::

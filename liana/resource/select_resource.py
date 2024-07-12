@@ -69,10 +69,14 @@ def _handle_resource(interactions=None, resource=None, resource_name=None, x_nam
                 raise ValueError("If 'interactions' is None, 'resource' must be a valid DataFrame "
                                  "with columns '{}' and '{}'.".format(x_name, y_name))
             resource = resource.copy()
+            resource = resource.dropna(subset=[x_name, y_name]).drop_duplicates()
+            resource.index = range(len(resource))
+            resource.index.name = None
     else:
         _logg("Using provided `interactions`.", verbose=verbose)
         if not isinstance(interactions, list) or any(len(item) != 2 for item in interactions):
             raise ValueError("'interactions' should be a list of tuples in the format [(x1, y1), (x2, y2), ...].")
+        interactions = set(interactions)
         resource = DataFrame(interactions, columns=[x_name, y_name])
 
     return resource

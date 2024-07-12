@@ -33,8 +33,8 @@ def test_caulsalnet():
                                      )
 
     assert problem.weights == [1.0, 0.01, 1.0, 1.0]
-    assert df_res['source_pred_val'].values.sum() == 8.0
-    assert df_res['target_pred_val'].values.sum() == 11
+    assert df_res['source_pred_val'].values.sum() == 7.0
+    assert df_res['target_pred_val'].values.sum() == 10
     assert (df_res[df_res['target_type']=='output']['target'].isin(['M1', 'M2'])).all()
 
 
@@ -48,5 +48,5 @@ def test_causalnet_noweights():
                                      verbose=False,
                                      solver='scipy'
                                      )
-    assert df_res['source_pred_val'].values.sum() == 9
-    assert df_res['target_pred_val'].values.sum() == 10
+    assert df_res['source_pred_val'].values.sum() == 8
+    assert df_res['target_pred_val'].values.sum() == 9

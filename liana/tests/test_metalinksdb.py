@@ -12,9 +12,9 @@ def test_get_metalinks():
     result = get_metalinks(tissue_location='Brain',
                            hmdb_ids='HMDB0000073',
                            uniprot_ids='P14416'
-                           )
+                           ).drop_duplicates(['hmdb', 'uniprot'])
     assert isinstance(result, pd.DataFrame)
-    assert result.shape == (1, 4)
+    assert result.shape == (1, 8)
     assert 'Dopamine' in result['metabolite'].values
     assert 'HMDB0000073' in result['hmdb'].values
     assert 'P14416' in result['uniprot'].values
@@ -30,11 +30,12 @@ def test_get_metalinks_values():
 
     assert 'Obesity' in result
     assert 'Schizophrenia' in result
-    assert len(result) == 530
+    assert len(result) == 567
 
 
 def test_describe_metalinks():
     out = describe_metalinks(return_output=True)
     assert 'metabolites' in out
     assert 'proteins' in out
-    assert 'Primary Key: 1' in out
+    assert 'edges' in out
+    assert 'Column ID: 8' in out

@@ -6,6 +6,7 @@ from liana.method.sc import cellphonedb, connectome, logfc, natmi, singlecellsig
 
 from liana.method.sp import bivariate, genericMistyData, lrMistyData, MistyData
 from liana.method.fun._causalnet import find_causalnet, build_prior_network
+from liana.method.fun._estimate_metalinks import estimate_metalinks
 from liana._constants import DefaultValues as V
 
 # callable consensus instance
