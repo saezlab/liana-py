@@ -121,3 +121,4 @@ Intracellular
 
    liana.method.find_causalnet
    liana.method.build_prior_network
+   liana.method.estimate_metalinks
