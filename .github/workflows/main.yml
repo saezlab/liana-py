@@ -43,7 +43,7 @@ jobs:
 
   build-macOS:
 
-    runs-on: macOS-12.0
+    runs-on: macOS-12
 
     steps:
     - uses: actions/checkout@v2
