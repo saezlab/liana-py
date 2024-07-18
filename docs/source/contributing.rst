@@ -128,7 +128,7 @@ Building the Docs Locally
     cd docs
     make clean
     make html
-    open _uild/html/index.html
+    open build/html/index.html
 
 Contributing to the Codebase
 ----------------------------
