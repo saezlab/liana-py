@@ -28,8 +28,8 @@ def test_caulsalnet():
                                      verbose=False,
                                      solver='scipy',
                                      seed=1337,
-                                     max_runs=20,
-                                     stable_runs=10,
+                                     max_runs=50,
+                                     stable_runs=20,
                                      )
 
     assert problem.weights == [1.0, 0.01, 1.0, 1.0]
@@ -46,7 +46,9 @@ def test_causalnet_noweights():
                                      output_scores,
                                      node_weights={"N1": 1, "N2": 0},
                                      verbose=False,
-                                     solver='scipy'
+                                     solver='scipy',
+                                     max_runs=50,
+                                     stable_runs=20,
                                      )
     assert df_res['source_pred_val'].values.sum() == 8
     assert df_res['target_pred_val'].values.sum() == 9

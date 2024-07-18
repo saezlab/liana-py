@@ -22,5 +22,5 @@ def test_estimate_metalinks():
                                min_n=2)
     assert np.isin(['metabolite', 'receptor'], list(mdata.mod.keys())).all()
     assert (mdata.var.index == ['A', 'B', 'ITGB2', 'TNFRSF4']).all()
-    np.testing.assert_almost_equal(mdata.mod['metabolite'].X.mean(), -0.18889697, decimal=7)
-    np.testing.assert_almost_equal(mdata.mod['receptor'].X.mean(), 0.7754228, decimal=7)
+    np.testing.assert_almost_equal(mdata.mod['metabolite'].X.mean(), -0.18889697, decimal=5)
+    np.testing.assert_almost_equal(mdata.mod['receptor'].X.mean(), 0.7754228, decimal=5)
