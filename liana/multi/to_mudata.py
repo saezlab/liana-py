@@ -129,6 +129,8 @@ def lrs_to_views(adata: AnnData,
                  lrs_per_sample:int = 10,
                  samples_per_view: int = 3,
                  min_variance:int = 0,
+                 min_var_nbatches = 1,
+                 batch_key=None,
                  lr_sep: str = V.lr_sep,
                  cell_sep: str='&',
                  var_sep: str=':',
@@ -164,6 +166,11 @@ def lrs_to_views(adata: AnnData,
     min_variance
         Reflects the minimum required variance across samples for each interaction in each view.
         NaNs are ignored when computing the variance.
+    batch_key
+        Key in `adata.obs` that represents the batch information. Used solely when computing the variance.
+        If batch_key is not `None`, the variance is computed per batch, and the ``
+    min_var_nbatches
+        Reflect the minimum number of batches (>=) that must have a variance above `min_variance` for an interaction to be included in the view.
     %(lr_sep)s
     cell_sep
         Separator to use for the cell names in the views.
@@ -209,7 +216,10 @@ def lrs_to_views(adata: AnnData,
     # concat columns (needed for MOFA)
     liana_res['interaction'] = liana_res[ligand_key] + lr_sep + liana_res[receptor_key]
     liana_res['ct_pair'] = liana_res[source_key] + cell_sep + liana_res[target_key]
-    liana_res = liana_res[[sample_key, 'ct_pair', 'interaction', score_key]]
+    keys = [sample_key, 'ct_pair', 'interaction', score_key]
+    if batch_key is not None:
+        keys.append(batch_key)
+    liana_res = liana_res[keys]
 
     # get scores & invert if necessary
     liana_res = process_scores(liana_res=liana_res,
@@ -218,9 +228,8 @@ def lrs_to_views(adata: AnnData,
 
     # count samples per interaction
     count_pairs = (liana_res.
-                   drop(columns=score_key).
                    groupby(['interaction', 'ct_pair']).
-                   count().
+                   count()[[sample_key]].
                    rename(columns={sample_key: 'count'}).
                    reset_index()
                    )
@@ -232,8 +241,7 @@ def lrs_to_views(adata: AnnData,
     liana_res = liana_res.merge(count_pairs.drop(columns='count') , how='inner')
 
     # Keep only samples above a certain number of LRs
-    count_lrs = (liana_res.
-                 drop(columns=score_key).
+    count_lrs = (liana_res[[sample_key, 'ct_pair', 'interaction']].
                  groupby([sample_key, 'ct_pair']).
                  count().
                  rename(columns={'interaction': 'count'}).
@@ -243,28 +251,26 @@ def lrs_to_views(adata: AnnData,
     liana_res = liana_res.merge(count_lrs.drop(columns='count') , how='inner')
 
     # convert to anndata views
-    views = liana_res['ct_pair'].unique()
-    views = tqdm(views, disable=not verbose)
-
     lr_adatas = {}
+    views = tqdm(liana_res['ct_pair'].unique(), disable=not verbose)
     for view in views:
         lrs_per_ct = liana_res[liana_res['ct_pair']==view]
-        lrs_wide = lrs_per_ct.pivot(index='interaction',
-                                    columns=sample_key,
-                                    values=score_key)
+        index = 'interaction' if batch_key is None else ['interaction', batch_key]
+        # check variance
+        ints_to_keep = (lrs_per_ct.groupby(index).apply(lambda x: np.nanvar(x[score_key])) > min_variance).groupby('interaction').sum() >= min_var_nbatches
+        ints_to_keep = ints_to_keep[ints_to_keep].index
 
+        lrs_wide = lrs_per_ct[lrs_per_ct['interaction'].isin(ints_to_keep)].\
+            pivot(index='interaction',
+                  columns=sample_key,
+                  values=score_key)
         lrs_wide.index = view + var_sep + lrs_wide.index
         lrs_wide = lrs_wide.replace(np.nan, lr_fill)
 
         if lrs_wide.shape[0] >= lrs_per_view: # check if enough LRs
             temp = _dataframe_to_anndata(lrs_wide)
-
-            # keep only variables with variance > min_variance
-            temp = temp[:, np.nanvar(temp.X, axis=0) > min_variance]
-
             if (temp.shape[0] >= samples_per_view): # check if enough samples
                 lr_adatas[view] = temp
-
     # to mdata
     mdata = MuData(lr_adatas)
 
@@ -350,7 +356,6 @@ def filter_view_markers(mdata: MuData,
 def _process_meta(adata, mdata, sample_key, obs_keys):
     if obs_keys is not None:
         metadata = adata.obs[[sample_key, *obs_keys]].drop_duplicates()
-
         sample_n = adata.obs[sample_key].nunique()
         if metadata.shape[0] != sample_n:
             raise ValueError('`obs_keys` must be unique per sample in `adata.obs`')
