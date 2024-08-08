@@ -39,16 +39,6 @@ master_doc = 'index'
 
 html_theme = 'furo'
 html_static_path = ["_static"]
-html_theme_options = {
-    "light_css_variables": {
-        "color-brand-primary": "#2980B9",
-        "color-brand-content": "#2980B9",
-    },
-    "dark_css_variables": {
-        "color-brand-primary": "#2980B9",
-        "color-brand-content": "#2980B9",
-    },
-}
 html_context = dict(
     display_github=True,
     github_user='saezlab',

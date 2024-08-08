@@ -1,6 +1,15 @@
 Changelog
 =============
 
+1.4.0 (09.08.2024)
+
+- Correctly referred to PK tutorial for orthology conversion
+
+- Added ``batch_key`` and ``min_var_nbatches`` to control te way batches are selected in ``li.multi.lrs_to_views``.
+This might result in minor differences of how many interactions are considered per view, as I also changed the order of filtering.
+
+- Changed ``max_neighbours`` in ``li.ut.spatial_neighbors`` to be a fixed number (default=100), rather than a fraction of the spots as this was making RAM explode for large spatial formats.
+
 1.3.0 (12.07.2024)
 
 - Minor improvements to documentation, specifically changed to the furo theme. Resolved issues with latex not being rendered and plot sizes being off.
