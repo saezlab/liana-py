@@ -50,12 +50,13 @@ def genericMistyData(intra,
                      add_para=True,
                      spatial_key='spatial',
                      set_diag=False,
-                     kernel = 'misty_rbf', ## TODO change to gaussian kernel
+                     kernel = 'misty_rbf',
                      bandwidth = 100,
                      zoi = 0,
                      cutoff = 0.1,
                      add_juxta=True,
                      n_neighs = 6,
+                     max_neighs = 18,
                      verbose=False
                      ):
 
@@ -98,6 +99,8 @@ def genericMistyData(intra,
         A bandwidth of 5 times the bandwidth of the paraview is used to ensure that the nearest neighbors within the radius.
     n_neighs : `int`, optional (default: 6)
         The number of neighbors to consider when constructing the juxtaview.
+    max_neighs: `int`, optional (default: 18)
+        The maximum number of neighbors to consider when constructing the Paraview.
     verbose : `bool`, optional (default: False)
         Whether to print progress.
 
@@ -135,7 +138,7 @@ def genericMistyData(intra,
                                     bandwidth=bandwidth,
                                     kernel=kernel,
                                     set_diag=set_diag,
-                                    max_neighbours=int(extra.shape[0]/10),
+                                    max_neighbours=max_neighs,
                                     inplace=False,
                                     cutoff=cutoff,
                                     zoi=zoi
@@ -166,7 +169,7 @@ def lrMistyData(adata,
                 nz_threshold=0.1,
                 use_raw = False,
                 layer = None,
-                spatial_key='spatial', ## TODO Change to Gaussian kernel
+                spatial_key='spatial',
                 kernel = 'misty_rbf',
                 bandwidth = 100,
                 set_diag = False,
