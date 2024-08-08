@@ -24,7 +24,7 @@ def _linear(distance_mtx, bandwidth):
 def spatial_neighbors(adata: AnnData,
                       bandwidth=None,
                       cutoff=0.1,
-                      max_neighbours=None,
+                      max_neighbours=100,
                       kernel='gaussian',
                       set_diag=False,
                       zoi=0,
@@ -48,7 +48,7 @@ def spatial_neighbors(adata: AnnData,
         Values below this cutoff will be set to 0.
     max_neighbours
         Maximum nearest neighbours to be considered when generating spatial connectivity weights.
-        Essentially, the maximum number of edges in the graph. Default is `None`, which will use n = adata.shape[0]/10.
+        Essentially, the maximum number of edges in the spatial connectivity graph.
     kernel
         Kernel function used to generate connectivity weights.
         It controls the shape of the connectivity weights.
@@ -99,9 +99,6 @@ def spatial_neighbors(adata: AnnData,
         _reference = coordinates
     else:
         _reference = reference
-
-    if max_neighbours is None:
-        max_neighbours = int(adata.shape[0] / 10)
 
     tree = NearestNeighbors(n_neighbors=max_neighbours + 1, # +1 to exclude self
                             algorithm='ball_tree',

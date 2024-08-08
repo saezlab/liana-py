@@ -135,6 +135,7 @@ def genericMistyData(intra,
                                     bandwidth=bandwidth,
                                     kernel=kernel,
                                     set_diag=set_diag,
+                                    max_neighbours=int(extra.shape[0]/10),
                                     inplace=False,
                                     cutoff=cutoff,
                                     zoi=zoi
