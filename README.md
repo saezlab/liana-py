@@ -14,7 +14,7 @@ LIANA+ is a scalable framework that integrates and extends existing methods and 
 
 ## Development & Contributions
 
-We welcome suggestions, ideas, and contributions! Please use do not hesitate to contact us, or use the issues or the [LIANA+ Development project](https://github.com/orgs/saezlab/projects/16) to make suggestions.
+We welcome suggestions, ideas, and contributions! Please use do not hesitate to contact us, open issues, and check the [contributions guide](https://liana-py.readthedocs.io/en/latest/contributing.html).
 
 ## Vignettes
 A set of extensive vignettes can be found in the [LIANA+ documentation](https://liana-py.readthedocs.io/en/latest/).
@@ -46,7 +46,7 @@ For further information please check LIANA's [API documentation](https://liana-p
 
 ## Cite LIANA+:
 
-Dimitrov D., Schäfer P.S.L, Farr E., Rodriguez Mier P., Lobentanzer S., Dugourd A., Tanevski J., Ramirez Flores R.O. and Saez-Rodriguez J. 2023 LIANA+: an all-in-one cell-cell communication framework. BioRxiv. https://www.biorxiv.org/content/10.1101/2023.08.19.553863v1
+Dimitrov D., Schäfer P.S.L, Farr E., Rodriguez Mier P., Lobentanzer S., Badia-i-Mompel P., Dugourd A., Tanevski J., Ramirez Flores R.O. and Saez-Rodriguez J. LIANA+ provides an all-in-one framework for cell–cell communication inference. Nat Cell Biol (2024). https://doi.org/10.1038/s41556-024-01469-w
 
 Dimitrov, D., Türei, D., Garrido-Rodriguez M., Burmedi P.L., Nagai, J.S., Boys, C., Flores, R.O.R., Kim, H., Szalai, B., Costa, I.G., Valdeolivas, A., Dugourd, A. and Saez-Rodriguez, J. Comparison of methods and resources for cell-cell communication inference from single-cell RNA-Seq data. Nat Commun 13, 3224 (2022). https://doi.org/10.1038/s41467-022-30755-0
 

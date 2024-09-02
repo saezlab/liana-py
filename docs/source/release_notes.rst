@@ -1,7 +1,9 @@
 Changelog
 =============
 
-1.4.0 (09.08.2024)
+1.4.0 (02.09.2024)
+
+- Now published at Nat Cell Bio.
 
 - Correctly referred to PK tutorial for orthology conversion
 
