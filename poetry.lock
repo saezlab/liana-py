@@ -4109,4 +4109,4 @@ full = ["cell2cell", "corneto", "cvxpy", "cylp", "decoupler", "mofapy2", "mofax"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8 <3.12"
-content-hash = "5a921315b58e679b32b98e07afa3b3a26403e41d28b0d64b64664d0beddc2224"
+content-hash = "3e3a4409429aab20fd67b61795e80c1833f79ead55555482dacd96e76ce92300"
