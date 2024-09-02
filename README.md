@@ -8,7 +8,7 @@
 [![Downloads](https://static.pepy.tech/badge/liana)](https://pepy.tech/project/liana)
 <!-- badges: end -->
 
-LIANA+ is a scalable framework that integrates and extends existing methods and knowledge to study cell-cell communication in single-cell, spatially-resolved, and multi-modal omics data. It is part of the [scverse ecosystem](https://github.com/scverse), and relies on [AnnData](https://github.com/scverse/anndata) & [MuData](https://github.com/scverse/mudata) objects as input.
+LIANA+ is a scalable framework that adapts and extends existing methods and knowledge to study cell-cell communication in single-cell, spatially-resolved, and multi-modal omics data. It is part of the [scverse ecosystem](https://github.com/scverse), and relies on [AnnData](https://github.com/scverse/anndata) & [MuData](https://github.com/scverse/mudata) objects as input.
 
 <img src="https://raw.githubusercontent.com/saezlab/liana-py/main/docs/source/_static/abstract.png" width="700" align="center">
 
@@ -20,7 +20,7 @@ We welcome suggestions, ideas, and contributions! Please do not hesitate to cont
 A set of extensive vignettes can be found in the [LIANA+ documentation](https://liana-py.readthedocs.io/en/latest/).
 
 ## Decision Tree
-### Q: Does the data contain spatial coordinates?
+### Does the data contain spatial coordinates?
 #### Yes
 - **Q: Bivariate or unsupervised, multi-variate, and multi-view analysis?**
   - **Bivariate:**
@@ -41,6 +41,9 @@ A set of extensive vignettes can be found in the [LIANA+ documentation](https://
 - **Spatial:** [Integrating Multi-Modal Spatially-Resolved Technologies](https://liana-py.readthedocs.io/en/latest/notebooks/sma.html)
 - **Non-Spatial:** [Integrating Multi-Modal Single-Cell Technologies](https://liana-py.readthedocs.io/en/latest/notebooks/sc_multi.html)
 
+#### Infer Metabolite-mediated CCC from transcriptomics?
+[Non-spatial Data](https://liana-py.readthedocs.io/en/latest/notebooks/sc_multi.html#Metabolite-mediated-CCC-from-Transcriptomics-Data)
+
 ## API
 For further information please check LIANA's [API documentation](https://liana-py.readthedocs.io/en/latest/api.html).
 
@@ -50,4 +53,4 @@ Dimitrov D., Schäfer P.S.L, Farr E., Rodriguez Mier P., Lobentanzer S., Badia-i
 
 Dimitrov, D., Türei, D., Garrido-Rodriguez M., Burmedi P.L., Nagai, J.S., Boys, C., Flores, R.O.R., Kim, H., Szalai, B., Costa, I.G., Valdeolivas, A., Dugourd, A. and Saez-Rodriguez, J. Comparison of methods and resources for cell-cell communication inference from single-cell RNA-Seq data. Nat Commun 13, 3224 (2022). https://doi.org/10.1038/s41467-022-30755-0
 
-Similarly, please consider citing any of the methods and/or resources implemented in liana, that were particularly relevant for your research!
+Please also consider citing any of the methods and/or resources that were particularly relevant for your research!

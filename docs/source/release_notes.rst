@@ -2,6 +2,7 @@ Changelog
 =============
 
 1.4.0 (02.09.2024)
+-------------------------------------------------
 
 - Now published at Nat Cell Bio.
 
@@ -13,6 +14,7 @@ This might result in minor differences of how many interactions are considered p
 - Changed ``max_neighbours`` in ``li.ut.spatial_neighbors`` to be a fixed number (default=100), rather than a fraction of the spots as this was making RAM explode for large spatial formats.
 
 1.3.0 (12.07.2024)
+-------------------------------------------------
 
 - Minor improvements to documentation, specifically changed to the furo theme. Resolved issues with latex not being rendered and plot sizes being off.
 
@@ -183,6 +185,7 @@ Essentially, it diminishes the effect of spatial proximity on the score, while s
 - Bumped CORNETO version and it's now installed via PyPI.
 
 1.0.0a2 (19.09.2023)
+-------------------------------------------------
 
 - Interactions names in ``tileplot`` and ``dotplot`` will now be sorted according to ``orderby`` when used; related to #55
 
