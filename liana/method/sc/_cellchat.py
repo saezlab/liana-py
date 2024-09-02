@@ -34,7 +34,7 @@ def _cellchat_score(x, perm_stats) -> tuple:
 
 
 # Initialize CellChat Meta
-_cellchat = MethodMeta(method_name="CellChat†",
+_cellchat = MethodMeta(method_name="CellChat",
                        complex_cols=["ligand_trimean", "receptor_trimean"],
                        add_cols=['mat_max'],
                        fun=_cellchat_score,
