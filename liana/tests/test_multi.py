@@ -57,6 +57,52 @@ def test_lrs_to_views():
     assert len(mdata.varm_keys())==3
 
 
+def test_lrs_to_views_batch():
+    adata = generate_toy_adata()
+    adata.obs['batch'] = 1
+    adata2 = adata.copy()
+    adata2.obs['batch'] = 2
+    adata2.obs['sample'] = adata2.obs['sample'].apply(lambda x: x+'2')
+    adata3 = adata.copy()
+    adata3.obs['sample'] = adata3.obs['sample'].apply(lambda x: x+'3')
+    adata = adata.concatenate([adata2, adata3], join='inner', batch_key='sample_number')
+
+    liana_res = sample_lrs(by_sample=True)
+    liana_res2 = liana_res.copy()
+    liana_res2['sample'] = liana_res['sample'].apply(lambda x: x+'2')
+    liana_res['batch']=1
+    liana_res2['batch']=2
+    liana_res3 = liana_res.copy()
+    liana_res3['sample'] = liana_res3['sample'].apply(lambda x: x+'3')
+    # add some variance
+    liana_res2['specificity_rank'] = liana_res2['specificity_rank'] + 0.1
+    liana_res3['specificity_rank'] = liana_res3['specificity_rank'] + 0.2
+    liana_res = pd.concat([liana_res, liana_res2, liana_res3])
+    adata.uns['liana_results'] = liana_res
+
+    mdata = lrs_to_views(adata=adata,
+                         sample_key='sample',
+                         score_key='specificity_rank',
+                         uns_key = 'liana_results',
+                         obs_keys = ['case', 'batch'],
+                         source_key='source',
+                         target_key='target',
+                         ligand_key='ligand_complex',
+                         receptor_key='receptor_complex',
+                         lr_prop=0.1,
+                         lrs_per_sample=1,
+                         lrs_per_view=5,
+                         samples_per_view=0,
+                         min_variance=0,
+                         batch_key='batch',
+                         min_var_nbatches=1,
+                         verbose=True
+                         )
+
+    assert mdata.shape == (12, 16)
+    assert 'case' in mdata.obs.columns
+    assert 'batch' in mdata.obs.columns
+    assert len(mdata.varm_keys())==3
 
 def test_adata_to_views():
     """Test adata_to_views."""

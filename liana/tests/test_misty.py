@@ -36,6 +36,7 @@ def test_misty_bypass():
                              bandwidth=10,
                              add_juxta=True,
                              set_diag=True,
+                             max_neighs=10,
                              cutoff=0)
     misty(model=RandomForestModel, alphas=1, bypass_intra=True, seed=42, n_estimators=11)
     assert np.isin(['juxta', 'para'], misty.uns['target_metrics'].columns).all()
