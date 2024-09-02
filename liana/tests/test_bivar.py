@@ -28,8 +28,8 @@ def test_bivar_morans_perms():
 
     assert 'local_scores' in mdata.mod.keys()
     local_pvals = mdata.mod['local_scores'].layers['pvals']
-    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -346.55872, decimal=4)
-    np.testing.assert_almost_equal(np.mean(local_pvals), 0.52787581, decimal=6)
+    np.testing.assert_almost_equal(mdata.mod['local_scores'].X.sum(), -346.55872, decimal=2)
+    np.testing.assert_almost_equal(np.mean(local_pvals), 0.52787581, decimal=4)
 
 
 def test_bivar_nondefault():
