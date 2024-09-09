@@ -42,7 +42,7 @@ A set of extensive vignettes can be found in the [LIANA+ documentation](https://
 - **Non-Spatial:** [Integrating Multi-Modal Single-Cell Technologies](https://liana-py.readthedocs.io/en/latest/notebooks/sc_multi.html)
 
 #### Infer Metabolite-mediated CCC from transcriptomics?
-[Non-spatial Data](https://liana-py.readthedocs.io/en/latest/notebooks/sc_multi.html#Metabolite-mediated-CCC-from-Transcriptomics-Data)
+- [Non-spatial Data](https://liana-py.readthedocs.io/en/latest/notebooks/sc_multi.html#Metabolite-mediated-CCC-from-Transcriptomics-Data)
 
 ## API
 For further information please check LIANA's [API documentation](https://liana-py.readthedocs.io/en/latest/api.html).
