@@ -2,12 +2,23 @@ import numpy as np
 import pandas as pd
 
 from liana._constants import Keys as K
+from liana._logging import _logg
 
 def _check_var(liana_res, var_name, var):
     if var is None:
         raise ValueError(f'`{var_name}` must be provided!')
     if var not in liana_res.columns:
         raise ValueError(f'`{var}` ({var_name}) must be one of {liana_res.columns}')
+
+def _get_liana_res(adata, liana_res, uns_key=K.uns_key):
+    if adata is not None:
+        assert uns_key in adata.uns.keys()
+        _logg(f"Using `adata.uns['{uns_key}']`")
+        return adata.uns[uns_key].copy()
+    if liana_res is not None:
+        return liana_res.copy()
+    if (liana_res is None) & (uns_key is None):
+        raise ValueError('`liana_res` or AnnData with `uns_key` must be provided!')
 
 
 def _prep_liana_res(adata=None,
@@ -18,15 +29,7 @@ def _prep_liana_res(adata=None,
                     receptor_complex=None,
                     uns_key=K.uns_key):
 
-    if (liana_res is None) & (adata is None):
-        raise AttributeError(f'Ambiguous! One of `liana_res` or `adata.uns[{uns_key}]` should be provided.')
-    if adata is not None:
-        assert uns_key in adata.uns.keys()
-        liana_res = adata.uns[uns_key].copy()
-    if liana_res is not None:
-        liana_res = liana_res.copy()
-    if (liana_res is None) & (adata is None):
-        raise ValueError('`liana_res` or `adata` must be provided!')
+    liana_res = _get_liana_res(adata, liana_res, uns_key)
 
     # subset to only cell labels of interest
     liana_res = _filter_labels(liana_res, labels=source_labels, label_type='source')
@@ -62,7 +65,7 @@ def _aggregate_scores(res, what, how, absolute, entities):
     return res
 
 
-def _inverse_scores(score):
+def _invert_scores(score):
     return -np.log10(score + np.finfo(float).eps)
 
 
