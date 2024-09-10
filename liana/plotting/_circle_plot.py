@@ -96,7 +96,6 @@ def get_mask_df(
 def circle_plot(
         adata: sc.AnnData,
         uns_key: Union[str, None] = K.uns_key,
-        liana_res: Union[pd.DataFrame, None] = None,
         groupby: str = None,
         source_key: str = 'source',
         target_key: str = 'target',
@@ -130,7 +129,6 @@ def circle_plot(
     ----------
     %(adata)s
     %(uns_key)s
-    %(liana_res)s
     %(groupby)s
     %(source_key)s
     %(target_key)s
