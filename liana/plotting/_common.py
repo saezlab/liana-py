@@ -44,15 +44,17 @@ def _prep_liana_res(adata=None,
 
     return liana_res
 
+def _check_labels(liana_res, labels, label_type):
+    if labels is str:
+        labels = [labels]
+    covered = np.isin(labels, liana_res[label_type])
+    if not covered.all():
+        not_covered = np.array(labels)[~covered]
+        raise ValueError(f"{not_covered} not found in `liana_res['{label_type}']`!")
 
 def _filter_labels(liana_res, labels, label_type):
     if labels is not None:
-        if labels is str:
-            labels = [labels]
-        covered = np.isin(labels, liana_res[label_type])
-        if not covered.all():
-            not_covered = np.array(labels)[~covered]
-            raise ValueError(f"{not_covered} not found in `liana_res['{label_type}']`!")
+        _check_labels(liana_res, labels, label_type)
         msk = np.isin(liana_res[label_type], labels)
         liana_res = liana_res[msk]
 

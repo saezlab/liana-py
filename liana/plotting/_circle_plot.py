@@ -6,7 +6,7 @@ from typing import Literal, Union
 import scanpy as sc
 from matplotlib import pyplot as plt
 import networkx as nx
-from liana.plotting._common import _prep_liana_res, _invert_scores, _filter_by, _get_top_n
+from liana.plotting._common import _prep_liana_res, _invert_scores, _filter_by, _get_top_n, _check_labels
 
 from liana._docs import d
 from liana._constants import Keys as K
@@ -93,7 +93,7 @@ def get_mask_df(
     return pivot_table[mask_df].fillna(0)
 
 @d.dedent
-def circle_plot(
+def circle(
         adata: sc.AnnData,
         uns_key: Union[str, None] = K.uns_key,
         groupby: str = None,
@@ -172,6 +172,8 @@ def circle_plot(
     """
     if groupby is None:
         raise ValueError('`groupby` must be provided!')
+    if score_key is None:
+        raise ValueError('`score_key` must be provided!')
 
     liana_res = _prep_liana_res(
         adata=adata,
@@ -187,6 +189,10 @@ def circle_plot(
     if inverse_score:
         liana_res[score_key] = _invert_scores(liana_res[score_key])
 
+    # check source_labels and target_labels
+    _check_labels(liana_res, source_labels, 'source')
+    _check_labels(liana_res, target_labels, 'target')
+
     pivot_table = _pivot_liana_res(
         liana_res,
         source_key=source_key,
@@ -195,6 +201,11 @@ def circle_plot(
         mode=pivot_mode)
 
     groupby_colors = _get_adata_colors(adata, label=groupby)
+
+    # check if the overlap of the union of source_labels and target_labels is not 0 with adata.obs[groupby]
+    if source_labels is not None and target_labels is not None:
+        if len(set(source_labels).union(set(target_labels)).intersection(adata.obs[groupby])) == 0:
+            raise ValueError(f"`source_labels` and `target_labels` have no overlap with adata.obs['{groupby}']!")
 
     # Mask pivot table
     _pivot_table = get_mask_df(

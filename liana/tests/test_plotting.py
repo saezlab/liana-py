@@ -1,7 +1,8 @@
 import numpy as np
-from liana.plotting import dotplot, dotplot_by_sample, tileplot
+from liana.plotting import dotplot, dotplot_by_sample, tileplot, circle
 from liana.testing import sample_lrs
-from liana.testing import generate_toy_spatial
+from liana.testing import generate_toy_spatial, generate_toy_adata
+from pytest import raises
 
 liana_res = sample_lrs()
 
@@ -70,3 +71,45 @@ def test_proximity_plot():
     adata = generate_toy_spatial()
     my_p4 = connectivity(adata=adata, idx=0)
     assert my_p4 is not None
+
+
+def test_circle_plot():
+    liana_res = sample_lrs()
+    adata = generate_toy_adata()
+    adata.uns['liana_res'] = liana_res
+
+    raises(ValueError,
+           circle,
+           adata=adata,
+           uns_key='liana_res',
+           groupby='bulk_labels',
+           source_key='source',
+           target_key='target',
+           score_key='specificity_rank',
+           source_labels='B',
+           target_labels=['C'],
+           pivot_mode='counts',
+           mask_mode='or',
+           figure_size=(5, 5),
+           edge_alpha=0.5,
+           edge_arrow_size=10
+           )
+
+    liana_res['source'] = adata.obs['bulk_labels'].sample(n=liana_res.shape[0], replace=True).values
+    liana_res['target'] = adata.obs['bulk_labels'].sample(n=liana_res.shape[0], replace=True).values
+
+    p = circle(adata=adata,
+               uns_key='liana_res',
+               groupby='bulk_labels',
+               source_key='source',
+               target_key='target',
+               score_key='specificity_rank',
+               source_labels=['CD19+ B', 'CD8+/CD45RA+ Naive Cytotoxic', 'CD8+ Cytotoxic T'],
+               target_labels=['Dendritic', 'CD14+ Monocyte'],
+               pivot_mode='counts',
+               mask_mode='or',
+               figure_size=(5, 5),
+               edge_alpha=0.5,
+               edge_arrow_size=10
+               )
+    p is not None

@@ -78,6 +78,7 @@ Visualization options
    liana.plotting.dotplot
    liana.plotting.dotplot_by_sample
    liana.plotting.tileplot
+   liana.plotting.circle
    liana.plotting.connectivity
    liana.plotting.target_metrics
    liana.plotting.contributions
