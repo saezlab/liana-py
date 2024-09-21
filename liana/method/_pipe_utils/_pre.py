@@ -101,12 +101,11 @@ def prep_check_adata(adata: AnnData,
                         layer=layer, verbose=verbose)
 
     if use_raw & (layer is None):
-        var = DataFrame(index=adata.raw.var_names)
+        var = DataFrame(index=list(adata.raw.var_names))
     else:
-        var = DataFrame(index=adata.var_names)
+        var = DataFrame(index=list(adata.var_names))
 
     if obsm is not None:
-        # discard any instances of AnnData if in obsm
         obsm = {k: v for k, v in obsm.items() if not isinstance(v, AnnData)}
 
     adata = sc.AnnData(X=X,
