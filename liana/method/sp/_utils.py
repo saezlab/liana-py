@@ -56,3 +56,8 @@ def _spatialdm_weight_norm(weight):
     norm_factor = weight.shape[0] / weight.sum()
     weight = norm_factor * weight
     return weight
+
+def _rename_means(lr_stats, entity):
+    df = lr_stats.copy()
+    df.columns = df.columns.map(lambda x: entity + '_' + str(x) if x != 'gene' else 'gene')
+    return df.rename(columns={'gene': entity})

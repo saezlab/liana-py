@@ -4,7 +4,7 @@ from liana.method.sc._Method import Method, MethodMeta, _show_methods
 from liana.method.sc._rank_aggregate import AggregateClass, _rank_aggregate_meta as aggregate_meta
 from liana.method.sc import cellphonedb, connectome, logfc, natmi, singlecellsignalr, geometric_mean, cellchat, scseqcomm
 
-from liana.method.sp import bivariate, genericMistyData, lrMistyData, MistyData
+from liana.method.sp import bivariate, genericMistyData, lrMistyData, MistyData, inflow
 from liana.method.fun._causalnet import find_causalnet, build_prior_network
 from liana.method.fun._estimate_metalinks import estimate_metalinks
 from liana._constants import DefaultValues as V

@@ -12,7 +12,7 @@ from liana.utils.mdata_to_anndata import mdata_to_anndata
 from liana.resource.select_resource import _handle_resource
 from liana.method._pipe_utils import prep_check_adata, assert_covered
 
-from liana.method.sp._utils import _add_complexes_to_var, _zscore
+from liana.method.sp._utils import _add_complexes_to_var, _zscore, _rename_means
 from liana.method.sp._bivariate._global_functions import GlobalFunction
 from liana.method.sp._bivariate._local_functions import LocalFunction
 
@@ -34,7 +34,7 @@ class SpatialBivariate():
                  global_name: (None | str | list) = None,
                  resource_name: str = None,
                  resource: Optional[pd.DataFrame] = V.resource,
-                 interactions: list = V.interactions,
+                 interactions: Optional[list] = V.interactions,
                  connectivity_key: str = K.connectivity_key,
                  mask_negatives: bool = False,
                  add_categories: bool = False,
@@ -176,8 +176,8 @@ class SpatialBivariate():
                                 index=adata.var_names
                                 ).reset_index().rename(columns={'index': 'gene'})
         # join global stats to LRs from resource
-        xy_stats = resource.merge(self._rename_means(xy_stats, entity=self.x_name)).merge(
-                                    self._rename_means(xy_stats, entity=self.y_name))
+        xy_stats = resource.merge(_rename_means(xy_stats, entity=self.x_name)
+                                  ).merge(_rename_means(xy_stats, entity=self.y_name))
 
         # filter according to props
         xy_stats = xy_stats[(xy_stats[f'{self.x_name}_props'] >= nz_prop) &
@@ -326,7 +326,7 @@ class SpatialBivariate():
             raise ValueError(f"Unexpected keyword arguments: {unexpected_kwargs}")
 
 
-    def _rename_means(self, lr_stats, entity):
+    def _rename_means(lr_stats, entity):
         df = lr_stats.copy()
         df.columns = df.columns.map(lambda x: entity + '_' + str(x) if x != 'gene' else 'gene')
         return df.rename(columns={'gene': entity})
