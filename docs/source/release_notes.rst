@@ -8,6 +8,8 @@ Changelog
 
 - Issue related to .A for a csr_matrix after a certain scipy version #155, #135
 
+- Removed inplace paramter from ``li.mt.bivariate`` Related to #147. It will now by default return an AnnData object.
+
 1.4.0 (02.09.2024)
 -------------------------------------------------
 
