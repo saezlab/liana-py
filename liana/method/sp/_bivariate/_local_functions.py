@@ -36,12 +36,13 @@ class LocalFunction:
             weight = _spatialdm_weight_norm(weight)
         else:
             if issparse(x_mat):
-               x_mat = x_mat.A
+               x_mat = x_mat.toarray()
             if issparse(y_mat):
-                y_mat = y_mat.A
+                y_mat = y_mat.toarray()
 
         if self.name.__contains__("masked") or weight.shape[0] < 10000:
-            weight = weight.todense().A
+            if issparse(weight):
+                weight = weight.todense().A
 
         local_scores = self.fun(x_mat, y_mat, weight)
 
@@ -180,7 +181,7 @@ class LocalFunction:
         return std
 
     def _norm_max(self, X, axis=0):
-        X = X / X.max(axis=axis).A
+        X = X / X.max(axis=axis).toarray()
         X = _zscore(X, axis=axis)
         X = np.where(np.isnan(X), 0, X)
 

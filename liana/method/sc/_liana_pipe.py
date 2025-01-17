@@ -460,8 +460,8 @@ def _assign_min_or_max(x, x_ascending):
 
 
 def _trimean(a, axis=0):
-    quantiles = np.quantile(a.A, q=[0.25, 0.75], axis=axis)
-    median = np.median(a.A, axis=axis)
+    quantiles = np.quantile(a.toarray(), q=[0.25, 0.75], axis=axis)
+    median = np.median(a.toarray(), axis=axis)
     return (quantiles[0] + 2 * median + quantiles[1]) / 4
 
 def _cluster_stats(adata):
@@ -471,7 +471,7 @@ def _cluster_stats(adata):
         temp = adata[adata.obs['@label'].isin([label])]
 
         cluster_stats.loc[label, 'mean'] = temp.X.mean()
-        cluster_stats.loc[label, 'std'] = np.std(temp.X.A)
+        cluster_stats.loc[label, 'std'] = np.std(temp.X.toarray())
 
     return cluster_stats
 
