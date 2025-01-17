@@ -70,3 +70,14 @@ def test_proximity_plot():
     adata = generate_toy_spatial()
     my_p4 = connectivity(adata=adata, idx=0)
     assert my_p4 is not None
+    
+
+def test_circle_plot():
+    from liana.plotting import circle_plot
+    from scanpy.datasets import pbmc68k_reduced
+    adata = pbmc68k_reduced()
+    unique_sources = np.unique(liana_res['source'])
+    adata.obs['random'] = np.random.choice(unique_sources, size=adata.shape[0], replace=True)
+    adata.uns['liana_res'] = liana_res
+    
+    circle_plot(adata, groupby='random', liana_res=liana_res)

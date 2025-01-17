@@ -44,8 +44,6 @@ class SpatialBivariate():
                  remove_self_interactions: bool = True,
                  complex_sep: (None | str) = "_",
                  xy_sep: str = V.lr_sep,
-                 inplace: bool = V.inplace,
-                 key_added: str = "local_scores",
                  verbose: bool = V.verbose,
                  **kwargs
                  ) -> Union[AnnData, pd.DataFrame] | None:
@@ -76,9 +74,6 @@ class SpatialBivariate():
             Separator to use for interaction names.
         remove_self_interactions: bool
             Whether to remove self-interactions. `True` by default.
-        %(inplace)s
-        key_added: str
-            Key in `mdata.mod` (if MuData) or `adata.obsm` (if AnnData) where the local scores will be stored.
         %(verbose)s
 
         **kwargs : dict, optional
@@ -107,14 +102,8 @@ class SpatialBivariate():
 
         Returns
         -------
-        If `inplace` is `True`, the results are added to `mdata` and `None` is returned.
-        Note that `var`, `obs`, `obsm`, `uns` and `obsp` attributes are copied to the output object.
-        When `mdata` is an `AnnData` object, the results are stored in `mdata.obsm[key_added]`
-        When `mdata` is an `MuData` object, the results are stored in `mdata.mod[key_added]`
-
-        `AnnData` objects in `obsm` will not be copied to the output object.
-
-        If `inplace` is `False`, the results are returned.
+        An AnnData object, (optionally) with multiple layers which correspond categories/p-values, and the
+        actual scores are stored in `.X`. Moreover, global stats are stored in ``.var``.
 
         """
 
@@ -251,7 +240,7 @@ class SpatialBivariate():
         if local_pvals is not None:
             local_scores.layers['pvals'] = csr_matrix(local_pvals)
 
-        return self._handle_return(mdata, xy_stats, local_scores, key_added, inplace)
+        return local_scores
 
     def _process_anndata(self,
                          adata,
@@ -331,15 +320,6 @@ class SpatialBivariate():
         df.columns = df.columns.map(lambda x: entity + '_' + str(x) if x != 'gene' else 'gene')
         return df.rename(columns={'gene': entity})
 
-    def _handle_return(self, data, stats, local_scores, key_added, inplace=False):
-        if not inplace:
-            return stats, local_scores
-
-        if isinstance(data, MuData):
-            data.mod[key_added] = local_scores
-        else:
-            data.obsm[key_added] = local_scores
-
     def _handle_connectivity(self, adata, connectivity_key):
         if connectivity_key not in adata.obsp.keys():
             raise ValueError(f'No connectivity matrix founds in mdata.obsp[{connectivity_key}]')
@@ -358,8 +338,8 @@ class SpatialBivariate():
         return a
 
     def _categorize(self, x_mat, y_mat, weight):
-        x_cats = self._encode_cats(x_mat.A, weight)
-        y_cats = self._encode_cats(y_mat.A, weight)
+        x_cats = self._encode_cats(x_mat.toarray(), weight)
+        y_cats = self._encode_cats(y_mat.toarray(), weight)
         cats = x_cats + y_cats
         cats = np.where(cats == 2, 1, np.where(cats == 0, -1, 0))
 

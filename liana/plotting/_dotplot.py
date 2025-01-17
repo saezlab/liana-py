@@ -6,7 +6,7 @@ import pandas
 from plotnine import ggplot, geom_point, aes, \
     facet_grid, labs, theme_bw, theme, element_text, element_rect, scale_size_continuous, scale_color_cmap
 
-from liana.plotting._common import _prep_liana_res, _check_var, _get_top_n, _filter_by, _inverse_scores
+from liana.plotting._common import _prep_liana_res, _check_var, _get_top_n, _filter_by, _invert_scores
 
 from liana._docs import d
 from liana._constants import Keys as K, DefaultValues as V
@@ -79,9 +79,9 @@ def dotplot(adata: anndata.AnnData = None,
 
     # inverse sc if needed
     if inverse_colour:
-        liana_res[colour] = _inverse_scores(liana_res[colour])
+        liana_res[colour] = _invert_scores(liana_res[colour])
     if inverse_size:
-        liana_res[size] = _inverse_scores(liana_res[size])
+        liana_res[size] = _invert_scores(liana_res[size])
 
     # generate plot
     p = (ggplot(liana_res, aes(x='target', y='interaction', colour=colour, size=size))
@@ -124,8 +124,8 @@ def dotplot_by_sample(adata: anndata.AnnData  = None,
                       inverse_size: bool = False,
                       source_labels: str | None = None,
                       target_labels: str | None = None,
-                      ligand_complex: str | None = None,
-                      receptor_complex: str | None = None,
+                      ligand_complex: list | str | None = None,
+                      receptor_complex: list | str | None = None,
                       size_range: tuple = (2, 9),
                       cmap: str = V.cmap,
                       figure_size: tuple = (8, 6),
@@ -171,9 +171,9 @@ def dotplot_by_sample(adata: anndata.AnnData  = None,
 
     # inverse sc if needed
     if inverse_colour:
-        liana_res[colour] = _inverse_scores(liana_res[colour])
+        liana_res[colour] = _invert_scores(liana_res[colour])
     if inverse_size:
-        liana_res[size] = _inverse_scores(liana_res[size])
+        liana_res[size] = _invert_scores(liana_res[size])
 
     p = (ggplot(liana_res, aes(x='target', y='source', colour=colour, size=size))
             + geom_point()

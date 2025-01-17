@@ -41,6 +41,9 @@ def test_aggregate_specs():
 def test_aggregate_res():
     lr_res = rank_aggregate(adata, groupby='bulk_labels', use_raw=True, n_perms=2, inplace=False)
     lr_exp = read_csv(test_path.joinpath(path.join("data", "aggregate_rank_rest.csv")), index_col=0)
+    lr_res = lr_res.sort_values(by=list(lr_res.columns))
+    lr_exp = lr_exp.sort_values(by=list(lr_res.columns))
+    lr_res.index = lr_exp.index
     assert_frame_equal(lr_res, lr_exp, check_dtype=False, check_exact=False, rtol=1e-4)
 
 

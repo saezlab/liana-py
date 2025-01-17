@@ -42,7 +42,7 @@ def connectivity(adata: anndata.AnnData,
     coordinates = pd.DataFrame(adata.obsm[spatial_key],
                                index=adata.obs_names,
                                columns=['x', 'y']).copy()
-    coordinates['connectivity'] = adata.obsp[connectivity_key][:, idx].A
+    coordinates['connectivity'] = adata.obsp[connectivity_key][:, idx].toarray()
     coordinates['y'] = coordinates['y'].max() - coordinates['y'] # flip y
 
     p = (ggplot(coordinates.sort_values('connectivity', ascending=True),

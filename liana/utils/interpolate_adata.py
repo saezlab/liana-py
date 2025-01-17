@@ -54,7 +54,7 @@ def interpolate_adata(target: AnnData,
                  varm=target.varm
                  )
 
-    values = _choose_mtx_rep(adata=target, use_raw=use_raw, layer=layer, verbose=verbose).A
+    values = _choose_mtx_rep(adata=target, use_raw=use_raw, layer=layer, verbose=verbose).toarray()
 
     ad.X = csr_matrix(
         griddata(points=target_coords,

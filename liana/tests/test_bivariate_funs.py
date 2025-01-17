@@ -31,7 +31,7 @@ def test_sp_vectorized():
 
 def test_sp_masked():
     sp_masked_truth = np.array([0.23636216, 0.16480756, -0.0148723, 0.22840606, -0.11492944])
-    _assert_bivariate(_masked_spearman, sp_masked_truth, x_mat, y_mat, weight.A)  # NOTE the .A is to convert to dense
+    _assert_bivariate(_masked_spearman, sp_masked_truth, x_mat, y_mat, weight.toarray())
 
 
 def test_costine_vectorized():
@@ -52,9 +52,9 @@ def test_morans():
 
 def test_product():
     product_vec_truth = np.array([5.4518123, -0.7268728, 8.350364, 0.53861964, 1.4466602])
-    _assert_bivariate(_product, product_vec_truth, x_mat, y_mat, weight.A)
+    _assert_bivariate(_product, product_vec_truth, x_mat, y_mat, weight.toarray())
 
 
 def test_norm_product():
     product_vec_truth = np.array([0.4081537, -0.03988646, 0.42921585, 0.03255661, 0.08895018])
-    _assert_bivariate(_norm_product, product_vec_truth, x_mat, y_mat, weight.A)
+    _assert_bivariate(_norm_product, product_vec_truth, x_mat, y_mat, weight.toarray())
