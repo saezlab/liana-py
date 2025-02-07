@@ -57,7 +57,7 @@ bumpversion = "^0.6.0"
 
 [tool.poetry.extras]
 common = ["decoupler", "omnipath", "requests"]
-full = ["decoupler", "omnipath", "pydeseq2", "cell2cell", "muon", "mofax", "mofapy2", "corneto", "cvxpy", "cylp", "requests"]
+full = ["decoupler", "omnipath", "pydeseq2", "cell2cell", "muon", "mofax", "mofapy2", "corneto", "cvxpy-base", "highspy", "scipy", "requests"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
