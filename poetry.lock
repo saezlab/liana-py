@@ -625,6 +625,7 @@ description = "A domain-specific language for modeling convex optimization probl
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
+markers = "extra == \"full\""
 files = [
     {file = "cvxpy_base-1.6.0-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:b79b33252b56754d55a4a49a29803977a6ec0537d03839b9e3d47b5537f9404a"},
     {file = "cvxpy_base-1.6.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:1f7560e25cf0f335978ac83162b518264fe77d26b53dabd046a354ee1ff7b2ae"},
@@ -1052,6 +1053,7 @@ description = "A thin set of pybind11 wrappers to HiGHS"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
+markers = "extra == \"full\""
 files = [
     {file = "highspy-1.9.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:acb2258986344460ed6737608b944e556fd8c0e472bdc9455e7d76548abab8e3"},
     {file = "highspy-1.9.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:b51baeba8d349fff7b904e5e9917af9e7f250dc705e228be00d8294b5d4fa913"},
@@ -4071,9 +4073,9 @@ test = ["pytest", "pytest-cov"]
 
 [extras]
 common = ["decoupler", "omnipath", "requests"]
-full = ["cell2cell", "corneto", "decoupler", "mofapy2", "mofax", "muon", "omnipath", "pydeseq2", "requests"]
+full = ["cell2cell", "corneto", "cvxpy-base", "decoupler", "highspy", "mofapy2", "mofax", "muon", "omnipath", "pydeseq2", "requests"]
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.12"
-content-hash = "b8bbd9c71c51b6d527f3786dfa157cbd177836a18d3fc101af882d2355ca9e1f"
+content-hash = "daea81481a342823cde771a3d4eda81bd1238a4e8e584f43cf1f1dd1b734e68f"
