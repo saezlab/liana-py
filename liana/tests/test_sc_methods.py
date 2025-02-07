@@ -1,5 +1,5 @@
 import pandas
-from numpy import max, min
+from numpy import max, min, isclose
 from numpy.testing import assert_almost_equal
 from pandas import DataFrame
 
@@ -24,9 +24,9 @@ def test_cellchat():
 
     assert 'lr_probs' in liana_res.columns
     assert 'cellchat_pvals' in liana_res.columns
-    assert max(liana_res[(liana_res.ligand == "TIMP1")].lr_probs) == 0.20561589810421071
-    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['lr_probs'].max() == 0.10198416583005679
-    assert liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['cellchat_pvals'].mean() == 0.5125
+    assert isclose(max(liana_res[(liana_res.ligand == "TIMP1")].lr_probs), 0.20561589810421071)
+    assert isclose(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['lr_probs'].max(), 0.10198416583005679)
+    assert isclose(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['cellchat_pvals'].mean(), 0.5125)
 
 
 def test_cellphonedb():

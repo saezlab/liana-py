@@ -5,7 +5,7 @@ from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
 
 # simplified/resource-generalizable cellchat probability score
 def _lr_probability(perm_stats, axis=0):
-    lr_prob = np.product(perm_stats, axis=axis)
+    lr_prob = np.prod(perm_stats, axis=axis)
 
     return lr_prob / (cellchat._kh + lr_prob)
 

@@ -44,7 +44,7 @@ def test_aggregate_res():
     lr_res = lr_res.sort_values(by=list(lr_res.columns))
     lr_exp = lr_exp.sort_values(by=list(lr_res.columns))
     lr_res.index = lr_exp.index
-    assert_frame_equal(lr_res, lr_exp, check_dtype=False, check_exact=False, rtol=1e-4)
+    assert_frame_equal(lr_res, lr_exp, check_dtype=False, check_exact=False, rtol=1e-4, atol=1e-6)
 
 
 def test_aggregate_all():
