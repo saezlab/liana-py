@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.7.0 (07.01.2026)
+
+- Inflow implementation and tutorial #221 by @AtheerAS
+- Global specificity calculation #221 by @AtheerAS
+-  The integration of spatial proximity weighting into scoring and permutation-based p-value calculations, new user-facing parameters for spatial analysis, and enhancements to the documentation to reflect these features. #222. The main cell-cell communication pipeline (`liana_pipe`) and scoring methods now support spatial proximity weighting. This includes new arguments (`spatial_key`, `spatial_kwargs`) and logic to compute and merge spatial proximity scores into LR (ligand-receptor) results, and to adjust permutation-based p-value calculations accordingly. (`src/liana/method/sc/_liana_pipe.py`)
+- Expanded docstrings and parameter documentation to cover new spatial analysis arguments, including detailed descriptions of spatial proximity options and kernel/bandwidth settings.
+- Updated the notebook index and documentation to reference new spatial analysis notebooks, such as `inflow_score.ipynb`.
+- Bumped the package version to 1.7.0 across configuration files, and updated dependencies for `decoupler`.
+- Added Python 3.13 support in classifiers. #216
+- Added Installation instructions in `installation.md`. #217
+- Properly check if a passed (cell type) labels in plotting are a string #220
+- Fixed an issue where MetalinksDB download would fail due to User-Agent restrictions.
+
 ## 1.6.1 (28.09.2025)
 
 - Comply with AnnData CSR matrix changes

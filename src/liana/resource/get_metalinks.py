@@ -19,19 +19,47 @@ def _download_metalinksdb(verbose=True):
     """
     requests = _check_if_installed("requests")
 
-    METALINKS_URL = "https://figshare.com/ndownloader/files/47567597"
+    METALINKS_URL = "https://figshare.com/ndownloader/files/60861292"
 
     # Define the local filename to save the downloaded database
     db_file_name = 'metalinksdb.db'
     db_path = os.path.join(os.getcwd(), db_file_name)
 
-    # Check if the database file already exists
-    if not os.path.exists(db_path):
-        _logg("Downloading database...", verbose=verbose)
-        response = requests.get(METALINKS_URL)
+    # Check if the database file already exists and is valid
+    if os.path.exists(db_path):
+        # Check if file is empty or corrupted
+        if os.path.getsize(db_path) == 0:
+            _logg("Existing database file is empty. Removing and re-downloading...", verbose=verbose)
+            os.remove(db_path)
+        else:
+            return db_path
+
+    # Download the database
+    _logg("Downloading database...", verbose=verbose)
+    try:
+        # Figshare requires a browser-like User-Agent to bypass WAF
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.get(METALINKS_URL, headers=headers, stream=True, allow_redirects=True)
+        response.raise_for_status()  # Raise an error for bad status codes
+
         with open(db_path, 'wb') as f:
-            f.write(response.content)
-        _logg(f"Database downloaded and saved to {db_path}.", verbose=verbose)
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+
+        # Validate the downloaded file
+        file_size = os.path.getsize(db_path)
+        if file_size == 0:
+            os.remove(db_path)
+            raise RuntimeError("Downloaded file is empty. Please check the URL and try again.")
+
+        _logg(f"Database downloaded and saved to {db_path} ({file_size} bytes).", verbose=verbose)
+    except (requests.exceptions.RequestException, OSError, RuntimeError) as e:
+        # Clean up failed download
+        if os.path.exists(db_path):
+            os.remove(db_path)
+        raise RuntimeError(f"Failed to download database: {e}") from e
 
     return db_path
 

@@ -50,7 +50,7 @@ class SpatialInflow:
         **kwargs
     ) -> AnnData:
         """
-        A method for bivariate local spatial metrics.
+        A method for trivariate (source cell type, ligand, receptor) local spatial metrics.
 
         Parameters
         ----------
@@ -114,9 +114,10 @@ class SpatialInflow:
 
         Returns
         -------
-        An AnnData object of size (s* l * r *, n), where s correspodns to the cell types passed via the groupby parameter,
-        l and r are respectively the ligand and receptors expressed in the data and covered in the resource, and n is the
-        number of observations.
+        An AnnData object of shape (n_cell_type_ligand_receptor_combinations, n_observations), where
+        n_cell_type_ligand_receptor_combinations corresponds to the combinations of cell types (as defined by the
+        ``groupby`` parameter) with ligands and receptors expressed in the data and covered by the resource, and
+        n_observations is the number of observations.
         """
         # Process MuData or AnnData - check instance and process accordingly
         is_mudata = _check_instance(adata)
@@ -143,7 +144,7 @@ class SpatialInflow:
                 **kwargs
             )
 
-        # NOTE There are some repetitiions with bivariate scores
+        # NOTE: There are some repetitions with bivariate scores
         # one could define a shared class to process adata, and split the two thereafter
         resource = _handle_resource(interactions=interactions,
                                     resource=resource,
@@ -208,7 +209,8 @@ class SpatialInflow:
 
         xy_stats.rename(columns={xy_stats.columns[0]: 'gene'}, inplace=True)
 
-        # Merge these stats into the resource; TODO: add to .var?
+        # Merge these stats into the resource
+        # NOTE: add to .var?
         xy_stats = resource.merge(_rename_means(xy_stats, entity=x_name)) \
                            .merge(_rename_means(xy_stats, entity=y_name))
 
@@ -312,7 +314,7 @@ class SpatialInflow:
         var = mean_sq - mean**2
         std = np.sqrt(var)
         cv = std / (mean + 1e-12)
-        
+
         lrdata.var["mean"] = mean
         lrdata.var["variance"] = var
         lrdata.var["std"] = std

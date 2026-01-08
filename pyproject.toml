@@ -4,7 +4,7 @@ requires = [ "hatchling" ]
 
 [project]
 name = "liana"
-version = "1.6.1"
+version = "1.7.0"
 description = "LIANA+: a one-stop-shop framework for cell-cell communication"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -22,7 +22,6 @@ authors = [
   { name = "Jovan Tanevski"},
   { name = "Ricardo Omar Ramirez Flores"},
   { name = "Julio Saez-Rodriguez"},
-
 ]
 requires-python = ">=3.10,<3.14"
 classifiers = [
@@ -30,6 +29,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
   "anndata>=0.7.4",
@@ -52,7 +52,7 @@ optional-dependencies.dev = [
 ]
 
 optional-dependencies.extras = [
-  "decoupler>=1.6.1",
+  "decoupler>=2.0.0",
   "omnipath>=1.0.6",
   "pydeseq2>=0.3.5",
   "cell2cell",

@@ -1,6 +1,7 @@
 import pytest
-import scanpy
+
 from liana.method import compute_global_specificity
+
 
 def test_compute_global_specificity():
     from scanpy.datasets import pbmc68k_reduced
@@ -12,10 +13,10 @@ def test_compute_global_specificity():
         lr_sep=None,
         n_perms=1,
         uns_key="global_interactions")
-    
+
     assert "global_interactions" in adata.uns
     res = adata.uns["global_interactions"]
-    assert hasattr(res, "shape") 
+    assert hasattr(res, "shape")
     assert res["pval"].between(0.0, 1.0).all()
 
 

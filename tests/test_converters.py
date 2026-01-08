@@ -1,7 +1,7 @@
 from numpy.testing import assert_almost_equal
 
 from liana.testing._sample_anndata import generate_toy_mdata
-from liana.utils import mdata_to_anndata, neg_to_zero, zi_minmax, anndata_to_mdata
+from liana.utils import mdata_to_anndata, neg_to_zero, zi_minmax
 
 mdata = generate_toy_mdata()
 

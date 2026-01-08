@@ -13,4 +13,5 @@ targeted.ipynb
 liana_c2c.ipynb
 mofacellular.ipynb
 mofatalk.ipynb
+inflow_score.ipynb
 ```

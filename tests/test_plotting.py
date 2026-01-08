@@ -1,7 +1,6 @@
 import numpy as np
-from requests import patch
 
-from liana.plotting import dotplot, dotplot_by_sample, tileplot, heatmap
+from liana.plotting import dotplot, dotplot_by_sample, tileplot
 from liana.testing import generate_toy_spatial, sample_lrs
 
 liana_res = sample_lrs()
@@ -75,6 +74,7 @@ def test_proximity_plot():
 
 def test_circle_plot():
     from scanpy.datasets import pbmc68k_reduced
+
     from liana.plotting import circle_plot
     adata = pbmc68k_reduced()
     unique_sources = np.unique(liana_res['source'])
@@ -88,7 +88,7 @@ def test_circle_plot():
 
 def test_feature_by_group():
     from liana.plotting import feature_by_group
-    from liana.testing._sample_anndata import generate_toy_mdata, generate_toy_spatial
+    from liana.testing._sample_anndata import generate_toy_spatial
     adata = generate_toy_spatial()
     feature_by_group(
         adata=adata,

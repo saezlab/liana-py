@@ -138,6 +138,10 @@ def _calculate_pvals(lr_truth, perm_stats, _score_fun, proximity_weights=None):
         lr_perm_means = _score_fun(perm_stats, axis=0)
 
         # Apply proximity weights to both observed and permuted if provided
+        # Note: proximity weights, if any, are expected to have been applied
+        # to the observed scores (lr_truth) upstream. We also apply them
+        # to the permuted statistics here to maintain consistency in the
+        # null distribution when spatial structure is part of the signal.
         if proximity_weights is not None:
             # Weight permuted: (n_perms, n_interactions) * (n_interactions,)
             # Broadcasting automatically handles dimension alignment

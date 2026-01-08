@@ -1,33 +1,32 @@
+import itertools
+
 import anndata
 import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
-import numpy 
-import itertools
-from liana._constants import DefaultValues as V
+import numpy as np
+
 from liana._constants import Keys as K
 from liana._docs import d
-
 from liana._logging import _logg
+
 
 @d.dedent
 def feature_by_group(
     adata: anndata.AnnData = None,
     groupby: str = None,
     spatial_key = K.spatial_key,
-    labels: list[str] = None, 
+    labels: list[str] = None,
     feature: str = None,
     figure_size: tuple = (10, 6),
     normalize: bool = True,
-    percentile_scaling: tuple[int, int] | None = None, 
+    percentile_scaling: tuple[int, int] | None = None,
     show_counts: bool = True,
     **kwargs
 ):
-
     """
     Plot inflow scores for single feature across spatial coordinates.
 
     Parameters
-    ---------- 
+    ----------
     %(adata)s
     %(groupby)s
     %(spatial_key)s
@@ -43,10 +42,11 @@ def feature_by_group(
     show_counts
         Show counts of expression cells (expression > 0).
     """
-
     # Validate inputs
-    if not labels:
-        raise ValueError(f"'{labels}' must contain at least one label from '{groupby}'")
+    if labels is None or len(labels) == 0:
+        raise ValueError(
+            f"'labels' must contain at least one label from '{groupby}', got: {labels}"
+        )
     if spatial_key not in adata.obsm:
         raise KeyError(f"'{spatial_key}' not found in adata.obsm")
 
@@ -62,7 +62,7 @@ def feature_by_group(
 
     for label in labels:
         mask=adata.obs[groupby] == label
-        if not numpy.any(mask):
+        if not np.any(mask):
             _logg.warning(f"No cells found for label '{label}' in groupby '{groupby}'")
             continue
         adata_sub = adata[mask, :]
@@ -70,30 +70,30 @@ def feature_by_group(
 
         cell_type_data.append({
             'label': label,
-            'coords': coords[mask.values],
+            'coords': coords[mask],
             'expression': expr,
             'count': (expr > 0).sum()
         })
-            
+
     # Normalize and scale expression data
     for data in cell_type_data:
         expr = data['expression']
         # Apply percentile clipping
         if percentile_scaling is not None:
             low_p, high_p = percentile_scaling
-            scale_min = numpy.percentile(expr, low_p)
-            scale_max = numpy.percentile(expr, high_p)
-            expr = numpy.clip(expr, scale_min, scale_max)
+            scale_min = np.percentile(expr, low_p)
+            scale_max = np.percentile(expr, high_p)
+            expr = np.clip(expr, scale_min, scale_max)
         else:
-            scale_min = numpy.min(expr)
-            scale_max = numpy.max(expr)
+            scale_min = np.min(expr)
+            scale_max = np.max(expr)
 
-        # Normalize to 0-1 
+        # Normalize to 0-1
         if normalize:
             if scale_max > scale_min:
                 expr = (expr - scale_min) / (scale_max - scale_min)
             else:
-                expr = numpy.zeros_like(expr)
+                expr = np.zeros_like(expr)
 
         data['expression'] = expr
 
@@ -132,5 +132,5 @@ def feature_by_group(
 
     title_text = f"{feature}"
     ax.set_title(title_text, fontsize=14, pad=10)
-    
+
     return fig, ax
