@@ -86,6 +86,69 @@ def test_circle_plot():
     circle_plot(adata, groupby='random', liana_res=liana_res, pivot_mode='counts',
                 filter_fun=lambda x: x['specificity_rank'] < 0.95)
 
+def test_annulus_plot():
+    import pytest
+    from liana.plotting import annulus_plot
+    from liana.testing._sample_anndata import generate_toy_spatial
+
+    adata = generate_toy_spatial()
+    annulus_plot(
+        adata,
+        spatial_key="spatial",
+        annulus_width=200,
+        radius_step=200,
+        n_rings=5,
+        seed=42,
+    )
+
+    with pytest.raises(KeyError, match="not found in adata.obsm"):
+        annulus_plot(adata, spatial_key="missing_key")
+
+
+def test_lric_lineplot():
+    import matplotlib
+    import pytest
+
+    matplotlib.use("Agg")
+    from matplotlib.figure import Figure
+
+    from liana.plotting import lric_lineplot
+
+    radii = np.linspace(0, 500, 20)
+    curves = {f"pair_{i}": np.random.rand(20) + 0.5 for i in range(5)}
+
+    # small-multiples: returns figure, unused axes hidden
+    fig = lric_lineplot(radii, curves, return_fig=True)
+    assert isinstance(fig, Figure)
+    axes = fig.axes
+    visible = [ax for ax in axes if ax.get_visible()]
+    assert len(visible) == 5
+
+    # overlay mode
+    fig2 = lric_lineplot(radii, curves, overlay=True, title="test", return_fig=True)
+    assert isinstance(fig2, Figure)
+    assert len(fig2.axes) == 1
+
+    # per-curve radii as (r, g) tuples
+    mixed = {"a": (radii * 0.5, np.ones(20)), "b": np.ones(20) * 1.2}
+    fig3 = lric_lineplot(radii, mixed, return_fig=True)
+    assert isinstance(fig3, Figure)
+
+    # color variants
+    lric_lineplot(radii, curves, colors="red", return_fig=True)
+    lric_lineplot(radii, curves, colors=["red", "blue"], return_fig=True)
+    lric_lineplot(radii, curves, colors={k: "green" for k in curves}, return_fig=True)
+
+    # radii=None
+    all_tuples = {"a": (radii * 0.5, np.ones(20)), "b": (radii * 0.8, np.ones(20) * 1.5)}
+    fig_none = lric_lineplot(None, all_tuples, overlay=True, return_fig=True)
+    assert isinstance(fig_none, Figure)
+
+    # empty curves raises
+    with pytest.raises(ValueError, match="at least one entry"):
+        lric_lineplot(radii, {}, return_fig=True)
+
+
 def test_feature_by_group():
     from liana.plotting import feature_by_group
     from liana.testing._sample_anndata import generate_toy_spatial

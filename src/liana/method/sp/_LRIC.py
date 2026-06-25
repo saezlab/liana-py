@@ -13,17 +13,19 @@ from liana._constants import DefaultValues as V
 from liana._constants import Keys as K
 from liana._docs import d
 from liana._logging import _logg
+from liana.method.sp._utils import _add_complexes_to_var
 from liana.resource.select_resource import _handle_resource
 
 
 # ── helpers ───────────────────────────────────────────────────────────
 
 def _linear_transform(expr: np.ndarray) -> np.ndarray:
-    """Mean-normalise expression to a mean of 1, clipped at 0."""
-    mean = expr.mean(axis=0, keepdims=True)
-    return np.maximum(expr / (mean + 1e-12), 0)
+    """log1p-transform then mean-normalise to a mean of 1."""
+    log_expr = np.log1p(expr)
+    mean = log_expr.mean(axis=0, keepdims=True)
+    smean = np.where(mean > 0, mean, 1.0)
+    return log_expr / smean
 
-#Do we need this or just do it inline?
 def _to_dense(X) -> np.ndarray:
     if sparse.issparse(X):
         X = X.toarray()
@@ -83,8 +85,6 @@ def _index_resource(
 
     return lr_pairs, unique_ligands, unique_receptors, pair_names
 
-
-#Do you suggest that I use prep_check_adata (existing util) here? I prefer to keep this as we only need to filter cts not validate anything else.
 
 def _filter_by_min_cells(
     obs_types: np.ndarray,
@@ -165,33 +165,34 @@ def _spatial_pairs(
     send_coords: np.ndarray,
     max_r: float,
     exclude_self: bool = False,
+    tree: cKDTree | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """All (receiver, sender) index pairs within ``max_r`` with pairwise distances."""
-    tree = cKDTree(send_coords)
-    neigh_lists = tree.query_ball_point(recv_coords, max_r)
+    if tree is None:
+        tree = cKDTree(send_coords)
+    neigh_lists = tree.query_ball_point(recv_coords, max_r, workers=-1)
 
-    rows, cols = [], []
-    for r_i, neigh in enumerate(neigh_lists):
-        neigh_arr = np.asarray(neigh, dtype=np.int32)
-        if exclude_self:
-            neigh_arr = neigh_arr[neigh_arr != r_i]
-        if neigh_arr.size == 0:
-            continue
-        rows.append(np.full(neigh_arr.size, r_i, dtype=np.int32))
-        cols.append(neigh_arr)
-
-    if not rows:
+    lengths = np.fromiter((len(n) for n in neigh_lists), dtype=np.int32, count=len(recv_coords))
+    if lengths.sum() == 0:
         return np.empty(0, np.int32), np.empty(0, np.int32), np.empty(0, np.float32)
 
-    all_rows = np.concatenate(rows)
-    all_cols = np.concatenate(cols)
+    all_rows = np.repeat(np.arange(len(recv_coords), dtype=np.int32), lengths)
+    all_cols = np.concatenate([np.asarray(n, dtype=np.int32) for n in neigh_lists if n])
+
+    if exclude_self:
+        mask = all_rows != all_cols
+        all_rows, all_cols = all_rows[mask], all_cols[mask]
+
+    if all_rows.size == 0:
+        return np.empty(0, np.int32), np.empty(0, np.int32), np.empty(0, np.float32)
+
     dists = np.linalg.norm(
         recv_coords[all_rows] - send_coords[all_cols], axis=1
     ).astype(np.float32)
     return all_rows, all_cols, dists
 
 
-def _wpcf_bins(
+def _lric_bins(
     sender_w: np.ndarray,
     receiver_w: np.ndarray,
     corrected_areas: np.ndarray,
@@ -204,34 +205,23 @@ def _wpcf_bins(
     radii_inner: np.ndarray,
     radii_outer: np.ndarray,
 ) -> np.ndarray:
-    """Core wPCF bin accumulation. Returns ``(n_bins, n_pairs)`` float32."""
-    n_bins, n_pairs = radii_inner.size, sender_w.shape[1]
-    out = np.zeros((n_bins, n_pairs), dtype=np.float32)
+    """Core LRIC bin accumulation. Returns ``(n_bins, n_pairs)`` float32."""
+    expected = (sender_density * corrected_areas).astype(np.float32)  # (nRcv, n_bins)
+    valid = np.isfinite(expected)                                      # (nRcv, n_bins)
+    safe_exp = np.where(valid, expected, 1.0).astype(np.float32)
 
-    for b, (r_in, r_out) in enumerate(zip(radii_inner, radii_outer)):
-        expected_b = sender_density * corrected_areas[:, b]
-        valid = np.isfinite(expected_b)
-        if not valid.any() or rel_dists.size == 0:
-            continue
-        m = (rel_dists >= r_in) & (rel_dists < r_out)
-        if not m.any():
-            continue
+    # denom[b, p] = sum_i valid[i,b] * receiver_w[i, p]
+    denom = valid.astype(np.float32).T @ receiver_w                   # (n_bins, n_pairs)
 
-        adj = sparse.csr_matrix(
-            (np.ones(m.sum(), dtype=np.float32), (all_rows[m], all_cols[m])),
-            shape=(nRcv, nSnd),
-        )
-        lig_counts = adj @ sender_w
-        safe_exp = np.where(valid, expected_b, 1.0)[:, None]
-        contrib = np.where(valid[:, None], lig_counts / safe_exp, 0.0)
-        recv_w_valid = receiver_w * valid[:, None]
-        num = (recv_w_valid * contrib).sum(axis=0)
-        denom = recv_w_valid.sum(axis=0)
-        out[b] = np.where(denom > 0, num / np.where(denom > 0, denom, 1.0), 0.0).astype(
-            np.float32
-        )
+    # scale[k, b] = 1/expected[i,b]  if edge k=(i,j) is in annulus b and valid, else 0
+    pair_bins = (rel_dists[:, None] >= radii_inner) & (rel_dists[:, None] < radii_outer)
+    scale = (pair_bins & valid[all_rows]).astype(np.float32) / safe_exp[all_rows]  # (n_edges, n_bins)
 
-    return out
+    # numerator[b, p] = sum_{k in bin b, valid} receiver_w[i,p] * sender_w[j,p] / expected[i,b]
+    edge_cross_w = receiver_w[all_rows] * sender_w[all_cols]          # (n_edges, n_pairs)
+    numerator = scale.T @ edge_cross_w                                 # (n_bins, n_pairs)
+
+    return np.where(denom > 0, numerator / np.where(denom > 0, denom, 1.0), 0.0).astype(np.float32)
 
 
 # ── CrossPCF ──────────────────────────────────────────────────────────────────
@@ -248,7 +238,7 @@ class CrossPCF:
         spatial_key: str = K.spatial_key,
         cell_types: Iterable[str] | None = None,
         min_cells: int = V.min_cells,
-        max_radius: float = 300,
+        max_radius: float = 200,
         radius_step: float = 20,
         annulus_width: float = 20,
         n_angle_samples: int = 360,
@@ -273,7 +263,8 @@ class CrossPCF:
             ``adata.obs[groupby]``.
         %(min_cells)s
         max_radius
-            Outer edge of the last annulus.
+            Inner edge of the last (widest) annulus bin; the outer edge extends
+            to ``max_radius + annulus_width``.
         radius_step
             Step between successive annulus inner edges.
         annulus_width
@@ -375,11 +366,11 @@ class CrossPCF:
 cross_pcf = CrossPCF()
 
 
-# ── WeightedPCF ───────────────────────────────────────────────────────────────
+# ── LRIC ───────────────────────────────────────────────────────────────
 
 
-class WeightedPCF:
-    """LR-weighted cross pair-correlation function (wPCF)."""
+class LRIC:
+    """Ligand-Receptor Interaction Correlation (LRIC)."""
 
     @d.dedent
     def __call__(
@@ -390,29 +381,31 @@ class WeightedPCF:
         interactions: list | None = V.interactions,
         groupby: str | None = None,
         spatial_key: str = K.spatial_key,
-        max_radius: float = 300,
+        max_radius: float = 200,
         radius_step: float = 20,
         annulus_width: float = 20,
         cell_types: Iterable[str] | None = None,
         min_cells: int = V.min_cells,
+        min_expressing: int = 0,
         n_angle_samples: int = 360,
+        complex_sep: str | None = V.complex_sep,
         transform_fn: Callable[[np.ndarray], np.ndarray] | None = None,
         use_raw: bool = V.use_raw,
         layer: str | None = V.layer,
-        key_added: str = "lr_wpcf",
+        key_added: str = "lric",
         inplace: bool = V.inplace,
         verbose: bool = V.verbose,
     ) -> dict | None:
         """
-        LR-weighted cross pair-correlation function (wPCF).
+        Ligand-Receptor Interaction Correlation (LRIC).
 
         When ``groupby`` is ``None`` (default), all cells are treated as
         potential senders and receivers (self-pairs excluded), providing a
         global screen for LR pairs with strong spatial co-enrichment signal.
-        Result dict keys: ``pair_names``, ``radii``, ``wpcf``
+        Result dict keys: ``pair_names``, ``radii``, ``lric``
         (shape ``(n_bins, n_pairs)``).
 
-        When ``groupby`` is a column name in ``adata.obs``, the wPCF is
+        When ``groupby`` is a column name in ``adata.obs``, the LRIC is
         computed for every directed sender→receiver cell-type pair.
         Result dict keys: ``cell_types``, ``pair_names``, ``radii``,
         ``results`` mapping ``(sender, receiver)`` tuples to
@@ -429,7 +422,8 @@ class WeightedPCF:
             the cell-type-agnostic mode across all cells.
         %(spatial_key)s
         max_radius
-            Outer edge of the last annulus.
+            Inner edge of the last (widest) annulus bin; the outer edge extends
+            to ``max_radius + annulus_width``.
         radius_step
             Step between successive annulus inner edges.
         annulus_width
@@ -438,9 +432,20 @@ class WeightedPCF:
             Subset of cell types to consider (only when ``groupby`` is set).
             Defaults to all types in ``adata.obs[groupby]``.
         %(min_cells)s
+        min_expressing
+            Minimum number of cells in a cell type that must express the
+            ligand (sender) or receptor (receiver) for a given LR pair result
+            to be kept. Results where either count falls below this threshold
+            are set to ``NaN``. Only applies in pairwise mode (``groupby``
+            set). Default ``0`` keeps all results.
         n_angle_samples
             Angular resolution for bounding-box edge correction
             (360 ≈ 0.3 %% error).
+        complex_sep
+            Separator used to identify multi-subunit complexes in the resource
+            (e.g. ``"_"`` splits ``"ITGAV_ITGB3"`` into its subunits and adds
+            the minimum-subunit expression as a new column in ``adata.var``).
+            Set to ``None`` to skip complex handling.
         transform_fn
             Expression transform applied to ligand and receptor matrices.
             Defaults to mean→1 normalization (:func:`_linear_transform`).
@@ -462,6 +467,12 @@ class WeightedPCF:
             y_name="receptor",
             verbose=verbose,
         )
+
+        _adata_orig = adata
+        if complex_sep is not None:
+            entities = np.union1d(resource["ligand"].astype(str), resource["receptor"].astype(str))
+            if any(complex_sep in e for e in entities):
+                adata = _add_complexes_to_var(adata, entities, complex_sep=complex_sep)
 
         if groupby is None:
             res = self._agnostic(
@@ -488,6 +499,7 @@ class WeightedPCF:
                 annulus_width=annulus_width,
                 cell_types=cell_types,
                 min_cells=min_cells,
+                min_expressing=min_expressing,
                 n_angle_samples=n_angle_samples,
                 transform_fn=transform_fn,
                 use_raw=use_raw,
@@ -496,9 +508,39 @@ class WeightedPCF:
             )
 
         if inplace:
-            adata.uns[key_added] = res
+            _adata_orig.uns[key_added] = res
             return None
         return res
+
+    def _compute_pair(
+        self,
+        send_coords: np.ndarray,
+        recv_coords: np.ndarray,
+        all_coords: np.ndarray,
+        sender_w: np.ndarray,
+        receiver_w: np.ndarray,
+        radii_inner: np.ndarray,
+        radii_outer: np.ndarray,
+        n_angle_samples: int,
+        exclude_self: bool = False,
+        tree: cKDTree | None = None,
+    ) -> np.ndarray:
+        """Core LRIC computation for one sender/receiver population pair."""
+        corrected_areas, x_min, x_max, y_min, y_max = _corrected_areas(
+            recv_coords, all_coords, radii_inner, radii_outer, n_angle_samples
+        )
+        density = (send_coords.shape[0] - int(exclude_self)) / (
+            (x_max - x_min) * (y_max - y_min)
+        )
+        all_rows, all_cols, rel_dists = _spatial_pairs(
+            recv_coords, send_coords, float(radii_outer[-1]), exclude_self=exclude_self, tree=tree,
+        )
+        return _lric_bins(
+            sender_w, receiver_w, corrected_areas, density,
+            all_rows, all_cols, rel_dists,
+            recv_coords.shape[0], send_coords.shape[0],
+            radii_inner, radii_outer,
+        )
 
     def _agnostic(
         self,
@@ -514,13 +556,13 @@ class WeightedPCF:
         layer: str | None,
         verbose: bool,
     ) -> dict:
-        """Cell-type-agnostic wPCF across all cells (self-pairs excluded)."""
+        """Cell-type-agnostic LRIC across all cells (self-pairs excluded)."""
         transform = _linear_transform if transform_fn is None else transform_fn
 
         coords = np.asarray(adata.obsm[spatial_key], dtype=float)
         n_cells = coords.shape[0]
 
-        _logg("Running cell-type-agnostic LR-wPCF.", verbose=verbose)
+        _logg("Running cell-type-agnostic LRIC.", verbose=verbose)
 
         lr_pairs, unique_ligands, unique_receptors, pair_names = _index_resource(adata, resource)
         if lr_pairs.size == 0:
@@ -529,27 +571,15 @@ class WeightedPCF:
             )
 
         all_mask = np.ones(n_cells, dtype=bool)
-        sender_w = transform(
-            _get_expr(adata, all_mask, unique_ligands, use_raw, layer)
-        )[:, lr_pairs[:, 0]]
-        receiver_w = transform(
-            _get_expr(adata, all_mask, unique_receptors, use_raw, layer)
-        )[:, lr_pairs[:, 1]]
+        sender_w = transform(_get_expr(adata, all_mask, unique_ligands, use_raw, layer))[:, lr_pairs[:, 0]]
+        receiver_w = transform(_get_expr(adata, all_mask, unique_receptors, use_raw, layer))[:, lr_pairs[:, 1]]
 
         radii_inner, radii_outer = _make_radii(max_radius, radius_step, annulus_width)
-        corrected_areas, x_min, x_max, y_min, y_max = _corrected_areas(
-            coords, coords, radii_inner, radii_outer, n_angle_samples
+        lric = self._compute_pair(
+            coords, coords, coords, sender_w, receiver_w,
+            radii_inner, radii_outer, n_angle_samples, exclude_self=True,
         )
-        sender_density = (n_cells - 1) / ((x_max - x_min) * (y_max - y_min))
-
-        all_rows, all_cols, rel_dists = _spatial_pairs(
-            coords, coords, float(radii_outer[-1]), exclude_self=True
-        )
-        wpcf = _wpcf_bins(
-            sender_w, receiver_w, corrected_areas, sender_density,
-            all_rows, all_cols, rel_dists, n_cells, n_cells, radii_inner, radii_outer,
-        )
-        return {"pair_names": pair_names, "radii": radii_inner, "wpcf": wpcf}
+        return {"pair_names": pair_names, "radii": radii_inner, "lric": lric}
 
     def _pairwise(
         self,
@@ -562,13 +592,14 @@ class WeightedPCF:
         annulus_width: float,
         cell_types: Iterable[str] | None,
         min_cells: int,
+        min_expressing: int,
         n_angle_samples: int,
         transform_fn: Callable | None,
         use_raw: bool,
         layer: str | None,
         verbose: bool,
     ) -> dict:
-        """Cell-type-specific LR-wPCF for all directed sender→receiver pairs."""
+        """Cell-type-specific LRIC for all directed sender→receiver pairs."""
         transform = _linear_transform if transform_fn is None else transform_fn
 
         obs_types = adata.obs[groupby].astype(str).values
@@ -581,7 +612,7 @@ class WeightedPCF:
         pairs = [(s, r) for s in cell_types_list for r in cell_types_list if s != r]
 
         _logg(
-            f"Running LR-wPCF for {len(cell_types_list)} cell types "
+            f"Running LRIC for {len(cell_types_list)} cell types "
             f"({len(pairs)} directed pairs).",
             verbose=verbose,
         )
@@ -593,39 +624,38 @@ class WeightedPCF:
             )
 
         radii_inner, radii_outer = _make_radii(max_radius, radius_step, annulus_width)
+
+        ct_cache: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray, cKDTree, np.ndarray, np.ndarray]] = {}
+        for ct in cell_types_list:
+            mask = obs_types == ct
+            coords = np.asarray(adata.obsm[spatial_key][mask], dtype=float)
+            sw = transform(_get_expr(adata, mask, unique_ligands, use_raw, layer))[:, lr_pairs[:, 0]]
+            rw = transform(_get_expr(adata, mask, unique_receptors, use_raw, layer))[:, lr_pairs[:, 1]]
+            n_snd = (sw > 0).sum(axis=0)  # (n_pairs,) post-transform non-zero sender counts
+            n_rcv = (rw > 0).sum(axis=0)  # (n_pairs,) post-transform non-zero receiver counts
+            ct_cache[ct] = (coords, sw, rw, cKDTree(coords), n_snd, n_rcv)
+
         results: dict[tuple[str, str], np.ndarray] = {}
 
-        for sender, receiver in tqdm(pairs, disable=not verbose, desc="LR-wPCF"):
-            recv_mask = obs_types == receiver
-            send_mask = obs_types == sender
-            recv_coords = np.asarray(adata.obsm[spatial_key][recv_mask], dtype=float)
-            send_coords = np.asarray(adata.obsm[spatial_key][send_mask], dtype=float)
-            nRcv, nSnd = recv_coords.shape[0], send_coords.shape[0]
+        for sender, receiver in tqdm(pairs, disable=not verbose, desc="LRIC"):
+            send_coords, sender_w, _, send_tree, n_snd, _ = ct_cache[sender]
+            recv_coords, _, receiver_w, _, _, n_rcv = ct_cache[receiver]
 
-            sender_w = transform(
-                _get_expr(adata, send_mask, unique_ligands, use_raw, layer)
-            )[:, lr_pairs[:, 0]]
-            receiver_w = transform(
-                _get_expr(adata, recv_mask, unique_receptors, use_raw, layer)
-            )[:, lr_pairs[:, 1]]
-
-            corrected_areas, x_min, x_max, y_min, y_max = _corrected_areas(
-                recv_coords,
+            mat = self._compute_pair(
+                send_coords, recv_coords,
                 np.vstack([recv_coords, send_coords]),
-                radii_inner,
-                radii_outer,
-                n_angle_samples,
+                sender_w, receiver_w,
+                radii_inner, radii_outer, n_angle_samples,
+                tree=send_tree,
             )
-            sender_density = nSnd / ((x_max - x_min) * (y_max - y_min))
 
-            all_rows, all_cols, rel_dists = _spatial_pairs(
-                recv_coords, send_coords, float(radii_outer[-1])
-            )
-            wpcf = _wpcf_bins(
-                sender_w, receiver_w, corrected_areas, sender_density,
-                all_rows, all_cols, rel_dists, nRcv, nSnd, radii_inner, radii_outer,
-            )
-            results[(sender, receiver)] = wpcf
+            if min_expressing > 0:
+                min_expressing_filter = (n_snd < min_expressing) | (n_rcv < min_expressing)
+                if min_expressing_filter.any():
+                    mat = mat.copy()
+                    mat[:, min_expressing_filter] = np.nan
+
+            results[(sender, receiver)] = mat
 
         return {
             "cell_types": cell_types_list,
@@ -635,4 +665,4 @@ class WeightedPCF:
         }
 
 
-lr_wpcf = WeightedPCF()
+lric = LRIC()
