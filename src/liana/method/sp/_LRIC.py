@@ -20,11 +20,10 @@ from liana.resource.select_resource import _handle_resource
 # ── helpers ───────────────────────────────────────────────────────────
 
 def _linear_transform(expr: np.ndarray) -> np.ndarray:
-    """log1p-transform then mean-normalise to a mean of 1."""
-    log_expr = np.log1p(expr)
-    mean = log_expr.mean(axis=0, keepdims=True)
+    """Mean-normalise to a mean of 1"""
+    mean = expr.mean(axis=0, keepdims=True)
     smean = np.where(mean > 0, mean, 1.0)
-    return log_expr / smean
+    return expr / smean
 
 def _to_dense(X) -> np.ndarray:
     if sparse.issparse(X):
