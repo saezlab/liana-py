@@ -4,7 +4,7 @@ requires = [ "hatchling" ]
 
 [project]
 name = "liana"
-version = "1.7.3"
+version = "1.8.0"
 description = "LIANA+: a one-stop-shop framework for cell-cell communication"
 readme = "README.md"
 license = { file = "LICENSE" }
