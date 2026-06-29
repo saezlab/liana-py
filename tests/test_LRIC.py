@@ -1,7 +1,6 @@
+import anndata as ad
 import numpy as np
 import pandas as pd
-import anndata as ad
-import pytest
 from pytest import raises
 from scipy.sparse import csr_matrix
 
@@ -11,6 +10,7 @@ from liana.method.sp._LRIC import (
     _index_resource,
     _linear_transform,
     _make_radii,
+    _pair_weights,
     _spatial_pairs,
     _to_dense,
     cross_pcf,
@@ -26,7 +26,13 @@ adata.obs["cell_type"] = adata.obs["bulk_labels"]
 
 resource = sample_resource(adata, n_lrs=5, seed=42)
 
-_KWARGS = dict(max_radius=100, radius_step=20, annulus_width=20, n_angle_samples=36, verbose=False)
+_KWARGS = {
+    "max_radius": 100,
+    "radius_step": 20,
+    "annulus_width": 20,
+    "n_angle_samples": 36,
+    "verbose": False,
+}
 
 _cross_pcf_result = cross_pcf(adata, groupby="cell_type", inplace=False, **_KWARGS)
 _cross_pcf_pair = cross_pcf(
@@ -102,6 +108,23 @@ def test_spatial_pairs():
     assert rows_e.size == cols_e.size == dists_e.size == 0
 
 
+def test_pair_weights_transform_sees_unique_genes():
+    # transform is applied to the unique-gene matrix, then gathered to per-pair columns
+    a = ad.AnnData(np.arange(12, dtype=np.float32).reshape(3, 4))
+    a.var_names = ["g0", "g1", "g2", "g3"]
+    idx = np.array([0, 0, 1])  # 3 pairs drawn from 2 unique genes (g0 shared)
+
+    seen = {}
+    def tf(x):
+        seen["n_cols"] = x.shape[1]
+        return x
+
+    out = _pair_weights(a, np.ones(3, bool), ["g0", "g1"], idx, tf)
+    assert seen["n_cols"] == 2          # transform saw the 2 unique genes, not 3 gathered cols
+    assert out.shape == (3, 3)          # gathered to one column per pair
+    np.testing.assert_array_equal(out[:, 0], out[:, 1])  # shared gene duplicated post-transform
+
+
 def test_index_resource():
     a = ad.AnnData(np.ones((5, 4)))
     a.var_names = ["GeneA", "GeneB", "GeneC", "GeneD"]
@@ -157,10 +180,19 @@ def test_lric_agnostic():
     assert set(_lric_agnostic.keys()) == {"pair_names", "radii", "lric"}
     assert _lric_agnostic["lric"].shape == (5, 5)
     assert np.all(_lric_agnostic["lric"] >= 0)
-    np.testing.assert_almost_equal(_lric_agnostic["lric"].sum(), 22.879765, decimal=3)
+    np.testing.assert_almost_equal(_lric_agnostic["lric"].sum(), 22.316525, decimal=3)
     assert _lric_agnostic["pair_names"] == [
         "C1QB^PPA1", "DHRS4L2^GNG7", "NDUFA11^SUPT4H1", "SFPQ^C20orf27", "PGAM1^WBP11"
     ]
+
+
+def test_lric_agnostic_min_expressing():
+    # min_expressing now applies in agnostic mode too (counts over all cells)
+    result = lric(adata, resource=resource, min_expressing=9999, inplace=False, **_KWARGS)
+    assert np.all(np.isnan(result["lric"])), "all pairs NaN when threshold exceeds cell count"
+
+    result0 = lric(adata, resource=resource, min_expressing=0, inplace=False, **_KWARGS)
+    np.testing.assert_array_equal(result0["lric"], _lric_agnostic["lric"])  # default = no-op
 
 
 def test_lric_agnostic_inplace_and_transform():
@@ -185,7 +217,7 @@ def test_lric_pairwise():
         "C1QB^PPA1", "DHRS4L2^GNG7", "NDUFA11^SUPT4H1", "SFPQ^C20orf27", "PGAM1^WBP11"
     ]
     np.testing.assert_almost_equal(
-        _lric_pairwise["results"][("CD14+ Monocyte", "CD19+ B")].sum(), 14.865469, decimal=3
+        _lric_pairwise["results"][("CD14+ Monocyte", "CD19+ B")].sum(), 15.36005, decimal=3
     )
 
 
