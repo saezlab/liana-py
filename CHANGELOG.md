@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.8.0 (29.06.2026)
+
+### Added
+
+- **`li.mt.lric` — Ligand-Receptor Interaction Correlation (LRIC).** A new spatial method for single-cell-resolution data that computes an expression-weighted cross pair-correlation function: each cell's contribution at distance `r` is weighted by its ligand (sender) and receptor (receiver) expression, so the resulting `g(r)` reflects whether ligand- and receptor-expressing cells are spatially co-enriched at distance `r`, beyond what cell-type co-localisation alone predicts. Uses distance-binned annuli with bounding-box edge correction. (`src/liana/method/sp/_LRIC.py`)
+- **`li.mt.cross_pcf` — cross pair-correlation function (cross-PCF).** The classical point-pattern statistic underlying LRIC: the distance-resolved `g(r)` for every directed sender→receiver cell-type pair, using cell positions only (no expression). Inspired by the cross-PCF in the MuSpAn toolbox (Bull et al., 2024, doi:10.1101/2024.12.06.627195).
+- New plots: `li.pl.annulus_plot` (visualise per-annulus interaction profiles) and `li.pl.lric_lineplot` (LRIC `g(r)` line plots). (`src/liana/plotting/_annulus.py`, `src/liana/plotting/_lric_plot.py`)
+- **pyCrossTalkeR integration tutorial** (`liana_pyCrossTalkeR.ipynb`) showing network-based differential CCC analysis, plus a dedicated LRIC tutorial (`LRIC_tutorial.ipynb`).
+- Mermaid diagram rendering in the docs (`sphinxcontrib-mermaid` doc dependency, `myst_fence_as_directive`/`mermaid_init_config` in `conf.py`); reworked the README decision tree with clickable nodes, colour-coded branches, and the new LRIC / spatially-constrained / pyCrossTalkeR entry points.
+- Expanded `docs/api.md` to document previously-undocumented public functions (`compute_global_specificity`, `filter_view_markers`, `circle_plot`, `feature_by_group`, `spatial_pair_proximity`, `query_bandwidth`, `filter_reassemble_complexes`, `translate_resource`, `translate_column`, `get_hcop_orthologs`) alongside the new spatial methods and plots.
+
+### Fixed
+
+- Improved numerical stability of the weighted Pearson/Spearman correlations in `li.mt.bivariate`: the variance denominators are now zeroed relative to their sum-of-squares scale (`<= 1e-6 * ss`) rather than against a fixed `1e-6` absolute threshold, avoiding spurious near-zero correlations from float accumulation. (`src/liana/method/sp/_bivariate/_local_functions.py`)
+
+### Changed
+
+- Standardised `compute_global_specificity` docstring to NumPy format and removed stale `mask_negatives`/`add_categories` parameter references from the `inflow` docstring.
+
 ## 1.7.3 (26.05.2026)
 
 - Fixed top-level `import corneto` in `liana/method/fun/_causalnet.py` which caused ReadTheDocs builds to fail (`no module named liana.method`) because `corneto` is an optional dependency not installed in the doc environment. Removed the top-level import and the now-unnecessary `corneto.*` type annotations from function signatures; runtime loading already used `_check_if_installed("corneto")`.
