@@ -47,21 +47,23 @@ def compute_global_specificity(
     computed using the formula (k + 1) / (n_perms + 1), where k is the number of
     permutations with values greater than or equal to the observed statistic.
 
-    Args:
-        %(adata)s
-        %(groupby)s
-        %(lr_sep)s
-        %(n_perms)s
-        %(seed)s
-        n_jobs (int, optional): Number of parallel jobs. Defaults to -1 (all available cores).
-        %(verbose)s
-        %(use_raw)s
-        %(layer)s
-        %(uns_key)s
+    Parameters
+    ----------
+    %(adata)s
+    %(groupby)s
+    %(lr_sep)s
+    %(n_perms)s
+    %(seed)s
+    n_jobs
+        Number of parallel jobs. Defaults to -1 (all available cores).
+    %(verbose)s
+    %(use_raw)s
+    %(layer)s
+    %(uns_key)s
 
     Returns
     -------
-        None: The result with 'lr_mean' and 'pval' is stored in `adata.uns["global_interactions"]`.
+    None. The result with 'lr_mean' and 'pval' is stored in `adata.uns["global_interactions"]`.
     """
     if groupby not in adata.obs.columns:
         raise KeyError(f"`groupby`='{groupby}' not found in adata.obs.")

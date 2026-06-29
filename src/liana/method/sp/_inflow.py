@@ -66,8 +66,6 @@ class SpatialInflow:
         %(resource)s
         %(resource_name)s
         %(connectivity_key)s
-        %(mask_negatives)s
-        %(add_categories)s
         %(layer)s
         %(use_raw)s
         nz_prop: float
