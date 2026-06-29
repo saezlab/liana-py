@@ -21,50 +21,73 @@ A set of extensive vignettes can be found in the [LIANA+ documentation](https://
 
 ## Decision Tree
 
+Use the tree below to find a starting point for your analysis. Broad, data-driven choices sit at the top and trickle down to specific methods (click a node to open its tutorial).
+
 ```mermaid
 flowchart TD
-    Start[What type of data?] --> Spatial{Spatial<br/>coordinates?}
-    Start --> Modal{Multi-modal?}
+    Start{What is your data?}
 
-    %% Spatial branch
-    Spatial -->|Yes| SpatialRes{Resolution?}
-    SpatialRes -->|Single-cell| Inflow[Inflow Score]
-    SpatialRes -->|Spot-based| SpatialType{Analysis type?}
-    SpatialType -->|Bivariate| LocalQ{Local<br/>interactions?}
+    %% ===== Spatially-resolved =====
+    Start -->|Spatially-resolved| Res{Resolution?}
+    Res -->|Single-cell| Inflow[Inflow Score]
+    Res -->|Single-cell| LRIC[LRIC]
+    Res -->|Single-cell| ScConstr[Standard LR methods<br/>spatially-constrained]
+    Res -->|Spot-based| SpType{Analysis type?}
+    SpType -->|Bivariate| LocalQ{Local<br/>interactions?}
     LocalQ -->|Yes| Local[Local Bivariate Metrics]
     LocalQ -->|No| Global[Global Bivariate Metrics]
-    SpatialType -->|Unsupervised| MISTy[Multi-view Learning]
+    SpType -->|Unsupervised| MISTy[Multi-view Learning<br/>MISTy]
 
-    %% Non-spatial branch
-    Spatial -->|No| Compare{Compare across<br/>samples?}
+    %% ===== Dissociated single-cell =====
+    Start -->|Dissociated single-cell| Compare{Compare across<br/>samples?}
+    Compare -->|No| Steady[Steady-state LR Inference]
     Compare -->|Yes| Contrast{Specific<br/>contrast?}
-    Contrast -->|Yes| Targeted[Differential Contrasts]
+    Contrast -->|Yes| Targeted[Targeted Differential]
+    Contrast -->|Yes| CrossTalk[pyCrossTalkeR<br/>network differential]
     Contrast -->|No| MOFA[MOFA+]
     Contrast -->|No| Tensor[Tensor-cell2cell]
-    Tensor --> TensorExt[Extended Tutorials]
-    Compare -->|No| Steady[Steady-state LR Inference]
+    Tensor --> TensorExt[Extended Tutorials<br/>ccc-protocols]
+    Tensor --> TensorMet[CCC Patterns: protein + metabolite<br/>Tensor-cell2cell CTCA]
 
-    %% Multi-modal branch
-    Modal -->|Spatial| SMA[Multi-Modal Spatial]
-    Modal -->|Non-Spatial| SCMulti[Multi-Modal Single-Cell]
-
-    %% Metabolite sub-branch
+    %% ===== Multi-modal =====
+    Start -->|Multi-modal| ModalSp{Spatial?}
+    ModalSp -->|Yes| SMA[Multi-Modal Spatial]
+    ModalSp -->|No| SCMulti[Multi-Modal Single-Cell]
     SCMulti --> Metab[Metabolite-mediated CCC]
 
-    %% Links (click events)
+    %% ===== Styling =====
+    classDef decision fill:#f5f5f5,stroke:#37474f,stroke-width:1px,color:#263238;
+    classDef spatial fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
+    classDef dissoc fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+    classDef multimodal fill:#f3e5f5,stroke:#6a1b9a,color:#4a148c;
+    classDef external fill:#ffffff,stroke:#9e9e9e,stroke-dasharray:5 3,color:#424242;
+
+    class Start,Res,SpType,LocalQ,Compare,Contrast,ModalSp decision;
+    class Inflow,LRIC,ScConstr,Local,Global,MISTy spatial;
+    class Steady,Targeted,CrossTalk,MOFA,Tensor dissoc;
+    class SMA,SCMulti,Metab multimodal;
+    class TensorExt,TensorMet external;
+
+    %% ===== Links (click events) =====
     click Inflow "https://liana-py.readthedocs.io/en/latest/notebooks/inflow_score.html"
+    click LRIC "https://liana-py.readthedocs.io/en/latest/notebooks/LRIC_tutorial.html"
+    click ScConstr "https://liana-py.readthedocs.io/en/latest/notebooks/inflow_score.html"
     click Local "https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html"
     click Global "https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html"
     click MISTy "https://liana-py.readthedocs.io/en/latest/notebooks/misty.html"
+    click Steady "https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html"
     click Targeted "https://liana-py.readthedocs.io/en/latest/notebooks/targeted.html"
+    click CrossTalk "https://liana-py.readthedocs.io/en/latest/notebooks/liana_pyCrossTalkeR.html"
     click MOFA "https://liana-py.readthedocs.io/en/latest/notebooks/mofatalk.html"
     click Tensor "https://liana-py.readthedocs.io/en/latest/notebooks/liana_c2c.html"
     click TensorExt "https://ccc-protocols.readthedocs.io/en/latest/"
-    click Steady "https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html"
+    click TensorMet "https://earmingol.github.io/cell2cell/tutorials/Version2/Tensor-cell2cell-CTCA-LIANA/"
     click SMA "https://liana-py.readthedocs.io/en/latest/notebooks/sma.html"
     click SCMulti "https://liana-py.readthedocs.io/en/latest/notebooks/sc_multi.html"
     click Metab "https://liana-py.readthedocs.io/en/latest/notebooks/sc_multi.html#metabolite-mediated-ccc-from-transcriptomics-data"
 ```
+
+This tree is a guide rather than an exhaustive map: the methods are modular and can be adapted or combined across data types and questions, and all of them typically build on curated prior knowledge (see the [prior knowledge](https://liana-py.readthedocs.io/en/latest/notebooks/prior_knowledge.html) tutorial for working with ligand–receptor and other resources).
 
 ## API
 For further information please check LIANA's [API documentation](https://liana-py.readthedocs.io/en/latest/api.html).

@@ -79,6 +79,7 @@ optional-dependencies.doc = [
   "sphinx-copybutton",
   "sphinx-tabs>=3.4.5",
   "sphinxcontrib-bibtex>=1",
+  "sphinxcontrib-mermaid>=0.9",
   "sphinxext-opengraph",
   "pre-commit",
 ]

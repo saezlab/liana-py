@@ -7,9 +7,11 @@ basic_usage.ipynb
 sc_multi.ipynb
 prior_knowledge.ipynb
 bivariate.ipynb
+LRIC_tutorial.ipynb
 sma.ipynb
 misty.ipynb
 targeted.ipynb
+liana_pyCrossTalkeR.ipynb
 liana_c2c.ipynb
 mofacellular.ipynb
 mofatalk.ipynb
