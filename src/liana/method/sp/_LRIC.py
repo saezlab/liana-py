@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -57,16 +56,10 @@ def _pair_weights(
     use_raw: bool = False,
     layer: str | None = None,
 ) -> np.ndarray:
-    """
-    Per-pair expression weights: subset cells+genes → densify → transform → gather.
+    """Per-pair expression weights.
 
-    The transform is applied to the *unique-gene* matrix before gathering to
-    per-pair columns (``idx`` may repeat columns shared across pairs). For a
-    column-wise transform this is identical to transforming after the gather and
-    avoids recomputing on duplicated columns; a custom cross-gene ``transform``
-    therefore sees the unique genes, not the duplicated per-pair set.
-
-    Returns ``(n_cells_in_mask, n_pairs)``.
+    Transform the unique-gene matrix, then gather to per-pair columns ``idx``;
+    returns ``(n_cells_in_mask, n_pairs)``.
     """
     return transform(_get_expr(adata, cell_mask, gene_names, use_raw, layer))[:, idx]
 
@@ -222,14 +215,12 @@ def _lric_bins(
     all_rows: np.ndarray,
     all_cols: np.ndarray,
     rel_dists: np.ndarray,
-    nRcv: int,
-    nSnd: int,
     radii_inner: np.ndarray,
     radii_outer: np.ndarray,
 ) -> np.ndarray:
     """Core LRIC bin accumulation. Returns ``(n_bins, n_pairs)`` float32."""
-    expected = (sender_density * corrected_areas).astype(np.float32)  # (nRcv, n_bins)
-    valid = np.isfinite(expected)                                      # (nRcv, n_bins)
+    expected = (sender_density * corrected_areas).astype(np.float32)  # (n_recv, n_bins)
+    valid = np.isfinite(expected)                                      # (n_recv, n_bins)
     safe_exp = np.where(valid, expected, 1.0).astype(np.float32)
 
     # denom[b, p] = sum_i valid[i,b] * receiver_w[i, p]
@@ -249,42 +240,17 @@ def _lric_bins(
     return out.astype(np.float32)
 
 
-class _Population(NamedTuple):
-    """A sender/receiver population: coords, per-pair weights, KD-tree, expressing counts."""
-
-    name: str
-    coords: np.ndarray
-    sender_w: np.ndarray      # (n_cells, n_pairs) ligand weights
-    receiver_w: np.ndarray    # (n_cells, n_pairs) receptor weights
-    tree: cKDTree
-    n_snd: np.ndarray         # (n_pairs,) post-transform non-zero sender counts
-    n_rcv: np.ndarray         # (n_pairs,) post-transform non-zero receiver counts
-
-
-def _build_population(
-    adata: AnnData,
-    name: str,
-    mask: np.ndarray,
-    coords: np.ndarray,
-    lr_pairs: np.ndarray,
-    unique_ligands: list[str],
-    unique_receptors: list[str],
-    transform: Callable[[np.ndarray], np.ndarray],
-    use_raw: bool,
-    layer: str | None,
-) -> _Population:
-    """Build a :class:`_Population` for the cells in ``mask``.
-
-    Weights are normalised within this population (see :func:`_pair_weights`),
-    so agnostic mode (one all-cell population) normalises globally while pairwise
-    mode normalises within each cell type.
-    """
-    sw = _pair_weights(adata, mask, unique_ligands, lr_pairs[:, 0], transform, use_raw, layer)
-    rw = _pair_weights(adata, mask, unique_receptors, lr_pairs[:, 1], transform, use_raw, layer)
-    return _Population(
-        name, coords, sw, rw, cKDTree(coords),
-        (sw > 0).sum(axis=0), (rw > 0).sum(axis=0),
-    )
+def _min_expressing_mask(
+    mat: np.ndarray, n_snd: np.ndarray, n_rcv: np.ndarray, min_expressing: int
+) -> np.ndarray:
+    """NaN out pairs whose sender or receiver expressing-cell count is below the threshold."""
+    if min_expressing <= 0:
+        return mat
+    filt = (n_snd < min_expressing) | (n_rcv < min_expressing)
+    if filt.any():
+        mat = mat.copy()
+        mat[:, filt] = np.nan
+    return mat
 
 
 # ── CrossPCF ──────────────────────────────────────────────────────────────────
@@ -496,12 +462,10 @@ class LRIC:
             Defaults to all types in ``adata.obs[groupby]``.
         %(min_cells)s
         min_expressing
-            Minimum number of cells in a cell type that must express the
-            ligand (sender) or receptor (receiver) for a given LR pair result
-            to be kept. Results where either count falls below this threshold
-            are set to ``NaN``. Counts are evaluated within the relevant
-            population (each cell type in pairwise mode, all cells in agnostic
-            mode). Default ``0`` keeps all results.
+            Minimum number of cells (within the relevant population: each cell
+            type in pairwise mode, all cells in agnostic mode) that must express
+            the ligand or receptor for an LR pair to be kept; pairs below the
+            threshold are set to ``NaN``. Default ``0`` keeps all results.
         n_angle_samples
             Angular resolution for bounding-box edge correction
             (360 ≈ 0.3 %% error).
@@ -511,12 +475,10 @@ class LRIC:
             the minimum-subunit expression as a new column in ``adata.var``).
             Set to ``None`` to skip complex handling.
         transform_fn
-            Expression transform applied to ligand and receptor matrices.
-            Defaults to mean→1 normalization (:func:`_linear_transform`). The
-            transform is applied *within each population*: globally over all
-            cells in agnostic mode, but within each cell type in pairwise mode.
-            With the default mean normalization, weights therefore reflect each
-            gene's deviation from its population mean.
+            Expression transform applied to ligand and receptor matrices,
+            defaulting to mean→1 normalization (:func:`_linear_transform`). It is
+            applied per population: globally in agnostic mode, within each cell
+            type in pairwise mode.
         %(use_raw)s
         %(layer)s
         %(key_added)s
@@ -607,50 +569,8 @@ class LRIC:
         return _lric_bins(
             sender_w, receiver_w, corrected_areas, density,
             all_rows, all_cols, rel_dists,
-            recv_coords.shape[0], send_coords.shape[0],
             radii_inner, radii_outer,
         )
-
-    def _run(
-        self,
-        populations: list[_Population],
-        self_paired: bool,
-        radii_inner: np.ndarray,
-        radii_outer: np.ndarray,
-        n_angle_samples: int,
-        min_expressing: int,
-        verbose: bool,
-    ) -> dict[tuple[str, str], np.ndarray]:
-        """Compute LRIC for every directed population pair.
-
-        ``self_paired`` runs the single (pop, pop) self-interaction with
-        ``exclude_self=True`` (agnostic mode); otherwise all directed cross-pairs
-        of distinct populations are computed (pairwise mode).
-        """
-        if self_paired:
-            pairs = [(populations[0], populations[0])]
-        else:
-            pairs = [(s, r) for s in populations for r in populations if s.name != r.name]
-
-        results: dict[tuple[str, str], np.ndarray] = {}
-        for snd, rcv in tqdm(pairs, disable=not verbose, desc="LRIC"):
-            # self-pair shares one coord set; cross-pairs union the two windows
-            all_coords = snd.coords if snd is rcv else np.vstack([rcv.coords, snd.coords])
-            mat = self._compute_pair(
-                snd.coords, rcv.coords, all_coords,
-                snd.sender_w, rcv.receiver_w,
-                radii_inner, radii_outer, n_angle_samples,
-                exclude_self=self_paired, tree=snd.tree,
-            )
-
-            if min_expressing > 0:
-                min_expressing_filter = (snd.n_snd < min_expressing) | (rcv.n_rcv < min_expressing)
-                if min_expressing_filter.any():
-                    mat = mat.copy()
-                    mat[:, min_expressing_filter] = np.nan
-
-            results[(snd.name, rcv.name)] = mat
-        return results
 
     def _agnostic(
         self,
@@ -680,16 +600,20 @@ class LRIC:
 
         coords = np.asarray(adata.obsm[spatial_key], dtype=float)
         all_mask = np.ones(coords.shape[0], dtype=bool)
-        pop = _build_population(
-            adata, "all", all_mask, coords,
-            lr_pairs, unique_ligands, unique_receptors, transform, use_raw, layer,
-        )
+        # weights normalised globally over all cells (one population)
+        sender_w = _pair_weights(adata, all_mask, unique_ligands, lr_pairs[:, 0], transform, use_raw, layer)
+        receiver_w = _pair_weights(adata, all_mask, unique_receptors, lr_pairs[:, 1], transform, use_raw, layer)
 
         radii_inner, radii_outer = _make_radii(max_radius, radius_step, annulus_width)
-        results = self._run(
-            [pop], True, radii_inner, radii_outer, n_angle_samples, min_expressing, verbose,
+        lric = self._compute_pair(
+            coords, coords, coords, sender_w, receiver_w,
+            radii_inner, radii_outer, n_angle_samples, exclude_self=True,
         )
-        return {"pair_names": pair_names, "radii": radii_inner, "lric": results[("all", "all")]}
+        if min_expressing > 0:
+            lric = _min_expressing_mask(
+                lric, (sender_w > 0).sum(axis=0), (receiver_w > 0).sum(axis=0), min_expressing
+            )
+        return {"pair_names": pair_names, "radii": radii_inner, "lric": lric}
 
     def _pairwise(
         self,
@@ -719,10 +643,11 @@ class LRIC:
             else [str(c) for c in cell_types]
         )
         cell_types_list = _filter_by_min_cells(obs_types, cell_types_list, min_cells, verbose)
+        pairs = [(s, r) for s in cell_types_list for r in cell_types_list if s != r]
 
         _logg(
             f"Running LRIC for {len(cell_types_list)} cell types "
-            f"({len(cell_types_list) * (len(cell_types_list) - 1)} directed pairs).",
+            f"({len(pairs)} directed pairs).",
             verbose=verbose,
         )
 
@@ -734,17 +659,26 @@ class LRIC:
 
         radii_inner, radii_outer = _make_radii(max_radius, radius_step, annulus_width)
 
-        populations = [
-            _build_population(
-                adata, ct, obs_types == ct,
-                np.asarray(adata.obsm[spatial_key][obs_types == ct], dtype=float),
-                lr_pairs, unique_ligands, unique_receptors, transform, use_raw, layer,
+        # per cell type: coords, weights (normalised within the type), KD-tree, expressing counts
+        ct_cache = {}
+        for ct in cell_types_list:
+            mask = obs_types == ct
+            coords = np.asarray(adata.obsm[spatial_key][mask], dtype=float)
+            sw = _pair_weights(adata, mask, unique_ligands, lr_pairs[:, 0], transform, use_raw, layer)
+            rw = _pair_weights(adata, mask, unique_receptors, lr_pairs[:, 1], transform, use_raw, layer)
+            ct_cache[ct] = (coords, sw, rw, cKDTree(coords),
+                            (sw > 0).sum(axis=0), (rw > 0).sum(axis=0))
+
+        results: dict[tuple[str, str], np.ndarray] = {}
+        for sender, receiver in tqdm(pairs, disable=not verbose, desc="LRIC"):
+            send_coords, sender_w, _, send_tree, n_snd, _ = ct_cache[sender]
+            recv_coords, _, receiver_w, _, _, n_rcv = ct_cache[receiver]
+            mat = self._compute_pair(
+                send_coords, recv_coords, np.vstack([recv_coords, send_coords]),
+                sender_w, receiver_w, radii_inner, radii_outer, n_angle_samples,
+                tree=send_tree,
             )
-            for ct in cell_types_list
-        ]
-        results = self._run(
-            populations, False, radii_inner, radii_outer, n_angle_samples, min_expressing, verbose,
-        )
+            results[(sender, receiver)] = _min_expressing_mask(mat, n_snd, n_rcv, min_expressing)
 
         return {
             "cell_types": cell_types_list,

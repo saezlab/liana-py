@@ -194,6 +194,12 @@ def test_lric_agnostic_min_expressing():
     result0 = lric(adata, resource=resource, min_expressing=0, inplace=False, **_KWARGS)
     np.testing.assert_array_equal(result0["lric"], _lric_agnostic["lric"])  # default = no-op
 
+    # partial threshold: masking is per-pair and leaves kept pairs untouched
+    partial = lric(adata, resource=resource, min_expressing=50, inplace=False, **_KWARGS)["lric"]
+    masked = np.isnan(partial).all(axis=0)
+    assert masked.any() and not masked.all(), "expected a mix of masked and kept pairs"
+    np.testing.assert_array_equal(partial[:, ~masked], _lric_agnostic["lric"][:, ~masked])
+
 
 def test_lric_agnostic_inplace_and_transform():
     lric(adata, resource=resource, key_added="lric_test", inplace=True, **_KWARGS)
