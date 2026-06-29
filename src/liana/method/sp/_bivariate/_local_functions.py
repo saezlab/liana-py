@@ -322,12 +322,15 @@ def _vectorized_correlations(x_mat, y_mat, weight, method="pearson"):
     n2 = (weight @ x_mat) * (weight @ y_mat)
     numerator = n1 - n2
 
-    denominator_x = (weight_sums * (weight @ x_mat ** 2)) - (weight @ x_mat)**2
-    denominator_y = (weight_sums * (weight @ y_mat ** 2)) - (weight @ y_mat)**2
-    denominator = denominator_x * denominator_y
+    ss_x = weight_sums * (weight @ x_mat ** 2)
+    ss_y = weight_sums * (weight @ y_mat ** 2)
+    denominator_x = ss_x - (weight @ x_mat)**2
+    denominator_y = ss_y - (weight @ y_mat)**2
 
-    # numpy sum is unstable below 1e-6...
-    denominator[denominator < 1e-6] = 0
+    # dealt with instability under 6th decimal place
+    denominator_x[denominator_x <= 1e-6 * ss_x] = 0
+    denominator_y[denominator_y <= 1e-6 * ss_y] = 0
+    denominator = denominator_x * denominator_y
     denominator = denominator ** 0.5
 
     zeros = np.zeros(numerator.shape)
