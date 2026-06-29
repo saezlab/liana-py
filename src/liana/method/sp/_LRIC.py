@@ -121,10 +121,13 @@ def _filter_by_min_cells(
 
 
 def _make_radii(
-    max_radius: float, radius_step: float, annulus_width: float
+    max_radius: float, radius_step: float, annulus_width: float, extend_first_annulus: bool = True
 ) -> tuple[np.ndarray, np.ndarray]:
     radii_inner = np.arange(radius_step, max_radius + radius_step, radius_step, dtype=float)
-    return radii_inner, radii_inner + annulus_width
+    radii_outer = radii_inner + annulus_width
+    if extend_first_annulus:
+        radii_inner[0] = 0.0  # merge the [0, radius_step) contact band into the first annulus
+    return radii_inner, radii_outer
 
 
 def _circle_bbox_fractions(
@@ -257,7 +260,20 @@ def _min_expressing_mask(
 
 
 class CrossPCF:
-    """Cross pair-correlation function (cross-PCF) between cell types."""
+    """Cross pair-correlation function (cross-PCF) between cell types.
+
+    The cross-PCF, ``g(r)``, measures how the density of receiver-type cells
+    at distance ``r`` from a sender-type cell compares to the density expected
+    under complete spatial randomness. ``g(r) > 1`` means the two cell types
+    co-localise at that distance, ``g(r) < 1`` means they avoid one another,
+    and ``g(r) ≈ 1`` means they are placed independently. It is used to map
+    tissue architecture — the length scales at which cell types cluster or
+    segregate — using cell positions alone, ignoring gene expression.
+
+    The cross-PCF is a classical point-pattern spatial statistic; this
+    implementation was inspired by the cross-PCF in the MuSpAn toolbox and
+    their applications in the accompanying manuscript (Bull et al., 2024, doi:10.1101/2024.12.06.627195).
+    """
 
     @d.dedent
     def __call__(
@@ -270,6 +286,7 @@ class CrossPCF:
         max_radius: float = 200,
         radius_step: float = 20,
         annulus_width: float = 20,
+        extend_first_annulus: bool = True,
         n_angle_samples: int = 360,
         key_added: str = "cross_pcf",
         inplace: bool = V.inplace,
@@ -278,9 +295,13 @@ class CrossPCF:
         """
         Cross pair-correlation function for all directed cell-type pairs.
 
-        Computes the distance-resolved cross-PCF for every directed
+        Computes the distance-resolved cross-PCF ``g(r)`` for every directed
         sender→receiver combination of cell types present in
-        ``adata.obs[groupby]``.
+        ``adata.obs[groupby]``. ``g(r)`` compares the observed density of
+        receiver cells at distance ``r`` from each sender to the density
+        expected under spatial randomness, revealing the length scales at
+        which cell types co-localise (``> 1``) or avoid one another (``< 1``).
+        Expression is not used — this characterises tissue architecture alone.
 
         Parameters
         ----------
@@ -298,6 +319,14 @@ class CrossPCF:
             Step between successive annulus inner edges.
         annulus_width
             Ring width of each annulus.
+        extend_first_annulus
+            If ``True`` (default), extend the first annulus inward to start at
+            radius 0 (spanning ``[0, radius_step + annulus_width)``) rather than
+            at ``radius_step``. Cell centroids cannot lie closer than ~one cell
+            diameter, so the innermost band is otherwise a thin, near-empty,
+            high-variance bin; extending it folds genuine cell-cell contact
+            pairs into the first bin instead of discarding them. ``False`` keeps
+            the first annulus at ``[radius_step, radius_step + annulus_width)``.
         n_angle_samples
             Angular resolution for bounding-box edge correction
             (360 ≈ 0.3 %% error).
@@ -339,6 +368,7 @@ class CrossPCF:
                 max_radius=max_radius,
                 radius_step=radius_step,
                 annulus_width=annulus_width,
+                extend_first_annulus=extend_first_annulus,
                 n_angle_samples=n_angle_samples,
             )
             if radii_ref is None:
@@ -361,6 +391,7 @@ class CrossPCF:
         max_radius: float,
         radius_step: float,
         annulus_width: float,
+        extend_first_annulus: bool,
         n_angle_samples: int,
     ) -> tuple[np.ndarray, np.ndarray]:
         """Cross-PCF for a single sender→receiver cell-type pair."""
@@ -374,7 +405,9 @@ class CrossPCF:
                 f"sender='{sender_cell_type}' ({B.shape[0]})."
             )
 
-        radii_inner, radii_outer = _make_radii(max_radius, radius_step, annulus_width)
+        radii_inner, radii_outer = _make_radii(
+            max_radius, radius_step, annulus_width, extend_first_annulus
+        )
         corrected_areas, x_min, x_max, y_min, y_max = _corrected_areas(
             A, np.vstack([A, B]), radii_inner, radii_outer, n_angle_samples
         )
@@ -399,7 +432,23 @@ cross_pcf = CrossPCF()
 
 
 class LRIC:
-    """Ligand-Receptor Interaction Correlation (LRIC)."""
+    """Ligand-Receptor Interaction Correlation (LRIC).
+
+    LRIC is an expression-weighted cross pair-correlation function: each cell's
+    contribution at distance ``r`` is weighted by its ligand (sender) and
+    receptor (receiver) expression. The resulting ``g(r)`` therefore reflects
+    whether ligand- and receptor-expressing cells are spatially co-enriched at
+    distance ``r``, beyond what cell-type co-localisation alone would predict.
+    ``g(r) > 1`` means LR-expressing cells cluster at that distance, ``≈ 1``
+    means expression adds nothing over the underlying spatial structure, and
+    ``< 1`` means they are depleted. This surfaces candidate ligand-receptor
+    interactions that are both spatially proximal and co-expressed — a more
+    specific signal of potential cell-cell communication than spatial
+    co-localisation or co-expression considered alone.
+
+    LRIC builds on the cross pair-correlation function (cross-PCF); see
+    :class:`CrossPCF`.
+    """
 
     @d.dedent
     def __call__(
@@ -413,6 +462,7 @@ class LRIC:
         max_radius: float = 200,
         radius_step: float = 20,
         annulus_width: float = 20,
+        extend_first_annulus: bool = True,
         cell_types: Iterable[str] | None = None,
         min_cells: int = V.min_cells,
         min_expressing: int = 0,
@@ -427,6 +477,13 @@ class LRIC:
     ) -> dict | None:
         """
         Ligand-Receptor Interaction Correlation (LRIC).
+
+        Computes an expression-weighted cross-PCF ``g(r)``: each cell's
+        contribution at distance ``r`` is weighted by its ligand and receptor
+        expression, so ``g(r) > 1`` flags ligand- and receptor-expressing
+        cells that are spatially co-enriched beyond cell-type co-localisation
+        alone — candidate ligand-receptor interactions that are both proximal
+        and co-expressed.
 
         When ``groupby`` is ``None`` (default), all cells are treated as
         potential senders and receivers (self-pairs excluded), providing a
@@ -457,12 +514,21 @@ class LRIC:
             Step between successive annulus inner edges.
         annulus_width
             Ring width of each annulus.
+        extend_first_annulus
+            If ``True`` (default), extend the first annulus inward to start at
+            radius 0 (spanning ``[0, radius_step + annulus_width)``) rather than
+            at ``radius_step``. Cell centroids cannot lie closer than ~one cell
+            diameter, so the innermost band is otherwise a thin, near-empty,
+            high-variance bin; extending it folds genuine cell-cell contact
+            (juxtacrine) pairs into the first bin instead of discarding them.
+            ``False`` keeps the first annulus at ``[radius_step, radius_step +
+            annulus_width)``.
         cell_types
             Subset of cell types to consider (only when ``groupby`` is set).
             Defaults to all types in ``adata.obs[groupby]``.
         %(min_cells)s
         min_expressing
-            Minimum number of cells (within the relevant population: each cell
+            Minimum number of cells (within the relevant population: each cell∂
             type in pairwise mode, all cells in agnostic mode) that must express
             the ligand or receptor for an LR pair to be kept; pairs below the
             threshold are set to ``NaN``. Default ``0`` keeps all results.
@@ -512,6 +578,7 @@ class LRIC:
                 max_radius=max_radius,
                 radius_step=radius_step,
                 annulus_width=annulus_width,
+                extend_first_annulus=extend_first_annulus,
                 min_expressing=min_expressing,
                 n_angle_samples=n_angle_samples,
                 transform_fn=transform_fn,
@@ -528,6 +595,7 @@ class LRIC:
                 max_radius=max_radius,
                 radius_step=radius_step,
                 annulus_width=annulus_width,
+                extend_first_annulus=extend_first_annulus,
                 cell_types=cell_types,
                 min_cells=min_cells,
                 min_expressing=min_expressing,
@@ -580,6 +648,7 @@ class LRIC:
         max_radius: float,
         radius_step: float,
         annulus_width: float,
+        extend_first_annulus: bool,
         min_expressing: int,
         n_angle_samples: int,
         transform_fn: Callable | None,
@@ -604,7 +673,9 @@ class LRIC:
         sender_w = _pair_weights(adata, all_mask, unique_ligands, lr_pairs[:, 0], transform, use_raw, layer)
         receiver_w = _pair_weights(adata, all_mask, unique_receptors, lr_pairs[:, 1], transform, use_raw, layer)
 
-        radii_inner, radii_outer = _make_radii(max_radius, radius_step, annulus_width)
+        radii_inner, radii_outer = _make_radii(
+            max_radius, radius_step, annulus_width, extend_first_annulus
+        )
         lric = self._compute_pair(
             coords, coords, coords, sender_w, receiver_w,
             radii_inner, radii_outer, n_angle_samples, exclude_self=True,
@@ -624,6 +695,7 @@ class LRIC:
         max_radius: float,
         radius_step: float,
         annulus_width: float,
+        extend_first_annulus: bool,
         cell_types: Iterable[str] | None,
         min_cells: int,
         min_expressing: int,
@@ -657,7 +729,9 @@ class LRIC:
                 "No LR pairs found in adata.var_names after filtering the resource."
             )
 
-        radii_inner, radii_outer = _make_radii(max_radius, radius_step, annulus_width)
+        radii_inner, radii_outer = _make_radii(
+            max_radius, radius_step, annulus_width, extend_first_annulus
+        )
 
         # per cell type: coords, weights (normalised within the type), KD-tree, expressing counts
         ct_cache = {}

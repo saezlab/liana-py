@@ -66,11 +66,21 @@ def test_to_dense():
 
 
 def test_make_radii():
+    # default extend_first_annulus=True merges the [0, radius_step) band into the first bin
     ri, ro = _make_radii(max_radius=100, radius_step=20, annulus_width=20)
-    np.testing.assert_almost_equal(ri, [20, 40, 60, 80, 100])
+    np.testing.assert_almost_equal(ri, [0, 40, 60, 80, 100])
     np.testing.assert_almost_equal(ro, [40, 60, 80, 100, 120])
-    ri2, ro2 = _make_radii(60, 20, 10)
+    # extend_first_annulus=False keeps the first annulus at [radius_step, ...)
+    ri_f, ro_f = _make_radii(max_radius=100, radius_step=20, annulus_width=20, extend_first_annulus=False)
+    np.testing.assert_almost_equal(ri_f, [20, 40, 60, 80, 100])
+    np.testing.assert_almost_equal(ro_f, [40, 60, 80, 100, 120])
+    # annulus_width is respected on every bin when the first one is not extended
+    ri2, ro2 = _make_radii(60, 20, 10, extend_first_annulus=False)
     np.testing.assert_almost_equal(ro2 - ri2, 10)
+    # with the default merge, only the first bin is widened (to radius_step + annulus_width)
+    ri3, ro3 = _make_radii(60, 20, 10)
+    np.testing.assert_almost_equal((ro3 - ri3)[0], 30)
+    np.testing.assert_almost_equal((ro3 - ri3)[1:], 10)
 
 
 def test_circle_bbox_fractions():
@@ -147,7 +157,7 @@ def test_index_resource():
 
 def test_cross_pcf():
     assert set(_cross_pcf_result.keys()) == {"cell_types", "radii", "results"}
-    np.testing.assert_almost_equal(_cross_pcf_result["radii"], [20, 40, 60, 80, 100])
+    np.testing.assert_almost_equal(_cross_pcf_result["radii"], [0, 40, 60, 80, 100])
     n_ct = len(_cross_pcf_result["cell_types"])
     assert len(_cross_pcf_result["results"]) == n_ct * (n_ct - 1)
     for arr in _cross_pcf_result["results"].values():
@@ -158,7 +168,7 @@ def test_cross_pcf_pair_values():
     assert _cross_pcf_pair["cell_types"] == ["CD14+ Monocyte", "CD19+ B"]
     assert len(_cross_pcf_pair["results"]) == 2
     np.testing.assert_almost_equal(
-        _cross_pcf_pair["results"][("CD14+ Monocyte", "CD19+ B")].sum(), 6.461110, decimal=3
+        _cross_pcf_pair["results"][("CD14+ Monocyte", "CD19+ B")].sum(), 5.932712, decimal=3
     )
 
 
@@ -180,7 +190,7 @@ def test_lric_agnostic():
     assert set(_lric_agnostic.keys()) == {"pair_names", "radii", "lric"}
     assert _lric_agnostic["lric"].shape == (5, 5)
     assert np.all(_lric_agnostic["lric"] >= 0)
-    np.testing.assert_almost_equal(_lric_agnostic["lric"].sum(), 22.316525, decimal=3)
+    np.testing.assert_almost_equal(_lric_agnostic["lric"].sum(), 22.490379, decimal=3)
     assert _lric_agnostic["pair_names"] == [
         "C1QB^PPA1", "DHRS4L2^GNG7", "NDUFA11^SUPT4H1", "SFPQ^C20orf27", "PGAM1^WBP11"
     ]
@@ -199,6 +209,28 @@ def test_lric_agnostic_min_expressing():
     masked = np.isnan(partial).all(axis=0)
     assert masked.any() and not masked.all(), "expected a mix of masked and kept pairs"
     np.testing.assert_array_equal(partial[:, ~masked], _lric_agnostic["lric"][:, ~masked])
+
+
+def test_extend_first_annulus_flag():
+    # extend_first_annulus=False restores the pre-merge behaviour: first annulus
+    # starts at radius_step and the [0, radius_step) contact band is excluded.
+    ag_f = lric(adata, resource=resource, extend_first_annulus=False, inplace=False, **_KWARGS)
+    np.testing.assert_almost_equal(ag_f["radii"], [20, 40, 60, 80, 100])
+    np.testing.assert_almost_equal(ag_f["lric"].sum(), 22.316525, decimal=3)
+
+    cp_f = cross_pcf(
+        adata, groupby="cell_type",
+        cell_types=["CD14+ Monocyte", "CD19+ B"],
+        extend_first_annulus=False, inplace=False, **_KWARGS,
+    )
+    np.testing.assert_almost_equal(cp_f["radii"], [20, 40, 60, 80, 100])
+    np.testing.assert_almost_equal(
+        cp_f["results"][("CD14+ Monocyte", "CD19+ B")].sum(), 6.461110, decimal=3
+    )
+
+    # merging only changes the first bin; bins beyond the first are identical
+    ag_t = lric(adata, resource=resource, inplace=False, **_KWARGS)
+    np.testing.assert_array_equal(ag_t["lric"][1:], ag_f["lric"][1:])
 
 
 def test_lric_agnostic_inplace_and_transform():
@@ -223,7 +255,7 @@ def test_lric_pairwise():
         "C1QB^PPA1", "DHRS4L2^GNG7", "NDUFA11^SUPT4H1", "SFPQ^C20orf27", "PGAM1^WBP11"
     ]
     np.testing.assert_almost_equal(
-        _lric_pairwise["results"][("CD14+ Monocyte", "CD19+ B")].sum(), 15.36005, decimal=3
+        _lric_pairwise["results"][("CD14+ Monocyte", "CD19+ B")].sum(), 13.841124, decimal=3
     )
 
 

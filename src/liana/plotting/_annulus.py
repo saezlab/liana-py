@@ -15,6 +15,7 @@ def annulus_plot(
     spatial_key: str = K.spatial_key,
     annulus_width: float = 20.0,
     radius_step: float = 20.0,
+    extend_first_annulus: bool = True,
     n_rings: int = 10,
     seed: int = V.seed,
     figure_size: tuple = (6, 6),
@@ -36,6 +37,11 @@ def annulus_plot(
     radius_step
         Step size between successive ring inner radii (in the same units as
         the spatial coordinates).
+    extend_first_annulus
+        If ``True`` (default), draw the innermost ring from radius 0 (spanning
+        ``[0, radius_step + annulus_width)``) to mirror the merged first bin used
+        by :func:`liana.mt.lric` / :func:`liana.mt.cross_pcf`. ``False`` starts
+        the first ring at ``radius_step``.
     n_rings
         Number of concentric rings to draw.
     %(seed)s
@@ -53,6 +59,8 @@ def annulus_plot(
 
     sel_inner = np.arange(1, n_rings + 1, dtype=float) * radius_step
     sel_outer = sel_inner + annulus_width
+    if extend_first_annulus:
+        sel_inner[0] = 0.0  # merge the [0, radius_step) contact band into the first ring
 
     rng = np.random.default_rng(seed)
     center = coords[rng.integers(len(coords))]
@@ -60,7 +68,7 @@ def annulus_plot(
 
     counts = [
         int(np.sum((dists >= r_in) & (dists < r_out)))
-        for r_in, r_out in zip(sel_inner, sel_outer)
+        for r_in, r_out in zip(sel_inner, sel_outer, strict=False)
     ]
 
     ring_colors = plt.cm.plasma(np.linspace(0.05, 0.90, n_rings))
@@ -80,7 +88,7 @@ def annulus_plot(
         rasterized=True,
     )
 
-    for r_in, r_out, color in zip(sel_inner[::-1], sel_outer[::-1], ring_colors[::-1]):
+    for r_in, r_out, color in zip(sel_inner[::-1], sel_outer[::-1], ring_colors[::-1], strict=False):
         ax.add_patch(
             Annulus(center, r=r_out, width=r_out - r_in, color=color, alpha=0.22, zorder=2)
         )
@@ -91,7 +99,7 @@ def annulus_plot(
             plt.Circle(center, r_in, fill=False, edgecolor=color, lw=0.8, ls="--", zorder=4)
         )
 
-    for r_in, r_out, color, count in zip(sel_inner, sel_outer, ring_colors, counts):
+    for r_in, r_out, color, count in zip(sel_inner, sel_outer, ring_colors, counts, strict=False):
         mid_r = (r_in + r_out) / 2
         lx = center[0] + mid_r * np.cos(np.pi / 4)
         ly = center[1] + mid_r * np.sin(np.pi / 4)
@@ -105,9 +113,9 @@ def annulus_plot(
             color="white",
             fontweight="bold",
             zorder=6,
-            bbox=dict(
-                boxstyle="round,pad=0.22", facecolor=color, edgecolor="none", alpha=0.92
-            ),
+            bbox={
+                "boxstyle": "round,pad=0.22", "facecolor": color, "edgecolor": "none", "alpha": 0.92
+            },
         )
 
     ax.scatter(*center, s=180, c="black", marker="*", zorder=10)
@@ -125,7 +133,7 @@ def annulus_plot(
             alpha=0.7,
             label=f"Ring {i + 1}: [{r_in:.0f}–{r_out:.0f}]",
         )
-        for i, (r_in, r_out, c) in enumerate(zip(sel_inner, sel_outer, ring_colors))
+        for i, (r_in, r_out, c) in enumerate(zip(sel_inner, sel_outer, ring_colors, strict=False))
     ]
     ax.legend(
         handles=ring_patches,
