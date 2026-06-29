@@ -29,9 +29,10 @@ flowchart TD
 
     %% ===== Spatially-resolved =====
     Start -->|Spatially-resolved| Res{Resolution?}
-    Res -->|Single-cell| Inflow[Inflow Score]
-    Res -->|Single-cell| LRIC[LRIC]
-    Res -->|Single-cell| ScConstr[Standard LR methods<br/>spatially-constrained]
+    Res -->|Single-cell| ScType{Analysis type?}
+    ScType -->|Interaction scoring| Inflow[Inflow Score]
+    ScType -->|Interaction scoring| ScConstr[Standard LR methods<br/>spatially-constrained]
+    ScType -->|Spatial co-occurrence| LRIC[LRIC]
     Res -->|Spot-based| SpType{Analysis type?}
     SpType -->|Bivariate| LocalQ{Local<br/>interactions?}
     LocalQ -->|Yes| Local[Local Bivariate Metrics]
@@ -62,7 +63,7 @@ flowchart TD
     classDef multimodal fill:#f3e5f5,stroke:#6a1b9a,color:#4a148c;
     classDef external fill:#ffffff,stroke:#9e9e9e,stroke-dasharray:5 3,color:#424242;
 
-    class Start,Res,SpType,LocalQ,Compare,Contrast,ModalSp decision;
+    class Start,Res,ScType,SpType,LocalQ,Compare,Contrast,ModalSp decision;
     class Inflow,LRIC,ScConstr,Local,Global,MISTy spatial;
     class Steady,Targeted,CrossTalk,MOFA,Tensor dissoc;
     class SMA,SCMulti,Metab multimodal;
