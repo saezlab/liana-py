@@ -85,6 +85,7 @@ attributes, to describe each method instance, and are callable:
     to_tensor_c2c
     adata_to_views
     lrs_to_views
+    lrdata_to_mudata
     filter_view_markers
     nmf
     estimate_elbow

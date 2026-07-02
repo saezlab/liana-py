@@ -13,7 +13,7 @@ from liana._constants import DefaultValues as V
 from liana._constants import Keys as K
 from liana._constants import PrimaryColumns as P
 from liana._docs import d
-from liana._logging import _check_if_installed
+from liana._logging import _check_if_installed, _logg
 from liana.method import process_scores
 from liana.method._pipe_utils import _check_groupby
 
@@ -307,6 +307,121 @@ def lrs_to_views(adata: AnnData,
     _process_meta(adata=adata, mdata=mdata, sample_key=sample_key, obs_keys=obs_keys)
 
     return mdata
+
+@d.dedent
+def lrdata_to_mudata(lrdata: AnnData,
+                     xy_sep: str = V.lr_sep,
+                     min_cells: int | None = V.min_cells,
+                     min_features: int | None = 10,
+                     obs_keys: list[str] | None = None,
+                     verbose: bool = V.verbose,
+                     ) -> MuData:
+    """
+    Convert an inflow score AnnData object to a MuData object, where each modality corresponds to a unique sender cell type.
+
+    Parameters
+    ----------
+    %(adata)s
+    xy_sep
+        Separator between the sender cell-type/view prefix and the ligand-receptor interaction
+        name in ``lrdata.var_names`` (e.g. ``"celltype^ligand^receptor"``). Matches the ``xy_sep``
+        convention used by :func:`liana.method.inflow`. Defaults to ``'^'``.
+    %(min_cells)s
+    min_features : int | None, default 10
+        Modalities with fewer than this many features after cell-filtering are
+        dropped entirely. Pass ``None`` to keep all modalities.
+    obs_keys
+        List of keys in `lrdata.obs` that should be included in the MuData object.
+    %(verbose)s
+
+    Returns
+    -------
+    MuData
+        MuData object with one modality per sender cell type.
+
+    Raises
+    ------
+    TypeError
+        If ``lrdata`` is not an AnnData object.
+    ValueError
+        If any of the provided keys are not found in `lrdata.obs`.
+
+    Examples
+    --------
+    >>> mdata = lrdata_to_mudata(lrdata, min_cells=5, min_features=10)
+
+    """
+    if not isinstance(lrdata, AnnData):
+        raise TypeError("`lrdata` must be an AnnData object.")
+
+    if obs_keys is not None:
+        missing = [k for k in obs_keys if k not in lrdata.obs.columns]
+        if missing:
+            raise ValueError(f"`obs_keys` not found in `lrdata.obs`: {missing}")
+
+    if lrdata.n_vars == 0:
+        raise ValueError(
+            f"No features could be parsed with `xy_sep='{xy_sep}'`. "
+            f"Ensure `var_names` follow the 'TYPE{xy_sep}...' convention."
+        )
+
+    modalities = (
+        lrdata.var_names
+        .str.split(xy_sep, expand=True)
+        .get_level_values(0)
+        .unique()
+        .tolist()
+    )
+
+    if not modalities:
+        raise ValueError(
+            f"No features could be parsed with `xy_sep='{xy_sep}'`. "
+            f"Ensure `var_names` follow the 'TYPE{xy_sep}...' convention."
+        )
+
+    if min_cells is not None:
+        sc = _check_if_installed("scanpy")
+
+    adata_dict: dict[str, AnnData] = {}
+
+    for modality in tqdm(modalities, disable=not verbose):
+        var_mask = lrdata.var_names.str.startswith(f"{modality}{xy_sep}")
+        adata_mod = lrdata[:, var_mask].copy()
+        adata_mod.obs = pd.DataFrame(index=adata_mod.obs_names)
+        adata_mod.uns = {}
+        adata_mod.obsp = {}
+
+        if min_cells is not None:
+            sc.pp.filter_genes(adata_mod, min_cells=min_cells)
+
+        if 0 in adata_mod.shape:
+            _logg(f"Skipping '{modality}': no features remain after filtering.", level='info', verbose=verbose)
+            continue
+
+        if min_features is not None and adata_mod.shape[1] < min_features:
+            _logg(
+                f"Skipping '{modality}': {adata_mod.shape[1]} features < min_features={min_features}.",
+                level='info', verbose=verbose
+            )
+            continue
+
+        adata_dict[modality] = adata_mod
+
+    if not adata_dict:
+        raise ValueError(
+            "No modalities passed the filtering criteria. "
+            "Consider relaxing `min_cells` or `min_features`."
+        )
+
+    mdata = MuData(adata_dict)
+
+    if obs_keys is not None:
+        _propagate_obs(lrdata=lrdata, mdata=mdata, obs_keys=obs_keys)
+
+    return mdata
+
+def _propagate_obs(lrdata: AnnData, mdata: MuData, obs_keys: list[str]) -> None:
+    mdata.obs = lrdata.obs.reindex(mdata.obs_names)[obs_keys].copy()
 
 def _dataframe_to_anndata(df):
     obs = pd.DataFrame(index=df.columns)

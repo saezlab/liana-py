@@ -1,12 +1,30 @@
 import numpy as np
 import pandas as pd
+import pytest
+from anndata import AnnData
 
-from liana.multi import adata_to_views, filter_view_markers, lrs_to_views, to_tensor_c2c
+from liana.multi import adata_to_views, filter_view_markers, lrdata_to_mudata, lrs_to_views, to_tensor_c2c
 from liana.testing import sample_lrs
 from liana.testing._sample_anndata import generate_toy_adata
 from liana.utils._getters import get_factor_scores, get_variable_loadings
 
 adata = generate_toy_adata()
+
+
+def _generate_toy_lrdata(n_obs=20, n_lrs=15):
+    """Build a small AnnData mimicking `liana.method.inflow`'s output convention."""
+    celltypes = ['T_cell', 'B_cell']
+    interactions = [f'lig{i}^rec{i}' for i in range(n_lrs)]
+    var_names = [f'{ct}^{lr}' for ct in celltypes for lr in interactions]
+    rng = np.random.default_rng(42)
+    X = rng.random((n_obs, len(var_names)))
+    obs = pd.DataFrame(
+        {'cell_type': ['T_cell'] * (n_obs // 2) + ['B_cell'] * (n_obs // 2),
+         'region': ['A'] * n_obs},
+        index=[f'cell{i}' for i in range(n_obs)]
+    )
+    var = pd.DataFrame(index=var_names)
+    return AnnData(X=X, obs=obs, var=var)
 
 
 def test_to_tensor_c2c():
@@ -160,6 +178,46 @@ def test_filter_view_markers():
 
     filter_view_markers(mdata, markers, var_column=None, inplace=True)
     assert mdata.shape == (4, 74)
+
+
+def test_lrdata_to_mudata():
+    """Test lrdata_to_mudata."""
+    lrdata = _generate_toy_lrdata()
+
+    mdata = lrdata_to_mudata(lrdata, min_cells=None, min_features=10,
+                             obs_keys=['cell_type', 'region'], verbose=True)
+
+    assert set(mdata.mod.keys()) == {'T_cell', 'B_cell'}
+    assert mdata.shape == (20, 30)
+    assert mdata['T_cell'].shape == (20, 15)
+    assert list(mdata.obs.columns) == ['cell_type', 'region']
+
+
+def test_lrdata_to_mudata_min_features_drops_modality():
+    """A modality with fewer than `min_features` interactions should be dropped, not error."""
+    lrdata = _generate_toy_lrdata(n_lrs=15)
+    # keep only a handful of B_cell features so it falls below the min_features threshold
+    keep = lrdata.var_names[lrdata.var_names.str.startswith('T_cell')].tolist() + \
+        lrdata.var_names[lrdata.var_names.str.startswith('B_cell')][:5].tolist()
+    lrdata = lrdata[:, keep].copy()
+
+    mdata = lrdata_to_mudata(lrdata, min_cells=None, min_features=10)
+
+    assert set(mdata.mod.keys()) == {'T_cell'}
+
+
+def test_lrdata_to_mudata_errors():
+    lrdata = _generate_toy_lrdata()
+
+    with pytest.raises(TypeError):
+        lrdata_to_mudata('not an AnnData')
+
+    with pytest.raises(ValueError):
+        lrdata_to_mudata(lrdata, obs_keys=['nonexistent'])
+
+    with pytest.raises(ValueError):
+        # no modality can meet an impossibly high min_features
+        lrdata_to_mudata(lrdata, min_features=1000)
 
 
 def test_get_funs():
