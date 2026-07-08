@@ -379,10 +379,10 @@ def lrdata_to_mudata(lrdata: AnnData,
             f"Ensure `var_names` follow the 'TYPE{xy_sep}...' convention."
         )
 
-    if min_cells is not None:
-        sc = _check_if_installed("scanpy")
-
     adata_dict: dict[str, AnnData] = {}
+
+    if min_cells is not None:
+        sc = _check_if_installed(package_name="scanpy")
 
     for modality in tqdm(modalities, disable=not verbose):
         var_mask = lrdata.var_names.str.startswith(f"{modality}{xy_sep}")

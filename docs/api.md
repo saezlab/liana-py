@@ -128,6 +128,7 @@ attributes, to describe each method instance, and are callable:
     neg_to_zero
     spatial_neighbors
     spatial_pair_proximity
+    expand_coordinates
     query_bandwidth
     get_factor_scores
     get_variable_loadings
