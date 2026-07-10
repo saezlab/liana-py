@@ -426,9 +426,9 @@ def _propagate_obs(lrdata: AnnData, mdata: MuData, obs_keys: list[str]) -> None:
 def _dataframe_to_anndata(df):
     obs = pd.DataFrame(index=df.columns)
     var = pd.DataFrame(index=df.index)
-    X = np.array(df.values).T
+    X = np.asarray(df.values, dtype=np.float32).T
 
-    return AnnData(X=X, obs=obs, var=var, dtype=np.float32)
+    return AnnData(X=X, obs=obs, var=var)
 
 def _remove_mod_var(mdata, markers, view_sep, var_column):
     for current_mod in mdata.mod.keys():

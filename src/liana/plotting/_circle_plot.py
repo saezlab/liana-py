@@ -222,6 +222,7 @@ def circle_plot(
 
     liana_res = _prep_liana_res(
         adata=adata,
+        liana_res=liana_res,
         source_labels=None,
         target_labels=None,
         ligand_complex=ligand_complex,

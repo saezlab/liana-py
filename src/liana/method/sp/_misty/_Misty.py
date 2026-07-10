@@ -56,10 +56,17 @@ class MistyData(MuData):
                  enforce_obs: bool = True,
                  **kwargs
                  ):
-        if isinstance(data, MuData):
-            data = data.mod
+        source = data if isinstance(data, MuData) else None
+        if source is not None:
+            data = source.mod
 
         super().__init__(data, **kwargs)
+
+        # preserve container-level attributes that MuData drops when rebuilt from .mod
+        if source is not None:
+            for attr in ("uns", "obsm", "varm", "obsp", "varp"):
+                setattr(self, attr, getattr(source, attr))
+
         self.view_names = list(self.mod.keys())
         self.spatial_key = spatial_key
         self.enforce_obs = enforce_obs

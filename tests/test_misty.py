@@ -2,6 +2,7 @@ import os
 import pathlib
 
 import numpy as np
+import pandas as pd
 import scanpy as sc
 
 from liana.method import MistyData
@@ -125,6 +126,21 @@ def test_misty_mask():
 
     assert misty.uns['interactions'].shape == (330, 4)
     np.testing.assert_almost_equal(misty.uns['interactions']['importances'].sum(), 149.30560405771703, decimal=0)
+
+
+def test_misty_uns_preserved_on_reconstruction():
+    # https://github.com/saezlab/liana-py/issues/242
+    # reconstructing a MistyData from an existing (Misty/Mu)Data must not drop `uns`
+    misty = genericMistyData(adata, bandwidth=10, set_diag=False, cutoff=0)
+    misty(model=LinearModel)
+    assert 'target_metrics' in misty.uns
+    assert 'interactions' in misty.uns
+
+    reconstructed = MistyData(misty)
+    assert 'target_metrics' in reconstructed.uns
+    assert 'interactions' in reconstructed.uns
+    pd.testing.assert_frame_equal(reconstructed.uns['target_metrics'], misty.uns['target_metrics'])
+    pd.testing.assert_frame_equal(reconstructed.uns['interactions'], misty.uns['interactions'])
 
 
 def test_misty_custom():

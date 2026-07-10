@@ -1,3 +1,5 @@
+import pandas as pd
+
 import liana.plotting as pl
 from liana.testing import _sample_interactions, _sample_target_metrics, generate_toy_spatial
 
@@ -8,11 +10,11 @@ adata.view_names = ['intra', 'extra']
 
 # test aggregate
 target_metrics = adata.uns['target_metrics'].copy()
-target_metrics = target_metrics._append(target_metrics)
+target_metrics = pd.concat([target_metrics, target_metrics])
 target_metrics['group'] = ['a'] * 3 + ['b'] * 3
 
 interactions = adata.uns['interactions'].copy()
-interactions = interactions._append(interactions)
+interactions = pd.concat([interactions, interactions])
 interactions['group'] = ['a'] * 9 + ['b'] * 9
 
 def test_target_contributions_plot():

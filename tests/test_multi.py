@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from anndata import AnnData
+from anndata import AnnData, concat
 
 from liana.multi import adata_to_views, filter_view_markers, lrdata_to_mudata, lrs_to_views, to_tensor_c2c
 from liana.testing import sample_lrs
@@ -81,7 +81,7 @@ def test_lrs_to_views_batch():
     adata2.obs['sample'] = adata2.obs['sample'].apply(lambda x: x+'2')
     adata3 = adata.copy()
     adata3.obs['sample'] = adata3.obs['sample'].apply(lambda x: x+'3')
-    adata = adata.concatenate([adata2, adata3], join='inner', batch_key='sample_number')
+    adata = concat([adata, adata2, adata3], join='inner', label='sample_number', keys=['0', '1', '2'], index_unique='-')
 
     liana_res = sample_lrs(by_sample=True)
     liana_res2 = liana_res.copy()
@@ -260,3 +260,35 @@ def test_get_funs():
     scores = get_factor_scores(mdata, obsm_key='X_mofa')
     assert isinstance(scores, pd.DataFrame)
     assert scores.shape == (4, 6)
+
+
+def test_get_variable_loadings_from_loadings():
+    # MOFA-Flex-style weights: dict of per-view features-by-factors DataFrames,
+    # feature names are `sender^ligand^receptor` (no target), factors named "Factor N"
+    feats_a = ["astrocyte^Agt^Adra2a", "astrocyte^Fgf1^Egfr"]
+    feats_b = ["tanycyte^Efna5^Ephb1", "tanycyte^Rspo3^Lgr6"]
+    cols = ["Factor 1", "Factor 2", "Factor 3"]
+    weights = {
+        "astrocyte": pd.DataFrame(np.arange(6).reshape(2, 3), index=feats_a, columns=cols),
+        "tanycyte": pd.DataFrame(np.arange(6, 12).reshape(2, 3), index=feats_b, columns=cols),
+    }
+
+    loadings = get_variable_loadings(
+        loadings=weights,
+        variable_sep="^",
+        var_names=["source", "ligand_complex", "receptor_complex"],
+    )
+    assert isinstance(loadings, pd.DataFrame)
+    # 4 features x (3 split cols + 3 factors)
+    assert loadings.shape == (4, 6)
+    # factor column names are preserved (not renamed to Factor1...)
+    assert list(loadings.columns) == ["source", "ligand_complex", "receptor_complex", *cols]
+    # sorted by |first factor|, descending
+    assert loadings["Factor 1"].abs().is_monotonic_decreasing
+    # a concatenated DataFrame gives the same result as the dict input
+    from_df = get_variable_loadings(
+        loadings=pd.concat(weights.values()),
+        variable_sep="^",
+        var_names=["source", "ligand_complex", "receptor_complex"],
+    )
+    assert from_df.equals(loadings)

@@ -124,14 +124,13 @@ def prep_check_adata(adata: AnnData,
         # discard any instances of AnnData if in obsm
         obsm = {k: v for k, v in obsm.items() if not isinstance(v, AnnData)}
 
-    adata = sc.AnnData(X=X,
+    adata = sc.AnnData(X=X.astype(np.float32, copy=False),
                        obs=adata.obs.copy(),
-                       dtype="float32",
                        var=var,
                        obsp=adata.obsp.copy(),
                        uns=uns,
                        obsm=obsm
-                       ).copy()
+                       )
     adata.var_names_make_unique()
 
     # Check for empty features
