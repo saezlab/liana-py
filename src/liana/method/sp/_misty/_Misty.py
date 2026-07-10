@@ -56,10 +56,16 @@ class MistyData(MuData):
                  enforce_obs: bool = True,
                  **kwargs
                  ):
+        # Passing a plain MuData (e.g. from mudata.read_h5mu) keeps only its
+        # per-view dict, so its global .uns would be lost. Preserve it and
+        # restore it after construction.
+        preserved_uns = dict(data.uns) if isinstance(data, MuData) else None
         if isinstance(data, MuData):
             data = data.mod
 
         super().__init__(data, **kwargs)
+        if preserved_uns:
+            self.uns.update(preserved_uns)
         self.view_names = list(self.mod.keys())
         self.spatial_key = spatial_key
         self.enforce_obs = enforce_obs

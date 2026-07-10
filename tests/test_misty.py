@@ -4,6 +4,8 @@ import pathlib
 import numpy as np
 import scanpy as sc
 
+from mudata import MuData
+
 from liana.method import MistyData
 from liana.method.sp._misty._misty_constructs import genericMistyData, lrMistyData
 from liana.method.sp._misty._single_view_models import LinearModel, RandomForestModel, RobustLinearModel
@@ -13,6 +15,19 @@ test_path = pathlib.Path(__file__).parent
 
 adata = sc.read_h5ad(os.path.join(test_path, "data" , "synthetic.h5ad"))
 adata = sc.pp.subsample(adata, n_obs=100, copy=True)
+
+
+def test_misty_from_mudata_preserves_uns():
+    # Round-tripping through MuData (e.g. mudata.read_h5mu) must not drop .uns
+    misty = genericMistyData(adata, bandwidth=10, cutoff=0, add_juxta=False, set_diag=False)
+    misty.uns["stored"] = {"kept": True}
+
+    mdata = MuData(dict(misty.mod))
+    mdata.uns["stored"] = misty.uns["stored"]
+
+    rebuilt = MistyData(mdata)
+    assert "stored" in rebuilt.uns
+    assert rebuilt.uns["stored"] == {"kept": True}
 
 
 def test_misty_para():
