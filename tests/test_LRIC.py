@@ -6,12 +6,10 @@ from scipy.sparse import csr_matrix
 
 from liana.method.sp._LRIC import (
     _circle_bbox_fractions,
-    _filter_by_min_cells,
     _index_resource,
     _linear_transform,
     _make_radii,
     _pair_weights,
-    _spatial_pairs,
     _to_dense,
     cross_pcf,
     lric,
@@ -96,28 +94,6 @@ def test_circle_bbox_fractions():
     assert fracs.shape == (5, 2) and (fracs > 0).all() and (fracs <= 1.0).all()
 
 
-def test_filter_by_min_cells():
-    types = np.array(["A"] * 10 + ["B"] * 3 + ["C"] * 20)
-    assert _filter_by_min_cells(types, ["A", "B", "C"], min_cells=5, verbose=False) == ["A", "C"]
-    assert set(_filter_by_min_cells(np.array(["A"] * 10 + ["B"] * 10), ["A", "B"], 5, False)) == {"A", "B"}
-    assert _filter_by_min_cells(np.array(["A"] * 2), ["A"], min_cells=5, verbose=False) == []
-
-
-def test_spatial_pairs():
-    recv = np.array([[0.0, 0.0], [10.0, 0.0]])
-    send = np.array([[5.0, 0.0], [100.0, 0.0]])
-    rows, cols, dists = _spatial_pairs(recv, send, max_r=20.0)
-    assert rows.tolist() == [0, 1] and cols.tolist() == [0, 0]
-    np.testing.assert_almost_equal(dists, [5.0, 5.0])
-
-    coords = np.array([[0.0, 0.0], [1.0, 0.0], [100.0, 0.0]])
-    rows_ex, cols_ex, _ = _spatial_pairs(coords, coords, max_r=50.0, exclude_self=True)
-    assert len(rows_ex[rows_ex == cols_ex]) == 0
-
-    rows_e, cols_e, dists_e = _spatial_pairs(np.array([[0.0, 0.0]]), np.array([[999.0, 999.0]]), max_r=1.0)
-    assert rows_e.size == cols_e.size == dists_e.size == 0
-
-
 def test_pair_weights_transform_sees_unique_genes():
     # transform is applied to the unique-gene matrix, then gathered to per-pair columns
     a = ad.AnnData(np.arange(12, dtype=np.float32).reshape(3, 4))
@@ -190,7 +166,15 @@ def test_lric_agnostic():
     assert set(_lric_agnostic.keys()) == {"pair_names", "radii", "lric"}
     assert _lric_agnostic["lric"].shape == (5, 5)
     assert np.all(_lric_agnostic["lric"] >= 0)
-    np.testing.assert_almost_equal(_lric_agnostic["lric"].sum(), 22.490379, decimal=3)
+    # NOTE: this reference value is not 22.490379 (the value under the old
+    # implementation). `use_raw=True` is the default, and the old `_get_expr`
+    # sliced `.raw.X` from a `gene_names`-subset view -- but `.raw` does not
+    # follow the parent's var subsetting, so it silently gathered whichever
+    # genes sat at the requested *positions* in the full, unsliced `.raw.var`
+    # instead of the intended ligands/receptors. `prep_check_adata` resolves
+    # `use_raw`/`layer` into `.X` once up front, so this LRIC only ever reads
+    # the genes it actually asked for.
+    np.testing.assert_almost_equal(_lric_agnostic["lric"].sum(), 26.89414, decimal=3)
     assert _lric_agnostic["pair_names"] == [
         "C1QB^PPA1", "DHRS4L2^GNG7", "NDUFA11^SUPT4H1", "SFPQ^C20orf27", "PGAM1^WBP11"
     ]
@@ -205,7 +189,7 @@ def test_lric_agnostic_min_expressing():
     np.testing.assert_array_equal(result0["lric"], _lric_agnostic["lric"])  # default = no-op
 
     # partial threshold: masking is per-pair and leaves kept pairs untouched
-    partial = lric(adata, resource=resource, min_expressing=50, inplace=False, **_KWARGS)["lric"]
+    partial = lric(adata, resource=resource, min_expressing=100, inplace=False, **_KWARGS)["lric"]
     masked = np.isnan(partial).all(axis=0)
     assert masked.any() and not masked.all(), "expected a mix of masked and kept pairs"
     np.testing.assert_array_equal(partial[:, ~masked], _lric_agnostic["lric"][:, ~masked])
@@ -216,7 +200,7 @@ def test_extend_first_annulus_flag():
     # starts at radius_step and the [0, radius_step) contact band is excluded.
     ag_f = lric(adata, resource=resource, extend_first_annulus=False, inplace=False, **_KWARGS)
     np.testing.assert_almost_equal(ag_f["radii"], [20, 40, 60, 80, 100])
-    np.testing.assert_almost_equal(ag_f["lric"].sum(), 22.316525, decimal=3)
+    np.testing.assert_almost_equal(ag_f["lric"].sum(), 27.211477, decimal=3)
 
     cp_f = cross_pcf(
         adata, groupby="cell_type",
@@ -254,8 +238,9 @@ def test_lric_pairwise():
     assert _lric_pairwise["pair_names"] == [
         "C1QB^PPA1", "DHRS4L2^GNG7", "NDUFA11^SUPT4H1", "SFPQ^C20orf27", "PGAM1^WBP11"
     ]
+    # see test_lric_agnostic for why this differs from the old implementation's value
     np.testing.assert_almost_equal(
-        _lric_pairwise["results"][("CD14+ Monocyte", "CD19+ B")].sum(), 13.841124, decimal=3
+        _lric_pairwise["results"][("CD14+ Monocyte", "CD19+ B")].sum(), 25.468023, decimal=3
     )
 
 
@@ -297,8 +282,47 @@ def test_lric_min_expressing():
 
 
 def test_lric_no_lr_pairs_raises():
+    # a resource with none of its genes in `adata.var_names` is now caught by the
+    # shared `assert_covered` check in `prep_check_adata`'s call site (same as
+    # `_inflow`/`_spatial_bivariate`), before `_index_resource` is ever reached.
     bad = pd.DataFrame({"ligand": ["NOTEXIST1"], "receptor": ["NOTEXIST2"]})
-    with raises(ValueError, match="No LR pairs"):
+    with raises(ValueError, match="Please check if appropriate organism/ID type"):
         lric(adata, resource=bad, inplace=False, verbose=False)
-    with raises(ValueError, match="No LR pairs"):
+    with raises(ValueError, match="Please check if appropriate organism/ID type"):
         lric(adata, resource=bad, groupby="cell_type", inplace=False, verbose=False)
+
+
+# ── regression: adata passed by the caller must never be mutated ──────────────
+
+
+def test_lric_does_not_mutate_input_view_on_complex_resource():
+    """`_add_complexes_to_var` used to be called on the caller's `adata` directly,
+    mutating its `.var` in place (new rows for each complex) without a matching
+    `.X`/`.layers` update. When `adata` was a view (e.g. a random cell subsample),
+    this corrupted it silently -- `.var` grew while `.X`/`.layers` did not -- and
+    raised a shape-mismatch `ValueError` the next time the view was touched (e.g.
+    by `inplace=True`, which writes to `.uns` and forces the view to materialise).
+
+    `prep_check_adata` now isolates a fresh copy up front, so the caller's object
+    (view or not) must come out unchanged.
+    """
+    rng = np.random.default_rng(0)
+    idx = rng.choice(adata.n_obs, adata.n_obs // 2, replace=False)
+    adata_sub = adata[idx, :]
+    assert adata_sub.is_view
+
+    complex_receptor = f"{adata.var_names[0]}_{adata.var_names[1]}"
+    complex_resource = pd.DataFrame({
+        "ligand": [adata.var_names[2]],
+        "receptor": [complex_receptor],
+    })
+
+    n_vars_before = adata_sub.n_vars
+    lric(
+        adata_sub, resource=complex_resource, groupby="cell_type",
+        key_added="lric_view_test", inplace=True, **_KWARGS,
+    )
+
+    assert adata_sub.n_vars == n_vars_before
+    assert "lric_view_test" in adata_sub.uns
+    assert "results" in adata_sub.uns["lric_view_test"]
