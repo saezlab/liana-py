@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.8.1 (15.07.2026)
+
+### Added
+
+- **`li.ut.expand_coordinates`** — utility that lays out the spatial coordinates of multiple samples side-by-side on a non-overlapping grid, enabling multi-sample spatial analyses (e.g. a joint `spatial_neighbors` graph) without cross-sample coordinate overlap. Exposed in `li.ut` and the API reference. (#238)
+- **MOFA-Flex inflow tutorial** (`inflow_mofaflex.ipynb`) showing how to combine the inflow score with MOFA-Flex to extract spatially-resolved, single-cell-derived cell-cell communication programs.
+
+### Changed
+
+- **LRIC / cross-PCF memory & performance refactor** (#245, by @AtheerAS). `li.mt.lric` and `li.mt.cross_pcf` now route preprocessing through `prep_check_adata`, build per-annulus sparse scale matrices and multiply them against the weight matrices in chunked (`pair_chunk`) column slices — bounding peak memory to a few hundred MB on large datasets — and use SciPy `sparse_distance_matrix` / `searchsorted` for distance binning. This also fixes a `.raw`-subsetting bug in feature extraction, which slightly changes LRIC output values (test reference values updated accordingly). The LRIC tutorial was re-run to reflect the new numerics.
+
+### Fixed
+
+- **`MistyData` now preserves more than `.uns` on `MuData` round-trips (#242).** Converting a `MuData` back to `MistyData` previously dropped `.uns`, breaking downstream plots such as `li.pl.contributions`; the conversion now carries over `uns`, `obsm`, `varm`, `obsp` and `varp`.
+- **`rank_aggregate` / `by_sample` dependency compatibility (#244).** The AnnData `dtype=` removal (AnnData ≥0.11) is handled in preprocessing. pandas 3.0 additionally breaks the consensus path — Copy-on-Write turns a chained `inplace` fillna into a no-op, and string-typed columns coerce an internal `None`-labelled score column to `'nan'` — so `pandas<3` is pinned until liana gains full pandas-3.0 support.
+
 ## 1.8.0 (29.06.2026)
 
 ### Added
