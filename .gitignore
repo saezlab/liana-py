@@ -33,6 +33,7 @@ docs/_build/*
 docs/jupyter_execute/*
 docs/generated/*
 *.h5ad
+*.hdf5
 *.gz
 *.db
 *.pkl
