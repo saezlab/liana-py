@@ -45,7 +45,7 @@ def _get_means_perms(adata: AnnData,
 
     """
     if isinstance(norm_factor, np.float32):
-        adata.X /= norm_factor
+        adata.X = adata.X / norm_factor
 
     # define labels and masks
     labels = adata.obs['@label'].cat.categories

@@ -105,7 +105,7 @@ intersphinx_mapping = {
     "scanpy": ("https://scanpy.readthedocs.io/en/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
-    "mudata": ("https://mudata.readthedocs.io/en/latest/", None),
+    "mudata": ("https://mudata.readthedocs.io/stable/", None),
     "sklearn": ("https://scikit-learn.org/stable/", None),
     "plotnine": ("https://plotnine.org/", None),
     # add more as needed

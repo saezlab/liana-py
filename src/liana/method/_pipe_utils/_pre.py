@@ -124,7 +124,7 @@ def prep_check_adata(adata: AnnData,
         # discard any instances of AnnData if in obsm
         obsm = {k: v for k, v in obsm.items() if not isinstance(v, AnnData)}
 
-    adata = sc.AnnData(X=X.astype(np.float32, copy=False),
+    adata = sc.AnnData(X=X.astype(np.float32, copy=True),
                        obs=adata.obs.copy(),
                        var=var,
                        obsp=adata.obsp.copy(),

@@ -128,8 +128,8 @@ Please also consider citing any of the methods and/or resources that were partic
 [uv]: https://github.com/astral-sh/uv
 [scverse discourse]: https://discourse.scverse.org/
 [issue tracker]: https://github.com/saezlab/liana-py/issues
-[tests]: https://github.com/dbdimitrov/liana-py/actions/workflows/test.yaml
+[tests]: https://github.com/saezlab/liana-py/actions/workflows/test.yml
 [documentation]: https://liana-py.readthedocs.io
-[changelog]: https://liana-py.readthedocs.io/en/latest/release_notes.html
+[changelog]: https://liana-py.readthedocs.io/en/latest/changelog.html
 [api documentation]: https://liana-py.readthedocs.io/en/latest/api.html
 [pypi]: https://pypi.org/project/liana

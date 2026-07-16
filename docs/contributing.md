@@ -76,7 +76,7 @@ Consider enabling this option for [ruff][ruff-editors] and [biome][biome-editors
 [mypy]: https://mypy.readthedocs.io/en/stable/
 [pre-commit.ci]: https://pre-commit.ci/
 [ruff-editors]: https://docs.astral.sh/ruff/integrations/
-[biome-editors]: https://biomejs.dev/guides/integrate-in-editor/
+[biome-editors]: https://biomejs.dev/guides/editors/first-party-extensions/
 
 (writing-tests)=
 

@@ -1,4 +1,4 @@
-# code from https://github.com/theislab/scanpy/blob/master/docs/extensions/typed_returns.py
+# code from https://github.com/scverse/scanpy/blob/1.9.x/docs/extensions/typed_returns.py
 # with some minor adjustment
 from __future__ import annotations
 
