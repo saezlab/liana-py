@@ -33,6 +33,7 @@ flowchart TD
     ScType -->|Interaction scoring| Inflow[Inflow Score]
     ScType -->|Interaction scoring| ScConstr[Standard LR methods<br/>spatially-constrained]
     ScType -->|Spatial co-occurrence| LRIC[LRIC]
+    ScType -->|Unsupervised| InflowMofa[Communication Programs<br/>Inflow + MOFA-Flex]
     Res -->|Spot-based| SpType{Analysis type?}
     SpType -->|Bivariate| LocalQ{Local<br/>interactions?}
     LocalQ -->|Yes| Local[Local Bivariate Metrics]
@@ -64,7 +65,7 @@ flowchart TD
     classDef external fill:#ffffff,stroke:#9e9e9e,stroke-dasharray:5 3,color:#424242;
 
     class Start,Res,ScType,SpType,LocalQ,Compare,Contrast,ModalSp decision;
-    class Inflow,LRIC,ScConstr,Local,Global,MISTy spatial;
+    class Inflow,LRIC,ScConstr,InflowMofa,Local,Global,MISTy spatial;
     class Steady,Targeted,CrossTalk,MOFA,Tensor dissoc;
     class SMA,SCMulti,Metab multimodal;
     class TensorExt,TensorMet external;
@@ -72,6 +73,7 @@ flowchart TD
     %% ===== Links (click events) =====
     click Inflow "https://liana-py.readthedocs.io/en/latest/notebooks/inflow_score.html"
     click LRIC "https://liana-py.readthedocs.io/en/latest/notebooks/LRIC_tutorial.html"
+    click InflowMofa "https://liana-py.readthedocs.io/en/latest/notebooks/inflow_mofaflex.html"
     click ScConstr "https://liana-py.readthedocs.io/en/latest/notebooks/inflow_score.html"
     click Local "https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html"
     click Global "https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html"
