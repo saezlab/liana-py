@@ -369,6 +369,15 @@ def _calc_log2fc(adata, label) -> np.ndarray:
     subject = adata[adata.obs[I.label].isin([label])]
     rest = adata[~adata.obs[I.label].isin([label])]
 
+    if rest.n_obs == 0:
+        raise ValueError(
+            f"Cannot compute log2FC for group '{label}': every cell belongs to it, "
+            "leaving no cells to compare against. This typically happens when "
+            "`sample_key` splits the data such that a sample contains only a single "
+            "`groupby` category. Ensure each `sample_key` group contains more than "
+            "one `groupby` category."
+        )
+
     # subject and rest means
     subj_means = subject.layers['normcounts'].mean(0).A.flatten()
     rest_means = rest.layers['normcounts'].mean(0).A.flatten()

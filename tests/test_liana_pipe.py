@@ -2,6 +2,7 @@ import pathlib
 from itertools import product
 
 import numpy as np
+import pytest
 from pandas import DataFrame, read_csv
 from pandas.testing import assert_frame_equal
 from scanpy.datasets import pbmc68k_reduced
@@ -117,3 +118,18 @@ def test_calc_log2fc():
     adata.layers['normcounts'].data = _expm1_base(V.logbase, adata.raw.X.data)
     adata.obs['@label'] = adata.obs.bulk_labels
     np.testing.assert_almost_equal(np.mean(_calc_log2fc(adata, "Dendritic")), -0.123781264)
+
+
+def test_calc_log2fc_no_rest_raises():
+    # https://github.com/saezlab/liana-py/issues/93
+    # If every cell belongs to the same `groupby` label (e.g. a `sample_key`
+    # split that happens to contain a single category), there's no "rest" of
+    # cells left to compare against, and this used to raise a cryptic
+    # ZeroDivisionError deep in scipy's sparse mean() instead of a clear error.
+    single_label = adata[adata.obs.bulk_labels == "Dendritic"].copy()
+    single_label.layers['normcounts'] = single_label.raw.X.copy()
+    single_label.layers['normcounts'].data = _expm1_base(V.logbase, single_label.raw.X.data)
+    single_label.obs['@label'] = single_label.obs.bulk_labels
+
+    with pytest.raises(ValueError, match="Cannot compute log2FC"):
+        _calc_log2fc(single_label, "Dendritic")
