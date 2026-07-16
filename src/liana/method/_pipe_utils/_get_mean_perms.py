@@ -45,7 +45,10 @@ def _get_means_perms(adata: AnnData,
 
     """
     if isinstance(norm_factor, np.float32):
-        adata.X = adata.X / norm_factor
+        # Divide out-of-place (not `/=`) so we don't mutate the caller's matrix -- `adata.X`
+        # may share its buffer with `adata.raw.X`. Cast back to the original dtype because
+        # sparse `matrix / scalar` promotes to float64, which would otherwise double memory.
+        adata.X = (adata.X / norm_factor).astype(adata.X.dtype)
 
     # define labels and masks
     labels = adata.obs['@label'].cat.categories
