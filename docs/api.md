@@ -70,6 +70,7 @@ attributes, to describe each method instance, and are callable:
     MistyData
     genericMistyData
     lrMistyData
+    lrMistyDataByCellType
 ```
 
 ## Multi-Sample
