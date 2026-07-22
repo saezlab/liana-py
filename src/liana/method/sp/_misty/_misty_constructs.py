@@ -396,6 +396,7 @@ def lrMistyDataByCellType(adata: AnnData,
         ligand_adata.X = ligand_adata.X.multiply(
             sender_mask[:, None]
         ).tocsr()
+        ligand_adata.X.eliminate_zeros()
 
         views[f"extra_{celltype}"] = _make_view(
             adata=ligand_adata,
