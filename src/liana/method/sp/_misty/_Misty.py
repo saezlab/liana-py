@@ -133,6 +133,7 @@ class MistyData(MuData):
                  bypass_intra: bool = False,
                  predict_self: bool = False,
                  maskby: str = None,
+                 exclude_autocrine: bool = False,
                  k_cv: int = 10,
                  alphas: np.array | list[float] = np.array([0.1, 1, 10]),
                  seed: int = V.seed,
@@ -156,6 +157,10 @@ class MistyData(MuData):
         maskby
             Column in the .obs attribute used to group or mask observations in the intra-view
             If None, all cells are considered as one group.
+        exclude_autocrine
+            Whether to exclude the extra view corresponding to the current
+            ``maskby`` group. This is relevant when extra views are named
+            ``extra_<cell_type>`` and categorical ``maskby`` is used.
         k_cv
             Number of folds for cross-validation used in the multi-view model,
             and single-view models if model is 'linear'.
@@ -176,7 +181,35 @@ class MistyData(MuData):
         """
         model = model(seed, **kwargs)  # type: ignore[operator]
         view_str = list(self.view_names)
+        # Dict of ligand-receptor interactions by receptor, used to filter
+        # predictors in the extra views.
+        ligands_by_receptor = self.uns.get(
+            "_misty_ligands_by_receptor"
+        )
+
+        is_celltype_misty = self.uns.get("_misty_by_cell_type", False)
+
         obs_masks = _create_obs_masks(self.mod['intra'], maskby)
+
+        # A boolean mask does not itself contain the receiver cell-type name.
+        # For cell-type-specific MISTy objects, recover that name from the
+        # cell-type labels when the mask selects exactly one cell type.
+        if (
+            is_celltype_misty
+            and maskby is not None
+            and self.mod["intra"].obs[maskby].dtype == bool
+        ):
+            celltype_key = self.uns["_misty_celltype_key"]
+            selected = self.mod["intra"].obs.loc[
+                obs_masks[None], celltype_key
+            ].unique()
+            if len(selected) == 1:
+                obs_masks = {selected[0]: obs_masks[None]}
+            elif exclude_autocrine and len(selected) > 1:
+                raise ValueError(
+                    "exclude_autocrine requires a boolean mask selecting "
+                    "exactly one cell type."
+                )
 
         if bypass_intra:
             view_str.remove('intra')
@@ -214,16 +247,54 @@ class MistyData(MuData):
 
                 # store the predictions for each view to construct predictor matrix for meta model
                 predictions_list: list = []
+                target_view_str: list[str] = []
 
                 if not bypass_intra:
                     predictions_list.append(predictions_intra)
+                    target_view_str.append("intra")
 
                 # model the juxta and paraview (if applicable)
                 for view_name in [v for v in view_str if v != "intra"]:
+                    if (
+                        exclude_autocrine
+                        and intra_group is not None
+                        and view_name == f"extra_{intra_group}"
+                    ):
+                        continue
+
                     extra = self.mod[view_name]
 
                     extra_features = extra.var_names.to_list()
-                    _predictors, _ =  _get_nonself(target, extra_features) if not predict_self else (extra_features, None)
+                    if ligands_by_receptor is None:
+                        _predictors = (
+                            extra_features
+                            if predict_self
+                            else _get_nonself(target, extra_features)[0]
+                        )
+                    else:
+                        allowed_ligands = set(
+                            ligands_by_receptor.get(target, [])
+                        )
+
+                        candidate_predictors = [
+                            ligand
+                            for ligand in extra_features
+                            if ligand in allowed_ligands
+                        ]
+
+                        if predict_self:
+                            _predictors = candidate_predictors
+                        else:
+                            _predictors, _ = _get_nonself(
+                                target,
+                                candidate_predictors,
+                            )
+
+                    # A sender view may not contain any ligands paired with
+                    # this target. It must not be fitted or included in the
+                    # target-specific meta-model in that case.
+                    if not _predictors:
+                        continue
 
                     X = self.get_weighted_matrix(view_name, _predictors).toarray()
                     X = X[msk, :]
@@ -236,17 +307,29 @@ class MistyData(MuData):
                         model.predictions, model.importances
 
                     predictions_list.append(predictions_extra)
+                    target_view_str.append(view_name)
 
-                target_metrics = _multi_model(y,
-                                              np.column_stack(predictions_list),
-                                              intra_group,
-                                              bypass_intra,
-                                              view_str,
-                                              target,
-                                              k_cv,
-                                              alphas,
-                                              seed
-                                              )
+                if predictions_list:
+                    target_metrics = _multi_model(
+                        y,
+                        np.column_stack(predictions_list),
+                        intra_group,
+                        bypass_intra,
+                        target_view_str,
+                        target,
+                        k_cv,
+                        alphas,
+                        seed,
+                    )
+                else:
+                    target_metrics = _format_targets(
+                        target,
+                        intra_group,
+                        view_str,
+                        np.nan,
+                        np.nan,
+                        np.repeat(np.nan, len(view_str)),
+                    )
                 targets_list.append(target_metrics)
 
                 importances_df = _format_importances(target=target,
@@ -258,6 +341,20 @@ class MistyData(MuData):
         target_metrics, importances = _concat_dataframes(targets_list,
                                                          importances_list,
                                                          view_str)
+
+        if is_celltype_misty:
+            if "intra_group" in target_metrics.columns:
+                target_metrics["receiver_celltype"] = target_metrics["intra_group"]
+                importances["receiver_celltype"] = importances["intra_group"]
+            if "view" in importances.columns:
+                is_extra = importances["view"].str.startswith("extra_")
+                importances["sender_celltype"] = (
+                    importances["view"]
+                    .str.replace("^extra_", "", regex=True)
+                    .where(is_extra)
+                )
+            else:
+                importances["sender_celltype"] = np.nan
 
         if inplace:
             self.uns[K.target_metrics] = target_metrics
@@ -295,6 +392,9 @@ def _format_importances(target, intra_group, importance_dict):
 def _concat_dataframes(targets_list, importances_list, view_str):
     target_metrics = pd.concat(targets_list, axis=0, ignore_index=True)
     importances = pd.concat(importances_list, axis=0, ignore_index=True)
+    for view_name in view_str:
+        if view_name not in importances.columns:
+            importances[view_name] = np.nan
     importances = pd.melt(importances,
                           id_vars=["target", "predictor", "intra_group"],
                           value_vars=view_str,

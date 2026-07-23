@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 from pandas import DataFrame
@@ -19,7 +19,18 @@ from liana.method.sc import (
 from liana.method.sc._Method import Method, MethodMeta, _show_methods
 from liana.method.sc._rank_aggregate import AggregateClass
 from liana.method.sc._rank_aggregate import _rank_aggregate_meta as aggregate_meta
-from liana.method.sp import MistyData, bivariate, compute_global_specificity, genericMistyData, inflow, lrMistyData, lric, LRIC, cross_pcf
+from liana.method.sp import (
+    LRIC,
+    MistyData,
+    bivariate,
+    compute_global_specificity,
+    cross_pcf,
+    genericMistyData,
+    inflow,
+    lric,
+    lrMistyData,
+    lrMistyDataByCellType,
+)
 
 # callable consensus instance
 _methods = [cellphonedb, connectome, logfc, natmi, singlecellsignalr]
