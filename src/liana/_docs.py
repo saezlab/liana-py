@@ -228,6 +228,34 @@ contact_bandwidth
     Bandwidth for contact proximity calculation and distance threshold for contact interactions.
     If None, contact proximity is not calculated. Default is None."""
 
+_max_radius = """\
+max_radius
+    Inner edge of the last (widest) annulus bin; the outer edge extends
+    to `max_radius + annulus_width`."""
+
+_radius_step = """\
+radius_step
+    Step between successive annulus inner edges."""
+
+_annulus_width = """\
+annulus_width
+    Ring width of each annulus."""
+
+_extend_first_annulus = """\
+extend_first_annulus
+    If `True` (default), extend the first annulus inward to start at
+    radius 0 (spanning `[0, radius_step + annulus_width)`) rather than
+    at `radius_step`. Cell centroids cannot lie closer than ~one cell
+    diameter, so the innermost band is otherwise a thin, near-empty,
+    high-variance bin; extending it folds genuine cell-cell contact
+    pairs into the first bin instead of discarding them. `False` keeps
+    the first annulus at `[radius_step, radius_step + annulus_width)`."""
+
+_cell_types = """\
+cell_types
+    Subset of cell types to consider. Defaults to all types in
+    `adata.obs[groupby]`."""
+
 
 # Plot docstrings
 _liana_res = """\
@@ -384,5 +412,10 @@ d = DocstringProcessor(
     contact_bandwidth=_contact_bandwidth,
     kernel=_kernel,
     coordinates=_coordinates,
+    max_radius=_max_radius,
+    radius_step=_radius_step,
+    annulus_width=_annulus_width,
+    extend_first_annulus=_extend_first_annulus,
+    cell_types=_cell_types,
 
 )
