@@ -252,7 +252,6 @@ def lrMistyData(adata: AnnData,
 
 
 def lrMistyDataByCellType(adata: AnnData,
-                          receiver_celltype: str,
                           resource_name: str = 'consensus',
                           resource: pd.DataFrame = None,
                           nz_threshold: float = 0.1,
@@ -260,7 +259,6 @@ def lrMistyDataByCellType(adata: AnnData,
                           layer: str = None,
                           spatial_key: str = 'spatial',
                           celltype_key: str = 'cell_type',
-                          include_receiver_extra: bool = True,
                           kernel: str = 'misty_rbf',
                           bandwidth: float = 100,
                           set_diag: bool = False,
@@ -275,8 +273,6 @@ def lrMistyDataByCellType(adata: AnnData,
     ----------
     adata
         AnnData object
-    receiver_celltype
-        The cell type to use as the receiver cell type. This cell type will be used to construct the intra view. All other cell types will be used to construct the extra view(s).
     resource_name
         The name of the resource to use. See `show_resources` for available resources.
     resource
@@ -291,10 +287,6 @@ def lrMistyDataByCellType(adata: AnnData,
         The key in adata.obsm where the spatial coordinates are stored.
     celltype_key
         The key in adata.obs where the cell type labels are stored.
-    include_receiver_extra
-        Whether to create an extra view for the receiver cell type. If True,
-        the receiver cell type is also modeled as a sender population,
-        allowing autocrine or same-cell-type neighborhood effects.
     kernel
         A radial basis function kernel to use for the generation of the connectivity matrix for the extra view.
         Default is 'misty_rbf', a kernel derivative of a Gaussian kernel.
@@ -311,7 +303,9 @@ def lrMistyDataByCellType(adata: AnnData,
 
     Returns
     -------
-    A `MistyData` object with receptors in one receiver cell type in the intra view & ligands in the extra view(s) for each sender cell type.
+    A `MistyData` object with receptors in the intra view and ligands in an
+    extra view for each cell type. Receiver groups are selected during fitting
+    with categorical ``maskby``.
     """
     if resource is None:
         resource = select_resource(resource_name)
@@ -338,11 +332,6 @@ def lrMistyDataByCellType(adata: AnnData,
 
     celltype_names = celltypes.cat.categories.tolist()
 
-    if receiver_celltype not in celltype_names:
-          raise ValueError(
-              f"Unknown receiver cell type '{receiver_celltype}'. "
-          )
-
     adata = _add_complexes_to_var(adata,
                                   np.union1d(resource['receptor'].astype(str),
                                              resource['ligand'].astype(str))
@@ -354,18 +343,7 @@ def lrMistyDataByCellType(adata: AnnData,
     receptors = resource["receptor"].drop_duplicates().to_numpy()
     ligands = resource["ligand"].drop_duplicates().to_numpy()
 
-    receiver_mask = (
-        adata.obs[celltype_key] == receiver_celltype
-    ).to_numpy()
-
-    if include_receiver_extra:
-        sender_celltypes = celltype_names
-    else:
-        sender_celltypes = [
-            celltype
-            for celltype in celltype_names
-            if celltype != receiver_celltype
-        ]
+    sender_celltypes = celltype_names
 
     views = {}
 
@@ -376,8 +354,6 @@ def lrMistyDataByCellType(adata: AnnData,
         nz_threshold=0,
         add_obs=True,
     )
-
-    views["intra"].obs["_misty_receiver"] = receiver_mask
 
     # Compute the spatial connectivity matrix once and reuse it for all
     # sender-specific extra views.
@@ -416,6 +392,5 @@ def lrMistyDataByCellType(adata: AnnData,
         .to_dict()
     )
     misty.uns["_misty_by_cell_type"] = True
-    misty.uns["_misty_receiver_celltype"] = receiver_celltype
-
+    misty.uns["_misty_celltype_key"] = celltype_key
     return misty

@@ -133,6 +133,7 @@ class MistyData(MuData):
                  bypass_intra: bool = False,
                  predict_self: bool = False,
                  maskby: str = None,
+                 exclude_autocrine: bool = False,
                  k_cv: int = 10,
                  alphas: np.array | list[float] = np.array([0.1, 1, 10]),
                  seed: int = V.seed,
@@ -156,6 +157,10 @@ class MistyData(MuData):
         maskby
             Column in the .obs attribute used to group or mask observations in the intra-view
             If None, all cells are considered as one group.
+        exclude_autocrine
+            Whether to exclude the extra view corresponding to the current
+            ``maskby`` group. This is relevant when extra views are named
+            ``extra_<cell_type>`` and categorical ``maskby`` is used.
         k_cv
             Number of folds for cross-validation used in the multi-view model,
             and single-view models if model is 'linear'.
@@ -184,16 +189,27 @@ class MistyData(MuData):
 
         is_celltype_misty = self.uns.get("_misty_by_cell_type", False)
 
-        if is_celltype_misty:
-            if maskby is None:
-                maskby = "_misty_receiver"
-            elif maskby != "_misty_receiver":
-                raise ValueError(
-                    "lrMistyDataByCellType requires "
-                    "maskby='_misty_receiver'."
-                )
-
         obs_masks = _create_obs_masks(self.mod['intra'], maskby)
+
+        # A boolean mask does not itself contain the receiver cell-type name.
+        # For cell-type-specific MISTy objects, recover that name from the
+        # cell-type labels when the mask selects exactly one cell type.
+        if (
+            is_celltype_misty
+            and maskby is not None
+            and self.mod["intra"].obs[maskby].dtype == bool
+        ):
+            celltype_key = self.uns["_misty_celltype_key"]
+            selected = self.mod["intra"].obs.loc[
+                obs_masks[None], celltype_key
+            ].unique()
+            if len(selected) == 1:
+                obs_masks = {selected[0]: obs_masks[None]}
+            elif exclude_autocrine and len(selected) > 1:
+                raise ValueError(
+                    "exclude_autocrine requires a boolean mask selecting "
+                    "exactly one cell type."
+                )
 
         if bypass_intra:
             view_str.remove('intra')
@@ -239,6 +255,13 @@ class MistyData(MuData):
 
                 # model the juxta and paraview (if applicable)
                 for view_name in [v for v in view_str if v != "intra"]:
+                    if (
+                        exclude_autocrine
+                        and intra_group is not None
+                        and view_name == f"extra_{intra_group}"
+                    ):
+                        continue
+
                     extra = self.mod[view_name]
 
                     extra_features = extra.var_names.to_list()
@@ -320,9 +343,9 @@ class MistyData(MuData):
                                                          view_str)
 
         if is_celltype_misty:
-            receiver_celltype = self.uns["_misty_receiver_celltype"]
-            target_metrics["receiver_celltype"] = receiver_celltype
-            importances["receiver_celltype"] = receiver_celltype
+            if "intra_group" in target_metrics.columns:
+                target_metrics["receiver_celltype"] = target_metrics["intra_group"]
+                importances["receiver_celltype"] = importances["intra_group"]
             if "view" in importances.columns:
                 is_extra = importances["view"].str.startswith("extra_")
                 importances["sender_celltype"] = (
