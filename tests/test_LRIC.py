@@ -28,7 +28,7 @@ from liana.testing._sample_resource import sample_resource
 _KWARGS = {"max_radius": 100, "radius_step": 20, "annulus_width": 20, "verbose": False}
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def spatial_adata():
     """Toy spatial AnnData with a `cell_type` column for grouping."""
     adata = generate_toy_spatial()
@@ -36,9 +36,23 @@ def spatial_adata():
     return adata
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def resource(spatial_adata):
     return sample_resource(spatial_adata, n_lrs=5, seed=42)
+
+
+@pytest.fixture(scope="module")
+def base_agnostic(spatial_adata, resource):
+    """Default agnostic LRIC, computed once and shared as the reference the
+    lr_sep / expr_prop / transform_fn variants are each compared against."""
+    return lric(spatial_adata, resource=resource, inplace=False, **_KWARGS)
+
+
+@pytest.fixture(scope="module")
+def base_pairwise(spatial_adata, resource):
+    """Default pairwise LRIC (all directed cell-type pairs), computed once and
+    shared as the reference for the decomposition and min_cells variants."""
+    return lric(spatial_adata, resource=resource, groupby="cell_type", inplace=False, **_KWARGS)
 
 
 # ── helpers: pure math / small synthetic inputs ────────────────────────────
@@ -230,12 +244,11 @@ def test_extend_first_annulus_integration(spatial_adata):
 # ── LRIC — agnostic mode ──────────────────────────────────────────────────────
 
 
-def test_lric_agnostic(spatial_adata, resource):
-    result = lric(spatial_adata, resource=resource, inplace=False, **_KWARGS)
-    assert set(result.keys()) == {"pair_names", "radii", "lric"}
-    assert result["lric"].shape == (5, 5)
-    assert np.all(result["lric"] >= 0)
-    assert result["pair_names"] == [
+def test_lric_agnostic(base_agnostic):
+    assert set(base_agnostic.keys()) == {"pair_names", "radii", "lric"}
+    assert base_agnostic["lric"].shape == (5, 5)
+    assert np.all(base_agnostic["lric"] >= 0)
+    assert base_agnostic["pair_names"] == [
         "C1QB^PPA1", "DHRS4L2^GNG7", "NDUFA11^SUPT4H1", "SFPQ^C20orf27", "PGAM1^WBP11"
     ]
 
@@ -266,9 +279,9 @@ def test_lric_agnostic_reduces_to_cross_pcf(spatial_adata):
     )
 
 
-def test_lric_agnostic_expr_prop(spatial_adata, resource):
+def test_lric_agnostic_expr_prop(spatial_adata, resource, base_agnostic):
     n = spatial_adata.n_obs
-    base = lric(spatial_adata, resource=resource, inplace=False, **_KWARGS)
+    base = base_agnostic
 
     result = lric(spatial_adata, resource=resource, expr_prop=1.1, inplace=False, **_KWARGS)
     assert np.all(np.isnan(result["lric"])), "all pairs NaN when threshold exceeds any possible proportion"
@@ -284,8 +297,8 @@ def test_lric_agnostic_expr_prop(spatial_adata, resource):
     np.testing.assert_array_equal(partial[:, ~masked], base["lric"][:, ~masked])
 
 
-def test_lric_lr_sep(spatial_adata, resource):
-    default = lric(spatial_adata, resource=resource, inplace=False, **_KWARGS)
+def test_lric_lr_sep(spatial_adata, resource, base_agnostic):
+    default = base_agnostic
     custom = lric(spatial_adata, resource=resource, lr_sep="|", inplace=False, **_KWARGS)
 
     assert all("^" in n for n in default["pair_names"])
@@ -293,8 +306,8 @@ def test_lric_lr_sep(spatial_adata, resource):
     np.testing.assert_array_equal(custom["lric"], default["lric"])
 
 
-def test_lric_agnostic_transform_fn(spatial_adata, resource):
-    base = lric(spatial_adata, resource=resource, inplace=False, **_KWARGS)["lric"]
+def test_lric_agnostic_transform_fn(spatial_adata, resource, base_agnostic):
+    base = base_agnostic["lric"]
 
     # a genuinely nonlinear transform changes the result
     nonlinear = lric(spatial_adata, resource=resource, transform_fn=np.sqrt, inplace=False, **_KWARGS)["lric"]
@@ -315,8 +328,8 @@ def test_lric_agnostic_inplace(spatial_adata, resource):
 # ── LRIC — pairwise mode ──────────────────────────────────────────────────────
 
 
-def test_lric_pairwise(spatial_adata, resource):
-    result = lric(spatial_adata, resource=resource, groupby="cell_type", inplace=False, **_KWARGS)
+def test_lric_pairwise(base_pairwise):
+    result = base_pairwise
     assert set(result.keys()) == {"cell_types", "pair_names", "radii", "results", "g_expr", "g_pcf"}
     n_ct = len(result["cell_types"])
     assert len(result["results"]) == n_ct * (n_ct - 1)
@@ -336,7 +349,7 @@ def test_lric_pairwise_g_pcf_matches_cross_pcf(spatial_adata, resource):
     np.testing.assert_array_almost_equal(lric_pw["g_pcf"][pair], cp["results"][pair], decimal=5)
 
 
-def test_lric_pairwise_results_equals_g_pcf_times_g_expr(spatial_adata, resource):
+def test_lric_pairwise_results_equals_g_pcf_times_g_expr(base_pairwise):
     """`results` (architecture x expression coupling) decomposes exactly into
     `g_pcf` (architecture alone) times `g_expr` (expression coupling alone),
     since `expected == exp_T * pair_prod` in `LRIC._pairwise`.
@@ -348,7 +361,7 @@ def test_lric_pairwise_results_equals_g_pcf_times_g_expr(spatial_adata, resource
     there instead of 0. That is a removable singularity in the decomposition,
     not a disagreement, so it is excluded from the elementwise comparison.
     """
-    result = lric(spatial_adata, resource=resource, groupby="cell_type", inplace=False, **_KWARGS)
+    result = base_pairwise
     for pair, mat in result["results"].items():
         g_pcf, g_expr = result["g_pcf"][pair], result["g_expr"][pair]
         recon = g_pcf[:, None] * g_expr
@@ -358,7 +371,7 @@ def test_lric_pairwise_results_equals_g_pcf_times_g_expr(spatial_adata, resource
         np.testing.assert_array_almost_equal(mat[keep], recon[keep], decimal=3)
 
 
-def test_lric_pairwise_cell_types_and_min_cells(spatial_adata, resource):
+def test_lric_pairwise_cell_types_and_min_cells(spatial_adata, resource, base_pairwise):
     result_sub = lric(
         spatial_adata, resource=resource, groupby="cell_type",
         cell_types=["CD14+ Monocyte", "CD19+ B", "CD56+ NK"],
@@ -366,7 +379,8 @@ def test_lric_pairwise_cell_types_and_min_cells(spatial_adata, resource):
     )
     assert set(result_sub["cell_types"]) == {"CD14+ Monocyte", "CD19+ B", "CD56+ NK"}
 
-    default = lric(spatial_adata, resource=resource, groupby="cell_type", min_cells=None, inplace=False, **_KWARGS)
+    # base_pairwise omits min_cells, so it is the min_cells=None (default-threshold) baseline
+    default = base_pairwise
     strict = lric(spatial_adata, resource=resource, groupby="cell_type", min_cells=200, inplace=False, **_KWARGS)
     assert len(strict["cell_types"]) < len(default["cell_types"])
 
