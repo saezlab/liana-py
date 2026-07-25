@@ -164,7 +164,7 @@ def _weighted_support_numerator(
     pair_chunk: int,
 ) -> np.ndarray:
     """Weighted pair-sum per radius bin: ``sum_{(i,j) in bin b} WL[i,:] * WR[j,:]``.
-    Returns ``(n_bins, n_pairs)`` float64.
+    Returns ``(n_bins, n_pairs)``.
     """
     n_pairs = WL.shape[1]
     num = np.zeros((n_bins, n_pairs), dtype=np.float64)
@@ -203,9 +203,7 @@ def _segment_weighted_sums(
     :func:`_edge_group_bounds`) so that each group occupies a contiguous slice.
     Cost is ``O(n_edges_in_these_groups * n_pairs)`` with no dependence on
     ``N`` -- only the cells a group's edges actually reference are touched, so
-    a group holding few edges costs proportionally little. Accumulation is
-    float64.
-    """
+    a group holding few edges costs proportionally little."""
     n_groups = len(bounds) - 1
     n_pairs = WL.shape[1]
     out = np.zeros((n_groups, n_pairs), dtype=np.float64)
@@ -294,8 +292,7 @@ class CrossPCF:
         Computes the distance-resolved cross-PCF ``g(r)`` for every directed
         sender->receiver combination of cell types present in
         ``adata.obs[groupby]``, normalised against the empirical any-cell-type
-        pair count within this tissue (a random-labelling null). Expression is 
-        not used, this characterises tissue architecture alone.
+        pair count within this tissue (a random-labelling null).
 
         Parameters
         ----------
@@ -392,7 +389,7 @@ class LRIC:
     cell-type composition alone, ``g(r) ≈ 1`` indicates that expression provides
     no additional spatial enrichment beyond the underlying tissue structure, and
     ``g(r) < 1`` indicates depletion. This surfaces candidate ligand-receptor
-    interactions that are both spatially proximal and co-expressed—a more
+    interactions that are both spatially proximal and co-expressed, a more
     specific signal of potential cell-cell communication than spatial
     co-localisation or co-expression considered alone.
 
@@ -608,7 +605,7 @@ class LRIC:
         """Cell-type-agnostic LRIC across all cells (self-pairs excluded).
 
         Null: jointly permute which position gets which (ligand, receptor)
-        weight *pair* -- both weights move together as a unit, since they
+        weight *pair*, both weights move together as a unit, since they
         belong to one cell. For a fixed edge (i, j) and random permutation
         pi, ``E_pi[wL(pi(i)) wR(pi(j))] = (S_L*S_R - sum_i wL(i)wR(i)) / (N(N-1))``,
         the average weighted product over all ``N(N-1)`` distinct ordered
