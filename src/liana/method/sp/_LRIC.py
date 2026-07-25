@@ -11,9 +11,11 @@ from tqdm import tqdm
 
 from liana._constants import DefaultValues as V
 from liana._constants import Keys as K
+from liana._constants import PrimaryColumns as P
 from liana._docs import d
 from liana._logging import _logg
 from liana.method._pipe_utils import assert_covered, prep_check_adata
+from liana.method._pipe_utils._common import _get_groupby_subset
 from liana.method.sp._utils import _add_complexes_to_var
 from liana.resource.select_resource import _handle_resource
 
@@ -74,6 +76,7 @@ def _pair_weights(
 def _index_resource(
     adata: AnnData,
     resource: pd.DataFrame,
+    lr_sep: str,
 ) -> tuple[np.ndarray, list[str], list[str], list[str]]:
     """
     Filter resource to genes present in ``adata.var_names`` and build integer indices.
@@ -98,7 +101,7 @@ def _index_resource(
         resource_f["receptor"].map(rec_to_idx).values,
     ]).astype(int)
     pair_names = (
-        resource_f["ligand"].astype(str) + V.lr_sep + resource_f["receptor"].astype(str)
+        resource_f["ligand"].astype(str) + lr_sep + resource_f["receptor"].astype(str)
     ).tolist()
     return lr_pairs, unique_ligands, unique_receptors, pair_names
 
@@ -111,13 +114,13 @@ def _make_radii(
         radii_inner[0] = 0.0  # merge the [0, radius_step) contact band into the first annulus
     return radii_inner, radii_outer
 
-def _min_expressing_mask(
-    mat: np.ndarray, n_snd: np.ndarray, n_rcv: np.ndarray, min_expressing: int
+def _expr_prop_mask(
+    mat: np.ndarray, prop_snd: np.ndarray, prop_rcv: np.ndarray, expr_prop: float
 ) -> np.ndarray:
-    """NaN out pairs whose sender or receiver expressing-cell count is below the threshold."""
-    if min_expressing <= 0:
+    """NaN out pairs whose sender or receiver expressing-cell proportion is below the threshold."""
+    if expr_prop <= 0:
         return mat
-    filt = (n_snd < min_expressing) | (n_rcv < min_expressing)
+    filt = (prop_snd < expr_prop) | (prop_rcv < expr_prop)
     if filt.any():
         mat = mat.copy()
         mat[:, filt] = np.nan
@@ -413,8 +416,10 @@ class LRIC:
         extend_first_annulus: bool = True,
         cell_types: Iterable[str] | None = None,
         min_cells: int | None = None,
-        min_expressing: int = V.min_expressing,
+        groupby_pairs: pd.DataFrame | None = V.groupby_pairs,
+        expr_prop: float = 0.0,
         complex_sep: str | None = V.complex_sep,
+        lr_sep: str = V.lr_sep,
         transform_fn: Callable[[np.ndarray], np.ndarray] | None = None,
         use_raw: bool = V.use_raw,
         layer: str | None = V.layer,
@@ -468,16 +473,21 @@ class LRIC:
             Default ``None`` derives the threshold from slide composition
             instead of using a fixed count: cell types making up no more than
             1% of all cells are dropped.
-        min_expressing
-            Minimum number of cells (within the relevant population: each cell
-            type in pairwise mode, all cells in agnostic mode) that must express
-            the ligand or receptor for an LR pair to be kept; pairs below the
-            threshold are set to ``NaN``. Default ``0`` keeps all results.
+        %(groupby_pairs)s
+            Only relevant when ``groupby`` is set. Restricts the directed
+            sender->receiver combinations actually computed to those listed;
+            cell types referenced by ``groupby_pairs`` are also folded into
+            ``cell_types``.
+        %(expr_prop)s
+            Computed within the relevant population: each cell type in
+            pairwise mode, all cells in agnostic mode. Pairs below the
+            threshold are set to ``NaN``.
         complex_sep
             Separator used to identify multi-subunit complexes in the resource
             (e.g. ``"_"`` splits ``"ITGAV_ITGB3"`` into its subunits and adds
             the minimum-subunit expression as a new column in ``adata.var``).
             Set to ``None`` to skip complex handling.
+        %(lr_sep)s
         transform_fn
             Expression transform applied to ligand and receptor matrices,
             defaulting to mean-normalisation to 1 (:func:`_linear_transform`).
@@ -503,6 +513,15 @@ class LRIC:
             y_name="receptor",
             verbose=verbose,
         )
+
+        if groupby is not None:
+            groupby_pairs_subset = _get_groupby_subset(groupby_pairs)
+            if groupby_pairs_subset is not None:
+                cell_types = (
+                    groupby_pairs_subset
+                    if cell_types is None
+                    else np.union1d(list(cell_types), groupby_pairs_subset)
+                )
 
         _adata_orig = adata
         adata = prep_check_adata(
@@ -542,7 +561,8 @@ class LRIC:
                 radius_step=radius_step,
                 annulus_width=annulus_width,
                 extend_first_annulus=extend_first_annulus,
-                min_expressing=min_expressing,
+                expr_prop=expr_prop,
+                lr_sep=lr_sep,
                 transform_fn=transform_fn,
                 pair_chunk=pair_chunk,
                 verbose=verbose,
@@ -557,7 +577,9 @@ class LRIC:
                 radius_step=radius_step,
                 annulus_width=annulus_width,
                 extend_first_annulus=extend_first_annulus,
-                min_expressing=min_expressing,
+                groupby_pairs=groupby_pairs,
+                expr_prop=expr_prop,
+                lr_sep=lr_sep,
                 transform_fn=transform_fn,
                 pair_chunk=pair_chunk,
                 verbose=verbose,
@@ -577,7 +599,8 @@ class LRIC:
         radius_step: float,
         annulus_width: float,
         extend_first_annulus: bool,
-        min_expressing: int,
+        expr_prop: float,
+        lr_sep: str,
         transform_fn: Callable | None,
         pair_chunk: int,
         verbose: bool,
@@ -599,7 +622,7 @@ class LRIC:
         transform = _linear_transform if transform_fn is None else transform_fn
         _logg("Running cell-type-agnostic LRIC.", verbose=verbose)
 
-        lr_pairs, unique_ligands, unique_receptors, pair_names = _index_resource(adata, resource)
+        lr_pairs, unique_ligands, unique_receptors, pair_names = _index_resource(adata, resource, lr_sep)
         if lr_pairs.size == 0:
             raise ValueError("No LR pairs found in adata.var_names after filtering the resource.")
 
@@ -626,9 +649,9 @@ class LRIC:
             g[denom == 0] = np.nan
         lric = g.astype(np.float32)
 
-        if min_expressing > 0:
-            lric = _min_expressing_mask(
-                lric, (WL > 0).sum(axis=0), (WR > 0).sum(axis=0), min_expressing
+        if expr_prop > 0:
+            lric = _expr_prop_mask(
+                lric, (WL > 0).sum(axis=0) / N, (WR > 0).sum(axis=0) / N, expr_prop
             )
         return {"pair_names": pair_names, "radii": radii_inner, "lric": lric}
 
@@ -642,7 +665,9 @@ class LRIC:
         radius_step: float,
         annulus_width: float,
         extend_first_annulus: bool,
-        min_expressing: int,
+        groupby_pairs: pd.DataFrame | None,
+        expr_prop: float,
+        lr_sep: str,
         transform_fn: Callable | None,
         pair_chunk: int,
         verbose: bool,
@@ -672,13 +697,16 @@ class LRIC:
         cell_types_list = sorted(np.unique(obs_types).tolist())
         n_types = len(cell_types_list)
         pairs = [(s, r) for s in cell_types_list for r in cell_types_list if s != r]
+        if groupby_pairs is not None:
+            requested = set(zip(groupby_pairs[P.source], groupby_pairs[P.target], strict=True))
+            pairs = [p for p in pairs if p in requested]
         _logg(
             f"Running LRIC (conditional within-type null) for {n_types} "
             f"cell types ({len(pairs)} directed pairs).",
             verbose=verbose,
         )
 
-        lr_pairs, unique_ligands, unique_receptors, pair_names = _index_resource(adata, resource)
+        lr_pairs, unique_ligands, unique_receptors, pair_names = _index_resource(adata, resource, lr_sep)
         if lr_pairs.size == 0:
             raise ValueError("No LR pairs found in adata.var_names after filtering the resource.")
 
@@ -724,17 +752,17 @@ class LRIC:
         J_sorted = J[order]
         del J, order
 
-        # Per-type expressing counts, computed once (O(N * n_pairs)) and reused
-        # by every directed pair involving that type.
-        nexp_L = nexp_R = None
-        if min_expressing > 0:
+        # Per-type expressing proportions, computed once (O(N * n_pairs)) and
+        # reused by every directed pair involving that type.
+        pexp_L = pexp_R = None
+        if expr_prop > 0:
             n_lr = WL.shape[1]
-            nexp_L = np.empty((n_types, n_lr), dtype=np.int64)
-            nexp_R = np.empty((n_types, n_lr), dtype=np.int64)
+            pexp_L = np.empty((n_types, n_lr), dtype=np.float64)
+            pexp_R = np.empty((n_types, n_lr), dtype=np.float64)
             for ci, ct in enumerate(cell_types_list):
                 ct_mask = obs_types == ct
-                nexp_L[ci] = (WL[ct_mask] > 0).sum(axis=0)
-                nexp_R[ci] = (WR[ct_mask] > 0).sum(axis=0)
+                pexp_L[ci] = (WL[ct_mask] > 0).sum(axis=0) / counts[ct]
+                pexp_R[ci] = (WR[ct_mask] > 0).sum(axis=0) / counts[ct]
 
         idx_of = {ct: i for i, ct in enumerate(cell_types_list)}
         results: dict[tuple[str, str], np.ndarray] = {}
@@ -765,9 +793,9 @@ class LRIC:
 
             mat = g_full.astype(np.float32)
             mat_e = g_expr.astype(np.float32)
-            if min_expressing > 0:
-                mat = _min_expressing_mask(mat, nexp_L[si], nexp_R[ri], min_expressing)
-                mat_e = _min_expressing_mask(mat_e, nexp_L[si], nexp_R[ri], min_expressing)
+            if expr_prop > 0:
+                mat = _expr_prop_mask(mat, pexp_L[si], pexp_R[ri], expr_prop)
+                mat_e = _expr_prop_mask(mat_e, pexp_L[si], pexp_R[ri], expr_prop)
 
             results[(sender, receiver)] = mat
             g_expr_d[(sender, receiver)] = mat_e

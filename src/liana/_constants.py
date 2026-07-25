@@ -26,7 +26,6 @@ class DefaultValues:
 
     lr_sep = '^'
     complex_sep = "_"
-    min_expressing = 0
 
     def inverse_fun(x):
         return -log10(x + finfo(float).eps)

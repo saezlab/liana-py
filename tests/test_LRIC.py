@@ -79,18 +79,28 @@ def test_make_radii():
 def test_index_resource():
     a = ad.AnnData(np.ones((5, 4)))
     a.var_names = ["GeneA", "GeneB", "GeneC", "GeneD"]
-    lr_pairs, _, _, names = _index_resource(a, pd.DataFrame({"ligand": ["GeneA", "MISSING"], "receptor": ["GeneB", "GeneD"]}))
+    lr_pairs, _, _, names = _index_resource(
+        a, pd.DataFrame({"ligand": ["GeneA", "MISSING"], "receptor": ["GeneB", "GeneD"]}), "^"
+    )
     assert lr_pairs.shape == (1, 2) and names == ["GeneA^GeneB"]
 
     a2 = ad.AnnData(np.ones((3, 4)))
     a2.var_names = ["L1", "L2", "R1", "R2"]
-    _, _, _, names2 = _index_resource(a2, pd.DataFrame({"ligand": ["L1", "L2"], "receptor": ["R1", "R2"]}))
+    _, _, _, names2 = _index_resource(
+        a2, pd.DataFrame({"ligand": ["L1", "L2"], "receptor": ["R1", "R2"]}), "^"
+    )
     assert all("^" in n for n in names2)
 
     a3 = ad.AnnData(np.ones((3, 2)))
     a3.var_names = ["GeneX", "GeneY"]
-    lr_pairs3, _, _, _ = _index_resource(a3, pd.DataFrame({"ligand": ["L1"], "receptor": ["R1"]}))
+    lr_pairs3, _, _, _ = _index_resource(a3, pd.DataFrame({"ligand": ["L1"], "receptor": ["R1"]}), "^")
     assert lr_pairs3.size == 0
+
+    # custom separator
+    _, _, _, names_custom = _index_resource(
+        a2, pd.DataFrame({"ligand": ["L1", "L2"], "receptor": ["R1", "R2"]}), "|"
+    )
+    assert all("|" in n and "^" not in n for n in names_custom)
 
 
 def test_pair_weights_transform_sees_unique_genes():
@@ -256,20 +266,31 @@ def test_lric_agnostic_reduces_to_cross_pcf(spatial_adata):
     )
 
 
-def test_lric_agnostic_min_expressing(spatial_adata, resource):
+def test_lric_agnostic_expr_prop(spatial_adata, resource):
+    n = spatial_adata.n_obs
     base = lric(spatial_adata, resource=resource, inplace=False, **_KWARGS)
 
-    result = lric(spatial_adata, resource=resource, min_expressing=9999, inplace=False, **_KWARGS)
-    assert np.all(np.isnan(result["lric"])), "all pairs NaN when threshold exceeds cell count"
+    result = lric(spatial_adata, resource=resource, expr_prop=1.1, inplace=False, **_KWARGS)
+    assert np.all(np.isnan(result["lric"])), "all pairs NaN when threshold exceeds any possible proportion"
 
-    result0 = lric(spatial_adata, resource=resource, min_expressing=0, inplace=False, **_KWARGS)
+    result0 = lric(spatial_adata, resource=resource, expr_prop=0, inplace=False, **_KWARGS)
     np.testing.assert_array_equal(result0["lric"], base["lric"])  # default = no-op
 
-    # partial threshold: masking is per-pair and leaves kept pairs untouched
-    partial = lric(spatial_adata, resource=resource, min_expressing=100, inplace=False, **_KWARGS)["lric"]
+    # partial threshold (equivalent to the old min_expressing=100 out of `n` cells):
+    # masking is per-pair and leaves kept pairs untouched
+    partial = lric(spatial_adata, resource=resource, expr_prop=100 / n, inplace=False, **_KWARGS)["lric"]
     masked = np.isnan(partial).all(axis=0)
     assert masked.any() and not masked.all(), "expected a mix of masked and kept pairs"
     np.testing.assert_array_equal(partial[:, ~masked], base["lric"][:, ~masked])
+
+
+def test_lric_lr_sep(spatial_adata, resource):
+    default = lric(spatial_adata, resource=resource, inplace=False, **_KWARGS)
+    custom = lric(spatial_adata, resource=resource, lr_sep="|", inplace=False, **_KWARGS)
+
+    assert all("^" in n for n in default["pair_names"])
+    assert all("|" in n and "^" not in n for n in custom["pair_names"])
+    np.testing.assert_array_equal(custom["lric"], default["lric"])
 
 
 def test_lric_agnostic_transform_fn(spatial_adata, resource):
@@ -350,6 +371,33 @@ def test_lric_pairwise_cell_types_and_min_cells(spatial_adata, resource):
     assert len(strict["cell_types"]) < len(default["cell_types"])
 
 
+def test_lric_pairwise_groupby_pairs(spatial_adata, resource):
+    sender, receiver = "CD14+ Monocyte", "CD19+ B"
+    groupby_pairs = pd.DataFrame({"source": [sender], "target": [receiver]})
+
+    result = lric(
+        spatial_adata, resource=resource, groupby="cell_type",
+        groupby_pairs=groupby_pairs, min_cells=5, inplace=False, **_KWARGS,
+    )
+    # only the requested directed pair is computed, not the reverse
+    assert set(result["results"].keys()) == {(sender, receiver)}
+
+    # cell types referenced by `groupby_pairs` are folded into the retained population
+    # even though they were not explicitly passed via `cell_types`
+    assert {sender, receiver}.issubset(set(result["cell_types"]))
+
+    # same population scope (same normalisation baseline) via explicit `cell_types`,
+    # but without `groupby_pairs`, computes both directed pairs among the two types
+    both_dirs = lric(
+        spatial_adata, resource=resource, groupby="cell_type",
+        cell_types=[sender, receiver], min_cells=5, inplace=False, **_KWARGS,
+    )
+    assert set(both_dirs["results"].keys()) == {(sender, receiver), (receiver, sender)}
+    np.testing.assert_array_almost_equal(
+        result["results"][(sender, receiver)], both_dirs["results"][(sender, receiver)], decimal=4
+    )
+
+
 def test_lric_pairwise_inplace(spatial_adata, resource):
     lric(
         spatial_adata, resource=resource, groupby="cell_type", min_cells=5,
@@ -361,18 +409,18 @@ def test_lric_pairwise_inplace(spatial_adata, resource):
     }
 
 
-def test_lric_pairwise_min_expressing(spatial_adata, resource):
+def test_lric_pairwise_expr_prop(spatial_adata, resource):
     cell_types = ["CD14+ Monocyte", "CD19+ B"]
     result = lric(
         spatial_adata, resource=resource, groupby="cell_type",
-        cell_types=cell_types, min_cells=5, min_expressing=9999, inplace=False, **_KWARGS,
+        cell_types=cell_types, min_cells=5, expr_prop=1.1, inplace=False, **_KWARGS,
     )
     for arr in result["results"].values():
-        assert np.all(np.isnan(arr)), "all pairs should be NaN when min_expressing exceeds all cell counts"
+        assert np.all(np.isnan(arr)), "all pairs should be NaN when expr_prop exceeds any possible proportion"
 
     result_partial = lric(
         spatial_adata, resource=resource, groupby="cell_type",
-        cell_types=cell_types, min_cells=5, min_expressing=1, inplace=False, **_KWARGS,
+        cell_types=cell_types, min_cells=5, expr_prop=0.01, inplace=False, **_KWARGS,
     )
     for arr in result_partial["results"].values():
         assert arr.shape == (5, 5)
