@@ -108,7 +108,6 @@ attributes, to describe each method instance, and are callable:
     contributions
     interactions
     annulus_plot
-    lric_lineplot
     feature_by_group
 ```
 

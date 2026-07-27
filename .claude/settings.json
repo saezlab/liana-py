@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh pr *)",
+      "WebFetch(domain:github.com)",
+      "Bash(curl -s \"https://api.github.com/repos/saezlab/liana-py/pulls?state=open&head=AtheerAS:feature/pcf\")",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(f'PR #{p[\\\\\"number\\\\\"]}: {p[\\\\\"title\\\\\"]}\\\\\\\\n{p[\\\\\"html_url\\\\\"]}'\\) for p in data]\")",
+      "Bash(curl -s \"https://api.github.com/repos/saezlab/liana-py/pulls/234/comments?per_page=50\")",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s \"https://api.github.com/repos/saezlab/liana-py/issues/234/comments?per_page=50\")"
+    ]
+  }
+}
