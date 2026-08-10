@@ -7,9 +7,12 @@ from liana.method._pipe_utils._pre import _choose_mtx_rep
 
 @d.dedent
 def mdata_to_anndata(mdata: MuData,
-                     x_mod: str, y_mod: str,
-                     x_layer: str = None, y_layer: str = None,
-                     x_use_raw: bool = False, y_use_raw: bool = False,
+                     x_mod: str,
+                     y_mod: str,
+                     x_layer: str = None,
+                     y_layer: str = None,
+                     x_use_raw: bool = False,
+                     y_use_raw: bool = False,
                      x_transform: callable = None,
                      y_transform: callable = None,
                      verbose: bool = True
@@ -42,12 +45,16 @@ def mdata_to_anndata(mdata: MuData,
     Returns
     -------
     An AnnData object with the two modalities concatenated.
-    Information related to observations (obs, obsp, obsm) and `.uns` are copied from the original MuData object.
+    Information related to observations (obs, obsp, obsm) and `.uns` are copied
+    from the original MuData object.
 
     Raises
     ------
     ValueError
         If `x_mod` and/or `y_mod` are not provided.
+
+    Examples
+    --------
 
     """
     if x_mod is None or y_mod is None:
@@ -74,7 +81,11 @@ def _handle_mod(mdata, mod, use_raw, layer, transform, verbose):
     if use_raw:
         md = md.raw.to_adata()
     else:
-        md.X = _choose_mtx_rep(md, use_raw = use_raw, layer = layer, verbose=verbose)
+        md.X = _choose_mtx_rep(md,
+                               use_raw = use_raw,
+                               layer = layer,
+                               verbose=verbose
+                               )
 
     if transform:
         if verbose:

@@ -41,9 +41,6 @@ def obsm_to_adata(adata: AnnData,
 
     Examples
     --------
-
-    Examples
-    --------
     See here `[1]`_ or here `[2]`_.
 
     .. _[1]: https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html\
