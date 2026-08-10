@@ -170,7 +170,7 @@ def df_to_lr(adata: AnnData,
 
     # ligand_ or receptor + stat_keys
     complex_cols = list(product(['ligand', 'receptor'], [complex_col]))
-    complex_cols = [f'{x}_{y}' for x, y in complex_cols]
+    complex_cols = [f'{x}_{y}' for x, y in complex_cols]  # type: ignore[misc]
 
     # assign receptor and ligand absolutes, NOTE deals with missing values
     _placeholders = ['ligand_absolute', 'receptor_absolute']

@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import anndata as an
 from mudata import MuData
 

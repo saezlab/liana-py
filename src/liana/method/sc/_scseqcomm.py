@@ -1,5 +1,5 @@
-from pandas import DataFrame, Series
 import numpy as np
+from pandas import DataFrame, Series
 
 from liana.method.sc._Method import Method, MethodMeta
 
@@ -20,7 +20,6 @@ def _inter_score(x: DataFrame) -> tuple[Series, None]:
     None
 
     """
-
     inter_score = np.minimum(x['ligand_cdf'], x['receptor_cdf'])
     return inter_score, None
 

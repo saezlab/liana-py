@@ -4,7 +4,7 @@ requires = [ "hatchling" ]
 
 [project]
 name = "liana"
-version = "1.6.1"
+version = "1.8.1"
 description = "LIANA+: a one-stop-shop framework for cell-cell communication"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -22,7 +22,6 @@ authors = [
   { name = "Jovan Tanevski"},
   { name = "Ricardo Omar Ramirez Flores"},
   { name = "Julio Saez-Rodriguez"},
-
 ]
 requires-python = ">=3.10,<3.14"
 classifiers = [
@@ -30,6 +29,7 @@ classifiers = [
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
   "anndata>=0.7.4",
@@ -40,7 +40,7 @@ dependencies = [
   "docrep>=0.3.1",
   "plotnine>=0.10.1",
   "session-info2",
-  "pandas",
+  "pandas<3",  # pandas 3.0 breaks rank_aggregate consensus (None->'nan' string columns); revisit once resolved (#244)
 ]
 
 optional-dependencies.dev = [
@@ -52,7 +52,7 @@ optional-dependencies.dev = [
 ]
 
 optional-dependencies.extras = [
-  "decoupler>=1.6.1",
+  "decoupler>=2.0.0",
   "omnipath>=1.0.6",
   "pydeseq2>=0.3.5",
   "cell2cell",
@@ -73,12 +73,13 @@ optional-dependencies.doc = [
   "ipython",
   "myst-nb>=1.1",
   "setuptools",
-  "sphinx>=8.1",
+  "sphinx>=8.1,<9",  # pinned <9 until sphinx-tabs supports Sphinx 9
   "sphinx-autodoc-typehints",
   "sphinx-book-theme>=1",
   "sphinx-copybutton",
-  "sphinx-tabs",
+  "sphinx-tabs>=3.4.5",
   "sphinxcontrib-bibtex>=1",
+  "sphinxcontrib-mermaid>=0.9",
   "sphinxext-opengraph",
   "pre-commit",
 ]

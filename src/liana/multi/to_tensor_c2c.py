@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import numpy as np
 from anndata import AnnData
 from pandas import DataFrame
@@ -23,11 +25,11 @@ def to_tensor_c2c(adata: AnnData = None,
                   receptor_key: str = P.receptor_complex,
                   uns_key: str = K.uns_key,
                   non_expressed_fill: float | None = None,
-                  inverse_fun: callable = V.inverse_fun,
+                  inverse_fun: Callable = V.inverse_fun,
                   non_negative: bool = True,
                   return_dict: bool = False,
                   **kwargs
-                  ) -> c2c.tensor.PreBuiltTensor:
+                  ):
     """
     Function to convert a LIANA result to a tensor for cell2cell analysis.
 

@@ -29,7 +29,7 @@ class GlobalFunction:
         The name of the function with `'_pvals'` appended
     """
 
-    instances = {}
+    instances: dict = {}
 
     def __init__(self, fun, name):
         self.fun = fun
@@ -177,5 +177,5 @@ def _global_r(x_mat, y_mat, weight):
 def _global_l(x_mat, y_mat, weight):
     return ((weight @ x_mat) * y_mat).sum(axis=0) / weight.sum()
 
-_global_r = GlobalFunction(_global_r, 'morans')
-_global_l = GlobalFunction(_global_l, 'lee')
+_global_r = GlobalFunction(_global_r, 'morans')  # type: ignore[assignment]
+_global_l = GlobalFunction(_global_l, 'lee')  # type: ignore[assignment]

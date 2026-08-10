@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import pandas as pd
 import plotnine as p9
 from matplotlib.figure import Figure
@@ -14,10 +16,10 @@ def target_metrics(misty: MistyData = None,
                    target_metrics: pd.DataFrame = None,
                    top_n: int = None,
                    ascending: bool = False,
-                   key: callable = None,
-                   filter_fun: callable = None,
+                   key: Callable = None,
+                   filter_fun: Callable = None,
                    figure_size: tuple[float, float] = (5, 5),
-                   aggregate_fun: callable = None,
+                   aggregate_fun: Callable = None,
                    return_fig: bool = V.return_fig
                    ) -> Figure:
     """
@@ -90,8 +92,8 @@ def target_metrics(misty: MistyData = None,
 def contributions(misty: MistyData = None,
                   target_metrics: pd.DataFrame = None,
                   view_names: list[str] = None,
-                  filter_fun: callable = None,
-                  aggregate_fun: callable = None,
+                  filter_fun: Callable = None,
+                  aggregate_fun: Callable = None,
                   figure_size: tuple[float, float] = (5, 5),
                   return_fig: bool = V.return_fig
                   ) -> Figure:
@@ -165,8 +167,8 @@ def interactions(misty: MistyData = None,
                  top_n: int = None,
                  ascending: bool = False,
                  key: str = None,
-                 filter_fun: callable = None,
-                 aggregate_fun: callable = None,
+                 filter_fun: Callable = None,
+                 aggregate_fun: Callable = None,
                  figure_size: tuple[float, float] = (5, 5),
                  return_fig: bool = V.return_fig
                  ) -> Figure:

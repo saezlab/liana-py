@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from anndata import AnnData
-from pandas import DataFrame
 from matplotlib.figure import Figure
+from pandas import DataFrame
 from plotnine import (
     aes,
     element_rect,
@@ -35,7 +37,7 @@ def dotplot(adata: AnnData = None,
             orderby: str | None = None,
             orderby_ascending: bool | None = None,
             orderby_absolute: bool = False,
-            filter_fun: callable = None,
+            filter_fun: Callable = None,
             ligand_complex: str | None = None,
             receptor_complex: str | None = None,
             inverse_colour: bool = False,

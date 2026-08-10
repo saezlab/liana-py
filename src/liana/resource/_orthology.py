@@ -7,6 +7,8 @@ import pandas as pd
 
 from liana._logging import _logg
 
+_HCOP_BASE = "https://storage.googleapis.com/public-download-files/hcop"
+
 
 def _replace_subunits(lst, my_dict, one_to_many):
     result = []
@@ -167,24 +169,34 @@ def translate_resource(
     return resource
 
 
-def get_hcop_orthologs(url: str = "https://ftp.ebi.ac.uk/pub/databases/genenames/hcop/human_mouse_hcop_fifteen_column.txt.gz",
-                       filename: str = None,
-                       min_evidence: int = 3,
-                       columns: list[str] = None
-                       ) -> pd.DataFrame:
+def get_hcop_orthologs(target_organism="mouse",
+                       url=None,
+                       filename=None,
+                       min_evidence=3,
+                       columns=None
+                       ):
     """
-    Simple function to download the HCOP file from the EBI FTP server and filter it by minimum evidence.
+    Download the HCOP orthology file and filter it by minimum evidence.
 
     Parameters
     ----------
-    url
-        URL of the HCOP file. See https://ftp.ebi.ac.uk/pub/databases/genenames/hcop/ for bulk download options besides human and mouse.
-    filename
-        Name of the file to save the HCOP file.
-    min_evidence
-        Minimum number of evidences to keep the interaction, where evidence is the number of orthology resources supporting the interaction.
-    columns
-        Columns to keep in the final DataFrame. If None, it will keep the default columns.
+    target_organism : str
+        Target organism for orthology mapping. Default is ``"mouse"``.
+        Supported values: ``anole_lizard``, ``c.elegans``, ``cat``, ``cattle``,
+        ``chicken``, ``chimpanzee``, ``dog``, ``fruitfly``, ``horse``, ``macaque``,
+        ``mouse``, ``opossum``, ``pig``, ``platypus``, ``rat``, ``s.cerevisiae``,
+        ``s.pombe``, ``xenopus``, ``zebrafish``.
+        The target-organism column in the returned DataFrame follows the pattern
+        ``{target_organism}_symbol`` (e.g. ``mouse_symbol``, ``rat_symbol``).
+    url : str, optional
+        Override the download URL. If ``None`` (default), the URL is constructed
+        from ``target_organism`` using the HGNC Google Cloud Storage bucket.
+    filename : str, optional
+        Local filename to save the downloaded file. Derived from the URL if ``None``.
+    min_evidence : int
+        Minimum number of orthology resources that must support an interaction.
+    columns : list, optional
+        Columns to keep in the final DataFrame. If ``None``, all columns are kept.
 
     Returns
     -------
@@ -194,16 +206,17 @@ def get_hcop_orthologs(url: str = "https://ftp.ebi.ac.uk/pub/databases/genenames
     Details
     -------
     HCOP is a composite database combining data from various orthology resources.
-    It provides a comprehensive set of orthologs among human, mouse, and rat, among many other species.
+    It provides a comprehensive set of human orthologs across many species.
 
     If you use this function, please reference the original HCOP papers:
     - Eyre, T.A., Wright, M.W., Lush, M.J. and Bruford, E.A., 2007. HCOP: a searchable database of human orthology predictions. Briefings in bioinformatics, 8(1), pp.2-5.
     - Yates, B., Gray, K.A., Jones, T.E. and Bruford, E.A., 2021. Updates to HCOP: the HGNC comparison of orthology predictions tool. Briefings in Bioinformatics, 22(6), p.bbab155.
 
-    For more information, please visit the HCOP website: https://www.genenames.org/tools/hcop/,
-    or alternatively check the bulk download FTP links page: https://ftp.ebi.ac.uk/pub/databases/genenames/hcop/
+    For more information, please visit the HCOP website: https://www.genenames.org/tools/hcop/
 
     """
+    if url is None:
+        url = f"{_HCOP_BASE}/human_{target_organism}_hcop_fifteen_column.txt.gz"
     # check if exists
     if filename is None:
         filename = os.path.basename(url.split("/")[-1])

@@ -1,6 +1,6 @@
 from scipy.stats import gmean
 
-from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
+from liana.method._pipe_utils._get_mean_perms import _apply_proximity_weights, _calculate_pvals
 from liana.method.sc._Method import Method, MethodMeta
 
 
@@ -21,7 +21,9 @@ def _gmean_score(x, perm_stats) -> tuple:
 
     """
     lr_gmeans = gmean((x['ligand_means'].values, x['receptor_means'].values), axis=0)
-    gmean_pvals = _calculate_pvals(lr_gmeans, perm_stats, gmean)
+    lr_gmeans, proximity_weights = _apply_proximity_weights(lr_gmeans, x)
+
+    gmean_pvals = _calculate_pvals(lr_gmeans, perm_stats, gmean, proximity_weights)
 
     return lr_gmeans, gmean_pvals
 

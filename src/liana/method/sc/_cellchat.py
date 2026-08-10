@@ -1,6 +1,6 @@
 import numpy as np
 
-from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
+from liana.method._pipe_utils._get_mean_perms import _apply_proximity_weights, _calculate_pvals
 from liana.method.sc._Method import Method, MethodMeta
 
 
@@ -29,7 +29,8 @@ def _cellchat_score(x, perm_stats) -> tuple:
 
     """
     lr_prob = _lr_probability((x['ligand_trimean'].values, x['receptor_trimean'].values))
-    cellchat_pvals = _calculate_pvals(lr_prob, perm_stats, _lr_probability)
+    lr_prob, proximity_weights = _apply_proximity_weights(lr_prob, x)
+    cellchat_pvals = _calculate_pvals(lr_prob, perm_stats, _lr_probability, proximity_weights)
 
     return lr_prob, cellchat_pvals
 
@@ -51,4 +52,4 @@ _cellchat = MethodMeta(method_name="CellChat",
                        )
 
 cellchat = Method(_method=_cellchat)
-cellchat._kh = 0.5
+cellchat._kh = 0.5  # type: ignore[attr-defined]

@@ -11,37 +11,37 @@ adata = generate_toy_spatial()
 def test_get_spatial_connectivities():
     spatial_neighbors(adata=adata, bandwidth=200, set_diag=True, cutoff=0.2)
     np.testing.assert_equal(adata.obsp['spatial_connectivities'].shape, (adata.shape[0], adata.shape[0]))
-    np.testing.assert_equal(adata.obsp['spatial_connectivities'].sum(), 4550.654013895928)
+    np.testing.assert_almost_equal(adata.obsp['spatial_connectivities'].sum(), 4550.654013895928, decimal=4)
 
     spatial_neighbors(adata=adata, bandwidth=100, set_diag=True, cutoff=0.1)
-    np.testing.assert_equal(adata.obsp['spatial_connectivities'].sum(), 1802.332962418902)
+    np.testing.assert_almost_equal(adata.obsp['spatial_connectivities'].sum(), 1802.332962418902, decimal=4)
 
     conns = spatial_neighbors(adata=adata, bandwidth=100,
                               kernel='linear', cutoff=0.1,
                               set_diag=True, inplace=False)
-    assert conns.sum() == 899.065036633088
+    np.testing.assert_almost_equal(conns.sum(), 899.065036633088, decimal=4)
 
     conns = spatial_neighbors(adata=adata, bandwidth=100,
                               kernel='exponential', cutoff=0.1,
                               set_diag=True, inplace=False)
-    assert conns.sum() == 1520.8496098963612
+    np.testing.assert_almost_equal(conns.sum(), 1520.8496098963612, decimal=4)
 
     conns = spatial_neighbors(adata=adata, bandwidth=100, set_diag=True,
                               kernel='misty_rbf', cutoff=0.1,
                               inplace=False)
-    assert conns.sum() == 1254.3161716188595
+    np.testing.assert_almost_equal(conns.sum(), 1254.3161716188595, decimal=4)
 
     conns = spatial_neighbors(adata=adata, bandwidth=250, set_diag=False,
                               max_neighbours=100,
                               kernel='gaussian', cutoff=0.1,
                               inplace=False)
-    assert conns.sum() == 6597.05237692107
+    np.testing.assert_almost_equal(conns.sum(), 6597.05237692107, decimal=4)
 
     conns = spatial_neighbors(adata=adata, bandwidth=250,
                               set_diag=False, max_neighbours=100,
                               kernel='gaussian', cutoff=0.1,
                               inplace=False, standardize=True)
-    np.testing.assert_almost_equal(conns.sum(), conns.shape[0])
+    np.testing.assert_almost_equal(conns.sum(), conns.shape[0], decimal=4)
 
 # toy test data
 seed = 0

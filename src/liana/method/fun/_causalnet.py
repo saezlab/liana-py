@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import corneto
 
 from liana._constants import DefaultValues as V
 from liana._logging import _check_if_installed, _logg
@@ -10,7 +9,7 @@ def build_prior_network(ppis: pd.DataFrame | list[tuple[str, str]],
                         input_nodes: dict[str, float],
                         output_nodes: dict[str, float],
                         lr_sep: str | None = None,
-                        verbose:bool = V.verbose) -> corneto.Graph:
+                        verbose:bool = V.verbose):
     """
     Build Prior Network from PPIs and input/output nodes.
 
@@ -87,7 +86,7 @@ def _get_scores(d):
 
 
 def find_causalnet(
-        prior_graph: corneto.Graph,
+        prior_graph,
         input_node_scores: dict[str, float],
         output_node_scores: dict[str, float],
         node_weights: dict[str, float] = None,
@@ -102,7 +101,7 @@ def find_causalnet(
         stable_runs: int = 5,
         verbose: bool = True,
         **kwargs
-        ) -> tuple[pd.DataFrame, corneto.backend._base.ProblemDef]:
+        ):
     """
     Find the causal network that best explains the input/output node scores.
 

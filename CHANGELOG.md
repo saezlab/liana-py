@@ -1,5 +1,75 @@
 # Changelog
 
+## 1.8.1 (15.07.2026)
+
+### Added
+
+- **`li.ut.expand_coordinates`** — utility that lays out the spatial coordinates of multiple samples side-by-side on a non-overlapping grid, enabling multi-sample spatial analyses (e.g. a joint `spatial_neighbors` graph) without cross-sample coordinate overlap. Exposed in `li.ut` and the API reference. (#238)
+- **MOFA-Flex inflow tutorial** (`inflow_mofaflex.ipynb`) showing how to combine the inflow score with MOFA-Flex to extract spatially-resolved, single-cell-derived cell-cell communication programs.
+
+### Changed
+
+- **LRIC / cross-PCF memory & performance refactor** (#245, by @AtheerAS). `li.mt.lric` and `li.mt.cross_pcf` now route preprocessing through `prep_check_adata`, build per-annulus sparse scale matrices and multiply them against the weight matrices in chunked (`pair_chunk`) column slices — bounding peak memory to a few hundred MB on large datasets — and use SciPy `sparse_distance_matrix` / `searchsorted` for distance binning. This also fixes a `.raw`-subsetting bug in feature extraction, which slightly changes LRIC output values (test reference values updated accordingly). The LRIC tutorial was re-run to reflect the new numerics.
+
+### Fixed
+
+- **`MistyData` now preserves more than `.uns` on `MuData` round-trips (#242).** Converting a `MuData` back to `MistyData` previously dropped `.uns`, breaking downstream plots such as `li.pl.contributions`; the conversion now carries over `uns`, `obsm`, `varm`, `obsp` and `varp`.
+- **`rank_aggregate` / `by_sample` dependency compatibility (#244).** The AnnData `dtype=` removal (AnnData ≥0.11) is handled in preprocessing. pandas 3.0 additionally breaks the consensus path — Copy-on-Write turns a chained `inplace` fillna into a no-op, and string-typed columns coerce an internal `None`-labelled score column to `'nan'` — so `pandas<3` is pinned until liana gains full pandas-3.0 support.
+
+## 1.8.0 (29.06.2026)
+
+### Added
+
+- **`li.mt.lric` — Ligand-Receptor Interaction Correlation (LRIC).** A new spatial method for single-cell-resolution data that computes an expression-weighted cross pair-correlation function: each cell's contribution at distance `r` is weighted by its ligand (sender) and receptor (receiver) expression, so the resulting `g(r)` reflects whether ligand- and receptor-expressing cells are spatially co-enriched at distance `r`, beyond what cell-type co-localisation alone predicts. Uses distance-binned annuli with bounding-box edge correction. (`src/liana/method/sp/_LRIC.py`)
+- **`li.mt.cross_pcf` — cross pair-correlation function (cross-PCF).** The classical point-pattern statistic underlying LRIC: the distance-resolved `g(r)` for every directed sender→receiver cell-type pair, using cell positions only (no expression). Inspired by the cross-PCF in the MuSpAn toolbox (Bull et al., 2024, doi:10.1101/2024.12.06.627195).
+- New plots: `li.pl.annulus_plot` (visualise per-annulus interaction profiles) and `li.pl.lric_lineplot` (LRIC `g(r)` line plots). (`src/liana/plotting/_annulus.py`, `src/liana/plotting/_lric_plot.py`)
+- **pyCrossTalkeR integration tutorial** (`liana_pyCrossTalkeR.ipynb`) showing network-based differential CCC analysis, plus a dedicated LRIC tutorial (`LRIC_tutorial.ipynb`).
+- Mermaid diagram rendering in the docs (`sphinxcontrib-mermaid` doc dependency, `myst_fence_as_directive`/`mermaid_init_config` in `conf.py`); reworked the README decision tree with clickable nodes, colour-coded branches, and the new LRIC / spatially-constrained / pyCrossTalkeR entry points.
+- Expanded `docs/api.md` to document previously-undocumented public functions (`compute_global_specificity`, `filter_view_markers`, `circle_plot`, `feature_by_group`, `spatial_pair_proximity`, `query_bandwidth`, `filter_reassemble_complexes`, `translate_resource`, `translate_column`, `get_hcop_orthologs`) alongside the new spatial methods and plots.
+
+### Fixed
+
+- Improved numerical stability of the weighted Pearson/Spearman correlations in `li.mt.bivariate`: the variance denominators are now zeroed relative to their sum-of-squares scale (`<= 1e-6 * ss`) rather than against a fixed `1e-6` absolute threshold, avoiding spurious near-zero correlations from float accumulation. (`src/liana/method/sp/_bivariate/_local_functions.py`)
+
+### Changed
+
+- Standardised `compute_global_specificity` docstring to NumPy format and removed stale `mask_negatives`/`add_categories` parameter references from the `inflow` docstring.
+
+## 1.7.3 (26.05.2026)
+
+- Fixed top-level `import corneto` in `liana/method/fun/_causalnet.py` which caused ReadTheDocs builds to fail (`no module named liana.method`) because `corneto` is an optional dependency not installed in the doc environment. Removed the top-level import and the now-unnecessary `corneto.*` type annotations from function signatures; runtime loading already used `_check_if_installed("corneto")`.
+- Updated `inflow_score.ipynb` to use the new `target_organism='mouse'` parameter for `li.rs.get_hcop_orthologs` instead of the defunct EBI FTP `url`.
+
+## 1.7.2 (14.05.2026)
+
+- Fixed `get_hcop_orthologs` to use the HGNC Google Cloud Storage bucket instead of the defunct EBI FTP mirror, resolving 404 errors in CI.
+- Added `target_organism` parameter (default `"mouse"`) to `get_hcop_orthologs`, enabling homology mapping to any of the 19 species available in the HCOP database.
+- Updated documentation notebook (`prior_knowledge.ipynb`) to use the new `target_organism` API.
+- Updated `sc_multi.ipynb` metabolite-receptor section for decoupler v2: renamed `pd_net`/`t_net` columns to `source`/`target`/`weight` and removed deprecated `source`/`target`/`weight`/`min_n` kwargs from `estimate_metalinks` (replaced by `tmin`).
+- Standardized all public docstrings to NumPy format and added type annotations across public modules (#219).
+- Added mypy type-checking to pre-commit hooks (`--no-strict-optional --ignore-missing-imports`).
+- Added `build.yaml` CI workflow: validates the package build with `uv build` + `twine check --strict` on every push and pull request.
+- Renamed `.github/workflows/main.yml` → `test.yml`.
+
+## 1.7.1 (24.01.2026)
+
+- Fixed issue with Metalinks download due to User-Agent restrictions.
+- Added scanpy version compatibility using getattr to handle both _set_default_colors_for_categorical_obs (old) and set_default_colors_for_categorical_obs (new).
+
+
+## 1.7.0 (07.01.2026)
+
+- Inflow implementation and tutorial #221 by @AtheerAS
+- Global specificity calculation #221 by @AtheerAS
+-  The integration of spatial proximity weighting into scoring and permutation-based p-value calculations, new user-facing parameters for spatial analysis, and enhancements to the documentation to reflect these features. #222. The main cell-cell communication pipeline (`liana_pipe`) and scoring methods now support spatial proximity weighting. This includes new arguments (`spatial_key`, `spatial_kwargs`) and logic to compute and merge spatial proximity scores into LR (ligand-receptor) results, and to adjust permutation-based p-value calculations accordingly. (`src/liana/method/sc/_liana_pipe.py`)
+- Expanded docstrings and parameter documentation to cover new spatial analysis arguments, including detailed descriptions of spatial proximity options and kernel/bandwidth settings.
+- Updated the notebook index and documentation to reference new spatial analysis notebooks, such as `inflow_score.ipynb`.
+- Bumped the package version to 1.7.0 across configuration files, and updated dependencies for `decoupler`.
+- Added Python 3.13 support in classifiers. #216
+- Added Installation instructions in `installation.md`. #217
+- Properly check if a passed (cell type) labels in plotting are a string #220
+- Fixed an issue where MetalinksDB download would fail due to User-Agent restrictions.
+
 ## 1.6.1 (28.09.2025)
 
 - Comply with AnnData CSR matrix changes

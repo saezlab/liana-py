@@ -1,23 +1,29 @@
 from __future__ import annotations
-from typing import Union
 
 import numpy as np
 import pandas as pd
 from anndata import AnnData
 from mudata import MuData
-from scipy.sparse import csr_matrix, isspmatrix_csr
+from scipy.sparse import csr_matrix
 
 from liana._constants import DefaultValues as V
 from liana._constants import Keys as K
 from liana._docs import d
 from liana._logging import _logg
-from liana.method._pipe_utils import assert_covered, prep_check_adata
+from liana.method._pipe_utils import assert_covered
 from liana.method._pipe_utils._common import _get_props
 from liana.method.sp._bivariate._global_functions import GlobalFunction
 from liana.method.sp._bivariate._local_functions import LocalFunction
-from liana.method.sp._utils import _add_complexes_to_var, _zscore
+from liana.method.sp._utils import (
+    _add_complexes_to_var,
+    _check_instance,
+    _handle_connectivity,
+    _process_anndata,
+    _process_mudata,
+    _rename_means,
+    _zscore,
+)
 from liana.resource.select_resource import _handle_resource
-from liana.utils.mdata_to_anndata import mdata_to_anndata
 
 
 class SpatialBivariate:
@@ -35,10 +41,6 @@ class SpatialBivariate:
     %(y_name)s
 
     """
-
-    def __init__(self, x_name: str = 'x', y_name: str = 'y'):
-        self.x_name = x_name
-        self.y_name = y_name
 
     @d.dedent
     def __call__(self,
@@ -59,7 +61,7 @@ class SpatialBivariate:
                  xy_sep: str = V.lr_sep,
                  verbose: bool = V.verbose,
                  **kwargs
-                 ) -> Union[AnnData | pd.DataFrame | None]:
+                 ) -> AnnData | pd.DataFrame | None:
         """
         A method for bivariate local spatial metrics.
 
@@ -137,42 +139,41 @@ class SpatialBivariate:
         if local_name is not None:
             local_fun = LocalFunction._get_instance(name=local_name)
 
-        if isinstance(mdata, MuData):
-            adata = self._process_mudata(mdata, complex_sep, verbose=verbose, **kwargs)
-        elif isinstance(mdata, AnnData):
-            adata = self._process_anndata(mdata, complex_sep, verbose=verbose, **kwargs)
+        is_mudata = _check_instance(mdata)
+        if is_mudata:
+            adata, x_name, y_name = _process_mudata(mdata, complex_sep, verbose, **kwargs)
         else:
-            raise ValueError("Invalid type, `adata/mdata` must be an AnnData/MuData object")
+            adata, x_name, y_name = _process_anndata(mdata, complex_sep, verbose, **kwargs)
 
         resource = _handle_resource(interactions=interactions,
                                     resource=resource,
                                     resource_name=resource_name,
-                                    x_name=self.x_name,
-                                    y_name=self.y_name,
+                                    x_name=x_name,
+                                    y_name=y_name,
                                     verbose=verbose
                                     )
-        weight = self._handle_connectivity(adata=adata, connectivity_key=connectivity_key)
+        weight = _handle_connectivity(adata=adata, connectivity_key=connectivity_key)
 
         if complex_sep is not None:
             adata = _add_complexes_to_var(adata,
-                                          np.union1d(resource[self.x_name].astype(str),
-                                                     resource[self.y_name].astype(str)
+                                          np.union1d(resource[x_name].astype(str),
+                                                     resource[y_name].astype(str)
                                                      ),
                                           complex_sep=complex_sep
                                           )
 
         # filter_resource
-        resource = resource[(np.isin(resource[self.x_name], adata.var_names)) &
-                            (np.isin(resource[self.y_name], adata.var_names))]
+        resource = resource[(np.isin(resource[x_name], adata.var_names)) &
+                            (np.isin(resource[y_name], adata.var_names))]
 
-        self_interactions = resource[self.x_name] == resource[self.y_name]
+        self_interactions = resource[x_name] == resource[y_name]
         if self_interactions.any() & remove_self_interactions:
             _logg(f"Removing {self_interactions.sum()} self-interactions", verbose=verbose)
             resource = resource[~self_interactions]
 
         # get entities
-        entities = np.union1d(np.unique(resource[self.x_name]),
-                                np.unique(resource[self.y_name]))
+        entities = np.union1d(np.unique(resource[x_name]),
+                                np.unique(resource[y_name]))
         assert_covered(entities, adata.var_names, verbose=verbose)
 
         # Filter to only include the relevant features
@@ -185,21 +186,21 @@ class SpatialBivariate:
         # join global stats to LRs from resource
         xy_stats = (
             resource
-            .merge(self._rename_means(xy_stats, entity=self.x_name))
-            .merge(self._rename_means(xy_stats, entity=self.y_name))
+            .merge(_rename_means(xy_stats, entity=x_name))
+            .merge(_rename_means(xy_stats, entity=y_name))
         )
 
         # filter according to props
-        xy_stats = xy_stats[(xy_stats[f'{self.x_name}_props'] >= nz_prop) &
-                            (xy_stats[f'{self.y_name}_props'] >= nz_prop)]
+        xy_stats = xy_stats[(xy_stats[f'{x_name}_props'] >= nz_prop) &
+                            (xy_stats[f'{y_name}_props'] >= nz_prop)]
         if xy_stats.empty:
             raise ValueError("No features with non-zero proportions")
 
         # create interaction column
-        xy_stats['interaction'] = xy_stats[self.x_name] + xy_sep + xy_stats[self.y_name]
+        xy_stats['interaction'] = xy_stats[x_name] + xy_sep + xy_stats[y_name]
 
-        x_mat = adata[:, xy_stats[self.x_name]].X
-        y_mat = adata[:, xy_stats[self.y_name]].X
+        x_mat = adata[:, xy_stats[x_name]].X
+        y_mat = adata[:, xy_stats[y_name]].X
 
         if global_name is not None:
             for gname in global_name:
@@ -262,110 +263,6 @@ class SpatialBivariate:
             local_scores.layers['pvals'] = csr_matrix(local_pvals)
 
         return local_scores
-
-    def _process_anndata(self,
-                         adata,
-                         complex_sep,
-                         verbose,
-                         **kwargs):
-        expected_params = {'x_name', 'y_name', 'use_raw', 'layer'}
-        self.validate_kwargs(expected_params=expected_params, **kwargs)
-
-        self.x_name = kwargs.get('x_name', 'ligand')
-        self.y_name = kwargs.get('y_name', 'receptor')
-
-        return prep_check_adata(adata=adata,
-                                use_raw=kwargs.get('use_raw', V.use_raw),
-                                layer=kwargs.get('layer', V.layer),
-                                verbose=verbose,
-                                obsm=adata.obsm.copy(),
-                                uns=adata.uns.copy(),
-                                groupby=None,
-                                min_cells=None,
-                                complex_sep=complex_sep,
-                                )
-
-    def _process_mudata(self,
-                        mdata,
-                        complex_sep,
-                        verbose,
-                        **kwargs):
-        expected_params = {'x_name', 'y_name',
-                           'x_mod', 'y_mod',
-                           'x_use_raw', 'x_layer',
-                           'y_use_raw', 'y_layer',
-                           'x_transform', 'y_transform'}
-        self.validate_kwargs(expected_params=expected_params, **kwargs)
-
-        self.x_name = kwargs.get('x_name', self.x_name)
-        self.y_name = kwargs.get('y_name', self.y_name)
-
-        x_mod = kwargs.get('x_mod')
-        y_mod = kwargs.get('y_mod')
-
-        if x_mod is None or y_mod is None:
-            raise ValueError("MuData processing requires 'x_mod' and 'y_mod' parameters.")
-
-        adata = mdata_to_anndata(mdata,
-                                 x_mod=x_mod,
-                                 y_mod=y_mod,
-                                 x_use_raw=kwargs.get('x_use_raw', V.use_raw),
-                                 x_layer=kwargs.get('x_layer', V.layer),
-                                 y_use_raw=kwargs.get('y_use_raw', V.use_raw),
-                                 y_layer=kwargs.get('y_layer', V.layer),
-                                 x_transform=kwargs.get('x_transform', False),
-                                 y_transform=kwargs.get('y_transform', False),
-                                 verbose=verbose
-                                 )
-
-        return prep_check_adata(adata=adata,
-                                use_raw=False,
-                                layer=None,
-                                verbose=verbose,
-                                obsm = adata.obsm.copy(),
-                                uns=adata.uns.copy(),
-                                groupby=None,
-                                min_cells=None,
-                                complex_sep=complex_sep, # NOTE
-                                )
-
-
-    def validate_kwargs(self, expected_params: set[str], **kwargs):
-        """
-        Checks provided keyword arguments' keys are within an expected set.
-
-        Parameters
-        ----------
-        expected_params
-            Set of keys of expected parameters.
-        **kwargs
-            Dictionary of keyowrd arguments to check for key validity.
-
-        Raises
-        ------
-        ValueError
-            If any key of the provided keyword arguments are not within the set of expected ones.
-
-        """
-        unexpected_kwargs = set(kwargs) - expected_params
-        if unexpected_kwargs:
-            raise ValueError(f"Unexpected keyword arguments: {unexpected_kwargs}")
-
-
-    def _rename_means(self, lr_stats, entity):
-        df = lr_stats.copy()
-        df.columns = df.columns.map(lambda x: entity + '_' + str(x) if x != 'gene' else 'gene')
-        return df.rename(columns={'gene': entity})
-
-    def _handle_connectivity(self, adata, connectivity_key):
-        if connectivity_key not in adata.obsp.keys():
-            raise ValueError(f'No connectivity matrix founds in mdata.obsp[{connectivity_key}]')
-        connectivity = adata.obsp[connectivity_key]
-
-        if not isspmatrix_csr(connectivity) or (connectivity.dtype != np.float32):
-            connectivity = csr_matrix(connectivity, dtype=np.float32)
-
-        return connectivity
 
     def _encode_cats(self, a, weight):
         if np.all(a >= 0):

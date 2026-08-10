@@ -40,7 +40,7 @@ def _aggregate(lrs: dict,
     if _consensus_opts is None:
         _consensus_opts = ['Magnitude', 'Specificity']
 
-    lrs = [lrs[method].drop_duplicates(keep='first') for method in lrs]
+    lrs = [lrs[method].drop_duplicates(keep='first') for method in lrs]  # type: ignore[assignment]
     # reduce to a df with the shared keys + all relevant sc
     lr_res = reduce(
         lambda left, right:

@@ -60,7 +60,7 @@ def test_complex_cases():
 
 def test_translate_resource():
     resource = select_resource()
-    map_df = get_hcop_orthologs(columns=['human_symbol', 'mouse_symbol'], min_evidence=3)
+    map_df = get_hcop_orthologs(target_organism="mouse", columns=['human_symbol', 'mouse_symbol'], min_evidence=3)
     map_df = map_df.rename(columns={"human_symbol": "source", "mouse_symbol": "target"})
 
     translated = translate_resource(resource, map_df, one_to_many=1)

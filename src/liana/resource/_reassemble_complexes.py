@@ -65,7 +65,7 @@ def filter_reassemble_complexes(lr_res: pd.DataFrame,
         lr_res = _reduce_complexes(col=col,
                                    lr_res=lr_res,
                                    key_cols=_key_cols,
-                                   aggs=aggs)
+                                   aggs=aggs)  # type: ignore[arg-type]
 
     # check if there are any duplicated subunits
     duplicate_mask = lr_res.duplicated(subset=_key_cols, keep=False)

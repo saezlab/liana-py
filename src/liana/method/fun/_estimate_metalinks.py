@@ -1,7 +1,7 @@
 import numpy as np
-from mudata import MuData
-from pandas import concat, DataFrame
 from anndata import AnnData
+from mudata import MuData
+from pandas import DataFrame, concat
 
 from liana._constants import DefaultValues as V
 from liana._logging import _check_if_installed

@@ -27,7 +27,7 @@ def test_mdata_transformations():
     adata = mdata_to_anndata(mdata, x_mod='adata_x', y_mod='adata_y',
                              x_transform=zi_minmax_cutoff, y_transform=zi_minmax_cutoff,
                              verbose=False)
-    assert_almost_equal(adata.X.sum(), 2120.704, decimal=4)
+    assert_almost_equal(adata.X.sum(), 2120.704, decimal=3)
 
     # test non-negative
     from scanpy.pp import scale

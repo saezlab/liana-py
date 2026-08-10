@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Literal
 
 import networkx as nx
@@ -55,7 +56,13 @@ def _set_adata_color(adata, label, color_dict=None, hex=True):
         ]
     else:
         if f"{label}_colors" not in adata.uns:
-            sc.pl._utils._set_default_colors_for_categorical_obs(adata, label)
+            # Handle both old (_set_default...) and new (set_default...) scanpy API
+            _set_colors = getattr(
+                sc.pl._utils,
+                '_set_default_colors_for_categorical_obs',
+                getattr(sc.pl._utils, 'set_default_colors_for_categorical_obs', None)
+            )
+            _set_colors(adata, label)
 
     return adata
 
@@ -131,7 +138,7 @@ def circle_plot(
         orderby: str | None = None,
         orderby_ascending: bool | None = None,
         orderby_absolute: bool = False,
-        filter_fun: callable = None,
+        filter_fun: Callable = None,
         source_labels: list[str] | str | None = None,
         target_labels: list[str] | str | None = None,
         ligand_complex: list[str] | str | None = None,
@@ -215,6 +222,7 @@ def circle_plot(
 
     liana_res = _prep_liana_res(
         adata=adata,
+        liana_res=liana_res,
         source_labels=None,
         target_labels=None,
         ligand_complex=ligand_complex,

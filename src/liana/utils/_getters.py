@@ -50,14 +50,15 @@ def get_factor_scores(adata: AnnData | MuData,
     return df
 
 @d.dedent
-def get_variable_loadings(adata: AnnData | MuData,
+def get_variable_loadings(adata: AnnData | MuData = None,
                           varm_key:str = None,
                           view_sep:str | None = None,
                           variable_sep:str | None = None,
                           pair_sep:str | None = None,
                           var_names:list = None,
                           pair_names:list = None,
-                          drop_columns:bool = True
+                          drop_columns:bool = True,
+                          loadings: pd.DataFrame | dict | None = None,
                           ) -> pd.DataFrame:
     """
     Extract variable loadings from an AnnData object.
@@ -66,7 +67,8 @@ def get_variable_loadings(adata: AnnData | MuData,
     ----------
     %(adata)s
     varm_key
-        Key to use when extracting variable loadings from `mdata.varm`
+        Key to use when extracting variable loadings from `mdata.varm`.
+        Ignored when `loadings` is provided.
     view_sep
         Separator to use when splitting view:variable names into view and variable
     variable_sep
@@ -79,6 +81,13 @@ def get_variable_loadings(adata: AnnData | MuData,
         Variable names given to the splitted pair ('source' and 'target' by default)
     drop_columns
         If True, drop the `view:variable` column
+    loadings
+        Pre-extracted loadings to use instead of reading from `adata.varm`.
+        Either a features-by-factors :class:`~pandas.DataFrame`, or a dict of
+        per-view features-by-factors DataFrames (e.g. the output of a MOFA-Flex
+        model's ``get_weights()``), which is concatenated feature-wise. When
+        provided, `adata` and `varm_key` are ignored and the existing factor
+        column names are preserved.
 
     Returns
     -------
@@ -87,20 +96,27 @@ def get_variable_loadings(adata: AnnData | MuData,
     Raises
     ------
     ValueError
-        If `varm_key` not found in `.varm`
+        If `varm_key` not found in `.varm` (when `loadings` is not provided)
 
     """
-    if varm_key not in adata.varm.keys():
-        raise ValueError(f'{varm_key} not found in adata.varm')
     if var_names is None:
         var_names = ['ligand_complex', 'receptor_complex']
     if pair_names is None:
         pair_names = ['source', 'target']
 
-    n_factors = adata.varm[varm_key].shape[1]
-    columns = [f'Factor{i+1}' for i in range(n_factors)]
-
-    df = pd.DataFrame(index=adata.var.index, data=adata.varm[varm_key], columns=columns)
+    if loadings is not None:
+        # loadings supplied directly (e.g. from a MOFA-Flex model's get_weights());
+        # a dict of per-view {view: features x factors} is concatenated feature-wise
+        if isinstance(loadings, dict):
+            loadings = pd.concat(loadings.values(), axis=0)
+        df = pd.DataFrame(loadings).copy()
+        factor_cols = list(df.columns)
+    else:
+        if adata is None or varm_key not in adata.varm.keys():
+            raise ValueError(f'{varm_key} not found in adata.varm')
+        n_factors = adata.varm[varm_key].shape[1]
+        factor_cols = [f'Factor{i+1}' for i in range(n_factors)]
+        df = pd.DataFrame(index=adata.var.index, data=adata.varm[varm_key], columns=factor_cols)
 
     df.index.name = None
     df = df.reset_index()
@@ -130,6 +146,6 @@ def get_variable_loadings(adata: AnnData | MuData,
     df = df.reindex(sorted(df.columns, key=lambda x: x.startswith('Factor')), axis=1)
 
     # re-order to absolute values
-    df = (df.reindex(df['Factor1'].abs().sort_values(ascending=False).index))
+    df = (df.reindex(df[factor_cols[0]].abs().sort_values(ascending=False).index))
 
     return df

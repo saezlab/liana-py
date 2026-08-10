@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import numpy as np
 import statsmodels.api as sm
 from sklearn.ensemble import RandomForestRegressor
@@ -69,7 +71,7 @@ class SingleViewModel:
                         y: np.ndarray,
                         X: np.ndarray,
                         k_cv: int,
-                        fit_method: callable
+                        fit_method: Callable
                         ) -> np.ndarray:
         """
         Computes K-Fold cross-validation (CV)
@@ -126,9 +128,9 @@ class RandomForestModel(SingleViewModel):
 
         """
         self.model = RandomForestRegressor(oob_score=True, random_state=self.seed, **self.kwargs)
-        self.model.fit(X, y)
-        self.predictions = self.model.oob_prediction_
-        self.importances = dict(zip(predictors, self.model.feature_importances_, strict=False))
+        self.model.fit(X, y)  # type: ignore[union-attr, attr-defined]
+        self.predictions = self.model.oob_prediction_  # type: ignore[union-attr, attr-defined]
+        self.importances = dict(zip(predictors, self.model.feature_importances_, strict=False))  # type: ignore[union-attr, attr-defined, assignment]
 
 
 class LinearModel(SingleViewModel):
@@ -167,7 +169,7 @@ class LinearModel(SingleViewModel):
                                              )
         X = sm.add_constant(X)
         model_full = sm.OLS(y, X, **self.kwargs).fit()
-        self.importances = dict(zip(predictors, model_full.tvalues[1:], strict=False))
+        self.importances = dict(zip(predictors, model_full.tvalues[1:], strict=False))  # type: ignore[assignment]
 
     def _fit_ols(self, y, X):
         return LinearRegression(**self.kwargs).fit(y=y, X=X)
@@ -200,10 +202,7 @@ class RobustLinearModel(SingleViewModel):
         X = sm.add_constant(X)
         self.predictions = self._k_fold_predict(y, X, k_cv, self._fit_robust)
         model_full = sm.RLM(y, X, **self.kwargs).fit()
-        self.importances = dict(zip(predictors, model_full.tvalues[1:], strict=False))
-
-    def _fit_robust(self, y, X):
-        return sm.RLM(y, X, **self.kwargs).fit()
+        self.importances = dict(zip(predictors, model_full.tvalues[1:], strict=False))  # type: ignore[assignment]
 
     def _fit_robust(self, y, X):
         return sm.RLM(y, X, **self.kwargs).fit()

@@ -92,16 +92,16 @@ def test_vectorized_spearman():
               n_perms=2,
               interactions=interactions,
               )
-    np.testing.assert_almost_equal(bdata.X.mean(), 0.0077174882, decimal=5)
-    np.testing.assert_almost_equal(bdata.layers['pvals'].mean(), 0.6153921568, decimal=3)
+    np.testing.assert_almost_equal(bdata.X.mean(), 0.0023014963, decimal=5)
+    np.testing.assert_almost_equal(bdata.layers['pvals'].mean(), 0.7204575163, decimal=3)
 
     global_res = bdata.var
     assert {'mean','std'}.issubset(global_res.columns)
-    np.testing.assert_almost_equal(global_res['mean'].mean(), 0.0077174, decimal=5)
-    np.testing.assert_almost_equal(global_res['std'].mean(), 0.46906388, decimal=5)
+    np.testing.assert_almost_equal(global_res['mean'].mean(), 0.0023014963, decimal=5)
+    np.testing.assert_almost_equal(global_res['std'].mean(), 0.32339879, decimal=5)
 
 ### Test on AnnData and LRs
- # NOTE: these should be the same regardless of the local function
+# NOTE: these should be the same regardless of the local function
 adata = generate_toy_spatial()
 expected_gmorans = 0.0994394
 expected_glee = 0.04854206

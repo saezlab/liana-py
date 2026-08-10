@@ -1,1 +1,1 @@
-from ._pre import assert_covered, prep_check_adata, filter_resource, check_vars, _check_groupby
+from ._pre import _check_groupby, assert_covered, check_vars, filter_resource, prep_check_adata

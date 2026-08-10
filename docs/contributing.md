@@ -66,13 +66,17 @@ git pull --rebase
 to integrate the changes into yours.
 While the [pre-commit.ci][] is useful, we strongly encourage installing and running pre-commit locally first to understand its usage.
 
+Type checking is enforced via [mypy][] (configured in `.pre-commit-config.yaml` with `--no-strict-optional --ignore-missing-imports`).
+No extra setup is needed — it runs automatically with `pre-commit`.
+
 Finally, most editors have an _autoformat on save_ feature.
 Consider enabling this option for [ruff][ruff-editors] and [biome][biome-editors].
 
 [pre-commit]: https://pre-commit.com/
+[mypy]: https://mypy.readthedocs.io/en/stable/
 [pre-commit.ci]: https://pre-commit.ci/
 [ruff-editors]: https://docs.astral.sh/ruff/integrations/
-[biome-editors]: https://biomejs.dev/guides/integrate-in-editor/
+[biome-editors]: https://biomejs.dev/guides/editors/first-party-extensions/
 
 (writing-tests)=
 
@@ -125,6 +129,9 @@ Additionally, there's a CI job that tests against pre-releases of all dependenci
 The purpose of this check is to detect incompatibilities of new package versions early on and
 gives you time to fix the issue or reach out to the developers of the dependency before the package is released to a wider audience.
 
+A second CI job (`build.yaml`) runs on every push and pull request: it builds the package with `uv build` and validates it with `twine check --strict`.
+This catches packaging problems (missing metadata, broken wheels) before release.
+
 ## Publishing a release
 
 ### Updating the version number
@@ -145,11 +152,15 @@ Specify `vX.X.X` as a tag name and create a release.
 For more information, see [managing GitHub releases][].
 This will automatically create a git tag and trigger a Github workflow that creates a release on [PyPI][].
 
-We also use bump2version to automatically update the version number in all places and automatically create a git tag. Run one of the following commands in the root of the repository
+We also use [bumpversion][] to automatically update the version number in all places and automatically create a git tag. Run one of the following commands in the root of the repository
 
-bump2version patch
-bump2version minor
-bump2version major
+```bash
+bumpversion patch
+bumpversion minor
+bumpversion major
+```
+
+[bumpversion]: https://github.com/peritus/bumpversion
 
 
 [semver]: https://semver.org/

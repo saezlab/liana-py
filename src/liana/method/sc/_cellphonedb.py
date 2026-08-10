@@ -1,6 +1,6 @@
 import numpy as np
 
-from liana.method._pipe_utils._get_mean_perms import _calculate_pvals
+from liana.method._pipe_utils._get_mean_perms import _apply_proximity_weights, _calculate_pvals
 from liana.method.sc._Method import Method, MethodMeta
 
 
@@ -27,7 +27,8 @@ def _cpdb_score(x, perm_stats) -> tuple:
     zero_msk = ((x['ligand_means'] == 0) | (x['receptor_means'] == 0))
     lr_means = _mean((x['ligand_means'].values, x['receptor_means'].values))
     lr_means[zero_msk] = 0
-    cpdb_pvals = _calculate_pvals(lr_means, perm_stats, _mean)
+    lr_means, proximity_weights = _apply_proximity_weights(lr_means, x)
+    cpdb_pvals = _calculate_pvals(lr_means, perm_stats, _mean, proximity_weights)
 
     return lr_means, cpdb_pvals
 

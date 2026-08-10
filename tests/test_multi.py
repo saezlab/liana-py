@@ -1,12 +1,30 @@
 import numpy as np
 import pandas as pd
+import pytest
+from anndata import AnnData, concat
 
-from liana.multi import adata_to_views, filter_view_markers, lrs_to_views, to_tensor_c2c
+from liana.multi import adata_to_views, filter_view_markers, lrdata_to_mudata, lrs_to_views, to_tensor_c2c
 from liana.testing import sample_lrs
 from liana.testing._sample_anndata import generate_toy_adata
 from liana.utils._getters import get_factor_scores, get_variable_loadings
 
 adata = generate_toy_adata()
+
+
+def _generate_toy_lrdata(n_obs=20, n_lrs=15):
+    """Build a small AnnData mimicking `liana.method.inflow`'s output convention."""
+    celltypes = ['T_cell', 'B_cell']
+    interactions = [f'lig{i}^rec{i}' for i in range(n_lrs)]
+    var_names = [f'{ct}^{lr}' for ct in celltypes for lr in interactions]
+    rng = np.random.default_rng(42)
+    X = rng.random((n_obs, len(var_names)))
+    obs = pd.DataFrame(
+        {'cell_type': ['T_cell'] * (n_obs // 2) + ['B_cell'] * (n_obs // 2),
+         'region': ['A'] * n_obs},
+        index=[f'cell{i}' for i in range(n_obs)]
+    )
+    var = pd.DataFrame(index=var_names)
+    return AnnData(X=X, obs=obs, var=var)
 
 
 def test_to_tensor_c2c():
@@ -63,7 +81,7 @@ def test_lrs_to_views_batch():
     adata2.obs['sample'] = adata2.obs['sample'].apply(lambda x: x+'2')
     adata3 = adata.copy()
     adata3.obs['sample'] = adata3.obs['sample'].apply(lambda x: x+'3')
-    adata = adata.concatenate([adata2, adata3], join='inner', batch_key='sample_number')
+    adata = concat([adata, adata2, adata3], join='inner', label='sample_number', keys=['0', '1', '2'], index_unique='-')
 
     liana_res = sample_lrs(by_sample=True)
     liana_res2 = liana_res.copy()
@@ -162,6 +180,46 @@ def test_filter_view_markers():
     assert mdata.shape == (4, 74)
 
 
+def test_lrdata_to_mudata():
+    """Test lrdata_to_mudata."""
+    lrdata = _generate_toy_lrdata()
+
+    mdata = lrdata_to_mudata(lrdata, min_cells=None, min_features=10,
+                             obs_keys=['cell_type', 'region'], verbose=True)
+
+    assert set(mdata.mod.keys()) == {'T_cell', 'B_cell'}
+    assert mdata.shape == (20, 30)
+    assert mdata['T_cell'].shape == (20, 15)
+    assert list(mdata.obs.columns) == ['cell_type', 'region']
+
+
+def test_lrdata_to_mudata_min_features_drops_modality():
+    """A modality with fewer than `min_features` interactions should be dropped, not error."""
+    lrdata = _generate_toy_lrdata(n_lrs=15)
+    # keep only a handful of B_cell features so it falls below the min_features threshold
+    keep = lrdata.var_names[lrdata.var_names.str.startswith('T_cell')].tolist() + \
+        lrdata.var_names[lrdata.var_names.str.startswith('B_cell')][:5].tolist()
+    lrdata = lrdata[:, keep].copy()
+
+    mdata = lrdata_to_mudata(lrdata, min_cells=None, min_features=10)
+
+    assert set(mdata.mod.keys()) == {'T_cell'}
+
+
+def test_lrdata_to_mudata_errors():
+    lrdata = _generate_toy_lrdata()
+
+    with pytest.raises(TypeError):
+        lrdata_to_mudata('not an AnnData')
+
+    with pytest.raises(ValueError):
+        lrdata_to_mudata(lrdata, obs_keys=['nonexistent'])
+
+    with pytest.raises(ValueError):
+        # no modality can meet an impossibly high min_features
+        lrdata_to_mudata(lrdata, min_features=1000)
+
+
 def test_get_funs():
     liana_res = sample_lrs(by_sample=True)
     adata.uns['liana_results'] = liana_res
@@ -202,3 +260,35 @@ def test_get_funs():
     scores = get_factor_scores(mdata, obsm_key='X_mofa')
     assert isinstance(scores, pd.DataFrame)
     assert scores.shape == (4, 6)
+
+
+def test_get_variable_loadings_from_loadings():
+    # MOFA-Flex-style weights: dict of per-view features-by-factors DataFrames,
+    # feature names are `sender^ligand^receptor` (no target), factors named "Factor N"
+    feats_a = ["astrocyte^Agt^Adra2a", "astrocyte^Fgf1^Egfr"]
+    feats_b = ["tanycyte^Efna5^Ephb1", "tanycyte^Rspo3^Lgr6"]
+    cols = ["Factor 1", "Factor 2", "Factor 3"]
+    weights = {
+        "astrocyte": pd.DataFrame(np.arange(6).reshape(2, 3), index=feats_a, columns=cols),
+        "tanycyte": pd.DataFrame(np.arange(6, 12).reshape(2, 3), index=feats_b, columns=cols),
+    }
+
+    loadings = get_variable_loadings(
+        loadings=weights,
+        variable_sep="^",
+        var_names=["source", "ligand_complex", "receptor_complex"],
+    )
+    assert isinstance(loadings, pd.DataFrame)
+    # 4 features x (3 split cols + 3 factors)
+    assert loadings.shape == (4, 6)
+    # factor column names are preserved (not renamed to Factor1...)
+    assert list(loadings.columns) == ["source", "ligand_complex", "receptor_complex", *cols]
+    # sorted by |first factor|, descending
+    assert loadings["Factor 1"].abs().is_monotonic_decreasing
+    # a concatenated DataFrame gives the same result as the dict input
+    from_df = get_variable_loadings(
+        loadings=pd.concat(weights.values()),
+        variable_sep="^",
+        var_names=["source", "ligand_complex", "receptor_complex"],
+    )
+    assert from_df.equals(loadings)

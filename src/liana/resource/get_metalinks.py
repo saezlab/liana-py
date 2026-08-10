@@ -1,5 +1,4 @@
 import os
-from typing import Union
 import sqlite3
 
 import pandas as pd
@@ -20,19 +19,40 @@ def _download_metalinksdb(verbose: bool = True) -> str:
     """
     requests = _check_if_installed("requests")
 
-    METALINKS_URL = "https://figshare.com/ndownloader/files/47567597"
+    # GitHub Releases URL (CI-friendly, no WAF issues)
+    METALINKS_URL = "https://github.com/saezlab/liana-py/releases/download/metalinksdb/metalinksdb.db"
 
-    # Define the local filename to save the downloaded database
     db_file_name = 'metalinksdb.db'
     db_path = os.path.join(os.getcwd(), db_file_name)
 
-    # Check if the database file already exists
-    if not os.path.exists(db_path):
-        _logg("Downloading database...", verbose=verbose)
-        response = requests.get(METALINKS_URL)
+    if os.path.exists(db_path):
+        if os.path.getsize(db_path) == 0:
+            _logg("Existing database file is empty. Removing and re-downloading...", verbose=verbose)
+            os.remove(db_path)
+        else:
+            return db_path
+
+    _logg("Downloading database...", verbose=verbose)
+    try:
+        response = requests.get(METALINKS_URL, stream=True, allow_redirects=True)
+        response.raise_for_status()
+
         with open(db_path, 'wb') as f:
-            f.write(response.content)
-        _logg(f"Database downloaded and saved to {db_path}.", verbose=verbose)
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+
+        # Validate the downloaded file
+        file_size = os.path.getsize(db_path)
+        if file_size == 0:
+            os.remove(db_path)
+            raise RuntimeError("Downloaded file is empty. Please check the URL and try again.")
+
+        _logg(f"Database downloaded and saved to {db_path} ({file_size} bytes).", verbose=verbose)
+    except (requests.exceptions.RequestException, OSError, RuntimeError) as e:
+        # Clean up failed download
+        if os.path.exists(db_path):
+            os.remove(db_path)
+        raise RuntimeError(f"Failed to download database: {e}") from e
 
     return db_path
 
@@ -193,7 +213,7 @@ def get_metalinks_values(table_name: str,
 
 def describe_metalinks(db_path: str | None = None,
                        return_output: bool = False
-                       ) -> Union[str | None]:
+                       ) -> str | None:
     """
     Prints the schema information and foreign key details for all tables in the specified SQLite database.
 
@@ -243,3 +263,4 @@ def describe_metalinks(db_path: str | None = None,
         return output
     else:
         print(output)
+        return None

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from collections.abc import Iterable
 from typing import Any
 
@@ -44,12 +45,12 @@ def assert_covered(
     """
     subset = np.asarray(subset)
     is_missing = ~np.isin(subset, superset)
-    if subset.size == 0:
+    if subset.size == 0:  # type: ignore[attr-defined]
         prop_missing = 1.
         x_missing = 'values in interactions argument'
     else:
-        prop_missing = np.sum(is_missing) / len(subset)
-        x_missing = ", ".join(list(subset[is_missing]))
+        prop_missing = np.sum(is_missing) / len(subset)  # type: ignore[arg-type]
+        x_missing = ", ".join(list(subset[is_missing]))  # type: ignore[index]
     if prop_missing > prop_missing_allowed:
         msg = (
             f"Please check if appropriate organism/ID type was provided! "
@@ -123,14 +124,13 @@ def prep_check_adata(adata: AnnData,
         # discard any instances of AnnData if in obsm
         obsm = {k: v for k, v in obsm.items() if not isinstance(v, AnnData)}
 
-    adata = sc.AnnData(X=X,
+    adata = sc.AnnData(X=X.astype(np.float32, copy=True),
                        obs=adata.obs.copy(),
-                       dtype="float32",
                        var=var,
                        obsp=adata.obsp.copy(),
                        uns=uns,
                        obsm=obsm
-                       ).copy()
+                       )
     adata.var_names_make_unique()
 
     # Check for empty features
@@ -213,6 +213,7 @@ def check_vars(var_names: Iterable[str],
     _logg(f"{var_issues} contain `{complex_sep}`. Consider replacing those!",
          verbose=verbose & (len(var_issues) > 0), level='warn')
 
+    return var_issues
 
 
 def filter_resource(resource: DataFrame, var_names: Index) -> DataFrame:

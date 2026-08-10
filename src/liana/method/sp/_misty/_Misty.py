@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -18,7 +17,8 @@ from liana.method.sp._misty._single_view_models import SingleViewModel
 @d.dedent
 class MistyData(MuData):
     """
-    MistyData Class used to construct multi-view objects
+    MistyData Class used to construct multi-view objects.
+
     Construct a MistyData object from a dictionary of views (anndatas).
 
     Parameters
@@ -56,10 +56,17 @@ class MistyData(MuData):
                  enforce_obs: bool = True,
                  **kwargs
                  ):
-        if isinstance(data, MuData):
-            data = data.mod
+        source = data if isinstance(data, MuData) else None
+        if source is not None:
+            data = source.mod
 
         super().__init__(data, **kwargs)
+
+        # preserve container-level attributes that MuData drops when rebuilt from .mod
+        if source is not None:
+            for attr in ("uns", "obsm", "varm", "obsp", "varp"):
+                setattr(self, attr, getattr(source, attr))
+
         self.view_names = list(self.mod.keys())
         self.spatial_key = spatial_key
         self.enforce_obs = enforce_obs
@@ -96,7 +103,7 @@ class MistyData(MuData):
     def get_weighted_matrix(self,
                             view_name: str,
                             predictors: list[str] = None
-                            ) -> Union[pd.Index | np.ndarray]:
+                            ) -> pd.Index | np.ndarray:
         """
         Returns the weighted matrix for a given set of predictors in a view.
 
@@ -132,7 +139,7 @@ class MistyData(MuData):
                  inplace: bool = V.inplace,
                  verbose: bool = V.verbose,
                  **kwargs
-                 ) -> Union[None | tuple[pd.DataFrame, pd.DataFrame]]:
+                 ) -> None | tuple[pd.DataFrame, pd.DataFrame]:
         """
         A Multi-view Learning for dissecting Spatial Transcriptomics data (MISTy) model.
 
@@ -167,7 +174,7 @@ class MistyData(MuData):
         Otherwise two DataFrames are returned, one for target metrics and one for importances.
 
         """
-        model = model(seed, **kwargs)
+        model = model(seed, **kwargs)  # type: ignore[operator]
         view_str = list(self.view_names)
         obs_masks = _create_obs_masks(self.mod['intra'], maskby)
 
@@ -182,7 +189,7 @@ class MistyData(MuData):
         for target in (progress_bar):
             for intra_group in obs_masks.keys():
                 msk = obs_masks[intra_group]
-                importance_dict = {}
+                importance_dict: dict = {}
                 if verbose:
                     d = f"Now learning: {target}" + \
                         (f" masked by {intra_group}" if intra_group is not None else "")
@@ -206,7 +213,7 @@ class MistyData(MuData):
                         importance_dict["intra"][target] = np.nan
 
                 # store the predictions for each view to construct predictor matrix for meta model
-                predictions_list = []
+                predictions_list: list = []
 
                 if not bypass_intra:
                     predictions_list.append(predictions_intra)
@@ -255,6 +262,7 @@ class MistyData(MuData):
         if inplace:
             self.uns[K.target_metrics] = target_metrics
             self.uns[K.interactions] = importances
+            return None
         else:
             return target_metrics, importances
 

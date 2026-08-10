@@ -8,6 +8,7 @@
 
 notebooks/index
 
+installation.md
 api.md
 changelog.md
 contributing.md

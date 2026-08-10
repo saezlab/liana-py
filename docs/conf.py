@@ -48,6 +48,7 @@ html_context = {
 # They can be extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
     "myst_nb",
+    "sphinxcontrib.mermaid",
     "sphinx_copybutton",
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
@@ -80,6 +81,13 @@ myst_enable_extensions = [
     "html_admonition",
 ]
 myst_url_schemes = ("http", "https", "mailto")
+# Render ```mermaid fenced blocks (GitHub-native) via the mermaid directive
+myst_fence_as_directive = ["mermaid"]
+# securityLevel 'loose' is required for clickable nodes (click events) to navigate.
+# `mermaid_init_config` is the key for sphinxcontrib-mermaid >=1; `mermaid_init_js`
+# is the equivalent for older (<1) releases. Both are set for robustness.
+mermaid_init_config = {"startOnLoad": False, "securityLevel": "loose"}
+mermaid_init_js = "mermaid.initialize({startOnLoad:true, securityLevel:'loose'});"
 nb_output_stderr = "remove"
 nb_execution_mode = "off"
 nb_merge_streams = True
@@ -97,7 +105,7 @@ intersphinx_mapping = {
     "scanpy": ("https://scanpy.readthedocs.io/en/stable/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
-    "mudata": ("https://mudata.readthedocs.io/en/latest/", None),
+    "mudata": ("https://mudata.readthedocs.io/stable/", None),
     "sklearn": ("https://scikit-learn.org/stable/", None),
     "plotnine": ("https://plotnine.org/", None),
     # add more as needed

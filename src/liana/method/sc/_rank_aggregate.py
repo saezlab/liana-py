@@ -1,5 +1,4 @@
 from __future__ import annotations
-from typing import Union
 
 import anndata as an
 from mudata import MuData
@@ -9,7 +8,7 @@ from liana._constants import DefaultValues as V
 from liana._constants import Keys as K
 from liana._docs import d
 from liana.method.sc._liana_pipe import liana_pipe
-from liana.method.sc._Method import MethodMeta, Method
+from liana.method.sc._Method import Method, MethodMeta
 
 
 class AggregateClass(MethodMeta):
@@ -50,7 +49,7 @@ class AggregateClass(MethodMeta):
                          specificity=_SCORE.specificity,
                          specificity_ascending=True,
                          permute=_SCORE.permute,
-                         reference=_SCORE.reference
+                         reference=_SCORE.reference  # type: ignore[arg-type]
                          )
         self._SCORE = _SCORE
         self.methods = methods
@@ -72,10 +71,7 @@ class AggregateClass(MethodMeta):
         )
 
     def describe(self):
-        """
-        Briefly describes the method
-
-        """
+        """Briefly describes the method"""
         print(
             f"{self.method_name} returns `{self.magnitude}`, `{self.specificity}`. "
             f"{self.magnitude} and {self.specificity} respectively represent an aggregate of the "
@@ -104,9 +100,11 @@ class AggregateClass(MethodMeta):
                  resource: DataFrame | None = V.resource,
                  interactions: list | None = V.interactions,
                  mdata_kwargs: dict | None = None,
+                 spatial_key: str | None = None,
+                 spatial_kwargs: dict | None = None,
                  inplace: bool = V.inplace,
                  verbose: bool | None = V.verbose,
-                 ) -> Union[DataFrame | None]:
+                 ) -> DataFrame | None:
         """
         Get an aggregate of ligand-receptor scores from multiple methods.
 
@@ -138,6 +136,8 @@ class AggregateClass(MethodMeta):
         %(resource)s
         %(interactions)s
         %(mdata_kwargs)s
+        %(spatial_key)s
+        %(spatial_kwargs)s
         %(inplace)s
         %(verbose)s
 
@@ -171,6 +171,8 @@ class AggregateClass(MethodMeta):
                                _methods=self.methods,
                                _aggregate_method=aggregate_method,
                                _consensus_opts=consensus_opts,
+                               spatial_key=spatial_key,
+                               spatial_kwargs=spatial_kwargs,
                                mdata_kwargs=mdata_kwargs
                                )
 

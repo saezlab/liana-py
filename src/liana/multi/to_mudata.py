@@ -1,7 +1,7 @@
 from __future__ import annotations
-from typing import Union
 
 import warnings as warnings
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
@@ -13,7 +13,7 @@ from liana._constants import DefaultValues as V
 from liana._constants import Keys as K
 from liana._constants import PrimaryColumns as P
 from liana._docs import d
-from liana._logging import _check_if_installed
+from liana._logging import _check_if_installed, _logg
 from liana.method import process_scores
 from liana.method._pipe_utils import _check_groupby
 
@@ -26,10 +26,10 @@ def adata_to_views(adata: AnnData,
                    view_sep: str = ':',
                    keep_stats: bool = False,
                    verbose: bool = False,
-                   psbulk_kwargs: dict = {},
-                   filter_samples_kwargs: dict = {},
-                   filter_by_expr_kwargs: dict = {},
-                   filter_by_prop_kwargs: dict = {},
+                   psbulk_kwargs: dict = None,
+                   filter_samples_kwargs: dict = None,
+                   filter_by_expr_kwargs: dict = None,
+                   filter_by_prop_kwargs: dict = None,
                    ) -> MuData:
     """
     Converts an AnnData object to a MuData object with views that represent an aggregate for each entity in `adata.obs[groupby]`.
@@ -61,6 +61,14 @@ def adata_to_views(adata: AnnData,
 
     """
     # Check if MuData & decoupler are installed
+    if filter_by_prop_kwargs is None:
+        filter_by_prop_kwargs = {}
+    if filter_by_expr_kwargs is None:
+        filter_by_expr_kwargs = {}
+    if filter_samples_kwargs is None:
+        filter_samples_kwargs = {}
+    if psbulk_kwargs is None:
+        psbulk_kwargs = {}
     dc = _check_if_installed(package_name="decoupler")
 
     views = adata.obs[groupby].unique()
@@ -137,7 +145,7 @@ def adata_to_views(adata: AnnData,
 @d.dedent
 def lrs_to_views(adata: AnnData,
                  score_key: str | None = None,
-                 inverse_fun: callable = V.inverse_fun,
+                 inverse_fun: Callable = V.inverse_fun,
                  obs_keys: list | None = None,
                  lr_prop: float = 0.5,
                  lr_fill: float = np.nan,
@@ -300,12 +308,127 @@ def lrs_to_views(adata: AnnData,
 
     return mdata
 
+@d.dedent
+def lrdata_to_mudata(lrdata: AnnData,
+                     xy_sep: str = V.lr_sep,
+                     min_cells: int | None = V.min_cells,
+                     min_features: int | None = 10,
+                     obs_keys: list[str] | None = None,
+                     verbose: bool = V.verbose,
+                     ) -> MuData:
+    """
+    Convert an inflow score AnnData object to a MuData object, where each modality corresponds to a unique sender cell type.
+
+    Parameters
+    ----------
+    %(adata)s
+    xy_sep
+        Separator between the sender cell-type/view prefix and the ligand-receptor interaction
+        name in ``lrdata.var_names`` (e.g. ``"celltype^ligand^receptor"``). Matches the ``xy_sep``
+        convention used by :func:`liana.method.inflow`. Defaults to ``'^'``.
+    %(min_cells)s
+    min_features : int | None, default 10
+        Modalities with fewer than this many features after cell-filtering are
+        dropped entirely. Pass ``None`` to keep all modalities.
+    obs_keys
+        List of keys in `lrdata.obs` that should be included in the MuData object.
+    %(verbose)s
+
+    Returns
+    -------
+    MuData
+        MuData object with one modality per sender cell type.
+
+    Raises
+    ------
+    TypeError
+        If ``lrdata`` is not an AnnData object.
+    ValueError
+        If any of the provided keys are not found in `lrdata.obs`.
+
+    Examples
+    --------
+    >>> mdata = lrdata_to_mudata(lrdata, min_cells=5, min_features=10)
+
+    """
+    if not isinstance(lrdata, AnnData):
+        raise TypeError("`lrdata` must be an AnnData object.")
+
+    if obs_keys is not None:
+        missing = [k for k in obs_keys if k not in lrdata.obs.columns]
+        if missing:
+            raise ValueError(f"`obs_keys` not found in `lrdata.obs`: {missing}")
+
+    if lrdata.n_vars == 0:
+        raise ValueError(
+            f"No features could be parsed with `xy_sep='{xy_sep}'`. "
+            f"Ensure `var_names` follow the 'TYPE{xy_sep}...' convention."
+        )
+
+    modalities = (
+        lrdata.var_names
+        .str.split(xy_sep, expand=True)
+        .get_level_values(0)
+        .unique()
+        .tolist()
+    )
+
+    if not modalities:
+        raise ValueError(
+            f"No features could be parsed with `xy_sep='{xy_sep}'`. "
+            f"Ensure `var_names` follow the 'TYPE{xy_sep}...' convention."
+        )
+
+    adata_dict: dict[str, AnnData] = {}
+
+    if min_cells is not None:
+        sc = _check_if_installed(package_name="scanpy")
+
+    for modality in tqdm(modalities, disable=not verbose):
+        var_mask = lrdata.var_names.str.startswith(f"{modality}{xy_sep}")
+        adata_mod = lrdata[:, var_mask].copy()
+        adata_mod.obs = pd.DataFrame(index=adata_mod.obs_names)
+        adata_mod.uns = {}
+        adata_mod.obsp = {}
+
+        if min_cells is not None:
+            sc.pp.filter_genes(adata_mod, min_cells=min_cells)
+
+        if 0 in adata_mod.shape:
+            _logg(f"Skipping '{modality}': no features remain after filtering.", level='info', verbose=verbose)
+            continue
+
+        if min_features is not None and adata_mod.shape[1] < min_features:
+            _logg(
+                f"Skipping '{modality}': {adata_mod.shape[1]} features < min_features={min_features}.",
+                level='info', verbose=verbose
+            )
+            continue
+
+        adata_dict[modality] = adata_mod
+
+    if not adata_dict:
+        raise ValueError(
+            "No modalities passed the filtering criteria. "
+            "Consider relaxing `min_cells` or `min_features`."
+        )
+
+    mdata = MuData(adata_dict)
+
+    if obs_keys is not None:
+        _propagate_obs(lrdata=lrdata, mdata=mdata, obs_keys=obs_keys)
+
+    return mdata
+
+def _propagate_obs(lrdata: AnnData, mdata: MuData, obs_keys: list[str]) -> None:
+    mdata.obs = lrdata.obs.reindex(mdata.obs_names)[obs_keys].copy()
+
 def _dataframe_to_anndata(df):
     obs = pd.DataFrame(index=df.columns)
     var = pd.DataFrame(index=df.index)
-    X = np.array(df.values).T
+    X = np.asarray(df.values, dtype=np.float32).T
 
-    return AnnData(X=X, obs=obs, var=var, dtype=np.float32)
+    return AnnData(X=X, obs=obs, var=var)
 
 def _remove_mod_var(mdata, markers, view_sep, var_column):
     for current_mod in mdata.mod.keys():
@@ -333,9 +456,10 @@ def filter_view_markers(mdata: MuData,
                         view_sep: str = ':',
                         var_column: str | None = 'highly_variable',
                         inplace: bool = False
-                        ) -> Union[MuData | None]:
+                        ) -> MuData | None:
     """
-    Used for removing potential cell type marker genes found in the background of other views and thought to be contamination.
+    Remove potential cell type marker genes found in the background of other views.
+
     In each view, sets highly variable genes to False if they are in the markers dict for another view, but not if they are in the markers for the same view.
 
     Parameters
@@ -350,7 +474,8 @@ def filter_view_markers(mdata: MuData,
         If set to ``None``, instead of setting the hvg genes to False, the hvg genes will be removed from the view.
     %(inplace)s
 
-    Returns:
+    Returns
+    -------
         The filtered `mdata` instance or `None` if `inplace=True`.
 
     """
@@ -369,6 +494,7 @@ def filter_view_markers(mdata: MuData,
 
     if inplace:
         _remove_mod_var(mdata, markers, view_sep, var_column)
+        return None
     else:
         cdata = mdata.copy()
         _remove_mod_var(cdata, markers, view_sep, var_column)

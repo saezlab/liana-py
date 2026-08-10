@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 import anndata as ad
 import pandas as pd
 import plotnine as p9
@@ -14,7 +16,7 @@ def tileplot(adata: ad.AnnData = None,
              liana_res: pd.DataFrame = None,
              fill: str = None,
              label: str = None,
-             label_fun: callable = None,
+             label_fun: Callable = None,
              source_labels: str | list[str] = None,
              target_labels: str | list[str] = None,
              ligand_complex: str | list[str] = None,
@@ -24,7 +26,7 @@ def tileplot(adata: ad.AnnData = None,
              orderby: str = None,
              orderby_ascending: bool = False,
              orderby_absolute: bool = True,
-             filter_fun: callable = None,
+             filter_fun: Callable = None,
              source_title=None,
              target_title=None,
              cmap: str = V.cmap,

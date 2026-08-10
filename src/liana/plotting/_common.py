@@ -48,7 +48,7 @@ def _prep_liana_res(adata=None,
 
 def _filter_labels(liana_res, labels, label_type):
     if labels is not None:
-        if labels is str:
+        if isinstance(labels, str):
             labels = [labels]
         covered = np.isin(labels, liana_res[label_type])
         if not covered.all():

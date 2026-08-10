@@ -1,7 +1,7 @@
-# LIANA+: an all-in-one cell-cell communication framework <img src="https://raw.githubusercontent.com/saezlab/liana-py/dev/docs/source/_static/logo.png?raw=true" align="right" height="125">
+# LIANA+: an all-in-one cell-cell communication framework <img src="https://raw.githubusercontent.com/saezlab/liana-py/main/docs/_static/logo.png" align="right" height="125">
 
 <!-- badges: start -->
-[![main](https://github.com/saezlab/liana-py/actions/workflows/main.yml/badge.svg)](https://github.com/saezlab/liana-py/actions)
+[![main](https://github.com/saezlab/liana-py/actions/workflows/test.yml/badge.svg)](https://github.com/saezlab/liana-py/actions)
 [![GitHub issues](https://img.shields.io/github/issues/saezlab/liana-py.svg)](https://github.com/saezlab/liana-py/issues/)
 [![Documentation Status](https://readthedocs.org/projects/liana-py/badge/?version=latest)](https://liana-py.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/saezlab/liana-py/branch/main/graph/badge.svg?token=TM0P29KKN5)](https://codecov.io/gh/saezlab/liana-py)
@@ -20,29 +20,77 @@ We welcome suggestions, ideas, and contributions! Please do not hesitate to cont
 A set of extensive vignettes can be found in the [LIANA+ documentation](https://liana-py.readthedocs.io/en/latest/).
 
 ## Decision Tree
-### Does the data contain spatial coordinates?
-#### Yes
-- **Q: Bivariate or unsupervised, multi-variate, and multi-view analysis?**
-  - **Bivariate:**
-    - **Q: Are you interested in identifying the subregions of interactions (i.e., local interactions)?**
-      - **Yes:** Check the [**Local** Bivariate Metrics](https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html#Bivariate-Ligand-Receptor-Relationships)
-      - **No:** Check the [**Global** Bivariate Metrics](https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html#Bivariate-Ligand-Receptor-Relationships)
-  - **Unsupervised:** [Multi-view learning](https://liana-py.readthedocs.io/en/latest/notebooks/misty.html)
 
-#### No
-- **Q: Are you interested in comparing CCC across samples?**
-  - **Yes:**
-    - **Q: Are you interested in a specific contrast?**
-      - **Yes:** [Differential Contrasts and Downstream Signalling](https://liana-py.readthedocs.io/en/latest/notebooks/targeted.html)
-      - **No:** Unsupervised Cross-conditional LR inference with [MOFA+](https://liana-py.readthedocs.io/en/latest/notebooks/mofatalk.html) or [Tensor-cell2cell](https://liana-py.readthedocs.io/en/latest/notebooks/liana_c2c.html)
-  - **No:** [Steady-state Ligand-Receptor inference](https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html)
+Use the tree below to find a starting point for your analysis. Broad, data-driven choices sit at the top and trickle down to specific methods (click a node to open its tutorial).
 
-### Is your data Multi-modal?
-- **Spatial:** [Integrating Multi-Modal Spatially-Resolved Technologies](https://liana-py.readthedocs.io/en/latest/notebooks/sma.html)
-- **Non-Spatial:** [Integrating Multi-Modal Single-Cell Technologies](https://liana-py.readthedocs.io/en/latest/notebooks/sc_multi.html)
+```mermaid
+flowchart TD
+    Start{What is your data?}
 
-#### Infer Metabolite-mediated CCC from transcriptomics?
-- [Non-spatial Data](https://liana-py.readthedocs.io/en/latest/notebooks/sc_multi.html#Metabolite-mediated-CCC-from-Transcriptomics-Data)
+    %% ===== Spatially-resolved =====
+    Start -->|Spatially-resolved| Res{Resolution?}
+    Res -->|Single-cell| ScType{Analysis type?}
+    ScType -->|Interaction scoring| Inflow[Inflow Score]
+    ScType -->|Interaction scoring| ScConstr[Standard LR methods<br/>spatially-constrained]
+    ScType -->|Spatial co-occurrence| LRIC[LRIC]
+    ScType -->|Unsupervised| InflowMofa[Communication Programs<br/>Inflow + MOFA-Flex]
+    Res -->|Spot-based| SpType{Analysis type?}
+    SpType -->|Bivariate| LocalQ{Local<br/>interactions?}
+    LocalQ -->|Yes| Local[Local Bivariate Metrics]
+    LocalQ -->|No| Global[Global Bivariate Metrics]
+    SpType -->|Unsupervised| MISTy[Multi-view Learning<br/>MISTy]
+
+    %% ===== Dissociated single-cell =====
+    Start -->|Dissociated single-cell| Compare{Compare across<br/>samples?}
+    Compare -->|No| Steady[Steady-state LR Inference]
+    Compare -->|Yes| Contrast{Specific<br/>contrast?}
+    Contrast -->|Yes| Targeted[Targeted Differential]
+    Contrast -->|Yes| CrossTalk[pyCrossTalkeR<br/>network differential]
+    Contrast -->|No| MOFA[MOFA+]
+    Contrast -->|No| Tensor[Tensor-cell2cell]
+    Tensor --> TensorExt[Extended Tutorials<br/>ccc-protocols]
+    Tensor --> TensorMet[CCC Patterns: protein + metabolite<br/>Tensor-cell2cell CTCA]
+
+    %% ===== Multi-modal =====
+    Start -->|Multi-modal| ModalSp{Spatial?}
+    ModalSp -->|Yes| SMA[Multi-Modal Spatial]
+    ModalSp -->|No| SCMulti[Multi-Modal Single-Cell]
+    SCMulti --> Metab[Metabolite-mediated CCC]
+
+    %% ===== Styling =====
+    classDef decision fill:#f5f5f5,stroke:#37474f,stroke-width:1px,color:#263238;
+    classDef spatial fill:#e3f2fd,stroke:#1565c0,color:#0d47a1;
+    classDef dissoc fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20;
+    classDef multimodal fill:#f3e5f5,stroke:#6a1b9a,color:#4a148c;
+    classDef external fill:#ffffff,stroke:#9e9e9e,stroke-dasharray:5 3,color:#424242;
+
+    class Start,Res,ScType,SpType,LocalQ,Compare,Contrast,ModalSp decision;
+    class Inflow,LRIC,ScConstr,InflowMofa,Local,Global,MISTy spatial;
+    class Steady,Targeted,CrossTalk,MOFA,Tensor dissoc;
+    class SMA,SCMulti,Metab multimodal;
+    class TensorExt,TensorMet external;
+
+    %% ===== Links (click events) =====
+    click Inflow "https://liana-py.readthedocs.io/en/latest/notebooks/inflow_score.html"
+    click LRIC "https://liana-py.readthedocs.io/en/latest/notebooks/LRIC_tutorial.html"
+    click InflowMofa "https://liana-py.readthedocs.io/en/latest/notebooks/inflow_mofaflex.html"
+    click ScConstr "https://liana-py.readthedocs.io/en/latest/notebooks/inflow_score.html"
+    click Local "https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html"
+    click Global "https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html"
+    click MISTy "https://liana-py.readthedocs.io/en/latest/notebooks/misty.html"
+    click Steady "https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html"
+    click Targeted "https://liana-py.readthedocs.io/en/latest/notebooks/targeted.html"
+    click CrossTalk "https://liana-py.readthedocs.io/en/latest/notebooks/liana_pyCrossTalkeR.html"
+    click MOFA "https://liana-py.readthedocs.io/en/latest/notebooks/mofatalk.html"
+    click Tensor "https://liana-py.readthedocs.io/en/latest/notebooks/liana_c2c.html"
+    click TensorExt "https://ccc-protocols.readthedocs.io/en/latest/"
+    click TensorMet "https://earmingol.github.io/cell2cell/tutorials/Version2/Tensor-cell2cell-CTCA-LIANA/"
+    click SMA "https://liana-py.readthedocs.io/en/latest/notebooks/sma.html"
+    click SCMulti "https://liana-py.readthedocs.io/en/latest/notebooks/sc_multi.html"
+    click Metab "https://liana-py.readthedocs.io/en/latest/notebooks/sc_multi.html#metabolite-mediated-ccc-from-transcriptomics-data"
+```
+
+This tree is a guide rather than an exhaustive map: the methods are modular and can be adapted or combined across data types and questions, and all of them typically build on curated prior knowledge (see the [prior knowledge](https://liana-py.readthedocs.io/en/latest/notebooks/prior_knowledge.html) tutorial for working with ligand–receptor and other resources).
 
 ## API
 For further information please check LIANA's [API documentation](https://liana-py.readthedocs.io/en/latest/api.html).
@@ -82,8 +130,8 @@ Please also consider citing any of the methods and/or resources that were partic
 [uv]: https://github.com/astral-sh/uv
 [scverse discourse]: https://discourse.scverse.org/
 [issue tracker]: https://github.com/saezlab/liana-py/issues
-[tests]: https://github.com/dbdimitrov/liana-py/actions/workflows/test.yaml
+[tests]: https://github.com/saezlab/liana-py/actions/workflows/test.yml
 [documentation]: https://liana-py.readthedocs.io
-[changelog]: https://liana-py.readthedocs.io/en/latest/release_notes.html
+[changelog]: https://liana-py.readthedocs.io/en/latest/changelog.html
 [api documentation]: https://liana-py.readthedocs.io/en/latest/api.html
 [pypi]: https://pypi.org/project/liana

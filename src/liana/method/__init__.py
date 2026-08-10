@@ -1,18 +1,29 @@
+from typing import Callable
+
 import numpy as np
 from pandas import DataFrame
 
-from liana.method.sc._Method import Method, MethodMeta, _show_methods
-from liana.method.sc._rank_aggregate import AggregateClass, _rank_aggregate_meta as aggregate_meta
-from liana.method.sc import cellphonedb, connectome, logfc, natmi, singlecellsignalr, geometric_mean, cellchat, scseqcomm
-
-from liana.method.sp import bivariate, genericMistyData, lrMistyData, MistyData
-from liana.method.fun._causalnet import find_causalnet, build_prior_network
-from liana.method.fun._estimate_metalinks import estimate_metalinks
 from liana._constants import DefaultValues as V
+from liana.method.fun._causalnet import build_prior_network, find_causalnet
+from liana.method.fun._estimate_metalinks import estimate_metalinks
+from liana.method.sc import (
+    cellchat,
+    cellphonedb,
+    connectome,
+    geometric_mean,
+    logfc,
+    natmi,
+    scseqcomm,
+    singlecellsignalr,
+)
+from liana.method.sc._Method import Method, MethodMeta, _show_methods
+from liana.method.sc._rank_aggregate import AggregateClass
+from liana.method.sc._rank_aggregate import _rank_aggregate_meta as aggregate_meta
+from liana.method.sp import MistyData, bivariate, compute_global_specificity, genericMistyData, inflow, lrMistyData, lric, LRIC, cross_pcf
 
 # callable consensus instance
 _methods = [cellphonedb, connectome, logfc, natmi, singlecellsignalr]
-rank_aggregate = AggregateClass(aggregate_meta, methods=_methods)
+rank_aggregate = AggregateClass(aggregate_meta, methods=_methods)  # type: ignore[arg-type]
 
 
 def show_methods() -> DataFrame:
@@ -47,7 +58,7 @@ def get_method_scores() -> dict:
 
 def process_scores(liana_res: DataFrame,
                    score_key: str,
-                   inverse_fun: callable = V.inverse_fun
+                   inverse_fun: Callable = V.inverse_fun
                    ) -> DataFrame:
     """
     Processes and outputs a given score.
@@ -63,7 +74,6 @@ def process_scores(liana_res: DataFrame,
     A `DataFrame` with the processed scores.
 
     """
-
     df = liana_res.copy()
     scores = get_method_scores()
 

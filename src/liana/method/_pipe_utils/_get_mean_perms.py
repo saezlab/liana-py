@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from anndata import AnnData
+from collections.abc import Callable
+
 import numpy as np
+from anndata import AnnData
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
@@ -9,7 +11,7 @@ from tqdm import tqdm
 def _get_means_perms(adata: AnnData,
                      n_perms: int,
                      seed: int,
-                     agg_fun: callable,
+                     agg_fun: Callable,
                      norm_factor: float | None,
                      n_jobs: int,
                      verbose: bool):
@@ -43,7 +45,10 @@ def _get_means_perms(adata: AnnData,
 
     """
     if isinstance(norm_factor, np.float32):
-        adata.X /= norm_factor
+        # Divide out-of-place (not `/=`) so we don't mutate the caller's matrix -- `adata.X`
+        # may share its buffer with `adata.raw.X`. Cast back to the original dtype because
+        # sparse `matrix / scalar` promotes to float64, which would otherwise double memory.
+        adata.X = (adata.X / norm_factor).astype(adata.X.dtype)
 
     # define labels and masks
     labels = adata.obs['@label'].cat.categories
@@ -115,28 +120,67 @@ def _get_mat_idx(adata, lr_res):
     return ligand_idx, receptor_idx, source_idx, target_idx
 
 
-def _calculate_pvals(lr_truth, perm_stats, _score_fun):
+
+def _calculate_pvals(lr_truth, perm_stats, _score_fun, proximity_weights=None):
     """
     Calculate p-values for a given DataFrame x and permutation statistics
 
     Parameters
     ----------
-    x
-        DataFrame with LIANA results
+    lr_truth
+        Observed LR scores, shape (n_interactions,)
     perm_stats
-        Permutation statistics (2 (ligand-receptor), n_perms (number of permutations, n_rows in lr_res)
+        Permutation statistics, shape (2, n_perms, n_interactions)
+    _score_fun
+        Function to combine ligand and receptor statistics
+    proximity_weights
+        Optional spatial proximity weights, shape (n_interactions,)
 
     Returns
     -------
-    A tuple with lr_mean and pvalue for x
+    P-values for the observed scores
 
     """
     # calculate p-values
     if perm_stats is not None:
         lr_perm_means = _score_fun(perm_stats, axis=0)
+
+        # Apply proximity weights to both observed and permuted if provided
+        # Note: proximity weights, if any, are expected to have been applied
+        # to the observed scores (lr_truth) upstream. We also apply them
+        # to the permuted statistics here to maintain consistency in the
+        # null distribution when spatial structure is part of the signal.
+        if proximity_weights is not None:
+            # Weight permuted: (n_perms, n_interactions) * (n_interactions,)
+            # Broadcasting automatically handles dimension alignment
+            lr_perm_means = lr_perm_means * proximity_weights
+
         n_perms = perm_stats.shape[1]
         pvals = np.sum(np.greater_equal(lr_perm_means, lr_truth), axis=0) / n_perms
     else:
         pvals = None
 
     return pvals
+
+
+def _apply_proximity_weights(observed_scores, x):
+    """
+    Extract proximity weights from DataFrame and apply to observed scores.
+
+    Parameters
+    ----------
+    observed_scores
+        Observed interaction scores, shape (n_interactions,)
+    x
+        DataFrame with LIANA results, may contain 'proximity' column
+
+    Returns
+    -------
+    Tuple of (weighted_scores, proximity_weights)
+        - weighted_scores: observed scores multiplied by proximity if present, otherwise unchanged
+        - proximity_weights: array of weights or None if not present
+    """
+    proximity_weights = x['proximity'].values if 'proximity' in x.columns else None
+    if proximity_weights is not None:
+        observed_scores = observed_scores * proximity_weights
+    return observed_scores, proximity_weights

@@ -1,7 +1,7 @@
 from __future__ import annotations
-from typing import Union
 
 import weakref
+from collections.abc import Callable
 
 import anndata as an
 from mudata import MuData
@@ -70,13 +70,13 @@ class MethodMeta:
     """
 
     # initiate a list to store weak references to all instances
-    instances = []
+    instances: list = []
 
     def __init__(self,
                  method_name: str,
                  complex_cols: list,
                  add_cols: list,
-                 fun: callable,
+                 fun: Callable,
                  magnitude: str | None,
                  magnitude_ascending: bool | None,
                  specificity: str | None,
@@ -94,30 +94,21 @@ class MethodMeta:
         self.specificity = specificity
         self.specificity_ascending = specificity_ascending
         self.permute = permute
-        self.reference = reference
+        self.reference = reference  # type: ignore[assignment]
 
     def describe(self):
-        """
-        Briefly describes the method
-
-        """
+        """Briefly describes the method"""
         print(
             f"{self.method_name} uses `{self.magnitude}` and `{self.specificity}`"
             f" as measures of expression strength and interaction specificity, respectively"
         )
 
     def reference(self):
-        """
-        Prints out reference in Harvard format
-
-        """
+        """Prints out reference in Harvard format"""
         print(self.reference)
 
     def get_meta(self):
-        """
-        Returns method metadata as pandas row
-
-        """
+        """Returns method metadata as pandas row"""
         meta = DataFrame([{"Method Name": self.method_name,
                            "Magnitude Score": self.magnitude,
                            "Specificity Score": self.specificity,
@@ -132,7 +123,7 @@ class MethodMeta:
                   key_added: str = K.uns_key,
                   inplace: bool = V.inplace,
                   verbose: bool = V.verbose,
-                  **kwargs) -> Union[DataFrame | None]:
+                  **kwargs) -> DataFrame | None:
         """
         Run a method by sample.
 
@@ -188,7 +179,7 @@ class MethodMeta:
             else:
                 temp = temp.copy()
 
-            sample_res = self.__call__(temp, inplace=False, verbose=full_verbose, **kwargs)
+            sample_res = self.__call__(temp, inplace=False, verbose=full_verbose, **kwargs)  # type: ignore[operator]
 
             adata.uns[key_added][sample] = sample_res
 
@@ -226,7 +217,7 @@ class Method(MethodMeta):
                          specificity=_method.specificity,
                          specificity_ascending=_method.specificity_ascending,
                          permute=_method.permute,
-                         reference=_method.reference
+                         reference=_method.reference  # type: ignore[arg-type]
                          )
         self._method = _method
 
@@ -250,10 +241,12 @@ class Method(MethodMeta):
                  n_jobs: int = 1,
                  resource: DataFrame | None = V.resource,
                  interactions: list | None = V.interactions,
+                 spatial_key: str = 'spatial',
+                 spatial_kwargs: dict | None = None,
                  mdata_kwargs: dict | None = None,
                  inplace: bool = V.inplace,
                  verbose: bool | None = V.verbose,
-                 ) -> Union[DataFrame | None]:
+                 ) -> DataFrame | None:
         """
         Run a ligand-receptor method.
 
@@ -281,6 +274,8 @@ class Method(MethodMeta):
             Number of jobs to run in parallel.
         %(resource)s
         %(interactions)s
+        %(spatial_key)s
+        %(spatial_kwargs)s
         %(mdata_kwargs)s
         %(inplace)s
         %(verbose)s
@@ -316,6 +311,8 @@ class Method(MethodMeta):
                                n_jobs=n_jobs,
                                use_raw=use_raw,
                                layer=layer,
+                               spatial_key=spatial_key,
+                               spatial_kwargs=spatial_kwargs,
                                mdata_kwargs=mdata_kwargs
                                )
         if inplace:

@@ -5,8 +5,7 @@ from scipy.sparse import csr_matrix, isspmatrix_csr
 
 def zi_minmax(X: ArrayLike, cutoff: float = 0.5) -> csr_matrix:
     """
-    Zero-inflated min-max scaling, adopted from CiteFuse (Kim et al., 2020;
-    https://academic.oup.com/bioinformatics/article/36/14/4137/5827474).
+    Zero-inflated min-max scaling, adopted from CiteFuse (Kim et al., 2020; https://academic.oup.com/bioinformatics/article/36/14/4137/5827474).
 
     This function scales the data to the range [0, 1] for each column of a
     two-dimensional array and sets values below a specified cutoff to 0 (after

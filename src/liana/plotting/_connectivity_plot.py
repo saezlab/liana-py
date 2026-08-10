@@ -1,7 +1,7 @@
-from anndata import AnnData
 import pandas as pd
-from plotnine import aes, geom_point, ggplot, labs, theme, theme_minimal
+from anndata import AnnData
 from matplotlib.figure import Figure
+from plotnine import aes, geom_point, ggplot, labs, theme, theme_minimal
 
 from liana._constants import DefaultValues as V
 from liana._constants import Keys as K
