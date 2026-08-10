@@ -233,10 +233,18 @@ def spatial_pair_proximity(
     Examples
     --------
     >>> import scanpy as sc
+    >>> import numpy as np
+    >>> from liana.utils.spatial_neighbors import spatial_pair_proximity
     >>> adata = sc.datasets.pbmc68k_reduced()
     >>> adata.obsm['spatial'] = np.random.randn(adata.shape[0], 2) * 100
     >>> proximity_df = spatial_pair_proximity(adata, groupby='bulk_labels')
     >>> proximity_df.head()
+               source                      target  mean_distance  interacting  proximity
+    0  CD14+ Monocyte              CD14+ Monocyte      16.534955            1   0.997815
+    1  CD14+ Monocyte                     CD19+ B      20.092744            1   0.996775
+    2  CD14+ Monocyte                       CD34+      53.239768            1   0.977579
+    3  CD14+ Monocyte             CD4+/CD25 T Reg      23.786734            1   0.995484
+    4  CD14+ Monocyte  CD4+/CD45RA+/CD25- Naive T      74.370373            1   0.956717
     """
     # groupby_labels use categories if categorical
     groupby_labels = np.asarray(adata.obs[groupby])
