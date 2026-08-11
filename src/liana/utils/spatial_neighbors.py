@@ -41,7 +41,8 @@ def _kernel_function(distance_mtx, bandwidth, kernel):
     elif kernel == 'linear':
         return _linear(distance_mtx, bandwidth)
     else:
-        raise ValueError("Please specify a valid family to generate connectivity weights")
+        raise ValueError("Please specify a valid family to generate \
+                         connectivity weights")
 
 
 @d.dedent
@@ -68,8 +69,9 @@ def spatial_neighbors(adata: AnnData,
     cutoff
         Values below this cutoff will be set to 0.
     max_neighbours
-        Maximum nearest neighbours to be considered when generating spatial connectivity weights.
-        Essentially, the maximum number of edges in the spatial connectivity graph.
+        Maximum nearest neighbours to be considered when generating spatial
+        connectivity weights. Essentially, the maximum number of edges in the
+        spatial connectivity graph.
     %(kernel)s
     set_diag
         Logical, sets connectivity diagonal to 0 if `False`. Default is `True`.
@@ -188,11 +190,13 @@ def spatial_pair_proximity(
     verbose=V.verbose
 ):
     """
-    Computes aggregated spatial statistics and proximity scores between cell types.
+    Computes aggregated spatial statistics and proximity scores between cell
+    types.
 
-    This function calculates pairwise proximity between cell types based on nearest neighbor
-    distances in spatial coordinates. It returns a DataFrame with proximity scores that can
-    be used to weight ligand-receptor interactions by spatial co-localization.
+    This function calculates pairwise proximity between cell types based on
+    nearest neighbor distances in spatial coordinates. It returns a DataFrame
+    with proximity scores that can be used to weight ligand-receptor
+    interactions by spatial co-localization.
 
     Parameters
     ----------
@@ -202,11 +206,11 @@ def spatial_pair_proximity(
     %(bandwidth)s
     %(contact_bandwidth)s
     min_cells_in_proximity : int, optional
-        Minimum number of cell pairs within range required to flag an interaction as significant.
-        Default is 10.
+        Minimum number of cell pairs within range required to flag an
+        interaction as significant. Default is 10.
     trim_fraction : float, optional
-        Fraction of outliers to trim from each tail when calculating mean distance (0-0.5).
-        Default is 0.1 (trim 10% from each tail).
+        Fraction of outliers to trim from each tail when calculating mean
+        distance (0-0.5). Default is 0.1 (trim 10% from each tail).
     %(kernel)s
     %(verbose)s
 
@@ -217,18 +221,24 @@ def spatial_pair_proximity(
         - source: source cell type
         - target: target cell type
         - mean_distance: trimmed mean distance between cell types
-        - interacting: binary flag (1 if >= min_cells_in_proximity pairs within bandwidth, else 0)
-        - proximity: proximity score calculated by applying kernel to mean_distance with bandwidth
-        - contact_interacting: (optional, if contact_bandwidth is not None) binary flag for contact interactions
-        - contact_proximity: (optional, if contact_bandwidth is not None) proximity score using contact_bandwidth
+        - interacting: binary flag (1 if >= min_cells_in_proximity pairs within
+          bandwidth, else 0)
+        - proximity: proximity score calculated by applying kernel to
+          mean_distance with bandwidth
+        - contact_interacting: (optional, if contact_bandwidth is not None)
+          binary flag for contact interactions
+        - contact_proximity: (optional, if contact_bandwidth is not None)
+          proximity score using contact_bandwidth
 
     Notes
     -----
-    - Performance scales as O(n_cell_types² × n_cells), which is acceptable for typical datasets
-      (5-30 cell types) but may be slower with 100+ cell types.
-    - Self-interactions exclude the cell itself as its own neighbor to avoid zero distances.
-    - Missing proximity values (e.g., cell types that never co-localize) will result in NaN,
-      which should be filled with 0.0 when merging with interaction results.
+    - Performance scales as O(n_cell_types² × n_cells), which is acceptable for
+      typical datasets (5-30 cell types) but may be slower with 100+ cell types.
+    - Self-interactions exclude the cell itself as its own neighbor to avoid
+      zero distances.
+    - Missing proximity values (e.g., cell types that never co-localize) will
+      result in NaN, which should be filled with 0.0 when merging with
+      interaction results.
 
     Examples
     --------
@@ -238,13 +248,11 @@ def spatial_pair_proximity(
     >>> adata = sc.datasets.pbmc68k_reduced()
     >>> adata.obsm['spatial'] = np.random.randn(adata.shape[0], 2) * 100
     >>> proximity_df = spatial_pair_proximity(adata, groupby='bulk_labels')
-    >>> proximity_df.head()
-               source                      target  mean_distance  interacting  proximity
-    0  CD14+ Monocyte              CD14+ Monocyte      16.534955            1   0.997815
-    1  CD14+ Monocyte                     CD19+ B      20.092744            1   0.996775
-    2  CD14+ Monocyte                       CD34+      53.239768            1   0.977579
-    3  CD14+ Monocyte             CD4+/CD25 T Reg      23.786734            1   0.995484
-    4  CD14+ Monocyte  CD4+/CD45RA+/CD25- Naive T      74.370373            1   0.956717
+    >>> proximity_df.head(3)
+               source          target  mean_distance  interacting  proximity
+    0  CD14+ Monocyte  CD14+ Monocyte      16.534955            1   0.997815
+    1  CD14+ Monocyte         CD19+ B      20.092744            1   0.996775
+    2  CD14+ Monocyte           CD34+      53.239768            1   0.977579
     """
     # groupby_labels use categories if categorical
     groupby_labels = np.asarray(adata.obs[groupby])
@@ -254,9 +262,19 @@ def spatial_pair_proximity(
     stats_list = []
 
     # Iterate through all cell type pairs
-    pair_iterator = [(type_a, type_b) for type_a in unique_types for type_b in unique_types]
+    pair_iterator = [
+        (type_a, type_b)
+        for type_a in unique_types
+        for type_b in unique_types
+    ]
 
-    for type_a, type_b in tqdm(pair_iterator, desc="Computing cell type proximities", disable=not verbose):
+    pairs = tqdm(
+        pair_iterator,
+        desc="Computing cell type proximities",
+        disable=not verbose
+    )
+
+    for type_a, type_b in pairs:
         idx_a = np.where(groupby_labels == type_a)[0]
         coords_a = coordinates[idx_a]
         idx_b = np.where(groupby_labels == type_b)[0]
@@ -273,7 +291,11 @@ def spatial_pair_proximity(
             continue
 
         # Nearest neighbor search (1-NN)
-        nn = NearestNeighbors(n_neighbors=k_neighbors, metric="euclidean", n_jobs=-1)
+        nn = NearestNeighbors(
+            n_neighbors=k_neighbors,
+            metric="euclidean",
+            n_jobs=-1
+        )
         nn.fit(coords_b)
         distances, _ = nn.kneighbors(coords_a)
 
@@ -290,7 +312,11 @@ def spatial_pair_proximity(
         is_interacting = count_long >= min_cells_in_proximity
 
         # 3. Proximity score (kernel applied to mean_distance)
-        prox_score = _kernel_function(avg_dist, bandwidth=bandwidth, kernel=kernel)
+        prox_score = _kernel_function(
+            avg_dist,
+            bandwidth=bandwidth,
+            kernel=kernel
+        )
 
         # Build result dict
         result_dict = {
@@ -305,7 +331,11 @@ def spatial_pair_proximity(
         if contact_bandwidth is not None:
             count_short = np.sum(raw_dists <= contact_bandwidth)
             is_physically_interacting = count_short >= min_cells_in_proximity
-            contact_prox_score = _kernel_function(avg_dist, bandwidth=contact_bandwidth, kernel=kernel)
+            contact_prox_score = _kernel_function(
+                avg_dist,
+                bandwidth=contact_bandwidth,
+                kernel=kernel
+            )
 
             result_dict["contact_interacting"] = int(is_physically_interacting)
             result_dict["contact_proximity"] = contact_prox_score
