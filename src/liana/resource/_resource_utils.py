@@ -50,6 +50,19 @@ def generate_lr_geneset(resource: DataFrame,
     - weight: mean weight of the interaction
     - source: source of the interaction
 
+    Examples
+    --------
+    >>> import decoupler as dc
+    >>> from liana import resource
+    >>> net = dc.op.progeny()
+    >>> res = resource.select_resource('consensus')
+    >>> resource.generate_lr_geneset(res, net)
+             source    interaction     weight
+    23         MAPK    LGALS9^LRP1  -0.806278
+    25     JAK-STAT    LGALS9^CD47   2.054778
+    ...         ...            ...        ...
+    35486      NFkB   IL36G^IFNAR2   7.254862
+    35490      TNFa   IL36G^IFNAR2  10.502938
     """
     # TODO: Fix this if else, it's not very elegant
     if weight is None:
