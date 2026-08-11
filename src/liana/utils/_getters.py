@@ -33,6 +33,21 @@ def get_factor_scores(adata: AnnData | MuData,
     ValueError
         If `obsm_key` not in `.obsm`
 
+    Examples
+    --------
+    >>> import scanpy as sc
+    >>> from liana.utils._getters import get_factor_scores
+    >>> adata = sc.datasets.pbmc68k_reduced()
+    >>> get_factor_scores(adata, obsm_key='X_pca', obs_keys='bulk_labels')
+                    index   Factor1   Factor2  ...  Factor50      bulk_labels
+    0    AAAGCCTGGCTAAC-1 -7.939618  5.024914  ...  0.973213   CD14+ Monocyte
+    1    AAATTCGATGCACA-1 -7.735241  4.337960  ...  0.071353        Dendritic
+    ..                ...       ...       ...  ...       ...              ...
+    698  TTCAGTACCGGGAA-8  2.890713 -6.116919  ...  1.076730          CD19+ B
+    699  TTGAGGTGGAGAGC-8 -5.787237 -5.075839  ...  0.645973        Dendritic
+
+    [700 rows x 52 columns]
+
     """
     if obsm_key not in adata.obsm.keys():
         raise ValueError(f'{obsm_key} not found in `.obsm`')
@@ -70,15 +85,18 @@ def get_variable_loadings(adata: AnnData | MuData = None,
         Key to use when extracting variable loadings from `mdata.varm`.
         Ignored when `loadings` is provided.
     view_sep
-        Separator to use when splitting view:variable names into view and variable
+        Separator to use when splitting view:variable names into view and
+        variable
     variable_sep
         Separator to use when splitting variable names into `var_names`
     pair_sep
         Separator to use when splitting view names into `pair_names`
     var_names
-        Variable names given to the splitted variable ('ligand_complex' and 'receptor_complex' by default)
+        Variable names given to the splitted variable ('ligand_complex' and
+        'receptor_complex' by default)
     pair_names
-        Variable names given to the splitted pair ('source' and 'target' by default)
+        Variable names given to the splitted pair ('source' and 'target' by
+        default)
     drop_columns
         If True, drop the `view:variable` column
     loadings
@@ -91,13 +109,26 @@ def get_variable_loadings(adata: AnnData | MuData = None,
 
     Returns
     -------
-    Returns a pandas DataFrame with the variable loadings for the specified index.
+    Returns a pandas DataFrame with the variable loadings for the specified
+    index.
 
     Raises
     ------
     ValueError
         If `varm_key` not found in `.varm` (when `loadings` is not provided)
 
+    Examples
+    --------
+    >>> import scanpy as sc
+    >>> from liana.utils._getters import get_variable_loadings
+    >>> adata = sc.datasets.pbmc68k_reduced()
+    >>> get_variable_loadings(adata, varm_key='PCs')
+           index   Factor1  ...  Factor49  Factor50
+    440  PTPRCAP  0.136449  ... -0.033913  0.017797
+    231     LST1 -0.134028  ...  0.009793  0.009476
+    ..       ...       ...  ...       ...       ...
+    763    PRMT2       NaN  ...       NaN       NaN
+    764   MT-ND3       NaN  ...       NaN       NaN
     """
     if var_names is None:
         var_names = ['ligand_complex', 'receptor_complex']
@@ -105,8 +136,10 @@ def get_variable_loadings(adata: AnnData | MuData = None,
         pair_names = ['source', 'target']
 
     if loadings is not None:
-        # loadings supplied directly (e.g. from a MOFA-Flex model's get_weights());
-        # a dict of per-view {view: features x factors} is concatenated feature-wise
+        # loadings supplied directly (e.g. from a MOFA-Flex model's
+        # get_weights());
+        # a dict of per-view {view: features x factors} is concatenated
+        # feature-wise
         if isinstance(loadings, dict):
             loadings = pd.concat(loadings.values(), axis=0)
         df = pd.DataFrame(loadings).copy()
@@ -116,7 +149,11 @@ def get_variable_loadings(adata: AnnData | MuData = None,
             raise ValueError(f'{varm_key} not found in adata.varm')
         n_factors = adata.varm[varm_key].shape[1]
         factor_cols = [f'Factor{i+1}' for i in range(n_factors)]
-        df = pd.DataFrame(index=adata.var.index, data=adata.varm[varm_key], columns=factor_cols)
+        df = pd.DataFrame(
+            index=adata.var.index,
+            data=adata.varm[varm_key],
+            columns=factor_cols
+        )
 
     df.index.name = None
     df = df.reset_index()
@@ -143,9 +180,14 @@ def get_variable_loadings(adata: AnnData | MuData = None,
             df.drop(columns='view', inplace=True)
 
     # Re-order columns so that factors are last
-    df = df.reindex(sorted(df.columns, key=lambda x: x.startswith('Factor')), axis=1)
+    df = df.reindex(
+        sorted(df.columns, key=lambda x: x.startswith('Factor')),
+        axis=1
+    )
 
     # re-order to absolute values
-    df = (df.reindex(df[factor_cols[0]].abs().sort_values(ascending=False).index))
+    df = (
+        df.reindex(df[factor_cols[0]].abs().sort_values(ascending=False).index)
+    )
 
     return df
