@@ -41,8 +41,8 @@ def _kernel_function(distance_mtx, bandwidth, kernel):
     elif kernel == 'linear':
         return _linear(distance_mtx, bandwidth)
     else:
-        raise ValueError("Please specify a valid family to generate \
-                         connectivity weights")
+        raise ValueError("Please specify a valid family to generate "
+                         "connectivity weights")
 
 
 @d.dedent

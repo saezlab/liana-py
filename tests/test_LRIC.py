@@ -286,9 +286,11 @@ def test_lric_no_lr_pairs_raises():
     # shared `assert_covered` check in `prep_check_adata`'s call site (same as
     # `_inflow`/`_spatial_bivariate`), before `_index_resource` is ever reached.
     bad = pd.DataFrame({"ligand": ["NOTEXIST1"], "receptor": ["NOTEXIST2"]})
-    with raises(ValueError, match="Please check if appropriate organism/ID type"):
+    with raises(ValueError,
+                match="Please check if appropriate organism/ID type"):
         lric(adata, resource=bad, inplace=False, verbose=False)
-    with raises(ValueError, match="Please check if appropriate organism/ID type"):
+    with raises(ValueError,
+                match="Please check if appropriate organism/ID type"):
         lric(adata, resource=bad, groupby="cell_type", inplace=False, verbose=False)
 
 

@@ -57,6 +57,6 @@ def _check_if_installed(package_name: str,
             raise ImportError(custom_error_message) from None
         else:
             raise ImportError(
-                    f'{package_name} is not installed. Please install it with: \
-                    pip install {package_name}'
+                    f'{package_name} is not installed. Please install it with: '
+                    f'pip install {package_name}'
                 ) from None
