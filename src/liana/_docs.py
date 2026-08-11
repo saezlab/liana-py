@@ -22,7 +22,8 @@ groupby
 
 _n_perms = """\
 n_perms
-    Number of permutations for the permutation test. If None, no p-values are computed."""
+    Number of permutations for the permutation test. If None, no p-values are
+    computed."""
 
 _seed = """\
 seed
@@ -35,12 +36,15 @@ resource
 
 _interactions = """\
 interactions
-    List of tuples with ligand-receptor pairs `[(ligand, receptor), ...]` to be used for the analysis.
-    If passed, it will overrule the resource requested via `resource` and `resource_name`."""
+    List of tuples with ligand-receptor pairs `[(ligand, receptor), ...]` to
+    be used for the analysis.
+    If passed, it will overrule the resource requested via `resource` and
+    `resource_name`."""
 
 _resource_name = """\
 resource_name
-    Name of the resource to be used for ligand-receptor inference. See `li.rs.show_resources()` for available resources."""
+    Name of the resource to be used for ligand-receptor inference. See
+    `li.rs.show_resources()` for available resources."""
 
 _sample_key = """\
 sample_key
@@ -48,7 +52,8 @@ sample_key
 
 _key_added = """\
 key_added
-    Key under which the results will be stored in `adata.uns` if `inplace` is True."""
+    Key under which the results will be stored in `adata.uns` if `inplace` is
+    True."""
 
 _use_raw = """\
 use_raw
@@ -60,7 +65,8 @@ layer
 
 _mdata_kwargs = """\
 mdata_kwargs
-    Keyword arguments to be passed to `li.utils.mdata_to_anndata` if `adata` is an instance of `MuData`.
+    Keyword arguments to be passed to `li.utils.mdata_to_anndata` if `adata`
+    is an instance of `MuData`.
     If an AnnData object is passed, these arguments are ignored."""
 
 _inplace = """\
@@ -90,36 +96,42 @@ target_labels
 # Single-cell specific docstrings
 _n_perms_sc = """\
 n_perms
-    Number of permutations for the permutation test. Relevant only for permutation-based methods
-    (e.g., `CellPhoneDB`). If `None` is passed, no permutation testing is performed."""
+    Number of permutations for the permutation test. Relevant only for
+    permutation-based methods (e.g., `CellPhoneDB`). If `None` is passed, no
+    permutation testing is performed."""
 
 _expr_prop = """\
 expr_prop
-    Minimum expression proportion for the ligands and receptors (+ their subunits) in the
-    corresponding cell identities. Set to 0 to return unfiltered results."""
+    Minimum expression proportion for the ligands and receptors (+ their
+    subunits) in the corresponding cell identities. Set to 0 to return
+    unfiltered results."""
 
 _min_cells = """\
 min_cells
-    Minimum cells (per cell identity if grouped by `groupby`) to be considered for downstream analysis."""
+    Minimum cells (per cell identity if grouped by `groupby`) to be considered
+    for downstream analysis."""
 
 _base = """\
 base
-    Exponent base used to reverse the log-transformation of the matrix. Relevant only for the `logfc` method."""
+    Exponent base used to reverse the log-transformation of the matrix.
+    Relevant only for the `logfc` method."""
 
 _return_all_lrs = """\
 return_all_lrs
-    Bool whether to return all ligand-receptor pairs, or only those that surpass the `expr_prop`
-    threshold. Ligand-receptor pairs that do not pass the `expr_prop` threshold will be assigned
-    to the *worst* score of the ones that do. `False` by default."""
+    Bool whether to return all ligand-receptor pairs, or only those that
+    surpass the `expr_prop` threshold. Ligand-receptor pairs that do not pass
+    the `expr_prop` threshold will be assigned to the *worst* score of the ones
+    that do. `False` by default."""
 
 _de_method = """\
 de_method
-    Differential expression method. `scanpy.tl.rank_genes_groups` is used to rank genes
-    according to 1vsRest. The default method is 't-test'."""
+    Differential expression method. `scanpy.tl.rank_genes_groups` is used to
+    rank genes according to 1vsRest. The default method is 't-test'."""
 
 _groupby_pairs = """\
 groupby_pairs
-    A DataFrame with columns `source` and `target` to be used to subset the possible combinations of interacting cell types.
+    A DataFrame with columns `source` and `target` to be used to subset the
+    possible combinations of interacting cell types.
     If None, all possible combinations are used."""
 
 
@@ -142,36 +154,44 @@ receptor_key
 
 _score_key = """\
 score_key
-    Column name of the score in `liana_res`. If None, the score is inferred from the method."""
+    Column name of the score in `liana_res`. If None, the score is inferred
+    from the method."""
 
 _uns_key = """\
 uns_key
-    Key in `adata.uns` that contains the LIANA results. Default is `'liana_res'`."""
+    Key in `adata.uns` that contains the LIANA results. Default is
+    `'liana_res'`."""
 
 
 _inverse_fun = """\
 inverse_fun
-    Function that is applied to the scores before building the views. Default is `lambda x: 1 - x` which is used to invert the scores
-    reflect probabilities (e.g. magnitude_rank), i.e. such for which lower values reflect higher relevance.
+    Function that is applied to the scores before building the views. Default
+    is `lambda x: 1 - x` which is used to invert the scores reflect
+    probabilities (e.g. magnitude_rank), i.e. such for which lower values
+    reflect higher relevance.
     This is handled automatically for the scores in liana."""
 
 
 # Spatial specific docstrings
 _spatial_key = """\
 spatial_key
-    Key in `adata.obsm` that contains the spatial coordinates. Default is `'spatial'`."""
+    Key in `adata.obsm` that contains the spatial coordinates. Default is
+    `'spatial'`."""
 
 _connectivity_key = """\
 connectivity_key
-    Key in `adata.obsp` that contains the spatial connectivity matrix. Default is `'spatial_connectivity'`. """
+    Key in `adata.obsp` that contains the spatial connectivity matrix. Default
+    is `'spatial_connectivity'`. """
 
 _local_name = """\
 local_name
-    Name of the local function to use for the analysis. Passing `None` will return only the Global scores."""
+    Name of the local function to use for the analysis. Passing `None` will
+    return only the Global scores."""
 
 _global_name = """\
 global_name
-    Name or names (list) of the global function(s) to use for the analysis. Passing `None` will not calculate any global scores"""
+    Name or names (list) of the global function(s) to use for the analysis.
+    Passing `None` will not calculate any global scores"""
 
 _positive_only = """\
 positive_only
@@ -191,27 +211,31 @@ y_mod
 
 _x_name = """\
 x_name
-    Name of the x-variable. If passing a `resource` dataframe, this should match the first column."""
+    Name of the x-variable. If passing a `resource` dataframe, this should
+    match the first column."""
 
 _y_name = """\
 y_name
-    Name of the y-variable. If passing a `resource` dataframe, this should match the second column."""
+    Name of the y-variable. If passing a `resource` dataframe, this should
+    match the second column."""
 
 _mask_negatives = """\
 mask_negatives
-    Whether to mask negative-negative (low-low) or uncategorized interactions."""
+    Whether to mask negative-negative (low-low) or uncategorized
+    interactions."""
 
 _spatial_kwargs = """
 spatial_kwargs
-    Keyword arguments passed to `liana.utils.spatial_pair_proximity()` for computing
-    spatial proximity weights. Default is None, which uses default values
-    (bandwidth=250, kernel='gaussian', trim_fraction=0.1)."""
+    Keyword arguments passed to `liana.utils.spatial_pair_proximity()` for
+    computing spatial proximity weights. Default is None, which uses default
+    values (bandwidth=250, kernel='gaussian', trim_fraction=0.1)."""
 
 _kernel = """
 kernel
     Kernel function used to generate connectivity/proximity weights.
     It controls the shape of the connectivity weights.
-    The following options are available: ['gaussian', 'exponential', 'linear', 'misty_rbf']."""
+    The following options are available: ['gaussian', 'exponential', 'linear',
+    'misty_rbf']."""
 
 _coordinates = """
 coordinates
@@ -219,12 +243,14 @@ coordinates
 
 _bandwidth = """
 bandwidth
-    Denotes signaling length and controls the maximum distance at which two spots/cells are considered.
+    Denotes signaling length and controls the maximum distance at which two
+    spots/cells are considered.
     Corresponds to the units in which spatial coordinates are expressed."""
 
 _contact_bandwidth = """
 contact_bandwidth
-    Bandwidth for contact proximity calculation and distance threshold for contact interactions.
+    Bandwidth for contact proximity calculation and distance threshold for
+    contact interactions.
     If None, contact proximity is not calculated. Default is None."""
 
 
@@ -261,12 +287,14 @@ orderby_ascending
 
 _orderby_absolute = """\
 orderby_absolute
-    If `top_n` is not `None`, whether to order by the absolute value of the `orderby` column.
+    If `top_n` is not `None`, whether to order by the absolute value of the
+    `orderby` column.
 """
 
 _filter_fun = """\
 filter_fun
-    A function, applied along the columns (axis=1), used to filter the results to be plotted.
+    A function, applied along the columns (axis=1), used to filter the results
+    to be plotted.
 """
 
 _aggregate_fun = """\
@@ -276,12 +304,14 @@ aggregate_fun
 
 _ligand_complex = """\
 ligand_complex
-    `list` of ligand complexes to filter the interactions to be plotted. Defaults to None.
+    `list` of ligand complexes to filter the interactions to be plotted.
+    Defaults to None.
 """
 
 _receptor_complex = """\
 receptor_complex
-    `list` of receptor complexes to filter the interactions to be plotted. Defaults to None.
+    `list` of receptor complexes to filter the interactions to be plotted.
+    Defaults to None.
 """
 
 
