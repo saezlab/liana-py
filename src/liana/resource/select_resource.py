@@ -25,6 +25,20 @@ def select_resource(resource_name: str = V.resource_name) -> DataFrame:
     -------
     A dataframe with ``['ligand', 'receptor']`` columns
 
+    Examples
+    --------
+    >>> from liana import resource
+    >>> resource.select_resource('consensus')
+          ligand receptor
+    0     LGALS9    PTPRC
+    1     LGALS9      MET
+    2     LGALS9     CD44
+    ...      ...      ...
+    4621    CSF1    CSF3R
+    4622   IL36G   IFNAR1
+    4623   IL36G   IFNAR2
+
+    [4624 rows x 2 columns]
     """
     resource_name = resource_name.lower()
 
@@ -53,34 +67,70 @@ def show_resources():
     -------
     A list of resource names available via ``liana.resource.select_resource``
 
+    Examples
+    --------
+    >>> from liana import resource
+    >>> resource.show_resources()
+    ['baccin2019', 'cellcall', 'cellchatdb', 'cellinker', 'cellphonedb',
+    'celltalkdb', 'connectomedb2020', 'consensus', 'embrace', 'guide2pharma',
+    'hpmr', 'icellnet', 'italk', 'kirouac2010', 'lrdb', 'mouseconsensus',
+    'ramilowski2015']
     """
     resource_path = pathlib.Path(__file__).parent.joinpath("omni_resource.csv")
     resource = read_csv(resource_path, index_col=False)
     return list(unique(resource['resource']))
 
 
-def _handle_resource(interactions=None, resource=None, resource_name=None, x_name='ligand', y_name='receptor', verbose=True):
+def _handle_resource(
+        interactions=None,
+        resource=None,
+        resource_name=None,
+        x_name='ligand',
+        y_name='receptor',
+        verbose=True
+    ):
     if interactions is None:
         if resource is None:
             if resource_name is None:
-                raise ValueError("If 'interactions' and 'resource' are both None, 'resource_name' must be provided.")
+                raise ValueError(
+                    "If 'interactions' and 'resource' are both None, "
+                    "'resource_name' must be provided."
+                )
             else:
                 _logg(f"Using resource `{resource_name}`.", verbose=verbose)
                 resource = select_resource(resource_name)
         else:
             if verbose:
                 print("Using provided `resource`.")
-            if not isinstance(resource, DataFrame) or x_name not in resource.columns or y_name not in resource.columns:
-                raise ValueError("If 'interactions' is None, 'resource' must be a valid DataFrame "
-                                 f"with columns '{x_name}' and '{y_name}'.")
+            if (
+                    not isinstance(resource, DataFrame)
+                    or x_name not in resource.columns
+                    or y_name not in resource.columns
+                ):
+                raise ValueError(
+                    "If 'interactions' is None, 'resource' must be a "
+                    f"valid DataFrame with columns '{x_name}' and '{y_name}'."
+                )
+
             resource = resource.copy()
-            resource = resource.dropna(subset=[x_name, y_name]).drop_duplicates()
+            resource = resource.dropna(
+                subset=[x_name, y_name]
+            ).drop_duplicates()
+
             resource.index = range(len(resource))
             resource.index.name = None
     else:
         _logg("Using provided `interactions`.", verbose=verbose)
-        if not isinstance(interactions, list) or any(len(item) != 2 for item in interactions):
-            raise ValueError("'interactions' should be a list of tuples in the format [(x1, y1), (x2, y2), ...].")
+
+        if (
+            not isinstance(interactions, list)
+            or any(len(item) != 2 for item in interactions)
+        ):
+            raise ValueError(
+                "'interactions' should be a list of tuples in the format "
+                "[(x1, y1), (x2, y2), ...]."
+            )
+
         interactions = set(interactions)
         resource = DataFrame(interactions, columns=[x_name, y_name])
 
