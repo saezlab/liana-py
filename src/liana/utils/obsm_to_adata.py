@@ -16,7 +16,8 @@ def obsm_to_adata(adata: AnnData,
                   _var: pd.DataFrame | None = None,
                   ) -> AnnData:
     """
-    Extracts a dataframe from adata.obsm and returns a new AnnData object with the values stored in X.
+    Extracts a dataframe from adata.obsm and returns a new AnnData object with
+    the values stored in X.
 
     Parameters
     ----------
