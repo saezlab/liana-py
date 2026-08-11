@@ -37,7 +37,8 @@ def filter_reassemble_complexes(lr_res: pd.DataFrame,
     lr_res: a reduced long-format pandas dataframe
 
     """
-    # Filter by expr_prop (inner join only complexes where all subunits are expressed)
+    # Filter by expr_prop
+    # (inner join only complexes where all subunits are expressed)
     expressed = (lr_res[_key_cols + ['ligand_props', 'receptor_props']]
                  .set_index(_key_cols)
                  .stack()
@@ -52,8 +53,9 @@ def filter_reassemble_complexes(lr_res: pd.DataFrame,
     else:
         expressed['lrs_to_keep'] = True
         lr_res = lr_res.merge(expressed, how='left', on=_key_cols)
-         # deal with duplicated subunits
-         # subunits that are not expressed might not represent the most relevant subunit
+        # deal with duplicated subunits:
+        # - subunits that are not expressed might not represent
+        #   the most relevant subunit
         lr_res.drop_duplicates(subset=_key_cols, inplace=True)
         lr_res['lrs_to_keep'].fillna(value=False, inplace=True)
         lr_res['prop_min'].fillna(value=0, inplace=True)
@@ -71,10 +73,13 @@ def filter_reassemble_complexes(lr_res: pd.DataFrame,
     duplicate_mask = lr_res.duplicated(subset=_key_cols, keep=False)
     if duplicate_mask.any():
         # check if there are any non-equal subunit values
-        if not lr_res[duplicate_mask].groupby(_key_cols)[complex_cols].transform(lambda x: x.duplicated(keep=False)).all().all():
+        cpxs = lr_res[duplicate_mask].groupby(_key_cols)[complex_cols]
+        check = cpxs.transform(lambda x: x.duplicated(keep=False)).all().all()
+        if not check:
             _logg('There were duplicated subunits in the complexes. ' +
-                 'The subunits were reduced to only the minimum expression subunit. ' +
-                 'However, there were subunits that were not the same within a complex. ',
+                 'The subunits were reduced to only the minimum expression ' +
+                 'subunit. However, there were subunits that were not the ' +
+                 'same within a complex. ',
                  level='warn')
         lr_res = lr_res.drop_duplicates(subset=_key_cols, keep='first')
 
