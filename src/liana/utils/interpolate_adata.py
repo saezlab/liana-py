@@ -18,9 +18,11 @@ def interpolate_adata(target: AnnData,
                       verbose: bool = V.verbose
                       ) -> AnnData:
     """
-    Interpolates spatial data from a target AnnData object to a reference AnnData object based on spatial coordinates.
+    Interpolates spatial data from a target AnnData object to a reference
+    AnnData object based on spatial coordinates.
 
-    The function creates a new AnnData object where the `.X` attribute is filled with interpolated data using the specified method.
+    The function creates a new AnnData object where the `.X` attribute is
+    filled with interpolated data using the specified method.
 
     Parameters
     ----------
@@ -32,15 +34,24 @@ def interpolate_adata(target: AnnData,
     %(layer)s
     %(use_raw)s
     method
-        Interpolation method. See `scipy.interpolate.griddata` for more information.
+        Interpolation method. See `scipy.interpolate.griddata` for more
+        information.
     fill_value
-        Value to fill in for points outside of the convex hull of the input points.
+        Value to fill in for points outside of the convex hull of the input
+        points.
     %(verbose)s
 
     Returns
     -------
-    AnnData: A new AnnData object with the same metadata as the reference but with interpolated spatial data in `.X`.
+    AnnData: A new AnnData object with the same metadata as the reference but
+    with interpolated spatial data in `.X`.
 
+    Examples
+    --------
+    See usage here `[1]`_.
+
+    .. _[1]: https://liana-py.readthedocs.io/en/latest/notebooks/sma.html\
+        #identifying-local-interactions
     """
     target_coords = target.obsm[spatial_key]
     reference_coords = reference.obsm[spatial_key]
@@ -54,7 +65,11 @@ def interpolate_adata(target: AnnData,
                  varm=target.varm
                  )
 
-    values = _choose_mtx_rep(adata=target, use_raw=use_raw, layer=layer, verbose=verbose).toarray()
+    values = _choose_mtx_rep(adata=target,
+                             use_raw=use_raw,
+                             layer=layer,
+                             verbose=verbose
+                             ).toarray()
 
     ad.X = csr_matrix(
         griddata(points=target_coords,
