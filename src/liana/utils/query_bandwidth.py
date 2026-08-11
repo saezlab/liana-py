@@ -12,7 +12,8 @@ def query_bandwidth(coordinates: np.ndarray,
                     reference: np.ndarray = None
                     ) -> tuple[Figure, DataFrame]:
     """
-    Query the bandwidth (maximum distance) at which the average number of neighbors is maximized.
+    Query the bandwidth (maximum distance) at which the average number of
+    neighbors is maximized.
 
     Parameters
     ----------
