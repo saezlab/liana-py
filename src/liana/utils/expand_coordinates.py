@@ -13,17 +13,19 @@ def expand_coordinates(
     """
     Lay out the spatial coordinates of multiple samples side-by-side on a grid.
 
-    Each sample is translated into its own cell of a regular grid so that samples
-    no longer overlap in coordinate space (e.g. for joint plotting). Within a
-    sample the transformation is a pure translation, so relative distances are
-    preserved. The original coordinates are stored in ``obsm[f'{spatial_key}_original']``.
+    Each sample is translated into its own cell of a regular grid so that
+    samples no longer overlap in coordinate space (e.g. for joint plotting).
+    Within a sample the transformation is a pure translation, so relative
+    distances are preserved. The original coordinates are stored in
+    ``obsm[f'{spatial_key}_original']``.
 
     Parameters
     ----------
     adata
         Annotated data object with spatial coordinates in ``obsm[spatial_key]``.
     sample_key
-        Column in ``adata.obs`` identifying the sample each observation belongs to.
+        Column in ``adata.obs`` identifying the sample each observation
+        belongs to.
     spatial_key
         Key in ``adata.obsm`` holding the (n_obs, 2) coordinate matrix.
     n_cols
@@ -34,14 +36,26 @@ def expand_coordinates(
 
     Returns
     -------
-    A copy of ``adata`` with expanded coordinates in ``obsm[spatial_key]`` and the
-    original coordinates preserved in ``obsm[f'{spatial_key}_original']``.
+    A copy of ``adata`` with expanded coordinates in ``obsm[spatial_key]`` and
+    the original coordinates preserved in ``obsm[f'{spatial_key}_original']``.
 
+    Examples
+    --------
+    >>> import scanpy as sc
+    >>> import numpy as np
+    >>> from liana.utils.expand_coordinates import expand_coordinates
+    >>> adata = sc.datasets.pbmc68k_reduced()
+    >>> adata.obsm['spatial'] = np.random.uniform(0, 100, size=(adata.n_obs, 2))
+    >>> expanded = expand_coordinates(adata, sample_key='bulk_labels')
     """
     if sample_key not in adata.obs:
-        raise ValueError(f"`sample_key` '{sample_key}' was not found in `adata.obs`.")
+        raise ValueError(
+            f"`sample_key` '{sample_key}' was not found in `adata.obs`."
+        )
     if spatial_key not in adata.obsm:
-        raise ValueError(f"`spatial_key` '{spatial_key}' was not found in `adata.obsm`.")
+        raise ValueError(
+            f"`spatial_key` '{spatial_key}' was not found in `adata.obsm`."
+        )
 
     adata = adata.copy()
     original = np.asarray(adata.obsm[spatial_key], dtype=float)
