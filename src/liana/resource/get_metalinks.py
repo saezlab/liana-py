@@ -45,7 +45,9 @@ def _download_metalinksdb(verbose: bool = True) -> str:
         file_size = os.path.getsize(db_path)
         if file_size == 0:
             os.remove(db_path)
-            raise RuntimeError("Downloaded file is empty. Please check the URL and try again.")
+            raise RuntimeError(
+                "Downloaded file is empty. Please check the URL and try again."
+            )
 
         _logg(f"Database downloaded and saved to {db_path} ({file_size} bytes).", verbose=verbose)
     except (requests.exceptions.RequestException, OSError, RuntimeError) as e:
@@ -106,6 +108,20 @@ def get_metalinks(db_path: str | None = None,
     Returns
     -------
     A pandas DataFrame containing the query results without the source column.
+
+    Examples
+    --------
+    >>> resource.get_metalinks()
+                  hmdb uniprot gene_symbol  ...  type  source
+    0      HMDB0015364  P48443        RXRG  ...    lr  Stitch
+    1      HMDB0014998  P48443        RXRG  ...    lr  Stitch
+    2      HMDB0000151  P48443        RXRG  ...    lr  Stitch
+    ...            ...     ...         ...  ...   ...     ...
+    41891  HMDB0000692  Q96FX2        DPH3  ...    pd    rhea
+    41892  HMDB0000464  Q9H3K2       GHITM  ...    pd    rhea
+    41893  HMDB0000586  Q9H3K2       GHITM  ...    pd    rhea
+
+    [41894 rows x 8 columns]
 
     """
     if db_path is None:
@@ -197,6 +213,10 @@ def get_metalinks_values(table_name: str,
     -------
     A list of distinct values from the specified column.
 
+    Examples
+    --------
+    >>> resource.get_metalinks_values('metabolites', 'pubchem')
+    ['1117', '51', '271', ... '20057354', '53481046', '5283120']
     """
     if db_path is None:
         db_path = _download_metalinksdb()
@@ -228,6 +248,30 @@ def describe_metalinks(db_path: str | None = None,
     -------
     The database schema description.
 
+    Examples
+    --------
+    >>> resource.describe_metalinks()
+    Downloading database...
+    Database downloaded and saved to /home/nico/Saezlab/liana-py/metalinksdb.db (13910016 bytes).
+    Schema of table: metabolites
+    ============================
+    Column ID: 0, Name: hmdb, Type: TEXT, Primary Key: 0
+    Column ID: 1, Name: metabolite, Type: TEXT, Primary Key: 0
+    Column ID: 2, Name: pubchem, Type: TEXT, Primary Key: 0
+    Column ID: 3, Name: metabolite_subclass, Type: TEXT, Primary Key: 0
+
+    No Foreign Keys.
+    ----------------------------------------
+
+    [...]
+
+    Schema of table: pathway
+    ========================
+    Column ID: 0, Name: hmdb, Type: TEXT, Primary Key: 0
+    Column ID: 1, Name: pathway, Type: TEXT, Primary Key: 0
+
+    No Foreign Keys.
+    ----------------------------------------
     """
     if db_path is None:
         db_path = _download_metalinksdb()
