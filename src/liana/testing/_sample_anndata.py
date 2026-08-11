@@ -46,16 +46,31 @@ def generate_toy_adata():
     rng = np.random.default_rng(0)
 
     # create fake samples
-    adata.obs[sample_key] = rng.choice(['A', 'B', 'C', 'D'], size=len(adata.obs))
+    adata.obs[sample_key] = rng.choice(
+        ['A', 'B', 'C', 'D'],
+        size=len(adata.obs)
+    )
 
     # group samples into conditions
-    adata.obs['case'] = adata.obs[sample_key].map({'A': 'yes', 'B': 'yes', 'C': 'no', 'D': 'no'})
+    adata.obs['case'] = adata.obs[sample_key].map({
+        'A': 'yes',
+        'B': 'yes',
+        'C': 'no',
+        'D': 'no'
+    })
 
     return adata
 
 
-def generate_anndata(sparsity = 0.90, n_ct = 10, n_vars = 2000, n_obs = 1000, seed=1337):
-    # TODO, eventually change completely to use this function, inplace of the other ones
+def generate_anndata(
+        sparsity = 0.90,
+        n_ct = 10,
+        n_vars = 2000,
+        n_obs = 1000,
+        seed=1337
+    ):
+    # TODO, eventually change completely to use this function, inplace of the
+    # other ones
     import scanpy as sc
     from scipy.sparse import csr_matrix
 
@@ -73,7 +88,9 @@ def generate_anndata(sparsity = 0.90, n_ct = 10, n_vars = 2000, n_obs = 1000, se
 
     adata.var_names = [f"Gene{i:d}" for i in range(adata.n_vars)]
     adata.obs_names = [f"Cell{i:d}" for i in range(adata.n_obs)]
-    print(f" NNZ fraction: {adata.X.nnz / (adata.X.shape[0] * adata.X.shape[1])}")
+    print(f" NNZ fraction: {
+        adata.X.nnz / (adata.X.shape[0] * adata.X.shape[1])
+    }")
 
     x = rng.integers(low=0, high=5000, size=adata.shape[0])
     y = rng.integers(low=0, high=5000, size=adata.shape[0])
