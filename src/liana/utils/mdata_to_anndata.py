@@ -53,11 +53,15 @@ def mdata_to_anndata(mdata: MuData,
     Raises
     ------
     ValueError
-        If `x_mod` and/or `y_mod` are not provided.
+        If `x_mod` or `y_mod` are not provided.
 
     Examples
     --------
-
+    >>> from mudata import MuData
+    >>> from liana.utils.mdata_to_anndata import mdata_to_anndata
+    >>> import scanpy as sc
+    >>> mdata = MuData({'pbmc': sc.datasets.pbmc68k_reduced()})
+    >>> adata = mdata_to_anndata(mdata, x_mod='pbmc', y_mod='pbmc')
     """
     if x_mod is None or y_mod is None:
         raise ValueError("Both `x_mod` and `y_mod` must be provided!")
