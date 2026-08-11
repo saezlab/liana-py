@@ -34,15 +34,14 @@ def _generate_orthologs(data, column, map_dict, one_to_many):
     df["subunits"] = df.index.str.split("_")
     df["subunits"] = df["subunits"].apply(
         _replace_subunits,
-        args=(
-            map_dict,
-            one_to_many,
-        ),
+        args=(map_dict, one_to_many, ),
     )
     df = df["subunits"].explode().reset_index()
 
     grouped = (
-        df.groupby(column).filter(lambda x: x["subunits"].notna().all()).groupby(column)
+        df.groupby(column).filter(
+            lambda x: x["subunits"].notna().all()
+        ).groupby(column)
     )
 
     # Generate all possible subunit combinations within each group
@@ -57,7 +56,10 @@ def _generate_orthologs(data, column, map_dict, one_to_many):
 
     # Create output DataFrame
     col_names = ["orthology_source", "orthology_target"]
-    result = pd.DataFrame(complexes, columns=col_names).set_index("orthology_source")
+    result = pd.DataFrame(
+        complexes,
+        columns=col_names
+    ).set_index("orthology_source")
 
     return result
 
@@ -77,20 +79,23 @@ def translate_column(
     resource
         Input DataFrame.
     map_df
-        DataFrame with orthology mappings, where the first column is the source and the second column is the target for mapping.
+        DataFrame with orthology mappings, where the first column is the source
+        and the second column is the target for mapping.
     column
         Column name to translate.
     replace
-        Whether to replace the original column with the translated values. Default is True.
-        If False, it will create a new column with the prefix "orthology_".
+        Whether to replace the original column with the translated values.
+        Default is True. If False, it will create a new column with the prefix
+        "orthology_".
     one_to_many
         Maximum number of orthologs allowed per gene. Default is 1.
 
     Details
     -------
     This function generates orthologs for a given column in a DataFrame.
-    It handles complex names by splitting them into subunits and generating all possible combinations of orthologs.
-    It assumes that subunits are separated by an underscore ("_").
+    It handles complex names by splitting them into subunits and generating all
+    possible combinations of orthologs. It assumes that subunits are separated
+    by an underscore ("_").
 
     Returns
     -------
@@ -99,13 +104,17 @@ def translate_column(
     Raises
     ------
     ValueError
-        If the `mapping_df` does not contain 'source' and 'target' columns or `one_to_many` is not an integer
+        If the `mapping_df` does not contain 'source' and 'target' columns or
+        `one_to_many` is not an integer
 
     """
     if not isinstance(one_to_many, int):
         raise ValueError("`one_to_many` should be a positive integer!")
     if ['source', 'target'] != map_df.columns.tolist():
-        raise ValueError("The `map_df` DataFrame must have two columns named 'source' and 'target'!")
+        raise ValueError(
+            "The `map_df` DataFrame must have two columns named 'source' and "
+            "'target'!"
+        )
 
     # get orthologs
     map_df = map_df.set_index("source")
@@ -149,7 +158,8 @@ def translate_resource(
     resource
         Input DataFrame.
     map_df
-        DataFrame with orthology mappings, where the first column is the source and the second column is the target for mapping.
+        DataFrame with orthology mappings, where the first column is the source
+        and the second column is the target for mapping.
     columns
         List of column names to translate.
     **kwargs
@@ -183,20 +193,22 @@ def get_hcop_orthologs(target_organism="mouse",
     target_organism : str
         Target organism for orthology mapping. Default is ``"mouse"``.
         Supported values: ``anole_lizard``, ``c.elegans``, ``cat``, ``cattle``,
-        ``chicken``, ``chimpanzee``, ``dog``, ``fruitfly``, ``horse``, ``macaque``,
-        ``mouse``, ``opossum``, ``pig``, ``platypus``, ``rat``, ``s.cerevisiae``,
-        ``s.pombe``, ``xenopus``, ``zebrafish``.
+        ``chicken``, ``chimpanzee``, ``dog``, ``fruitfly``, ``horse``,
+        ``macaque``, ``mouse``, ``opossum``, ``pig``, ``platypus``, ``rat``,
+        ``s.cerevisiae``, ``s.pombe``, ``xenopus``, ``zebrafish``.
         The target-organism column in the returned DataFrame follows the pattern
         ``{target_organism}_symbol`` (e.g. ``mouse_symbol``, ``rat_symbol``).
     url : str, optional
         Override the download URL. If ``None`` (default), the URL is constructed
         from ``target_organism`` using the HGNC Google Cloud Storage bucket.
     filename : str, optional
-        Local filename to save the downloaded file. Derived from the URL if ``None``.
+        Local filename to save the downloaded file. Derived from the URL if
+        ``None``.
     min_evidence : int
         Minimum number of orthology resources that must support an interaction.
     columns : list, optional
-        Columns to keep in the final DataFrame. If ``None``, all columns are kept.
+        Columns to keep in the final DataFrame. If ``None``, all columns are
+        kept.
 
     Returns
     -------
@@ -205,14 +217,20 @@ def get_hcop_orthologs(target_organism="mouse",
 
     Details
     -------
-    HCOP is a composite database combining data from various orthology resources.
-    It provides a comprehensive set of human orthologs across many species.
+    HCOP is a composite database combining data from various orthology
+    resources. It provides a comprehensive set of human orthologs across many
+    species.
 
     If you use this function, please reference the original HCOP papers:
-    - Eyre, T.A., Wright, M.W., Lush, M.J. and Bruford, E.A., 2007. HCOP: a searchable database of human orthology predictions. Briefings in bioinformatics, 8(1), pp.2-5.
-    - Yates, B., Gray, K.A., Jones, T.E. and Bruford, E.A., 2021. Updates to HCOP: the HGNC comparison of orthology predictions tool. Briefings in Bioinformatics, 22(6), p.bbab155.
+    - Eyre, T.A., Wright, M.W., Lush, M.J. and Bruford, E.A., 2007. HCOP: a
+      searchable database of human orthology predictions. Briefings in
+      bioinformatics, 8(1), pp.2-5.
+    - Yates, B., Gray, K.A., Jones, T.E. and Bruford, E.A., 2021. Updates to
+      HCOP: the HGNC comparison of orthology predictions tool. Briefings in
+      Bioinformatics, 22(6), p.bbab155.
 
-    For more information, please visit the HCOP website: https://www.genenames.org/tools/hcop/
+    For more information, please visit the HCOP website:
+    https://www.genenames.org/tools/hcop/
 
     """
     if url is None:
@@ -223,7 +241,10 @@ def get_hcop_orthologs(target_organism="mouse",
     if not os.path.exists(filename):
         urllib.request.urlretrieve(url, filename)
     else:
-        _logg(f"File {filename} already exists. Skipping download.", level="info")
+        _logg(
+            f"File {filename} already exists. Skipping download.",
+            level="info"
+        )
 
     mapping = pd.read_csv(filename, sep="\t")
     mapping['evidence'] = mapping['support'].apply(lambda x: len(x.split(",")))
