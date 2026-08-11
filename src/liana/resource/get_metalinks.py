@@ -10,7 +10,8 @@ def _download_metalinksdb(verbose: bool = True) -> str:
     """
     Ensures the Metalinksdb is downloaded and available for use.
 
-    If the Metalinks database is not present in the current working directory, it downloads it.
+    If the Metalinks database is not present in the current working directory,
+    it downloads it.
 
     Returns
     -------
@@ -20,21 +21,30 @@ def _download_metalinksdb(verbose: bool = True) -> str:
     requests = _check_if_installed("requests")
 
     # GitHub Releases URL (CI-friendly, no WAF issues)
-    METALINKS_URL = "https://github.com/saezlab/liana-py/releases/download/metalinksdb/metalinksdb.db"
+    METALINKS_URL = "https://github.com/saezlab/liana-py/releases/download/\
+        metalinksdb/metalinksdb.db"
 
     db_file_name = 'metalinksdb.db'
     db_path = os.path.join(os.getcwd(), db_file_name)
 
     if os.path.exists(db_path):
         if os.path.getsize(db_path) == 0:
-            _logg("Existing database file is empty. Removing and re-downloading...", verbose=verbose)
+            _logg(
+                "Existing database file is empty. " +
+                "Removing and re-downloading...",
+                verbose=verbose
+            )
             os.remove(db_path)
         else:
             return db_path
 
     _logg("Downloading database...", verbose=verbose)
     try:
-        response = requests.get(METALINKS_URL, stream=True, allow_redirects=True)
+        response = requests.get(
+            METALINKS_URL,
+            stream=True,
+            allow_redirects=True
+        )
         response.raise_for_status()
 
         with open(db_path, 'wb') as f:
@@ -49,7 +59,10 @@ def _download_metalinksdb(verbose: bool = True) -> str:
                 "Downloaded file is empty. Please check the URL and try again."
             )
 
-        _logg(f"Database downloaded and saved to {db_path} ({file_size} bytes).", verbose=verbose)
+        _logg(
+            f"Database downloaded and saved to {db_path} ({file_size} bytes).",
+            verbose=verbose
+        )
     except (requests.exceptions.RequestException, OSError, RuntimeError) as e:
         # Clean up failed download
         if os.path.exists(db_path):
@@ -77,17 +90,22 @@ def get_metalinks(db_path: str | None = None,
                   source: list[str] | None = None
                   ) -> pd.DataFrame:
     """
-    Fetches edges of metabolite-proteins with specified annotations, applying filters if they are not None.
+    Fetches edges of metabolite-proteins with specified annotations, applying
+    filters if they are not None.
 
-    Allows filtering by lists of hmdb and uniprot IDs and avoids duplicate column names, and returns the results as a pandas DataFrame.
-    Filters are applied using INNER JOINs and WHERE clauses - i.e. the results are the intersection of the filters.
+    Allows filtering by lists of hmdb and uniprot IDs and avoids duplicate
+    column names, and returns the results as a pandas DataFrame.
+    Filters are applied using INNER JOINs and WHERE clauses - i.e. the results
+    are the intersection of the filters.
 
     Parameters
     ----------
     db_path
-        Path to the SQLite database file. If None, the database will be downloaded to the current working directory.
+        Path to the SQLite database file. If None, the database will be
+        downloaded to the current working directory.
     types
-        Desired edge types. Options are: ['lr', 'pd'], where 'lr' stands for 'ligand-receptor' and 'pd' stands for 'production-degradation'.
+        Desired edge types. Options are: ['lr', 'pd'], where 'lr' stands for
+        'ligand-receptor' and 'pd' stands for 'production-degradation'.
     cell_location
         Desired metabolite cell locations.
     tissue_location
@@ -169,11 +187,13 @@ def get_metalinks(db_path: str | None = None,
     where_clauses = []
     for annotation_table, values in annotations_filters.items():
         if values is not None:
-            join_clause = f"INNER JOIN {annotation_table} ON m.hmdb = {annotation_table}.hmdb"
+            join_clause = (f"INNER JOIN {annotation_table} ON " +
+                           f"m.hmdb = {annotation_table}.hmdb")
             join_clauses.append(join_clause)
 
             values_str = ", ".join([f"'{value}'" for value in values])
-            where_clause = f"{annotation_table}.{annotation_table} IN ({values_str})"
+            where_clause = (f"{annotation_table}.{annotation_table} IN " +
+                            f"({values_str})")
             where_clauses.append(where_clause)
 
     _format_clauses(types, "type", "e", where_clauses)
@@ -207,7 +227,8 @@ def get_metalinks_values(table_name: str,
     column_name
         Name of the column from which to fetch distinct values.
     db_path
-        Path to the SQLite database file. If None, the database will be downloaded to the current working directory.
+        Path to the SQLite database file. If None, the database will be
+        downloaded to the current working directory.
 
     Returns
     -------
@@ -235,12 +256,14 @@ def describe_metalinks(db_path: str | None = None,
                        return_output: bool = False
                        ) -> str | None:
     """
-    Prints the schema information and foreign key details for all tables in the specified SQLite database.
+    Prints the schema information and foreign key details for all tables in the
+    specified SQLite database.
 
     Parameters
     ----------
     db_path
-        Path to the SQLite database file. If None, the database will be downloaded to the current working directory.
+        Path to the SQLite database file. If None, the database will be
+        downloaded to the current working directory.
     return_output
         Whether to return the output or just print it.
 
@@ -252,7 +275,8 @@ def describe_metalinks(db_path: str | None = None,
     --------
     >>> resource.describe_metalinks()
     Downloading database...
-    Database downloaded and saved to /home/nico/Saezlab/liana-py/metalinksdb.db (13910016 bytes).
+    Database downloaded and saved to /home/nico/Saezlab/liana-py/metalinksdb.db
+    (13910016 bytes).
     Schema of table: metabolites
     ============================
     Column ID: 0, Name: hmdb, Type: TEXT, Primary Key: 0
@@ -284,13 +308,15 @@ def describe_metalinks(db_path: str | None = None,
     output = ""
     for table in tables:
         table_name = table[0]
-        output += f"Schema of table: {table_name}\n{'=' * len(f'Schema of table: {table_name}')}\n"
+        output += (f"Schema of table: {table_name}\n" +
+                   f"{'=' * len(f'Schema of table: {table_name}')}\n")
 
         cursor.execute(f"PRAGMA table_info({table_name});")
         schema_info = cursor.fetchall()
         for column in schema_info:
             cid, name, ctype, _, _, pk = column
-            output += f"Column ID: {cid}, Name: {name}, Type: {ctype}, Primary Key: {pk}\n"
+            output += (f"Column ID: {cid}, Name: {name}, Type: {ctype}, " +
+                       "Primary Key: {pk}\n")
 
         cursor.execute(f"PRAGMA foreign_key_list({table_name});")
         fk_info = cursor.fetchall()
@@ -298,7 +324,8 @@ def describe_metalinks(db_path: str | None = None,
             output += "\nForeign Keys:\n"
             for fk in fk_info:
                 id, seq, table, from_col, to_col, _, _, _ = fk
-                output += f"ID: {id}, Seq: {seq}, Table: {table}, From: {from_col}, To: {to_col}\n"
+                output += (f"ID: {id}, Seq: {seq}, Table: {table}, " +
+                           f"From: {from_col}, To: {to_col}\n")
         else:
             output += "\nNo Foreign Keys.\n"
         output += "-" * 40 + "\n"
