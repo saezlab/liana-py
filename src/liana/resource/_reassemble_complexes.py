@@ -32,8 +32,8 @@ def filter_reassemble_complexes(lr_res: pd.DataFrame,
     complex_policy
         approach by which the complexes are reassembled
 
-    Return
-    -----------
+    Returns
+    -------
     lr_res: a reduced long-format pandas dataframe
 
     """
@@ -128,6 +128,17 @@ def explode_complexes(resource: pd.DataFrame,
     -------
     A resource with exploded complexes
 
+    Examples
+    --------
+    >>> from liana import resource
+    >>> res = resource.select_resource('consensus')
+    >>> resource.explode_complexes(res)
+           interaction  ligand receptor ligand_complex receptor_complex
+    0     LGALS9&PTPRC  LGALS9    PTPRC         LGALS9            PTPRC
+    1       LGALS9&MET  LGALS9      MET         LGALS9              MET
+    ...            ...     ...      ...            ...              ...
+    5778  IL36G&IFNAR1   IL36G   IFNAR1          IL36G           IFNAR1
+    5779  IL36G&IFNAR2   IL36G   IFNAR2          IL36G           IFNAR2
     """
     resource['interaction'] = resource[SOURCE] + '&' + resource[TARGET]
     resource = (resource.set_index('interaction')
