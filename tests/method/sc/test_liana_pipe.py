@@ -10,14 +10,9 @@ from liana.method.sc._liana_pipe import _calc_log2fc, _expm1_base, liana_pipe
 
 groupby = 'bulk_labels'
 
-
-@pytest.fixture
-def adata(pbmc68k):
-    return pbmc68k
-
 # Test ALL Default parameters
-def test_liana_pipe_defaults(adata, data_dir):
-    all_defaults = liana_pipe(adata=adata,
+def test_liana_pipe_defaults(pbmc68k, data_dir):
+    all_defaults = liana_pipe(adata=pbmc68k,
                               groupby=groupby,
                               resource_name=V.resource_name,
                               groupby_pairs=V.groupby_pairs,
@@ -48,8 +43,8 @@ def test_liana_pipe_defaults(adata, data_dir):
 
 
 # Test NOT Default parameters
-def test_liana_pipe_not_defaults(adata, data_dir):
-    not_defaults = liana_pipe(adata=adata,
+def test_liana_pipe_not_defaults(pbmc68k, data_dir):
+    not_defaults = liana_pipe(adata=pbmc68k,
                               groupby=groupby,
                               resource_name=V.resource_name,
                               expr_prop=0.2,
@@ -81,13 +76,13 @@ def test_liana_pipe_not_defaults(adata, data_dir):
 
 
 
-def test_liana_pipe_subset(adata):
+def test_liana_pipe_subset(pbmc68k):
     cts = ['CD34+', 'Dendritic', 'CD56 NK', 'CD19+ B']
     groupby_pairs = list(product(cts, cts))
     groupby_pairs = DataFrame(groupby_pairs, columns=['source', 'target'])
     groupby_pairs = groupby_pairs[groupby_pairs['source'] == 'Dendritic']
 
-    subset = liana_pipe(adata=adata,
+    subset = liana_pipe(adata=pbmc68k,
                         groupby=groupby,
                         resource_name=V.resource_name,
                         expr_prop=0.05,
@@ -108,20 +103,20 @@ def test_liana_pipe_subset(adata):
     assert subset.shape == (46, 23)
 
 
-def test_expm1_fun(adata):
-    expm1_mat = _expm1_base(V.logbase, adata.raw.X.data)
+def test_expm1_fun(pbmc68k):
+    expm1_mat = _expm1_base(V.logbase, pbmc68k.raw.X.data)
     np.testing.assert_almost_equal(np.sum(expm1_mat), 1057526.4, decimal=1)
 
 
-def test_calc_log2fc(adata):
-    adata.layers['normcounts'] = adata.raw.X.copy()
-    adata.layers['normcounts'].data = _expm1_base(V.logbase, adata.raw.X.data)
-    adata.obs['@label'] = adata.obs.bulk_labels
-    np.testing.assert_almost_equal(np.mean(_calc_log2fc(adata, "Dendritic")), -0.123781264)
+def test_calc_log2fc(pbmc68k):
+    pbmc68k.layers['normcounts'] = pbmc68k.raw.X.copy()
+    pbmc68k.layers['normcounts'].data = _expm1_base(V.logbase, pbmc68k.raw.X.data)
+    pbmc68k.obs['@label'] = pbmc68k.obs.bulk_labels
+    np.testing.assert_almost_equal(np.mean(_calc_log2fc(pbmc68k, "Dendritic")), -0.123781264)
 
 
-def test_calc_log2fc_no_rest_raises(adata):
-    single_label = adata[adata.obs.bulk_labels == "Dendritic"].copy()
+def test_calc_log2fc_no_rest_raises(pbmc68k):
+    single_label = pbmc68k[pbmc68k.obs.bulk_labels == "Dendritic"].copy()
     single_label.layers['normcounts'] = single_label.raw.X.copy()
     single_label.layers['normcounts'].data = _expm1_base(V.logbase, single_label.raw.X.data)
     single_label.obs['@label'] = single_label.obs.bulk_labels

@@ -10,29 +10,18 @@ from liana.testing._sample_resource import sample_resource
 from liana.utils.transform import zi_minmax
 
 
-@pytest.fixture
-def spatial_adata(toy_spatial):
-    """Spatial AnnData with a connectivity matrix."""
-    # Ensure spatial_connectivities exists
-    if 'spatial_connectivities' not in toy_spatial.obsp:
-        from liana.utils import spatial_neighbors
-        spatial_neighbors(toy_spatial, bandwidth=100, spatial_key='spatial')
-
-    return toy_spatial
-
-
-def test_inflow_basic_structure(spatial_adata):
+def test_inflow_basic_structure(toy_spatial):
     """Test basic execution and output structure preservation."""
     lrdata = inflow(
-        spatial_adata,
+        toy_spatial,
         groupby='bulk_labels',
         resource_name='consensus',
         use_raw=True
     )
 
     # Check output structure
-    assert isinstance(lrdata, type(spatial_adata))
-    assert lrdata.shape == (spatial_adata.shape[0], 323)  # Fixed expected shape
+    assert isinstance(lrdata, type(toy_spatial))
+    assert lrdata.shape == (toy_spatial.shape[0], 323)  # Fixed expected shape
 
     # Check var index format: "celltype^ligand^receptor"
     assert all('^' in idx for idx in lrdata.var_names)
@@ -40,27 +29,27 @@ def test_inflow_basic_structure(spatial_adata):
         parts = idx.split('^')
         assert len(parts) == 3
         celltype, ligand, receptor = parts
-        assert celltype in spatial_adata.obs['bulk_labels'].unique()
+        assert celltype in toy_spatial.obs['bulk_labels'].unique()
 
     # Check sparse matrix
     assert isinstance(lrdata.X, csr_matrix)
 
     # Check obs and obsm preserved
-    assert lrdata.obs.equals(spatial_adata.obs)
+    assert lrdata.obs.equals(toy_spatial.obs)
     assert 'spatial' in lrdata.obsm
     np.testing.assert_array_equal(
         lrdata.obsm['spatial'],
-        spatial_adata.obsm['spatial']
+        toy_spatial.obsm['spatial']
     )
 
     # Check obsp preserved
     assert 'spatial_connectivities' in lrdata.obsp
 
 
-def test_inflow_with_transform(spatial_adata):
+def test_inflow_with_transform(toy_spatial):
     """Test inflow with zi_minmax transformation."""
     lrdata = inflow(
-        spatial_adata,
+        toy_spatial,
         groupby='bulk_labels',
         resource_name='consensus',
         x_transform=zi_minmax,
@@ -68,17 +57,17 @@ def test_inflow_with_transform(spatial_adata):
         use_raw=False
     )
 
-    assert lrdata.shape[0] == spatial_adata.shape[0]
+    assert lrdata.shape[0] == toy_spatial.shape[0]
     # Transformed values should be in [0, 1]
     assert lrdata.X.min() >= 0
     assert lrdata.X.max() <= 1
 
 
-def test_inflow_nz_prop_filter(spatial_adata):
+def test_inflow_nz_prop_filter(toy_spatial):
     """Test filtering by non-zero proportion."""
     # Strict filter
     lrdata_strict = inflow(
-        spatial_adata,
+        toy_spatial,
         groupby='bulk_labels',
         resource_name='consensus',
         nz_prop=0.2,
@@ -87,7 +76,7 @@ def test_inflow_nz_prop_filter(spatial_adata):
 
     # Lenient filter
     lrdata_lenient = inflow(
-        spatial_adata,
+        toy_spatial,
         groupby='bulk_labels',
         resource_name='consensus',
         nz_prop=0.001,
@@ -98,25 +87,25 @@ def test_inflow_nz_prop_filter(spatial_adata):
     assert lrdata_strict.shape[1] <= lrdata_lenient.shape[1]
 
 
-def test_inflow_custom_resource(spatial_adata):
+def test_inflow_custom_resource(toy_spatial):
     """Test with custom resource DataFrame."""
-    resource = sample_resource(spatial_adata, n_lrs=10)
+    resource = sample_resource(toy_spatial, n_lrs=10)
 
     lrdata = inflow(
-        spatial_adata,
+        toy_spatial,
         groupby='bulk_labels',
         resource=resource,
         use_raw=True
     )
 
     assert lrdata.shape[1] > 0
-    assert lrdata.shape[0] == spatial_adata.shape[0]
+    assert lrdata.shape[0] == toy_spatial.shape[0]
 
 
-def test_inflow_numerical_correctness(spatial_adata):
+def test_inflow_numerical_correctness(toy_spatial):
     """Test numerical correctness of inflow scores."""
     lrdata = inflow(
-        spatial_adata,
+        toy_spatial,
         groupby='bulk_labels',
         resource_name='consensus',
         use_raw=True
@@ -127,25 +116,25 @@ def test_inflow_numerical_correctness(spatial_adata):
     np.testing.assert_almost_equal(lrdata.X.sum(), 9384.73809, decimal=3)    # Replace with actual
 
 
-def test_inflow_missing_connectivity(spatial_adata):
+def test_inflow_missing_connectivity(toy_spatial):
     """Test error when spatial_connectivities is missing."""
     # Remove spatial connectivity
-    del spatial_adata.obsp['spatial_connectivities']
+    del toy_spatial.obsp['spatial_connectivities']
 
     with pytest.raises(ValueError, match="spatial_connectivities"):
         inflow(
-            spatial_adata,
+            toy_spatial,
             groupby='bulk_labels',
             resource_name='consensus',
             use_raw=True
         )
 
 
-def test_inflow_no_features_pass_filter(spatial_adata):
+def test_inflow_no_features_pass_filter(toy_spatial):
     """Test error when no features pass nz_prop filter."""
     with pytest.raises(ValueError, match="No features passed"):
         inflow(
-            spatial_adata,
+            toy_spatial,
             groupby='bulk_labels',
             resource_name='consensus',
             nz_prop=0.99,  # Very strict filter
@@ -153,55 +142,55 @@ def test_inflow_no_features_pass_filter(spatial_adata):
         )
 
 
-def test_inflow_invalid_groupby(spatial_adata):
+def test_inflow_invalid_groupby(toy_spatial):
     """Test error with invalid groupby column."""
     with pytest.raises(KeyError):
         inflow(
-            spatial_adata,
+            toy_spatial,
             groupby='nonexistent_column',
             resource_name='consensus',
             use_raw=True
         )
 
 
-def test_inflow_with_obsm_key(spatial_adata):
+def test_inflow_with_obsm_key(toy_spatial):
     """Test inflow with pre-computed cell type matrix from obsm."""
 
     # Create soft cell type assignments (probabilities) as DataFrame
     n_celltypes = 3
-    ct_probs = np.random.rand(spatial_adata.n_obs, n_celltypes)
+    ct_probs = np.random.rand(toy_spatial.n_obs, n_celltypes)
     ct_probs = ct_probs / ct_probs.sum(axis=1, keepdims=True)  # normalize to sum to 1
-    ct_probs_df = pd.DataFrame(ct_probs, columns=[f'CT_{i}' for i in range(n_celltypes)], index=spatial_adata.obs.index)
-    spatial_adata.obsm['ct_probs'] = ct_probs_df
+    ct_probs_df = pd.DataFrame(ct_probs, columns=[f'CT_{i}' for i in range(n_celltypes)], index=toy_spatial.obs.index)
+    toy_spatial.obsm['ct_probs'] = ct_probs_df
 
     lrdata = inflow(
-        spatial_adata,
+        toy_spatial,
         obsm_key='ct_probs',
         resource_name='consensus',
         use_raw=True
     )
 
     # Check output structure
-    assert isinstance(lrdata, type(spatial_adata))
-    assert lrdata.shape[0] == spatial_adata.shape[0]
+    assert isinstance(lrdata, type(toy_spatial))
+    assert lrdata.shape[0] == toy_spatial.shape[0]
     assert lrdata.shape[1] > 0
 
-def test_inflow_obsm_vs_groupby_equivalence(spatial_adata):
+def test_inflow_obsm_vs_groupby_equivalence(toy_spatial):
     """Test that one-hot from groupby matches binary obsm."""
     import pandas as pd
 
     # Create one-hot from groupby
-    ct_onehot = pd.get_dummies(spatial_adata.obs['bulk_labels'])
-    spatial_adata.obsm['ct_onehot'] = ct_onehot
+    ct_onehot = pd.get_dummies(toy_spatial.obs['bulk_labels'])
+    toy_spatial.obsm['ct_onehot'] = ct_onehot
 
     lrdata1 = inflow(
-        spatial_adata,
+        toy_spatial,
         groupby='bulk_labels',
         resource_name='consensus',
         use_raw=True
     )
     lrdata2 = inflow(
-        spatial_adata,
+        toy_spatial,
         obsm_key='ct_onehot',
         resource_name='consensus',
         use_raw=True
@@ -216,21 +205,21 @@ def test_inflow_obsm_vs_groupby_equivalence(spatial_adata):
     )
 
 
-def test_inflow_groupby_obsm_validation(spatial_adata):
+def test_inflow_groupby_obsm_validation(toy_spatial):
     """Test error when neither or both groupby/obsm_key provided."""
     # Test neither parameter provided
     with pytest.raises(ValueError, match="Exactly one"):
         inflow(
-            spatial_adata,
+            toy_spatial,
             resource_name='consensus',
             use_raw=True
         )
 
     # Test both parameters provided
-    spatial_adata.obsm['ct'] = np.random.rand(spatial_adata.n_obs, 3)
+    toy_spatial.obsm['ct'] = np.random.rand(toy_spatial.n_obs, 3)
     with pytest.raises(ValueError, match="Exactly one"):
         inflow(
-            spatial_adata,
+            toy_spatial,
             groupby='bulk_labels',
             obsm_key='ct',
             resource_name='consensus',
@@ -238,25 +227,25 @@ def test_inflow_groupby_obsm_validation(spatial_adata):
         )
 
 
-def test_inflow_obsm_missing_key(spatial_adata):
+def test_inflow_obsm_missing_key(toy_spatial):
     """Test error when obsm_key not found in obsm."""
     with pytest.raises(KeyError, match="not found in adata.obsm"):
         inflow(
-            spatial_adata,
+            toy_spatial,
             obsm_key='nonexistent_key',
             resource_name='consensus',
             use_raw=True
         )
 
 
-def test_inflow_obsm_not_dataframe(spatial_adata):
+def test_inflow_obsm_not_dataframe(toy_spatial):
     """Test error when obsm matrix is not a DataFrame."""
     # Create matrix as numpy array instead of DataFrame
-    spatial_adata.obsm['ct_array'] = np.random.rand(spatial_adata.n_obs, 3)
+    toy_spatial.obsm['ct_array'] = np.random.rand(toy_spatial.n_obs, 3)
 
     with pytest.raises(TypeError, match="must be a pandas DataFrame"):
         inflow(
-            spatial_adata,
+            toy_spatial,
             obsm_key='ct_array',
             resource_name='consensus',
             use_raw=True

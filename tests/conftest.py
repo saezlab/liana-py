@@ -16,39 +16,8 @@ matplotlib.use("Agg")
 
 @pytest.fixture(scope="session")
 def data_dir():
-    """Path to ``tests/data``, which holds the expected outputs of the methods."""
+    """Path to ``tests/data``, which holds the tests' inputs and expected outputs."""
     return pathlib.Path(__file__).parent / "data"
-
-
-@pytest.fixture(scope="session")
-def download_cache():
-    """Directory the tests download their (large) external files to, once."""
-    cache = pathlib.Path(__file__).parent / ".cache"
-    cache.mkdir(exist_ok=True)
-
-    return cache
-
-
-@pytest.fixture(scope="session")
-def metalinks_db(download_cache):
-    """Path to MetaLinksDB, downloaded on first use."""
-    import os
-
-    from liana.resource.get_metalinks import _download_metalinksdb
-
-    # NOTE: the db is always downloaded to the working directory
-    cwd = os.getcwd()
-    os.chdir(download_cache)
-    try:
-        return _download_metalinksdb(verbose=False)
-    finally:
-        os.chdir(cwd)
-
-
-@pytest.fixture(scope="session")
-def hcop_file(download_cache):
-    """Path the human-mouse HCOP orthology table is cached at."""
-    return str(download_cache / "human_mouse_hcop_fifteen_column.txt.gz")
 
 
 @pytest.fixture
@@ -62,7 +31,7 @@ def pbmc68k():
 @pytest.fixture
 def toy_adata():
     """`pbmc68k_reduced` with fake `sample` and `case` columns in `.obs`."""
-    from liana.testing._sample_anndata import generate_toy_adata
+    from liana.testing import generate_toy_adata
 
     return generate_toy_adata()
 
@@ -70,7 +39,7 @@ def toy_adata():
 @pytest.fixture
 def toy_spatial():
     """`pbmc68k_reduced` with random coordinates and spatial connectivities."""
-    from liana.testing._sample_anndata import generate_toy_spatial
+    from liana.testing import generate_toy_spatial
 
     return generate_toy_spatial()
 
