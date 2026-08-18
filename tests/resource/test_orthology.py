@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 
 from liana.resource import get_hcop_orthologs, select_resource, translate_column, translate_resource
 
@@ -58,6 +59,7 @@ def test_complex_cases():
     assert untranslated.any()
 
 
+@pytest.mark.network
 def test_translate_resource(hcop_file):
     resource = select_resource()
     map_df = get_hcop_orthologs(target_organism="mouse", filename=hcop_file,
@@ -70,7 +72,27 @@ def test_translate_resource(hcop_file):
     assert translated2.shape[0] > translated.shape[0]
 
 
+@pytest.mark.network
 def test_get_hcop(hcop_file):
     mapping = get_hcop_orthologs(filename=hcop_file, columns=None, min_evidence=0)
     assert mapping.shape[0] > 1000
     assert mapping.shape[1] == 16 # 15 columns + added evidence column
+
+
+@pytest.mark.network
+def test_get_hcop_derives_filename_from_url(monkeypatch, tmp_path, hcop_file):
+    """Omitting `filename` downloads to a local file named after the URL."""
+    import shutil
+    import urllib.request
+
+    # serve the cached copy instead of hitting the network again
+    monkeypatch.setattr(urllib.request, "urlretrieve",
+                        lambda url, filename: shutil.copyfile(hcop_file, filename))
+    monkeypatch.chdir(tmp_path)
+
+    derived = get_hcop_orthologs(columns=None, min_evidence=0)
+
+    assert [p.name for p in tmp_path.iterdir()] == ["human_mouse_hcop_fifteen_column.txt.gz"]
+    pd.testing.assert_frame_equal(
+        derived, get_hcop_orthologs(filename=hcop_file, columns=None, min_evidence=0)
+    )
