@@ -175,7 +175,9 @@ def test_jaccard_pval_none_cats(toy_spatial):
 
     assert 'cats' in lrdata.layers.keys()
     assert lrdata.layers['cats'].sum() == -6197
-    assert 'pvals' not in toy_spatial.layers.keys()
+    # `n_perms=None` skips permutations, so no p-values are computed
+    assert 'pvals' not in lrdata.layers.keys()
+    assert 'morans_pvals' not in lrdata.var.columns
     interaction = lrdata.var[lrdata.var.index == 'S100A9^ITGB2']
     np.testing.assert_almost_equal(interaction['lee'].values, expected_glee)
 
