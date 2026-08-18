@@ -63,7 +63,8 @@ def feature_by_group(
     for label in labels:
         mask=adata.obs[groupby] == label
         if not np.any(mask):
-            _logg.warning(f"No cells found for label '{label}' in groupby '{groupby}'")  # type: ignore[attr-defined]
+            _logg(f"No cells found for label '{label}' in groupby '{groupby}'",
+                  level='warn', verbose=True)
             continue
         adata_sub = adata[mask, :]
         expr = adata_sub[:, feature].X.toarray().ravel()

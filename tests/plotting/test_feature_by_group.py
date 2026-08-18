@@ -29,6 +29,13 @@ def test_feature_by_group(toy_spatial):
         assert values.min() >= 0 and values.max() <= 1
 
 
+def test_feature_by_group_skips_empty_labels(toy_spatial):
+    # a label without cells is skipped rather than raising
+    toy_spatial.obs['bulk_labels'] = toy_spatial.obs['bulk_labels'].cat.add_categories('Empty')
+    feature_by_group(adata=toy_spatial, groupby='bulk_labels',
+                     labels=['Dendritic', 'Empty'], feature='HES4')
+
+
 def test_feature_by_group_raises(toy_spatial):
     with pytest.raises(ValueError, match="'labels' must contain at least one label"):
         feature_by_group(adata=toy_spatial, groupby='bulk_labels', labels=[], feature='HES4')
