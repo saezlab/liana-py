@@ -15,7 +15,7 @@ from liana.method.sp._LRIC import (
     cross_pcf,
     lric,
 )
-from liana.testing._sample_anndata import generate_toy_spatial
+from liana.testing import generate_toy_spatial
 from liana.testing._sample_resource import sample_resource
 
 _KWARGS = {
@@ -32,17 +32,37 @@ _KWARGS = {
 
 @pytest.fixture(scope="module")
 def adata():
-    """Toy spatial data with `cell_type` labels."""
+    """Toy spatial data with `cell_type` labels.
+
+    Shared and read-only: the teardown check below fails the module if a test
+    writes to it, which would otherwise leak into whichever test runs next.
+    """
     adata = generate_toy_spatial()
     adata.obs["cell_type"] = adata.obs["bulk_labels"]
+    keys = set(adata.uns)
 
-    return adata
+    yield adata
+
+    assert set(adata.uns) == keys, (
+        f"tests wrote {sorted(set(adata.uns) - keys)} to the shared `adata`; "
+        "use the `adata_copy` fixture for `inplace=True`"
+    )
 
 
 @pytest.fixture(scope="module")
-def resource():
-    """Five ligand-receptor pairs, all covered by `adata`."""
-    return sample_resource(generate_toy_spatial(), n_lrs=5, seed=42)
+def resource(adata):
+    """Five ligand-receptor pairs, all drawn from `adata`'s own genes."""
+    return sample_resource(adata, n_lrs=5, seed=42)
+
+
+@pytest.fixture
+def adata_copy(adata):
+    """A throwaway copy, for the tests that write to `.uns` with `inplace=True`.
+
+    The module-scoped `adata` is shared, so mutating it would leak state into
+    whichever test happens to run next (the suite is order-randomised in CI).
+    """
+    return adata.copy()
 
 
 @pytest.fixture(scope="module")
@@ -174,10 +194,10 @@ def test_cross_pcf_pair_values(cross_pcf_pair):
     )
 
 
-def test_cross_pcf_inplace(adata):
-    cross_pcf(adata, groupby="cell_type", key_added="cross_pcf_test", inplace=True, **_KWARGS)
-    assert "cross_pcf_test" in adata.uns
-    assert set(adata.uns["cross_pcf_test"].keys()) == {"cell_types", "radii", "results"}
+def test_cross_pcf_inplace(adata_copy):
+    cross_pcf(adata_copy, groupby="cell_type", key_added="cross_pcf_test", inplace=True, **_KWARGS)
+    assert "cross_pcf_test" in adata_copy.uns
+    assert set(adata_copy.uns["cross_pcf_test"].keys()) == {"cell_types", "radii", "results"}
 
 
 def test_cross_pcf_min_cells_filter(adata):
@@ -243,12 +263,12 @@ def test_extend_first_annulus_flag(adata, resource):
     np.testing.assert_array_equal(ag_t["lric"][1:], ag_f["lric"][1:])
 
 
-def test_lric_agnostic_inplace_and_transform(adata, resource):
-    lric(adata, resource=resource, key_added="lric_test", inplace=True, **_KWARGS)
-    assert "lric_test" in adata.uns and "lric" in adata.uns["lric_test"]
+def test_lric_agnostic_inplace_and_transform(adata_copy, resource):
+    lric(adata_copy, resource=resource, key_added="lric_test", inplace=True, **_KWARGS)
+    assert "lric_test" in adata_copy.uns and "lric" in adata_copy.uns["lric_test"]
 
-    result_id = lric(adata, resource=resource, transform_fn=lambda x: x, inplace=False, **_KWARGS)
-    result_default = lric(adata, resource=resource, transform_fn=None, inplace=False, **_KWARGS)
+    result_id = lric(adata_copy, resource=resource, transform_fn=lambda x: x, inplace=False, **_KWARGS)
+    result_default = lric(adata_copy, resource=resource, transform_fn=None, inplace=False, **_KWARGS)
     assert not np.allclose(result_id["lric"], result_default["lric"])
 
 
@@ -270,7 +290,7 @@ def test_lric_pairwise(lric_pairwise):
     )
 
 
-def test_lric_pairwise_extras(adata, resource):
+def test_lric_pairwise_extras(adata, adata_copy, resource):
     result_sub = lric(
         adata, resource=resource, groupby="cell_type",
         cell_types=["CD14+ Monocyte", "CD19+ B", "CD56+ NK"],
@@ -281,9 +301,10 @@ def test_lric_pairwise_extras(adata, resource):
     result_filter = lric(adata, resource=resource, groupby="cell_type", min_cells=200, inplace=False, **_KWARGS)
     assert len(result_filter["cell_types"]) < 10
 
-    lric(adata, resource=resource, groupby="cell_type", min_cells=5,
+    lric(adata_copy, resource=resource, groupby="cell_type", min_cells=5,
          key_added="lric_pairwise_test", inplace=True, **_KWARGS)
-    assert "lric_pairwise_test" in adata.uns and "results" in adata.uns["lric_pairwise_test"]
+    assert "lric_pairwise_test" in adata_copy.uns
+    assert "results" in adata_copy.uns["lric_pairwise_test"]
 
 
 def test_lric_min_expressing(adata, resource):
