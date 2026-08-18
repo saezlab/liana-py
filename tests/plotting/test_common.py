@@ -90,3 +90,24 @@ def test_filter_by(liana_res):
     # an interaction is kept whenever *any* of its cell type pairs passes
     kept = np.unique(liana_res[liana_res['specificity_rank'] > 0.95]['interaction'])
     assert set(filtered['interaction']) == set(kept)
+
+
+def test_get_top_n(liana_res):
+    liana_res['interaction'] = liana_res['ligand_complex'] + ' -> ' + liana_res['receptor_complex']
+
+    assert _get_top_n(liana_res, top_n=None, orderby=None,
+                      orderby_ascending=None, orderby_absolute=False) is liana_res
+
+    top = _get_top_n(liana_res.copy(), top_n=5, orderby='specificity_rank',
+                     orderby_ascending=False, orderby_absolute=False)
+    assert top['interaction'].nunique() == 5
+    # the categories carry the order the interactions were ranked in
+    assert isinstance(top['interaction'].dtype, pd.CategoricalDtype)
+
+    with pytest.raises(ValueError, match='specify the column to order'):
+        _get_top_n(liana_res, top_n=5, orderby=None,
+                   orderby_ascending=False, orderby_absolute=False)
+
+    with pytest.raises(ValueError, match='specify if `orderby` is ascending'):
+        _get_top_n(liana_res, top_n=5, orderby='specificity_rank',
+                   orderby_ascending=None, orderby_absolute=False)

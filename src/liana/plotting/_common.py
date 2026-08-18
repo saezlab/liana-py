@@ -84,9 +84,9 @@ def _get_top_n(liana_res, top_n, orderby, orderby_ascending, orderby_absolute):
     if top_n is not None:
         # get the top_n for each interaction
         if orderby is None:
-            ValueError("Please specify the column to order the interactions.")
+            raise ValueError("Please specify the column to order the interactions.")
         if orderby_ascending is None:
-            ValueError("Please specify if `orderby` is ascending or not.")
+            raise ValueError("Please specify if `orderby` is ascending or not.")
         if orderby_ascending:
             how = 'min'
         else:
