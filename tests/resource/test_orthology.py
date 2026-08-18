@@ -58,9 +58,10 @@ def test_complex_cases():
     assert untranslated.any()
 
 
-def test_translate_resource():
+def test_translate_resource(hcop_file):
     resource = select_resource()
-    map_df = get_hcop_orthologs(target_organism="mouse", columns=['human_symbol', 'mouse_symbol'], min_evidence=3)
+    map_df = get_hcop_orthologs(target_organism="mouse", filename=hcop_file,
+                                columns=['human_symbol', 'mouse_symbol'], min_evidence=3)
     map_df = map_df.rename(columns={"human_symbol": "source", "mouse_symbol": "target"})
 
     translated = translate_resource(resource, map_df, one_to_many=1)
@@ -69,7 +70,7 @@ def test_translate_resource():
     assert translated2.shape[0] > translated.shape[0]
 
 
-def test_get_hcop():
-    mapping = get_hcop_orthologs(columns=None, min_evidence=0)
+def test_get_hcop(hcop_file):
+    mapping = get_hcop_orthologs(filename=hcop_file, columns=None, min_evidence=0)
     assert mapping.shape[0] > 1000
     assert mapping.shape[1] == 16 # 15 columns + added evidence column

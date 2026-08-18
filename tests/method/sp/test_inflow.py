@@ -6,20 +6,19 @@ import pytest
 from scipy.sparse import csr_matrix
 
 from liana.method import inflow
-from liana.testing._sample_anndata import generate_toy_mdata, generate_toy_spatial
 from liana.testing._sample_resource import sample_resource
 from liana.utils.transform import zi_minmax
 
 
 @pytest.fixture
-def spatial_adata():
-    """Generate spatial AnnData with connectivity matrix."""
-    adata = generate_toy_spatial()
+def spatial_adata(toy_spatial):
+    """Spatial AnnData with a connectivity matrix."""
     # Ensure spatial_connectivities exists
-    if 'spatial_connectivities' not in adata.obsp:
+    if 'spatial_connectivities' not in toy_spatial.obsp:
         from liana.utils import spatial_neighbors
-        spatial_neighbors(adata, bandwidth=100, spatial_key='spatial')
-    return adata
+        spatial_neighbors(toy_spatial, bandwidth=100, spatial_key='spatial')
+
+    return toy_spatial
 
 
 def test_inflow_basic_structure(spatial_adata):
@@ -264,15 +263,13 @@ def test_inflow_obsm_not_dataframe(spatial_adata):
         )
 
 
-def test_inflow_with_mudata():
+def test_inflow_with_mudata(toy_mdata):
     """Test inflow with MuData input."""
-
-    mdata = generate_toy_mdata()
-    interactions = list(product(mdata.mod['adata_x'].var.index,
-                                mdata.mod['adata_y'].var.index))
+    interactions = list(product(toy_mdata.mod['adata_x'].var.index,
+                                toy_mdata.mod['adata_y'].var.index))
 
     lrdata = inflow(
-        mdata,
+        toy_mdata,
         groupby='bulk_labels',
         interactions=interactions,
         x_mod='adata_x',
@@ -283,8 +280,8 @@ def test_inflow_with_mudata():
     )
 
     # Check output structure
-    assert isinstance(lrdata, type(mdata.mod['adata_x']))
-    assert lrdata.shape[0] == mdata.shape[0]
+    assert isinstance(lrdata, type(toy_mdata.mod['adata_x']))
+    assert lrdata.shape[0] == toy_mdata.shape[0]
     assert lrdata.shape[1] > 0
 
     # Check var index format: "celltype^ligand^receptor"
@@ -294,17 +291,15 @@ def test_inflow_with_mudata():
     assert isinstance(lrdata.X, csr_matrix)
 
 
-def test_inflow_mudata_vs_anndata_equivalence():
+def test_inflow_mudata_vs_anndata_equivalence(toy_mdata):
     """Test that MuData and AnnData give same results when data is identical."""
     from liana.utils.mdata_to_anndata import mdata_to_anndata
-
-    mdata = generate_toy_mdata()
-    interactions = list(product(mdata.mod['adata_x'].var.index,
-                                mdata.mod['adata_y'].var.index))
+    interactions = list(product(toy_mdata.mod['adata_x'].var.index,
+                                toy_mdata.mod['adata_y'].var.index))
 
     # Run with MuData
     lrdata_mudata = inflow(
-        mdata,
+        toy_mdata,
         groupby='bulk_labels',
         interactions=interactions,
         x_mod='adata_x',
@@ -316,7 +311,7 @@ def test_inflow_mudata_vs_anndata_equivalence():
 
     # Convert to AnnData manually and run
     adata_combined = mdata_to_anndata(
-        mdata,
+        toy_mdata,
         x_mod='adata_x',
         y_mod='adata_y',
         x_use_raw=False,
@@ -340,17 +335,15 @@ def test_inflow_mudata_vs_anndata_equivalence():
     assert set(lrdata_mudata.var_names) == set(lrdata_anndata.var_names)
 
 
-def test_inflow_mudata_missing_mod():
+def test_inflow_mudata_missing_mod(toy_mdata):
     """Test error handling when modality parameters are missing for MuData."""
-
-    mdata = generate_toy_mdata()
-    interactions = list(product(mdata.mod['adata_x'].var.index,
-                                mdata.mod['adata_y'].var.index))
+    interactions = list(product(toy_mdata.mod['adata_x'].var.index,
+                                toy_mdata.mod['adata_y'].var.index))
 
     # Missing x_mod
     with pytest.raises(ValueError, match="requires 'x_mod' and 'y_mod'"):
         inflow(
-            mdata,
+            toy_mdata,
             groupby='bulk_labels',
             interactions=interactions,
             y_mod='adata_y',
@@ -361,7 +354,7 @@ def test_inflow_mudata_missing_mod():
     # Missing y_mod
     with pytest.raises(ValueError, match="requires 'x_mod' and 'y_mod'"):
         inflow(
-            mdata,
+            toy_mdata,
             groupby='bulk_labels',
             interactions=interactions,
             x_mod='adata_x',
@@ -378,15 +371,11 @@ def custom_transform_with_kwargs(mat, clip_max=1.0):
     return transformed
 
 
-def test_anndata_transform_kwargs():
+def test_anndata_transform_kwargs(toy_spatial):
     """Test x_transform_kwargs and y_transform_kwargs with AnnData."""
-    print("\n=== Testing AnnData with transform_kwargs ===")
-
-    adata = generate_toy_spatial()
-
     # Test with custom clip value - same for both x and y
     lrdata = inflow(
-        adata,
+        toy_spatial,
         groupby='bulk_labels',
         resource_name='consensus',
         x_transform=custom_transform_with_kwargs,
@@ -396,25 +385,18 @@ def test_anndata_transform_kwargs():
         use_raw=False
     )
 
-    print(f"Shape: {lrdata.shape}")
-    print(f"Max value: {lrdata.X.max()}")
-    print(f"Min value: {lrdata.X.min()}")
-
     # Verify clipping worked (should be <= 0.5 * 0.5 = 0.25 for product)
     assert lrdata.X.max() <= 0.26, f"Expected max <= 0.26, got {lrdata.X.max()}"
-    print("✓ AnnData transform_kwargs test passed!")
 
-def test_mudata_transform_kwargs():
+
+def test_mudata_transform_kwargs(toy_mdata):
     """Test x_transform_kwargs and y_transform_kwargs with MuData."""
-    print("\n=== Testing MuData with separate transform_kwargs ===")
-
-    mdata = generate_toy_mdata()
-    interactions = list(product(mdata.mod['adata_x'].var.index,
-                                mdata.mod['adata_y'].var.index))
+    interactions = list(product(toy_mdata.mod['adata_x'].var.index,
+                                toy_mdata.mod['adata_y'].var.index))
 
     # Test with different clip values for x and y
     lrdata = inflow(
-        mdata,
+        toy_mdata,
         groupby='bulk_labels',
         interactions=interactions,
         x_mod='adata_x',

@@ -1,22 +1,22 @@
-import pathlib
 from itertools import product
 
 import numpy as np
 import pytest
 from pandas import DataFrame, read_csv
 from pandas.testing import assert_frame_equal
-from scanpy.datasets import pbmc68k_reduced
 
 from liana._constants import DefaultValues as V
 from liana.method.sc._liana_pipe import _calc_log2fc, _expm1_base, liana_pipe
 
-test_path = pathlib.Path(__file__).parent
-adata = pbmc68k_reduced()
-
 groupby = 'bulk_labels'
 
+
+@pytest.fixture
+def adata(pbmc68k):
+    return pbmc68k
+
 # Test ALL Default parameters
-def test_liana_pipe_defaults():
+def test_liana_pipe_defaults(adata, data_dir):
     all_defaults = liana_pipe(adata=adata,
                               groupby=groupby,
                               resource_name=V.resource_name,
@@ -39,7 +39,7 @@ def test_liana_pipe_defaults():
     assert 'prop_min' in all_defaults.columns
     all_defaults = all_defaults.sort_values(by=list(all_defaults.columns))
 
-    exp_defaults = read_csv(test_path.joinpath("data", "all_defaults.csv"), index_col=0)
+    exp_defaults = read_csv(data_dir / "all_defaults.csv", index_col=0)
     exp_defaults = exp_defaults.sort_values(by=list(all_defaults.columns))
     exp_defaults.index = all_defaults.index
 
@@ -48,7 +48,7 @@ def test_liana_pipe_defaults():
 
 
 # Test NOT Default parameters
-def test_liana_pipe_not_defaults():
+def test_liana_pipe_not_defaults(adata, data_dir):
     not_defaults = liana_pipe(adata=adata,
                               groupby=groupby,
                               resource_name=V.resource_name,
@@ -73,7 +73,7 @@ def test_liana_pipe_not_defaults():
     assert all(np.isin(['ligand_pvals', 'receptor_pvals'], not_defaults.columns))
     not_defaults = not_defaults.sort_values(list(not_defaults.columns))
 
-    exp_defaults = read_csv(test_path.joinpath("data/not_defaults.csv"), index_col=0)
+    exp_defaults = read_csv(data_dir / "not_defaults.csv", index_col=0)
     exp_defaults = exp_defaults.sort_values(list(not_defaults.columns))
     exp_defaults.index = not_defaults.index
     assert_frame_equal(not_defaults, exp_defaults, check_dtype=False,
@@ -81,7 +81,7 @@ def test_liana_pipe_not_defaults():
 
 
 
-def test_liana_pipe_subset():
+def test_liana_pipe_subset(adata):
     cts = ['CD34+', 'Dendritic', 'CD56 NK', 'CD19+ B']
     groupby_pairs = list(product(cts, cts))
     groupby_pairs = DataFrame(groupby_pairs, columns=['source', 'target'])
@@ -108,19 +108,19 @@ def test_liana_pipe_subset():
     assert subset.shape == (46, 23)
 
 
-def test_expm1_fun():
+def test_expm1_fun(adata):
     expm1_mat = _expm1_base(V.logbase, adata.raw.X.data)
     np.testing.assert_almost_equal(np.sum(expm1_mat), 1057526.4, decimal=1)
 
 
-def test_calc_log2fc():
+def test_calc_log2fc(adata):
     adata.layers['normcounts'] = adata.raw.X.copy()
     adata.layers['normcounts'].data = _expm1_base(V.logbase, adata.raw.X.data)
     adata.obs['@label'] = adata.obs.bulk_labels
     np.testing.assert_almost_equal(np.mean(_calc_log2fc(adata, "Dendritic")), -0.123781264)
 
 
-def test_calc_log2fc_no_rest_raises():
+def test_calc_log2fc_no_rest_raises(adata):
     single_label = adata[adata.obs.bulk_labels == "Dendritic"].copy()
     single_label.layers['normcounts'] = single_label.raw.X.copy()
     single_label.layers['normcounts'].data = _expm1_base(V.logbase, single_label.raw.X.data)

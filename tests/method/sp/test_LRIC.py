@@ -1,6 +1,7 @@
 import anndata as ad
 import numpy as np
 import pandas as pd
+import pytest
 from pytest import raises
 from scipy.sparse import csr_matrix
 
@@ -17,13 +18,6 @@ from liana.method.sp._LRIC import (
 from liana.testing._sample_anndata import generate_toy_spatial
 from liana.testing._sample_resource import sample_resource
 
-# ── module-level fixtures ──────────────────────────────────────────────────────
-
-adata = generate_toy_spatial()
-adata.obs["cell_type"] = adata.obs["bulk_labels"]
-
-resource = sample_resource(adata, n_lrs=5, seed=42)
-
 _KWARGS = {
     "max_radius": 100,
     "radius_step": 20,
@@ -32,19 +26,51 @@ _KWARGS = {
     "verbose": False,
 }
 
-_cross_pcf_result = cross_pcf(adata, groupby="cell_type", inplace=False, **_KWARGS)
-_cross_pcf_pair = cross_pcf(
-    adata, groupby="cell_type",
-    cell_types=["CD14+ Monocyte", "CD19+ B"],
-    inplace=False, **_KWARGS,
-)
+# NOTE: the fixtures below are module-scoped, as running `cross_pcf`/`lric` is
+# comparatively expensive and the tests only read from their results.
 
-_lric_agnostic = lric(adata, resource=resource, inplace=False, **_KWARGS)
-_lric_pairwise = lric(
-    adata, resource=resource, groupby="cell_type",
-    cell_types=["CD14+ Monocyte", "CD19+ B"],
-    min_cells=5, inplace=False, **_KWARGS,
-)
+
+@pytest.fixture(scope="module")
+def adata():
+    """Toy spatial data with `cell_type` labels."""
+    adata = generate_toy_spatial()
+    adata.obs["cell_type"] = adata.obs["bulk_labels"]
+
+    return adata
+
+
+@pytest.fixture(scope="module")
+def resource():
+    """Five ligand-receptor pairs, all covered by `adata`."""
+    return sample_resource(generate_toy_spatial(), n_lrs=5, seed=42)
+
+
+@pytest.fixture(scope="module")
+def cross_pcf_result(adata):
+    return cross_pcf(adata, groupby="cell_type", inplace=False, **_KWARGS)
+
+
+@pytest.fixture(scope="module")
+def cross_pcf_pair(adata):
+    return cross_pcf(
+        adata, groupby="cell_type",
+        cell_types=["CD14+ Monocyte", "CD19+ B"],
+        inplace=False, **_KWARGS,
+    )
+
+
+@pytest.fixture(scope="module")
+def lric_agnostic(adata, resource):
+    return lric(adata, resource=resource, inplace=False, **_KWARGS)
+
+
+@pytest.fixture(scope="module")
+def lric_pairwise(adata, resource):
+    return lric(
+        adata, resource=resource, groupby="cell_type",
+        cell_types=["CD14+ Monocyte", "CD19+ B"],
+        min_cells=5, inplace=False, **_KWARGS,
+    )
 
 # ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -131,30 +157,30 @@ def test_index_resource():
 # ── CrossPCF ──────────────────────────────────────────────────────────────────
 
 
-def test_cross_pcf():
-    assert set(_cross_pcf_result.keys()) == {"cell_types", "radii", "results"}
-    np.testing.assert_almost_equal(_cross_pcf_result["radii"], [0, 40, 60, 80, 100])
-    n_ct = len(_cross_pcf_result["cell_types"])
-    assert len(_cross_pcf_result["results"]) == n_ct * (n_ct - 1)
-    for arr in _cross_pcf_result["results"].values():
+def test_cross_pcf(cross_pcf_result):
+    assert set(cross_pcf_result.keys()) == {"cell_types", "radii", "results"}
+    np.testing.assert_almost_equal(cross_pcf_result["radii"], [0, 40, 60, 80, 100])
+    n_ct = len(cross_pcf_result["cell_types"])
+    assert len(cross_pcf_result["results"]) == n_ct * (n_ct - 1)
+    for arr in cross_pcf_result["results"].values():
         assert arr.shape == (5,) and np.all(np.isnan(arr) | (arr >= 0))
 
 
-def test_cross_pcf_pair_values():
-    assert _cross_pcf_pair["cell_types"] == ["CD14+ Monocyte", "CD19+ B"]
-    assert len(_cross_pcf_pair["results"]) == 2
+def test_cross_pcf_pair_values(cross_pcf_pair):
+    assert cross_pcf_pair["cell_types"] == ["CD14+ Monocyte", "CD19+ B"]
+    assert len(cross_pcf_pair["results"]) == 2
     np.testing.assert_almost_equal(
-        _cross_pcf_pair["results"][("CD14+ Monocyte", "CD19+ B")].sum(), 5.932712, decimal=3
+        cross_pcf_pair["results"][("CD14+ Monocyte", "CD19+ B")].sum(), 5.932712, decimal=3
     )
 
 
-def test_cross_pcf_inplace():
+def test_cross_pcf_inplace(adata):
     cross_pcf(adata, groupby="cell_type", key_added="cross_pcf_test", inplace=True, **_KWARGS)
     assert "cross_pcf_test" in adata.uns
     assert set(adata.uns["cross_pcf_test"].keys()) == {"cell_types", "radii", "results"}
 
 
-def test_cross_pcf_min_cells_filter():
+def test_cross_pcf_min_cells_filter(adata):
     result = cross_pcf(adata, groupby="cell_type", min_cells=200, inplace=False, **_KWARGS)
     assert len(result["cell_types"]) < 10
 
@@ -162,10 +188,10 @@ def test_cross_pcf_min_cells_filter():
 # ── LRIC — agnostic mode ──────────────────────────────────────────────────────
 
 
-def test_lric_agnostic():
-    assert set(_lric_agnostic.keys()) == {"pair_names", "radii", "lric"}
-    assert _lric_agnostic["lric"].shape == (5, 5)
-    assert np.all(_lric_agnostic["lric"] >= 0)
+def test_lric_agnostic(lric_agnostic):
+    assert set(lric_agnostic.keys()) == {"pair_names", "radii", "lric"}
+    assert lric_agnostic["lric"].shape == (5, 5)
+    assert np.all(lric_agnostic["lric"] >= 0)
     # NOTE: this reference value is not 22.490379 (the value under the old
     # implementation). `use_raw=True` is the default, and the old `_get_expr`
     # sliced `.raw.X` from a `gene_names`-subset view -- but `.raw` does not
@@ -174,28 +200,28 @@ def test_lric_agnostic():
     # instead of the intended ligands/receptors. `prep_check_adata` resolves
     # `use_raw`/`layer` into `.X` once up front, so this LRIC only ever reads
     # the genes it actually asked for.
-    np.testing.assert_almost_equal(_lric_agnostic["lric"].sum(), 26.89414, decimal=3)
-    assert _lric_agnostic["pair_names"] == [
+    np.testing.assert_almost_equal(lric_agnostic["lric"].sum(), 26.89414, decimal=3)
+    assert lric_agnostic["pair_names"] == [
         "C1QB^PPA1", "DHRS4L2^GNG7", "NDUFA11^SUPT4H1", "SFPQ^C20orf27", "PGAM1^WBP11"
     ]
 
 
-def test_lric_agnostic_min_expressing():
+def test_lric_agnostic_min_expressing(adata, resource, lric_agnostic):
     # min_expressing now applies in agnostic mode too (counts over all cells)
     result = lric(adata, resource=resource, min_expressing=9999, inplace=False, **_KWARGS)
     assert np.all(np.isnan(result["lric"])), "all pairs NaN when threshold exceeds cell count"
 
     result0 = lric(adata, resource=resource, min_expressing=0, inplace=False, **_KWARGS)
-    np.testing.assert_array_equal(result0["lric"], _lric_agnostic["lric"])  # default = no-op
+    np.testing.assert_array_equal(result0["lric"], lric_agnostic["lric"])  # default = no-op
 
     # partial threshold: masking is per-pair and leaves kept pairs untouched
     partial = lric(adata, resource=resource, min_expressing=100, inplace=False, **_KWARGS)["lric"]
     masked = np.isnan(partial).all(axis=0)
     assert masked.any() and not masked.all(), "expected a mix of masked and kept pairs"
-    np.testing.assert_array_equal(partial[:, ~masked], _lric_agnostic["lric"][:, ~masked])
+    np.testing.assert_array_equal(partial[:, ~masked], lric_agnostic["lric"][:, ~masked])
 
 
-def test_extend_first_annulus_flag():
+def test_extend_first_annulus_flag(adata, resource):
     # extend_first_annulus=False restores the pre-merge behaviour: first annulus
     # starts at radius_step and the [0, radius_step) contact band is excluded.
     ag_f = lric(adata, resource=resource, extend_first_annulus=False, inplace=False, **_KWARGS)
@@ -217,7 +243,7 @@ def test_extend_first_annulus_flag():
     np.testing.assert_array_equal(ag_t["lric"][1:], ag_f["lric"][1:])
 
 
-def test_lric_agnostic_inplace_and_transform():
+def test_lric_agnostic_inplace_and_transform(adata, resource):
     lric(adata, resource=resource, key_added="lric_test", inplace=True, **_KWARGS)
     assert "lric_test" in adata.uns and "lric" in adata.uns["lric_test"]
 
@@ -229,22 +255,22 @@ def test_lric_agnostic_inplace_and_transform():
 # ── LRIC — pairwise mode ──────────────────────────────────────────────────────
 
 
-def test_lric_pairwise():
-    assert set(_lric_pairwise.keys()) == {"cell_types", "pair_names", "radii", "results"}
-    n_ct = len(_lric_pairwise["cell_types"])
-    assert len(_lric_pairwise["results"]) == n_ct * (n_ct - 1)
-    for arr in _lric_pairwise["results"].values():
+def test_lric_pairwise(lric_pairwise):
+    assert set(lric_pairwise.keys()) == {"cell_types", "pair_names", "radii", "results"}
+    n_ct = len(lric_pairwise["cell_types"])
+    assert len(lric_pairwise["results"]) == n_ct * (n_ct - 1)
+    for arr in lric_pairwise["results"].values():
         assert arr.shape == (5, 5) and np.all(arr >= 0)
-    assert _lric_pairwise["pair_names"] == [
+    assert lric_pairwise["pair_names"] == [
         "C1QB^PPA1", "DHRS4L2^GNG7", "NDUFA11^SUPT4H1", "SFPQ^C20orf27", "PGAM1^WBP11"
     ]
     # see test_lric_agnostic for why this differs from the old implementation's value
     np.testing.assert_almost_equal(
-        _lric_pairwise["results"][("CD14+ Monocyte", "CD19+ B")].sum(), 25.468023, decimal=3
+        lric_pairwise["results"][("CD14+ Monocyte", "CD19+ B")].sum(), 25.468023, decimal=3
     )
 
 
-def test_lric_pairwise_extras():
+def test_lric_pairwise_extras(adata, resource):
     result_sub = lric(
         adata, resource=resource, groupby="cell_type",
         cell_types=["CD14+ Monocyte", "CD19+ B", "CD56+ NK"],
@@ -260,7 +286,7 @@ def test_lric_pairwise_extras():
     assert "lric_pairwise_test" in adata.uns and "results" in adata.uns["lric_pairwise_test"]
 
 
-def test_lric_min_expressing():
+def test_lric_min_expressing(adata, resource):
     result = lric(
         adata, resource=resource, groupby="cell_type",
         cell_types=["CD14+ Monocyte", "CD19+ B"],
@@ -281,7 +307,7 @@ def test_lric_min_expressing():
 # ── error cases ───────────────────────────────────────────────────────────────
 
 
-def test_lric_no_lr_pairs_raises():
+def test_lric_no_lr_pairs_raises(adata):
     # a resource with none of its genes in `adata.var_names` is now caught by the
     # shared `assert_covered` check in `prep_check_adata`'s call site (same as
     # `_inflow`/`_spatial_bivariate`), before `_index_resource` is ever reached.
@@ -295,7 +321,7 @@ def test_lric_no_lr_pairs_raises():
 # ── regression: adata passed by the caller must never be mutated ──────────────
 
 
-def test_lric_does_not_mutate_input_view_on_complex_resource():
+def test_lric_does_not_mutate_input_view_on_complex_resource(adata):
     """`_add_complexes_to_var` used to be called on the caller's `adata` directly,
     mutating its `.var` in place (new rows for each complex) without a matching
     `.X`/`.layers` update. When `adata` was a view (e.g. a random cell subsample),

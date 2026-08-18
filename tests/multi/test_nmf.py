@@ -1,13 +1,18 @@
 import numpy as np
+import pytest
 
 from liana.multi import estimate_elbow, nmf
-from liana.testing._sample_anndata import generate_toy_adata
-
-adata = generate_toy_adata()
-adata.X = np.abs(adata.X)
 
 
-def test_run_nmf():
+@pytest.fixture
+def adata(toy_adata):
+    """NMF requires non-negative input."""
+    toy_adata.X = np.abs(toy_adata.X)
+
+    return toy_adata
+
+
+def test_run_nmf(adata):
     W, H, _, _ = nmf(adata, n_components=2, inplace=False)
 
     assert W.shape == (adata.n_obs, 2)
@@ -21,7 +26,7 @@ def test_run_nmf():
     assert adata.uns['nmf_errors'].shape == (10, 2)
     assert adata.uns['nmf_rank'] == 4
 
-def test_estimate_elbow():
+def test_estimate_elbow(adata):
     errors, rank = estimate_elbow(adata.X, k_range=range(1, 10), random_state=0, max_iter=20)
     assert rank == 4
     assert errors.shape == (9, 2)
@@ -29,7 +34,7 @@ def test_estimate_elbow():
     np.testing.assert_almost_equal(errors['error'].mean(), 0.3640689)
 
 
-def test_run_nmf_df():
+def test_run_nmf_df(adata):
     df = adata.to_df()
     W, H, errors, n_components = nmf(df=df, n_components=2, inplace=True, random_state=0, max_iter=20)
 

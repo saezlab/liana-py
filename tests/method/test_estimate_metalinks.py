@@ -2,11 +2,9 @@ import numpy as np
 import pandas as pd
 
 from liana.method import estimate_metalinks
-from liana.testing._sample_anndata import generate_toy_adata
 
 
-def test_estimate_metalinks():
-    adata = generate_toy_adata()
+def test_estimate_metalinks(toy_adata):
     metabolites = ['A', 'A','B','B']
     resource = pd.DataFrame({'source': np.unique(metabolites),
                              'receptor': ['TNFRSF4', 'ITGB2']})
@@ -17,7 +15,7 @@ def test_estimate_metalinks():
                          'target': ['HES4', 'TNFRSF4', 'SSU72', 'PARK7'],
                          'weight': [0.1, 0.2, 0.3, 1]})
 
-    mdata = estimate_metalinks(adata, resource,
+    mdata = estimate_metalinks(toy_adata, resource,
                                pd_net, t_net,
                                use_raw=True, verbose=True,
                                tmin=2)

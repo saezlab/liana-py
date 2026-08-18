@@ -1,9 +1,47 @@
 import numpy as np
 import pandas as pd
-from scanpy.datasets import pbmc68k_reduced
 
 from liana.method import cellphonedb, natmi
-from liana.utils.spatial_neighbors import spatial_pair_proximity
+from liana.utils.spatial_neighbors import spatial_neighbors, spatial_pair_proximity
+
+
+def test_get_spatial_connectivities(toy_spatial):
+    spatial_neighbors(adata=toy_spatial, bandwidth=200, set_diag=True, cutoff=0.2)
+    np.testing.assert_equal(toy_spatial.obsp['spatial_connectivities'].shape,
+                            (toy_spatial.shape[0], toy_spatial.shape[0]))
+    np.testing.assert_almost_equal(toy_spatial.obsp['spatial_connectivities'].sum(),
+                                   4550.654013895928, decimal=4)
+
+    spatial_neighbors(adata=toy_spatial, bandwidth=100, set_diag=True, cutoff=0.1)
+    np.testing.assert_almost_equal(toy_spatial.obsp['spatial_connectivities'].sum(),
+                                   1802.332962418902, decimal=4)
+
+    conns = spatial_neighbors(adata=toy_spatial, bandwidth=100,
+                              kernel='linear', cutoff=0.1,
+                              set_diag=True, inplace=False)
+    np.testing.assert_almost_equal(conns.sum(), 899.065036633088, decimal=4)
+
+    conns = spatial_neighbors(adata=toy_spatial, bandwidth=100,
+                              kernel='exponential', cutoff=0.1,
+                              set_diag=True, inplace=False)
+    np.testing.assert_almost_equal(conns.sum(), 1520.8496098963612, decimal=4)
+
+    conns = spatial_neighbors(adata=toy_spatial, bandwidth=100, set_diag=True,
+                              kernel='misty_rbf', cutoff=0.1,
+                              inplace=False)
+    np.testing.assert_almost_equal(conns.sum(), 1254.3161716188595, decimal=4)
+
+    conns = spatial_neighbors(adata=toy_spatial, bandwidth=250, set_diag=False,
+                              max_neighbours=100,
+                              kernel='gaussian', cutoff=0.1,
+                              inplace=False)
+    np.testing.assert_almost_equal(conns.sum(), 6597.05237692107, decimal=4)
+
+    conns = spatial_neighbors(adata=toy_spatial, bandwidth=250,
+                              set_diag=False, max_neighbours=100,
+                              kernel='gaussian', cutoff=0.1,
+                              inplace=False, standardize=True)
+    np.testing.assert_almost_equal(conns.sum(), conns.shape[0], decimal=4)
 
 
 def test_cell_type_proximity_basic():
@@ -83,25 +121,23 @@ def test_cell_type_proximity_with_contact():
     assert 'contact_interacting' not in proximity_df_no_contact.columns
 
 
-def test_pipeline_with_spatial_key():
+def test_pipeline_with_spatial_key(pbmc68k):
     """Test that spatial weighting is applied when spatial_key is present"""
-    adata = pbmc68k_reduced()
-
     # Add fake spatial coordinates
     np.random.seed(42)
-    adata.obsm['spatial'] = np.random.randn(adata.shape[0], 2) * 100
+    pbmc68k.obsm['spatial'] = np.random.randn(pbmc68k.shape[0], 2) * 100
 
     # Run cellphonedb without spatial weighting
-    cellphonedb(adata, groupby='bulk_labels', use_raw=True, n_perms=2,
+    cellphonedb(pbmc68k, groupby='bulk_labels', use_raw=True, n_perms=2,
                 key_added='no_spatial', spatial_key='nonexistent')
 
     # Run cellphonedb with spatial weighting
-    cellphonedb(adata, groupby='bulk_labels', use_raw=True, n_perms=2,
+    cellphonedb(pbmc68k, groupby='bulk_labels', use_raw=True, n_perms=2,
                 key_added='with_spatial', spatial_key='spatial')
 
     # Results should be different (spatial weighting applied)
-    res_no_spatial = adata.uns['no_spatial']
-    res_with_spatial = adata.uns['with_spatial']
+    res_no_spatial = pbmc68k.uns['no_spatial']
+    res_with_spatial = pbmc68k.uns['with_spatial']
 
     assert res_no_spatial.shape == res_with_spatial.shape
     # At least some scores should differ due to proximity weighting
@@ -109,32 +145,30 @@ def test_pipeline_with_spatial_key():
                           res_with_spatial['lr_means'].values)
 
 
-def test_pipeline_with_spatial_kwargs():
+def test_pipeline_with_spatial_kwargs(pbmc68k):
     """Test that spatial_kwargs are correctly passed through"""
-    adata = pbmc68k_reduced()
-
     # Add spatial coordinates with clear clusters
     np.random.seed(123)
-    n_cells = adata.shape[0]
+    n_cells = pbmc68k.shape[0]
     # Create two well-separated spatial clusters
     cluster1_coords = np.random.randn(n_cells // 2, 2) * 10
     cluster2_coords = np.random.randn(n_cells - n_cells // 2, 2) * 10 + 500
-    adata.obsm['spatial'] = np.vstack([cluster1_coords, cluster2_coords])
+    pbmc68k.obsm['spatial'] = np.vstack([cluster1_coords, cluster2_coords])
 
     # Run with different bandwidths
-    natmi(adata, groupby='bulk_labels', use_raw=True,
+    natmi(pbmc68k, groupby='bulk_labels', use_raw=True,
           key_added='short_range',
           spatial_key='spatial',
           spatial_kwargs={'bandwidth': 50, 'kernel': 'gaussian'})
 
-    natmi(adata, groupby='bulk_labels', use_raw=True,
+    natmi(pbmc68k, groupby='bulk_labels', use_raw=True,
           key_added='long_range',
           spatial_key='spatial',
           spatial_kwargs={'bandwidth': 1000, 'kernel': 'gaussian'})
 
     # Results should differ based on bandwidth
-    res_short = adata.uns['short_range']
-    res_long = adata.uns['long_range']
+    res_short = pbmc68k.uns['short_range']
+    res_long = pbmc68k.uns['long_range']
 
     assert res_short.shape == res_long.shape
     # Long range should generally have higher scores (less downweighting)

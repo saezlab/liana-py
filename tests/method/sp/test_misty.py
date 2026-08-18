@@ -1,22 +1,22 @@
-import os
-import pathlib
-
 import numpy as np
 import pandas as pd
+import pytest
 import scanpy as sc
 
 from liana.method import MistyData
 from liana.method.sp._misty._misty_constructs import genericMistyData, lrMistyData
 from liana.method.sp._misty._single_view_models import LinearModel, RandomForestModel, RobustLinearModel
-from liana.testing._sample_anndata import generate_toy_spatial
-
-test_path = pathlib.Path(__file__).parent
-
-adata = sc.read_h5ad(os.path.join(test_path, "data" , "synthetic.h5ad"))
-adata = sc.pp.subsample(adata, n_obs=100, copy=True)
 
 
-def test_misty_para():
+@pytest.fixture
+def adata(data_dir):
+    """100 cells of the synthetic misty dataset."""
+    adata = sc.read_h5ad(data_dir / "synthetic.h5ad")
+
+    return sc.pp.subsample(adata, n_obs=100, copy=True)
+
+
+def test_misty_para(adata):
     misty = genericMistyData(adata,
                              bandwidth=10,
                              cutoff=0,
@@ -34,7 +34,7 @@ def test_misty_para():
     assert interactions[interactions['target']=='ECM']['importances'].sum().round(8) == 2.0
 
 
-def test_misty_bypass():
+def test_misty_bypass(adata):
     misty = genericMistyData(adata,
                              bandwidth=10,
                              add_juxta=True,
@@ -55,7 +55,7 @@ def test_misty_bypass():
                                    np.array([0.095, 0.07]), decimal=3)
 
 
-def test_misty_groups():
+def test_misty_groups(adata):
     misty = genericMistyData(adata,
                              bandwidth=20,
                              add_juxta=True,
@@ -86,9 +86,8 @@ def test_misty_groups():
     assert self_interactions[self_interactions['view']=='intra']['importances'].isna().all()
 
 
-def test_lr_misty():
-    adata = generate_toy_spatial()
-    misty = lrMistyData(adata, bandwidth=10, set_diag=True, cutoff=0)
+def test_lr_misty(toy_spatial):
+    misty = lrMistyData(toy_spatial, bandwidth=10, set_diag=True, cutoff=0)
     assert misty.shape == (700, 42)
 
     misty(model=RandomForestModel, n_estimators=10, bypass_intra=True)
@@ -100,7 +99,7 @@ def test_lr_misty():
     assert np.isin(['CD8A_CD8B', 'CD74_CXCR4'], cmplxs).all()
 
 
-def test_linear_misty():
+def test_linear_misty(adata):
     misty = genericMistyData(adata, bandwidth=10, set_diag=False, cutoff=0)
     assert misty.shape == (100, 33)
 
@@ -112,7 +111,7 @@ def test_linear_misty():
     np.testing.assert_almost_equal(actual, 0.5135328101662447, decimal=3)
 
 
-def test_misty_mask():
+def test_misty_mask(adata):
     misty = genericMistyData(adata, bandwidth=10, set_diag=False, cutoff=0)
     misty = MistyData(misty)
     assert misty.shape == (100, 33)
@@ -128,7 +127,7 @@ def test_misty_mask():
     np.testing.assert_almost_equal(misty.uns['interactions']['importances'].sum(), 149.30560405771703, decimal=0)
 
 
-def test_misty_uns_preserved_on_reconstruction():
+def test_misty_uns_preserved_on_reconstruction(adata):
     # https://github.com/saezlab/liana-py/issues/242
     # reconstructing a MistyData from an existing (Misty/Mu)Data must not drop `uns`
     misty = genericMistyData(adata, bandwidth=10, set_diag=False, cutoff=0)
@@ -143,15 +142,14 @@ def test_misty_uns_preserved_on_reconstruction():
     pd.testing.assert_frame_equal(reconstructed.uns['interactions'], misty.uns['interactions'])
 
 
-def test_misty_custom():
-    adata = generate_toy_spatial()
+def test_misty_custom(toy_spatial):
     # keep first 10 vars
-    xdata = adata[:, :10].copy()
+    xdata = toy_spatial[:, :10].copy()
     xdata.var.index = 'x' + xdata.var.index
 
-    ydata = adata[:, -10:].copy()
+    ydata = toy_spatial[:, -10:].copy()
     ydata.var.index = 'y' + ydata.var.index
-    intra = adata[:, 25:30].copy()
+    intra = toy_spatial[:, 25:30].copy()
     misty = MistyData({'intra': intra, 'xdata': xdata, 'ydata': ydata}, verbose=True)
     misty(model=RobustLinearModel, k_cv=25, seed=420)
 
@@ -162,12 +160,10 @@ def test_misty_custom():
     np.testing.assert_almost_equal(misty.uns['target_metrics']['multi_R2'].mean(), 0, decimal=3)
 
 
-def test_misty_nonaligned():
-    adata = generate_toy_spatial()
-
-    intra = adata[:, :10].copy()
+def test_misty_nonaligned(toy_spatial):
+    intra = toy_spatial[:, :10].copy()
     intra.var.index = 'x' + intra.var.index
-    para = adata[:int(adata.n_obs*0.9), -10:].copy()
+    para = toy_spatial[:int(toy_spatial.n_obs*0.9), -10:].copy()
     para.var.index = 'y' + para.var.index
     # Generate connectivities with shape (para.n_obs, intra.n_obs)
     para.obsm['spatial_connectivities'] = np.ones((para.n_obs, intra.n_obs))

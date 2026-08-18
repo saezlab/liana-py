@@ -1,23 +1,28 @@
-import pathlib
-
 import numpy as np
+import pytest
 from pandas import read_csv
-from scanpy.datasets import pbmc68k_reduced
 
 from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_positions
 from liana.method.sc._cellphonedb import _mean
 from liana.method.sc._liana_pipe import _trimean
 
-test_path = pathlib.Path(__file__).parent
 
-adata = pbmc68k_reduced()
-adata.X = adata.raw.X
-adata.obs['@label'] = adata.obs.bulk_labels
+@pytest.fixture
+def adata(pbmc68k):
+    """`pbmc68k_reduced` as the pipe expects it: raw counts in X, labels in `@label`."""
+    pbmc68k.X = pbmc68k.raw.X
+    pbmc68k.obs['@label'] = pbmc68k.obs.bulk_labels
 
-all_defaults = read_csv(test_path.joinpath("data/all_defaults.csv"), index_col=0)
+    return pbmc68k
 
 
-def test_perms():
+@pytest.fixture
+def all_defaults(data_dir):
+    """The liana_pipe output obtained with all default parameters."""
+    return read_csv(data_dir / "all_defaults.csv", index_col=0)
+
+
+def test_perms(adata):
     perms = _get_means_perms(adata=adata,
                              norm_factor=None,
                              agg_fun=_mean,
@@ -29,7 +34,7 @@ def test_perms():
     assert perms.shape == (100, 10, 765)
 
 
-def test_positions():
+def test_positions(adata, all_defaults):
     ligand_pos, receptor_pos, labels_pos = _get_positions(adata, all_defaults)
 
     assert ligand_pos['MIF'] == 740
@@ -37,7 +42,7 @@ def test_positions():
     assert labels_pos['Dendritic'] == 9
 
 
-def test_cellchat_perms():
+def test_cellchat_perms(adata):
     mat_max = adata.X.max()
 
     perms = _get_means_perms(adata=adata,

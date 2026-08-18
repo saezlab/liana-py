@@ -1,21 +1,34 @@
 from itertools import product
 
 import numpy as np
+import pytest
 
 from liana._constants import DefaultValues as V
 from liana.method.sp._bivariate._spatial_bivariate import bivariate
-from liana.testing._sample_anndata import generate_anndata, generate_toy_mdata, generate_toy_spatial
+from liana.testing._sample_anndata import generate_anndata
 from liana.testing._sample_resource import sample_resource
 from liana.utils.transform import zi_minmax
 
-mdata = generate_toy_mdata()
-interactions = list(product(mdata.mod['adata_x'].var.index,
-                            mdata.mod['adata_y'].var.index))
-ones = np.ones((mdata.shape[0], mdata.shape[0]), dtype=np.float64)
-mdata.obsp['ones'] = ones
+expected_gmorans = 0.0994394
+expected_glee = 0.04854206
 
 
-def test_bivar_morans_perms():
+@pytest.fixture
+def mdata(toy_mdata):
+    """Toy MuData with an additional all-ones connectivity matrix."""
+    toy_mdata.obsp['ones'] = np.ones((toy_mdata.shape[0], toy_mdata.shape[0]), dtype=np.float64)
+
+    return toy_mdata
+
+
+@pytest.fixture
+def interactions(mdata):
+    """All possible x-y variable combinations."""
+    return list(product(mdata.mod['adata_x'].var.index,
+                        mdata.mod['adata_y'].var.index))
+
+
+def test_bivar_morans_perms(mdata, interactions):
     lrdata = bivariate(mdata,
               x_mod='adata_x',
               y_mod='adata_y',
@@ -32,7 +45,7 @@ def test_bivar_morans_perms():
     np.testing.assert_almost_equal(np.mean(local_pvals), 0.52787581, decimal=4)
 
 
-def test_bivar_nondefault():
+def test_bivar_nondefault(mdata, interactions):
     lrdata = \
           bivariate(mdata,
                 x_mod='adata_x',
@@ -61,7 +74,7 @@ def test_bivar_nondefault():
     np.testing.assert_almost_equal(np.min(np.min(lrdata.layers['pvals'])), 0.5, decimal=2)
 
 
-def test_masked_spearman():
+def test_masked_spearman(mdata, interactions):
     lrdata = bivariate(mdata,
               x_mod='adata_x',
               y_mod='adata_y',
@@ -81,7 +94,7 @@ def test_masked_spearman():
     np.testing.assert_almost_equal(global_res['std'].mean(), 8.498836e-07, decimal=5)
 
 
-def test_vectorized_spearman():
+def test_vectorized_spearman(mdata, interactions):
     bdata = bivariate(mdata,
               x_mod='adata_x',
               y_mod='adata_y',
@@ -102,12 +115,8 @@ def test_vectorized_spearman():
 
 ### Test on AnnData and LRs
 # NOTE: these should be the same regardless of the local function
-adata = generate_toy_spatial()
-expected_gmorans = 0.0994394
-expected_glee = 0.04854206
-
-def test_morans_analytical():
-    lrdata = bivariate(adata,
+def test_morans_analytical(toy_spatial):
+    lrdata = bivariate(toy_spatial,
               local_name='morans',
               global_name=['morans'],
               resource_name=V.resource_name,
@@ -115,9 +124,9 @@ def test_morans_analytical():
               use_raw=True,
               mask_negatives=True
               )
-    assert 'spatial' in adata.obsm.keys()
-    assert 'louvain' in adata.uns.keys()
-    assert 'spatial_connectivities' in adata.obsp.keys()
+    assert 'spatial' in toy_spatial.obsm.keys()
+    assert 'louvain' in toy_spatial.uns.keys()
+    assert 'spatial_connectivities' in toy_spatial.obsp.keys()
 
     assert 'pvals' in lrdata.layers.keys()
 
@@ -128,9 +137,9 @@ def test_morans_analytical():
     np.testing.assert_almost_equal(interaction['morans'].values, expected_gmorans)
     np.testing.assert_almost_equal(interaction['morans_pvals'].values, 3.4125671e-07)
 
-def test_cosine_permutation():
-    adata.layers['array'] = adata.raw.X.toarray()
-    lrdata = bivariate(adata,
+def test_cosine_permutation(toy_spatial):
+    toy_spatial.layers['array'] = toy_spatial.raw.X.toarray()
+    lrdata = bivariate(toy_spatial,
               local_name='cosine',
               global_name=['morans', 'lee'],
               resource_name='consensus',
@@ -153,8 +162,8 @@ def test_cosine_permutation():
     np.testing.assert_almost_equal(interaction['lee_pvals'].values, 0.93)
 
 
-def test_jaccard_pval_none_cats():
-    lrdata = bivariate(adata,
+def test_jaccard_pval_none_cats(toy_spatial):
+    lrdata = bivariate(toy_spatial,
                        local_name='jaccard',
                        global_name='lee',
                        resource_name='consensus',
@@ -166,14 +175,14 @@ def test_jaccard_pval_none_cats():
 
     assert 'cats' in lrdata.layers.keys()
     assert lrdata.layers['cats'].sum() == -6197
-    assert 'pvals' not in adata.layers.keys()
+    assert 'pvals' not in toy_spatial.layers.keys()
     interaction = lrdata.var[lrdata.var.index == 'S100A9^ITGB2']
     np.testing.assert_almost_equal(interaction['lee'].values, expected_glee)
 
     np.testing.assert_almost_equal(lrdata[:,'S100A9^ITGB2'].X.mean(), 0.4117572, decimal=6)
 
 
-def test_bivar_product():
+def test_bivar_product(mdata, interactions):
     from scipy.sparse import csr_matrix
     conn = mdata.obsp['spatial_connectivities']
     mdata.obsp['norm'] = csr_matrix(conn / conn.sum(axis=1))
@@ -213,10 +222,10 @@ def test_large_adata():
     np.testing.assert_almost_equal(lrdata.var['morans'].mean(), 0.00012773558, decimal=4)
 
 
-def test_wrong_interactions():
+def test_wrong_interactions(toy_spatial):
     from pytest import raises
     with raises(ValueError):
-        bivariate(adata,
+        bivariate(toy_spatial,
                  resource_name='mouseconsensus',
                  local_name='morans',
                  n_perms=None,
@@ -224,10 +233,10 @@ def test_wrong_interactions():
                  add_categories=True
                  )
 
-def test_wrong_kwargs():
+def test_wrong_kwargs(toy_spatial):
     from pytest import raises
     with raises(ValueError):
-        bivariate(adata,
+        bivariate(toy_spatial,
                  resource_name='mouseconsensus',
                  local_name='morans',
                  n_perms=None,

@@ -1,0 +1,92 @@
+import numpy as np
+import pandas as pd
+import pytest
+
+from liana.plotting._common import (
+    _aggregate_scores,
+    _check_var,
+    _filter_by,
+    _filter_labels,
+    _get_liana_res,
+    _get_top_n,
+    _invert_scores,
+    _prep_liana_res,
+)
+
+
+def test_check_var(liana_res):
+    with pytest.raises(ValueError, match='`size` must be provided'):
+        _check_var(liana_res, var_name='size', var=None)
+
+    with pytest.raises(ValueError, match='`not_a_column` \\(size\\) must be one of'):
+        _check_var(liana_res, var_name='size', var='not_a_column')
+
+    # a column that exists passes silently
+    assert _check_var(liana_res, var_name='size', var='magnitude') is None
+
+
+def test_get_liana_res(toy_adata, liana_res):
+    toy_adata.uns['liana_res'] = liana_res
+
+    # `adata` takes precedence, and the result is a copy
+    from_adata = _get_liana_res(toy_adata, liana_res=None)
+    assert from_adata.equals(liana_res)
+    assert from_adata is not liana_res
+
+    from_res = _get_liana_res(adata=None, liana_res=liana_res)
+    assert from_res.equals(liana_res)
+    assert from_res is not liana_res
+
+    with pytest.raises(ValueError, match='`liana_res` or AnnData with `uns_key`'):
+        _get_liana_res(adata=None, liana_res=None, uns_key=None)
+
+
+def test_prep_liana_res_filters_complexes(liana_res):
+    ligand = liana_res['ligand_complex'].iloc[0]
+    receptor = liana_res['receptor_complex'].iloc[0]
+
+    prepped = _prep_liana_res(liana_res=liana_res, ligand_complex=ligand, receptor_complex=receptor)
+    assert set(prepped['ligand_complex']) == {ligand}
+    assert set(prepped['receptor_complex']) == {receptor}
+    assert (prepped['interaction'] == f'{ligand} -> {receptor}').all()
+
+
+def test_filter_labels(liana_res):
+    # a single label is accepted as a string
+    assert set(_filter_labels(liana_res, labels='A', label_type='source')['source']) == {'A'}
+
+    with pytest.raises(ValueError, match=r"\['Z'\] not found in `liana_res\['source'\]`"):
+        _filter_labels(liana_res, labels=['A', 'Z'], label_type='source')
+
+    # nothing to filter by
+    assert _filter_labels(liana_res, labels=None, label_type='source') is liana_res
+
+
+def test_aggregate_scores(liana_res):
+    liana_res['interaction'] = liana_res['ligand_complex'] + ' -> ' + liana_res['receptor_complex']
+
+    aggregated = _aggregate_scores(liana_res.copy(), what='magnitude', how='max',
+                                   absolute=False, entities=['interaction'])
+    assert set(aggregated.columns) == {'interaction', 'score'}
+    assert aggregated['interaction'].nunique() == aggregated.shape[0]
+
+    absolute = _aggregate_scores(liana_res.copy(), what='magnitude', how='max',
+                                 absolute=True, entities=['interaction'])
+    assert (absolute['score'] >= 0).all()
+
+
+def test_invert_scores():
+    np.testing.assert_almost_equal(_invert_scores(np.array([1.0])), 0)
+    # smaller scores (e.g. p-values) become larger
+    assert _invert_scores(np.array([0.01])) > _invert_scores(np.array([0.1]))
+
+
+def test_filter_by(liana_res):
+    liana_res['interaction'] = liana_res['ligand_complex'] + ' -> ' + liana_res['receptor_complex']
+
+    assert _filter_by(liana_res, filter_fun=None) is liana_res
+
+    filtered = _filter_by(liana_res, filter_fun=lambda x: x['specificity_rank'] > 0.95)
+    # an interaction is kept whenever *any* of its cell type pairs passes
+    kept = np.unique(liana_res[liana_res['specificity_rank'] > 0.95]['interaction'])
+    assert set(filtered['interaction']) == set(kept)

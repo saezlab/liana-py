@@ -1,15 +1,19 @@
+import pytest
+
 from liana.multi import df_to_lr
 from liana.testing import _sample_dea
-from liana.testing._sample_anndata import generate_toy_adata
 
-# Create a toy AnnData object
-adata = generate_toy_adata()
 groupby = 'bulk_labels'
-dea_df = _sample_dea(adata, groupby)
 
 
-def test_dea_to_lr():
-    lr_res = df_to_lr(adata,
+@pytest.fixture
+def dea_df(toy_adata):
+    """Toy differential expression results, as e.g. decoupler would return them."""
+    return _sample_dea(toy_adata, groupby)
+
+
+def test_dea_to_lr(toy_adata, dea_df):
+    lr_res = df_to_lr(toy_adata,
                       dea_df=dea_df,
                       resource_name='consensus',
                       expr_prop=0.1,
@@ -30,8 +34,8 @@ def test_dea_to_lr():
         assert col in columns
     assert lr_res['interaction_padjusted'].mean() == 0.5540001846991026
 
-def test_dea_to_lr_params():
-    lr_res = df_to_lr(adata,
+def test_dea_to_lr_params(toy_adata, dea_df):
+    lr_res = df_to_lr(toy_adata,
                       dea_df=dea_df,
                       expr_prop=0.1,
                       min_cells=10,

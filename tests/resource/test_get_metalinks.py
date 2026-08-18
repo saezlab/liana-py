@@ -1,17 +1,11 @@
-# TODO: replace with link, None should use the link, optionally use path
-import os
-import pathlib
-
 import pandas as pd
 
 from liana.resource.get_metalinks import describe_metalinks, get_metalinks, get_metalinks_values
 
-filepath = pathlib.Path(__file__).parent.absolute()
-os.chdir(filepath)
 
-def test_get_metalinks():
-    # set path to here
-    result = get_metalinks(tissue_location='Brain',
+def test_get_metalinks(metalinks_db):
+    result = get_metalinks(db_path=metalinks_db,
+                           tissue_location='Brain',
                            hmdb_ids='HMDB0000073',
                            uniprot_ids='P14416'
                            ).drop_duplicates(['hmdb', 'uniprot'])
@@ -23,9 +17,8 @@ def test_get_metalinks():
     assert 'DRD2' in result['gene_symbol'].values
 
 
-def test_get_metalinks_values():
-    # Call the function with a test db_path, table_name, and column_name
-    result = get_metalinks_values('disease', 'disease')
+def test_get_metalinks_values(metalinks_db):
+    result = get_metalinks_values('disease', 'disease', db_path=metalinks_db)
 
     # Check that the result is a list
     assert isinstance(result, list)
@@ -35,8 +28,8 @@ def test_get_metalinks_values():
     assert len(result) == 567
 
 
-def test_describe_metalinks():
-    out = describe_metalinks(return_output=True)
+def test_describe_metalinks(metalinks_db):
+    out = describe_metalinks(db_path=metalinks_db, return_output=True)
     assert 'metabolites' in out
     assert 'proteins' in out
     assert 'edges' in out
