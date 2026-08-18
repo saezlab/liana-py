@@ -29,7 +29,7 @@ def test_select_resource():
                                 resource_name='ignore me'
                                 )
 
-    assert resource.shape[0] == 4624
+    assert resource.shape[0] == 4620
     assert (resource.columns == ['ligand', 'receptor']).all()
 
 
@@ -44,6 +44,15 @@ def test_select_resource_name():
 
     assert resource.shape[0] == 1912
     assert (resource.columns == ['ligand', 'receptor']).all()
+
+
+def test_consensus_resource_excludes_maml2():
+    # https://github.com/saezlab/liana-py/issues/207
+    # MAML2 is a nuclear transcriptional co-activator, not a secreted or
+    # membrane-bound ligand; its NOTCH1-4 "interactions" were a curation
+    # artifact and should not appear in the consensus resource.
+    resource = select_resource("consensus")
+    assert not ((resource['ligand'] == 'MAML2') | (resource['receptor'] == 'MAML2')).any()
 
 
 def test_resource_exception_none():
