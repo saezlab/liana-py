@@ -121,11 +121,6 @@ def test_calc_log2fc():
 
 
 def test_calc_log2fc_no_rest_raises():
-    # https://github.com/saezlab/liana-py/issues/93
-    # If every cell belongs to the same `groupby` label (e.g. a `sample_key`
-    # split that happens to contain a single category), there's no "rest" of
-    # cells left to compare against, and this used to raise a cryptic
-    # ZeroDivisionError deep in scipy's sparse mean() instead of a clear error.
     single_label = adata[adata.obs.bulk_labels == "Dendritic"].copy()
     single_label.layers['normcounts'] = single_label.raw.X.copy()
     single_label.layers['normcounts'].data = _expm1_base(V.logbase, single_label.raw.X.data)
