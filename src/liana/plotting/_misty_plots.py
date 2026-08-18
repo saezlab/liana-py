@@ -138,7 +138,9 @@ def contributions(misty: MistyData = None,
 
     if filter_fun is not None:
         target_metrics = target_metrics[target_metrics.apply(filter_fun, axis=1).astype(bool)]
-        target_metrics['target'] = target_metrics['target'].cat.remove_unused_categories()
+        # NOTE: `target` is only categorical when it comes from an aggregated table
+        if isinstance(target_metrics['target'].dtype, pd.CategoricalDtype):
+            target_metrics['target'] = target_metrics['target'].cat.remove_unused_categories()
 
     target_metrics = target_metrics[['target', *view_names]]
     target_metrics = target_metrics.melt(id_vars='target', var_name='view', value_name='contribution')

@@ -127,6 +127,15 @@ def test_misty_plots_raise_on_missing_args(misty, target_metrics, interactions):
         pl.interactions(interactions=interactions, view=None)
 
 
+def test_contributions_filter(misty):
+    plot_data = pl.contributions(misty=misty,
+                                 filter_fun=lambda x: x['multi_R2'] > 0.5).data
+
+    target_metrics = misty.uns['target_metrics']
+    expected = target_metrics[target_metrics['multi_R2'] > 0.5]['target']
+    assert set(plot_data['target']) == set(expected)
+
+
 def test_contributions_drops_intra_when_absent(misty):
     # `intra` is dropped from the views when it is not among the metrics
     del misty.uns['target_metrics']['intra']
