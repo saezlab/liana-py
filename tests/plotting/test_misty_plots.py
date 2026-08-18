@@ -42,6 +42,9 @@ def test_target_contributions_plot(misty):
     assert set(plot_data['view']) == {'intra', 'extra'}
     assert plot_data.shape[0] == len(targets) * 2
 
+    # `return_fig=False` draws the plot instead of handing it back
+    assert pl.contributions(misty=misty, return_fig=False) is None
+
 
 def test_target_metrics_plot(misty):
     target_metrics = misty.uns['target_metrics']
@@ -59,12 +62,16 @@ def test_target_metrics_plot(misty):
     expected = target_metrics[target_metrics['multi_R2'] > 0.5]['target']
     assert set(filtered['target']) == set(expected)
 
+    assert pl.target_metrics(misty=misty, stat='gain_R2', return_fig=False) is None
+
 
 def test_interactions_plot(misty, interactions):
     pl.interactions(misty=misty, top_n=3, view='extra', key=abs, ascending=False)
     plot_data = pl.interactions(interactions=interactions, view='extra',
                                 filter_fun=lambda x: x['group']=='b').data
     assert plot_data.shape[0] == 3
+
+    assert pl.interactions(misty=misty, view='extra', return_fig=False) is None
 
 
 def test_target_metrics_aggregate(target_metrics):
