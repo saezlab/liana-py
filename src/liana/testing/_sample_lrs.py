@@ -6,7 +6,22 @@ import pandas as pd
 
 # Function to generate a liana_res sample/example
 def sample_lrs(by_sample=False):
-    """Create sample method output for testing metrics in this task."""
+    """
+    Build a toy ligand-receptor result frame, shaped like a method's output.
+
+    Parameters
+    ----------
+    by_sample
+        Whether to add a categorical `sample` column of four samples, as the
+        multi-sample functions expect.
+
+    Returns
+    -------
+    A `DataFrame` of `source`/`target` cell types, `ligand_complex`/
+    `receptor_complex` pairs, and random `magnitude` and `specificity_rank`
+    scores.
+
+    """
     row_num = 200
     rng = np.random.default_rng(seed=1)
 

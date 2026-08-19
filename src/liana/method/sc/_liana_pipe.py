@@ -19,7 +19,7 @@ from liana.method._pipe_utils import assert_covered, filter_resource, prep_check
 from liana.method._pipe_utils._aggregate import _aggregate
 from liana.method._pipe_utils._common import _get_groupby_subset, _get_props, _join_stats
 from liana.method._pipe_utils._get_mean_perms import _get_mat_idx, _get_means_perms
-from liana.resource import explode_complexes, filter_reassemble_complexes
+from liana.resource._reassemble_complexes import _explode_complexes, _filter_reassemble_complexes
 from liana.resource.select_resource import _handle_resource
 from liana.utils import mdata_to_anndata
 from liana.utils.spatial_neighbors import spatial_pair_proximity
@@ -119,7 +119,7 @@ def liana_pipe(adata: AnnData,
                                 resource=resource,
                                 resource_name=resource_name,
                                 verbose=verbose)
-    resource = explode_complexes(resource)
+    resource = _explode_complexes(resource)
 
     if isinstance(adata, MuData):
         adata = mdata_to_anndata(adata, **mdata_kwargs, verbose=verbose)
@@ -263,7 +263,7 @@ def liana_pipe(adata: AnnData,
                                  verbose=verbose,
                                  seed=seed)
     else:  # Just return lr_res
-        lr_res = filter_reassemble_complexes(lr_res=lr_res,
+        lr_res = _filter_reassemble_complexes(lr_res=lr_res,
                                              _key_cols=_key_cols,
                                              expr_prop=expr_prop,
                                              complex_cols=_complex_cols,
@@ -411,7 +411,7 @@ def _run_method(lr_res: pandas.DataFrame,
                 _aggregate_flag: bool = False  # relevant for rank_aggregate
                 ) -> pd.DataFrame:
     # re-assemble complexes - specific for each method
-    lr_res = filter_reassemble_complexes(lr_res=lr_res,
+    lr_res = _filter_reassemble_complexes(lr_res=lr_res,
                                          _key_cols=_key_cols,
                                          expr_prop=expr_prop,
                                          return_all_lrs=return_all_lrs,

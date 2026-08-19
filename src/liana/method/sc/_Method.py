@@ -284,6 +284,7 @@ class Method(MethodMeta):
         -------
         If ``inplace = False``, returns a `DataFrame` with ligand-receptor results
         Otherwise, modifies the ``adata`` object with the following key:
+
             - :attr:`anndata.AnnData.uns` ``[`key_added`]`` with the aforementioned DataFrame
 
         """

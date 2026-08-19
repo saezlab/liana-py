@@ -83,6 +83,25 @@ jobs:
         run: uvx hatch run ${{ matrix.env.name }}:coverage xml
       - name: Upload coverage
         uses: codecov/codecov-action@v5.4.3
+
+  # Run the `>>>` examples in the `src/` docstrings. Not part of the matrix above:
+  # the examples assert on library output, which does not vary by Python version,
+  # so one interpreter is enough to catch an example that has gone stale.
+  doctest:
+    name: Docstring examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          fetch-depth: 0
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: run docstring examples
+        env:
+          MPLBACKEND: agg
+        run: uvx hatch run doctest:run
+
   # Check that all tests defined above pass. This makes it easy to set a single "required" test in branch
   # protection instead of having to update it frequently. See https://github.com/re-actors/alls-green#why.
   check:
@@ -91,6 +110,7 @@ jobs:
     needs:
       - get-environments
       - test
+      - doctest
     runs-on: ubuntu-latest
     steps:
         - uses: re-actors/alls-green@release/v1

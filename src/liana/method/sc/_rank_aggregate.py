@@ -145,6 +145,7 @@ class AggregateClass(MethodMeta):
         -------
         If ``inplace = False``, returns a `DataFrame` with ligand-receptor results
         Otherwise, modifies the ``adata`` object with the following key:
+
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
 
         """

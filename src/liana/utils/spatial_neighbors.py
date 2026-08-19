@@ -102,8 +102,9 @@ def spatial_neighbors(adata: AnnData,
     -------
     If ``inplace = False``, returns an `np.array` with spatial connectivity
     weights. Otherwise, modifies the ``adata`` object with the following key:
+
         - :attr:`anndata.AnnData.obsp` ``['{key_added}_connectivities']`` with
-        the aforementioned array
+          the aforementioned array
 
     Raises
     ------
@@ -232,11 +233,33 @@ def spatial_pair_proximity(
 
     Examples
     --------
+    >>> import numpy as np
     >>> import scanpy as sc
+    >>> from liana.utils import spatial_pair_proximity
     >>> adata = sc.datasets.pbmc68k_reduced()
-    >>> adata.obsm['spatial'] = np.random.randn(adata.shape[0], 2) * 100
-    >>> proximity_df = spatial_pair_proximity(adata, groupby='bulk_labels')
-    >>> proximity_df.head()
+    >>> rng = np.random.default_rng(0)
+    >>> adata.obsm['spatial'] = rng.normal(size=(adata.shape[0], 2)) * 100
+    >>> proximity = spatial_pair_proximity(adata, groupby='bulk_labels')
+
+    One row per ordered pair of groups, so 10 cell types give 100 rows:
+
+    >>> proximity.columns.tolist()
+    ['source', 'target', 'mean_distance', 'interacting', 'proximity']
+    >>> proximity.shape
+    (100, 5)
+    >>> proximity[['source', 'target', 'proximity']].head(3).round(3)
+               source          target  proximity
+    0  CD14+ Monocyte  CD14+ Monocyte      0.997
+    1  CD14+ Monocyte         CD19+ B      0.997
+    2  CD14+ Monocyte           CD34+      0.983
+
+    See here `[1]`_ or here `[2]`_ for use on real spatial data.
+
+    .. _[1]: https://liana-py.readthedocs.io/en/latest/notebooks/sma.html#compu\
+    te-spatial-proximies-for-the-multi-view-model
+    .. _[2]: https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html\
+    #spatial-connectivity
+
     """
     # groupby_labels use categories if categorical
     groupby_labels = np.asarray(adata.obs[groupby])

@@ -6,6 +6,18 @@ from liana.utils.spatial_neighbors import spatial_neighbors
 
 
 def generate_toy_spatial():
+    """
+    Build a toy spatial AnnData from `pbmc68k_reduced`.
+
+    Coordinates are drawn at random (seeded), so they carry no biological signal
+    -- this is for exercising code paths, not for interpreting results.
+
+    Returns
+    -------
+    `pbmc68k_reduced` with random `obsm['spatial']` coordinates and the spatial
+    connectivities that :func:`liana.utils.spatial_neighbors` derives from them.
+
+    """
     adata = pbmc68k_reduced()
 
     rng = np.random.default_rng(seed=1337)
@@ -40,6 +52,15 @@ def generate_toy_mdata():
 
 
 def generate_toy_adata():
+    """
+    Build a toy multi-sample AnnData from `pbmc68k_reduced`.
+
+    Returns
+    -------
+    `pbmc68k_reduced` with a randomly-assigned (seeded) `obs['sample']` of four
+    samples, and an `obs['case']` splitting those samples into two conditions.
+
+    """
     adata = pbmc68k_reduced()
     sample_key = 'sample'
 

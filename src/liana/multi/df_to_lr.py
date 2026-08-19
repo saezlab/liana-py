@@ -11,7 +11,7 @@ from liana._docs import d
 from liana._logging import _logg
 from liana.method._pipe_utils import _check_groupby, assert_covered, filter_resource, prep_check_adata
 from liana.method._pipe_utils._common import _get_groupby_subset, _get_props, _join_stats
-from liana.resource import explode_complexes, filter_reassemble_complexes
+from liana.resource._reassemble_complexes import _explode_complexes, _filter_reassemble_complexes
 from liana.resource.select_resource import _handle_resource
 
 
@@ -152,7 +152,7 @@ def df_to_lr(adata: AnnData,
     if target_labels is not None:
         pairs = pairs[pairs['target'].isin(target_labels)]
 
-    resource = explode_complexes(resource)
+    resource = _explode_complexes(resource)
 
     # Check overlap between resource and adata
     assert_covered(np.union1d(np.unique(resource["ligand"]),
@@ -179,7 +179,7 @@ def df_to_lr(adata: AnnData,
     if return_all_lrs:
         lr_res[_placeholders] = lr_res[_placeholders].fillna(0)
 
-    lr_res = filter_reassemble_complexes(lr_res=lr_res,
+    lr_res = _filter_reassemble_complexes(lr_res=lr_res,
                                          _key_cols=P.primary,
                                          expr_prop=expr_prop,
                                          return_all_lrs=return_all_lrs,

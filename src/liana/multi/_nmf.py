@@ -87,6 +87,27 @@ def nmf(adata: AnnData = None,
 
 
 def estimate_elbow(X, k_range, verbose=False, **kwargs):
+    """
+    Estimate the rank of an NMF factorization from the elbow of its error curve.
+
+    Parameters
+    ----------
+    X
+        Non-negative matrix to factorize.
+    k_range
+        Ranks to fit. The elbow is located among these, so a range that does not
+        bracket it returns its own endpoint.
+    verbose
+        Whether to show a progress bar and report the estimated rank.
+    kwargs
+        Keyword arguments passed to :class:`sklearn.decomposition.NMF`.
+
+    Returns
+    -------
+    A tuple of the reconstruction error per rank (a `DataFrame` with columns
+    `k` and `error`) and the estimated rank.
+
+    """
     kn = _check_if_installed('kneed')
     errors = []
     for k in tqdm(k_range, disable=not verbose):

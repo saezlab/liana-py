@@ -26,29 +26,25 @@ def zi_minmax(X: ArrayLike, cutoff: float = 0.5) -> csr_matrix:
 
     Examples
     --------
+    Each column is scaled independently, so the column minima land on 0 and the
+    maxima on 1. The result is sparse; densified here to read it:
+
+    >>> import numpy as np
+    >>> from liana.utils import zi_minmax
     >>> x = np.array([[0.1, 0.3],
     ...               [2.0, 4.0],
     ...               [5.5, 7.1]])
-    >>> print(zi_minmax(x))
-    <Compressed Sparse Row sparse matrix of dtype 'float64'
-            with 6 stored elements and shape (3, 2)>
-    Coords        Values
-    (0, 0)        0.0
-    (0, 1)        0.0
-    (1, 0)        0.0
-    (1, 1)        0.5441176470588236
-    (2, 0)        1.0
-    (2, 1)        1.0
-    >>> print(zi_minmax(x, cutoff=0.1))
-    <Compressed Sparse Row sparse matrix of dtype 'float64'
-            with 6 stored elements and shape (3, 2)>
-    Coords        Values
-    (0, 0)        0.0
-    (0, 1)        0.0
-    (1, 0)        0.3518518518518518
-    (1, 1)        0.5441176470588236
-    (2, 0)        1.0
-    (2, 1)        1.0
+    >>> zi_minmax(x).toarray().round(3)
+    array([[0.   , 0.   ],
+           [0.   , 0.544],
+           [1.   , 1.   ]])
+
+    `cutoff` is applied after scaling, so lowering it keeps more of the middle:
+
+    >>> zi_minmax(x, cutoff=0.1).toarray().round(3)
+    array([[0.   , 0.   ],
+           [0.352, 0.544],
+           [1.   , 1.   ]])
 
     """
     X = X.copy()
@@ -90,25 +86,17 @@ def neg_to_zero(X: ArrayLike, cutoff: float = 0) -> csr_matrix:
 
     Examples
     --------
+    >>> import numpy as np
+    >>> from liana.utils import neg_to_zero
     >>> x = np.array([-1, -0.5, 0.1, 0.4, 2])
-    >>> print(neg_to_zero(x))
-    <Compressed Sparse Row sparse matrix of dtype 'float64'
-            with 5 stored elements and shape (1, 5)>
-    Coords        Values
-    (0, 0)        0.0
-    (0, 1)        0.0
-    (0, 2)        0.1
-    (0, 3)        0.4
-    (0, 4)        2.0
-    >>> print(neg_to_zero(x, cutoff=0.5))
-    <Compressed Sparse Row sparse matrix of dtype 'float64'
-            with 5 stored elements and shape (1, 5)>
-    Coords        Values
-    (0, 0)        0.0
-    (0, 1)        0.0
-    (0, 2)        0.0
-    (0, 3)        0.0
-    (0, 4)        2.0
+    >>> neg_to_zero(x).toarray()
+    array([[0. , 0. , 0.1, 0.4, 2. ]])
+
+    `cutoff` raises the threshold above 0:
+
+    >>> neg_to_zero(x, cutoff=0.5).toarray()
+    array([[0., 0., 0., 0., 2.]])
+
     """
     X = X.copy()
     if not isspmatrix_csr(X):

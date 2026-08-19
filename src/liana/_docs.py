@@ -60,7 +60,7 @@ layer
 
 _mdata_kwargs = """\
 mdata_kwargs
-    Keyword arguments to be passed to `li.fun.mdata_to_anndata` if `adata` is an instance of `MuData`.
+    Keyword arguments to be passed to `li.ut.mdata_to_anndata` if `adata` is an instance of `MuData`.
     If an AnnData object is passed, these arguments are ignored."""
 
 _inplace = """\

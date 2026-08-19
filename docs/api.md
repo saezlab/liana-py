@@ -27,7 +27,23 @@ attributes, to describe each method instance, and are callable:
     natmi.__call__
     singlecellsignalr.__call__
     geometric_mean.__call__
+    scseqcomm.__call__
     rank_aggregate.__call__
+```
+
+### Method metadata
+
+```{eval-rst}
+.. currentmodule:: liana.method
+
+.. autosummary::
+    :toctree: generated
+
+    show_methods
+    get_method_scores
+    process_scores
+    AggregateClass
+    aggregate_meta
 ```
 
 ## Spatial
@@ -68,8 +84,26 @@ attributes, to describe each method instance, and are callable:
     :toctree: generated
 
     MistyData
+    MistyData.__call__
     genericMistyData
     lrMistyData
+```
+
+### Single-view models
+
+Passed as `model=` when calling a `MistyData` object:
+
+```{eval-rst}
+.. module:: liana.method.sp
+.. currentmodule:: liana.method.sp
+
+.. autosummary::
+    :toctree: generated
+
+    SingleViewModel
+    LinearModel
+    RandomForestModel
+    RobustLinearModel
 ```
 
 ## Multi-Sample
@@ -147,14 +181,27 @@ attributes, to describe each method instance, and are callable:
     select_resource
     show_resources
     generate_lr_geneset
-    explode_complexes
-    filter_reassemble_complexes
     translate_resource
     translate_column
     get_hcop_orthologs
     get_metalinks
     describe_metalinks
     get_metalinks_values
+```
+
+## Datasets & testing
+
+```{eval-rst}
+.. module:: liana.testing
+.. currentmodule:: liana.testing
+
+.. autosummary::
+    :toctree: generated
+
+    kang_2018
+    generate_toy_adata
+    generate_toy_spatial
+    sample_lrs
 ```
 
 ## Intracellular

@@ -121,7 +121,7 @@ def _resolve_colors(labels, colors):
         cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
         return {lbl: cycle[i % len(cycle)] for i, lbl in enumerate(labels)}
     if isinstance(colors, str):
-        return {lbl: colors for lbl in labels}
+        return dict.fromkeys(labels, colors)
     if isinstance(colors, list):
         return {lbl: colors[i % len(colors)] for i, lbl in enumerate(labels)}
     if isinstance(colors, dict):

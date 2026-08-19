@@ -348,7 +348,31 @@ def lrdata_to_mudata(lrdata: AnnData,
 
     Examples
     --------
-    >>> mdata = lrdata_to_mudata(lrdata, min_cells=5, min_features=10)
+    `lrdata` is normally the output of ``liana.method.inflow``, whose
+    ``var_names`` encode the sender cell type as a prefix. Built by hand here to
+    show that convention:
+
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>> from anndata import AnnData
+    >>> from liana.multi import lrdata_to_mudata
+    >>> var_names = [f'{ct}^lig{i}^rec{i}'
+    ...              for ct in ['T_cell', 'B_cell'] for i in range(12)]
+    >>> rng = np.random.default_rng(0)
+    >>> lrdata = AnnData(X=rng.random((20, len(var_names))),
+    ...                  var=pd.DataFrame(index=var_names))
+
+    Each prefix becomes one modality:
+
+    >>> mdata = lrdata_to_mudata(lrdata, min_cells=None, min_features=10)
+    >>> sorted(mdata.mod)
+    ['B_cell', 'T_cell']
+    >>> mdata.shape
+    (20, 24)
+
+    See here `[1]`_ for use on real data.
+
+    .. _[1]: https://liana-py.readthedocs.io/en/latest/notebooks/inflow_score.html
 
     """
     if not isinstance(lrdata, AnnData):

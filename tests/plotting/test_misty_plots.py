@@ -143,7 +143,7 @@ def test_contributions_filter(misty):
 
     target_metrics = misty.uns['target_metrics']
     expected = target_metrics[target_metrics['multi_R2'] > 0.5]['target']
-    assert 0 < len(expected) < len(target_metrics) 
+    assert 0 < len(expected) < len(target_metrics)
     assert set(plot_data['target']) == set(expected)
 
 

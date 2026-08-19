@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 from pandas import DataFrame
@@ -16,10 +16,21 @@ from liana.method.sc import (
     scseqcomm,
     singlecellsignalr,
 )
-from liana.method.sc._Method import Method, MethodMeta, _show_methods
+from liana.method.sc._Method import Method as _Method
+from liana.method.sc._Method import MethodMeta as _MethodMeta
+from liana.method.sc._Method import _show_methods
 from liana.method.sc._rank_aggregate import AggregateClass
 from liana.method.sc._rank_aggregate import _rank_aggregate_meta as aggregate_meta
-from liana.method.sp import MistyData, bivariate, compute_global_specificity, genericMistyData, inflow, lrMistyData, lric, LRIC, cross_pcf
+from liana.method.sp import (
+    MistyData,
+    bivariate,
+    compute_global_specificity,
+    cross_pcf,
+    genericMistyData,
+    inflow,
+    lric,
+    lrMistyData,
+)
 
 # callable consensus instance
 _methods = [cellphonedb, connectome, logfc, natmi, singlecellsignalr]
@@ -46,8 +57,8 @@ def get_method_scores() -> dict:
     Dictionary of all scoring functions, with a boolean indicating whether the score is ascending or not
 
     """
-    instances = np.array(MethodMeta.instances)
-    relevant = np.array([(isinstance(instance, Method)) | (isinstance(instance, AggregateClass)) for instance in instances])
+    instances = np.array(_MethodMeta.instances)
+    relevant = np.array([(isinstance(instance, _Method)) | (isinstance(instance, AggregateClass)) for instance in instances])
     instances = instances[relevant]
 
     specificity_scores = {method.specificity: method.specificity_ascending for method in instances if method.specificity is not None}
@@ -86,3 +97,6 @@ def process_scores(liana_res: DataFrame,
         df[score_key] = inverse_fun(df[score_key])
 
     return df
+
+# Remove these
+del Callable, DataFrame, V
