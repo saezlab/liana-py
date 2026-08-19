@@ -126,6 +126,30 @@ class SpatialBivariate:
         categories/p-values, and the actual scores are stored in `.X`.
         Moreover, global stats are stored in ``.var``.
 
+        Examples
+        --------
+        Relates each ligand to its receptor at every spot, given the spatial
+        connectivities of :func:`liana.utils.spatial_neighbors`:
+
+        >>> import liana as li
+        >>> adata = li.testing.generate_toy_spatial()
+        >>> lrdata = li.mt.bivariate(adata,
+        ...                          resource_name='consensus',
+        ...                          local_name='morans',
+        ...                          global_name='morans',
+        ...                          n_perms=0)
+
+        The result is spots by interactions -- one column per ligand-receptor pair that
+        passed the expression filters, named `'ligand^receptor'` -- with the local
+        scores in `.X` and their p-values in `.layers['pvals']`. `global_name` adds a
+        summary statistic per interaction to `.var`, and `n_perms=0` uses the analytical
+        p-values available for Moran's R (a positive integer runs that many permutations
+        instead, `None` skips them).
+
+        ``li.mt.bivariate.show_functions()`` lists the available `local_name` choices.
+        Pass a `MuData` with `x_mod`/`y_mod` instead of an `AnnData` to relate two
+        modalities.
+
         """
         if n_perms is not None:
             if not isinstance(n_perms, int) or n_perms < 0:

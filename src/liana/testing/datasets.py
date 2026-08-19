@@ -14,6 +14,20 @@ def kang_2018():
     -------
     Returns a largely pre-processed AnnData object with the following attributes:
     Raw counts for ~25k cells; ~15k genes; 16 samples; 2 conditions.
+
+    Examples
+    --------
+    This downloads ~200MB from figshare on first call (and caches it in the
+    working directory), so it is not run here::
+
+        import liana as li
+
+        adata = li.testing.kang_2018()
+
+    The resulting object carries `obs['sample']`, `obs['condition']`,
+    `obs['patient']` and `obs['cell_abbr']`, and is the starting point of several
+    tutorials.
+
     """
     adata = sc.read("kang_counts_25k.h5ad", backup_url="https://figshare.com/ndownloader/files/34464122")
 

@@ -51,6 +51,22 @@ def mdata_to_anndata(mdata: MuData,
     ValueError
         If `x_mod` and/or `y_mod` are not provided.
 
+    Examples
+    --------
+    Joins two modalities of a `MuData` along the variable axis, which is what
+    ``liana.method.bivariate`` expects when relating one modality to another:
+
+    >>> import liana as li
+    >>> mdata = li.testing.generate_toy_mdata()
+    >>> adata = li.ut.mdata_to_anndata(mdata,
+    ...                                x_mod='adata_x',
+    ...                                y_mod='adata_y',
+    ...                                x_layer='scaled',
+    ...                                y_layer='scaled')
+
+    Observation-level annotations -- `.obs`, `.obsm` and the spatial
+    connectivities in `.obsp` -- are carried over from the `MuData`.
+
     """
     if x_mod is None or y_mod is None:
         raise ValueError("Both `x_mod` and `y_mod` must be provided!")

@@ -47,6 +47,27 @@ def generate_lr_geneset(resource: DataFrame,
     - weight: mean weight of the interaction
     - source: source of the interaction
 
+    Examples
+    --------
+    `net` is a bipartite gene set (e.g. pathways, transcription-factor regulons)
+    in decoupler format. Only ligand-receptor pairs whose *both* partners are in
+    the same gene set, with coherent signs, are kept:
+
+    >>> import pandas as pd
+    >>> import liana as li
+    >>> resource = li.rs.select_resource('consensus')
+    >>> net = pd.DataFrame({'source': ['pathA', 'pathA', 'pathB', 'pathB'],
+    ...                     'target': ['LGALS9', 'PTPRC', 'THY1', 'ITGB2'],
+    ...                     'weight': [1.0, 1.0, -1.0, -1.0]})
+    >>> geneset = li.rs.generate_lr_geneset(resource, net)
+    >>> geneset
+      source   interaction  weight
+    0  pathA  LGALS9^PTPRC     1.0
+    1  pathB    ITGB2^THY1    -1.0
+
+    The result can then be handed to an enrichment method
+    (e.g. `decoupler`) with the interaction names as features.
+
     """
     # TODO: Fix this if else, it's not very elegant
     if weight is None:

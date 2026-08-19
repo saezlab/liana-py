@@ -116,6 +116,23 @@ class SpatialInflow:
         n_cell_type_ligand_receptor_combinations corresponds to the combinations of cell types (as defined by the
         ``groupby`` parameter) with ligands and receptors expressed in the data and covered by the resource, and
         n_observations is the number of observations.
+
+        Examples
+        --------
+        For each cell, scores how much of a given ligand reaches it from a given
+        neighbouring cell type, against its own receptor expression:
+
+        >>> import liana as li
+        >>> adata = li.testing.generate_toy_spatial()
+        >>> lrdata = li.mt.inflow(adata,
+        ...                       groupby='bulk_labels',
+        ...                       resource_name='consensus')
+
+        The result is cells by `'source^ligand^receptor'` triplets, e.g.
+        `'CD4+/CD25 T Reg^HLA-DRA^CD4'`. Cell-type proportions per spot can be given
+        via `obsm_key` instead of `groupby`, which is what deconvolved spot data calls
+        for.
+
         """
         # Process MuData or AnnData - check instance and process accordingly
         is_mudata = _check_instance(adata)

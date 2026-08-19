@@ -29,6 +29,21 @@ def generate_toy_spatial():
     return adata
 
 def generate_toy_mdata():
+    """
+    Build a toy two-view MuData from `pbmc68k_reduced`.
+
+    The two views (`'adata_x'` and `'adata_y'`) hold the same 10 genes, so any
+    relationship learnt between them is trivial -- this is for exercising code
+    paths, not for interpreting results. Spatial coordinates, connectivities and
+    `.obs` are carried over from :func:`liana.testing.generate_toy_spatial`.
+
+    Returns
+    -------
+    A MuData object with two views, `'adata_x'` and `'adata_y'`, each with a
+    `'scaled'` layer, and with `.obsm['spatial']`,
+    `.obsp['spatial_connectivities']`, `.obs` and `.uns` shared at the top level.
+
+    """
     import scanpy as sc
     from mudata import MuData
 

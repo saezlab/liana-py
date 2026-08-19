@@ -40,12 +40,16 @@ def obsm_to_adata(adata: AnnData,
 
     Examples
     --------
-    See here `[1]`_ or here `[2]`_.
+    Turns an `.obsm` entry into an `AnnData` of its own, so that its columns can be
+    treated as variables by functions that expect features in `.X`:
 
-    .. _[1]: https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html\
-    #extract-cell-type-composition
-    .. _[2]: https://liana-py.readthedocs.io/en/latest/notebooks/misty.html#ext\
-    ract-cell-type-composition
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_adata()
+    >>> pca = li.ut.obsm_to_adata(adata, 'X_pca')
+
+    ``pca.X`` is then what was in ``adata.obsm['X_pca']``, with `.obs` carried over.
+    This is how a table of cell-type proportions or pathway activities is handed to
+    :class:`liana.method.MistyData` as one of its views.
 
     """
     if df is None:

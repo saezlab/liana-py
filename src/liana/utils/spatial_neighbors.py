@@ -116,12 +116,17 @@ def spatial_neighbors(adata: AnnData,
 
     Examples
     --------
-    See here `[1]`_ or here `[2]`_.
+    Weights every pair of spots by how close they are, giving the spatially
+    informed methods the neighbourhood they operate over:
 
-    .. _[1]: https://liana-py.readthedocs.io/en/latest/notebooks/sma.html#compu\
-    te-spatial-proximies-for-the-multi-view-model
-    .. _[2]: https://liana-py.readthedocs.io/en/latest/notebooks/misty.html#bui\
-    ld-custom-misty-views
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> li.ut.spatial_neighbors(adata, bandwidth=500)
+
+    The weights land in ``adata.obsp['spatial_connectivities']`` as a sparse
+    spots-by-spots matrix. `bandwidth` is required and sets the distance over which
+    proximity decays -- :func:`liana.utils.query_bandwidth` helps pick it -- while
+    `kernel` sets the shape of that decay.
 
     """
     if cutoff is None:
@@ -233,32 +238,21 @@ def spatial_pair_proximity(
 
     Examples
     --------
-    >>> import numpy as np
-    >>> import scanpy as sc
-    >>> from liana.utils import spatial_pair_proximity
-    >>> adata = sc.datasets.pbmc68k_reduced()
-    >>> rng = np.random.default_rng(0)
-    >>> adata.obsm['spatial'] = rng.normal(size=(adata.shape[0], 2)) * 100
-    >>> proximity = spatial_pair_proximity(adata, groupby='bulk_labels')
+    Summarises how close each pair of `groupby` labels sits in space, which can then
+    be used to down-weight interactions between cell types that never meet:
 
-    One row per ordered pair of groups, so 10 cell types give 100 rows:
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> proximity = li.ut.spatial_pair_proximity(adata, groupby='bulk_labels')
 
-    >>> proximity.columns.tolist()
-    ['source', 'target', 'mean_distance', 'interacting', 'proximity']
-    >>> proximity.shape
-    (100, 5)
+    One row per ordered pair of groups, scored from 1 for groups sitting on top of
+    each other down towards 0 for groups that never meet:
+
     >>> proximity[['source', 'target', 'proximity']].head(3).round(3)
                source          target  proximity
-    0  CD14+ Monocyte  CD14+ Monocyte      0.997
-    1  CD14+ Monocyte         CD19+ B      0.997
-    2  CD14+ Monocyte           CD34+      0.983
-
-    See here `[1]`_ or here `[2]`_ for use on real spatial data.
-
-    .. _[1]: https://liana-py.readthedocs.io/en/latest/notebooks/sma.html#compu\
-    te-spatial-proximies-for-the-multi-view-model
-    .. _[2]: https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html\
-    #spatial-connectivity
+    0  CD14+ Monocyte  CD14+ Monocyte      0.663
+    1  CD14+ Monocyte         CD19+ B      0.628
+    2  CD14+ Monocyte           CD34+      0.020
 
     """
     # groupby_labels use categories if categorical

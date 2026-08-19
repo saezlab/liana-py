@@ -74,6 +74,31 @@ def df_to_lr(adata: AnnData,
     AssertionError
         If there's no match when grouping-by between `adata.obs` and `dea_df`.
 
+    Examples
+    --------
+    `dea_df` holds per-cell-type differential expression statistics, indexed by
+    gene. It normally comes from a tool such as `pydeseq2` or `scanpy`; a stand-in
+    is built here so the example stays offline:
+
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_adata()
+    >>> groups = adata.obs['bulk_labels'].cat.categories
+    >>> rng = np.random.default_rng(1337)
+    >>> dea_df = pd.DataFrame(
+    ...     {'bulk_labels': np.repeat(groups, adata.n_vars),
+    ...      'stat': rng.normal(size=len(groups) * adata.n_vars)},
+    ...     index=np.tile(adata.var_names, len(groups)))
+    >>> lr_res = li.mu.df_to_lr(adata,
+    ...                         dea_df=dea_df,
+    ...                         groupby='bulk_labels',
+    ...                         stat_keys=['stat'])
+
+    Each statistic named in `stat_keys` is carried over to both sides of every
+    interaction -- as `ligand_stat` and `receptor_stat` -- and averaged into an
+    `interaction_stat` column.
+
     """
     _check_groupby(adata=adata, groupby=groupby, verbose=verbose)
     if (groupby not in adata.obs.columns) or (groupby not in dea_df.columns):

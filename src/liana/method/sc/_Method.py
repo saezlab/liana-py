@@ -287,6 +287,14 @@ class Method(MethodMeta):
 
             - :attr:`anndata.AnnData.uns` ``[`key_added`]`` with the aforementioned DataFrame
 
+        Examples
+        --------
+        Every method instance is called the same way; ``cellphonedb`` shown here:
+
+        >>> import liana as li
+        >>> adata = li.testing.generate_toy_adata()
+        >>> li.mt.cellphonedb(adata, groupby='bulk_labels', n_perms=100)
+
         """
         if supp_columns is None:
             supp_columns = []

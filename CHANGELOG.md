@@ -2,8 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- **`Examples` sections across the public API (#192).** Minimal runnable calls on `liana.testing` toy data that point at where the result lands, following pertpy's style; `hatch run doctest:run` executes them (the few that need a download are shown as literal blocks).
+
 ### Fixed
 
+- **MiSTy's `LinearModel` applied `n_jobs` to the first target only, then forked a worker per core for every other one.** `fit` *popped* `n_jobs` from state shared across targets, so all but the first fell back to the `-1` default -- spending ~4s on joblib pool startup to cross-validate a linear regression. It is now read rather than popped, defaults to `1`, and is documented; results are bit-identical.
 - **`_calc_log2fc` raised a bare `ZeroDivisionError` when a group had nothing to compare against (#93).** A `sample_key` group holding a single `groupby` category leaves the "rest" side empty; a `ValueError` now names the cause.
 - **Dropped the `MAML2-NOTCH1/2/3/4` rows from the consensus resource (#207, PR #247).** MAML2 is a nuclear transcriptional co-activator, not a surface ligand, so these were a curation artifact; a regression test keeps them out.
 - **`_get_means_perms` mutated the caller's matrix and upcast it to float64.** `adata.X /= norm_factor` wrote into a buffer that can be shared with `adata.raw.X`; the division is now out-of-place and cast back to the original dtype, halving peak memory.

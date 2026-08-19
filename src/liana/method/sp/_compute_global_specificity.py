@@ -64,6 +64,29 @@ def compute_global_specificity(
     Returns
     -------
     None. The result with 'lr_mean' and 'pval' is stored in `adata.uns["global_interactions"]`.
+
+    Examples
+    --------
+    Takes the output of ``liana.method.inflow``, whose `var_names` are the
+    `'source^ligand^receptor'` triplets that `lr_sep` splits back apart:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> lrdata = li.mt.inflow(adata,
+    ...                       groupby='bulk_labels',
+    ...                       resource_name='consensus')
+    >>> li.mt.compute_global_specificity(lrdata,
+    ...                                  groupby='bulk_labels',
+    ...                                  n_perms=10,
+    ...                                  use_raw=False,
+    ...                                  n_jobs=1)
+
+    ``lrdata.uns['global_interactions']`` then holds one row per sender, ligand,
+    receptor and receiver group, with its mean score and permutation p-value,
+    sorted by the latter. Use many more permutations than the 10 here -- the
+    smallest attainable p-value is `1 / (n_perms + 1)`. `n_jobs=1` avoids the
+    process-spawn overhead that the default `-1` costs at this size.
+
     """
     if groupby not in adata.obs.columns:
         raise KeyError(f"`groupby`='{groupby}' not found in adata.obs.")

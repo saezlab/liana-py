@@ -4,6 +4,7 @@ import numpy as np
 from pandas import DataFrame
 
 from liana._constants import DefaultValues as V
+from liana._docs import d
 from liana.method.fun._causalnet import build_prior_network, find_causalnet
 from liana.method.fun._estimate_metalinks import estimate_metalinks
 from liana.method.sc import (
@@ -45,6 +46,15 @@ def show_methods() -> DataFrame:
     -------
     Table of methods available.
 
+    Examples
+    --------
+    One row per method, with the scores it reports and its reference. Each name
+    corresponds to a callable instance in `liana.method`, e.g.
+    ``liana.method.cellphonedb``:
+
+    >>> import liana as li
+    >>> methods = li.mt.show_methods()
+
     """
     return _show_methods(_methods + [rank_aggregate, geometric_mean, scseqcomm, cellchat])
 
@@ -55,6 +65,15 @@ def get_method_scores() -> dict:
     Returns
     -------
     Dictionary of all scoring functions, with a boolean indicating whether the score is ascending or not
+
+    Examples
+    --------
+    Maps every score that liana's methods report to whether a *lower* value is the
+    stronger one -- `True` for p-values and for the aggregate ranks.
+    :func:`liana.method.process_scores` uses this to decide what to invert:
+
+    >>> import liana as li
+    >>> scores = li.mt.get_method_scores()
 
     """
     instances = np.array(_MethodMeta.instances)
@@ -67,6 +86,7 @@ def get_method_scores() -> dict:
     scores = {**specificity_scores, **magnitude_scores}
     return scores
 
+@d.dedent
 def process_scores(liana_res: DataFrame,
                    score_key: str,
                    inverse_fun: Callable = V.inverse_fun
@@ -84,6 +104,18 @@ def process_scores(liana_res: DataFrame,
     -------
     A `DataFrame` with the processed scores.
 
+    Examples
+    --------
+    `magnitude_rank` is one of the scores for which a lower value is the stronger
+    one, so it is inverted with `inverse_fun`. A score that is already
+    "higher is stronger" is returned unchanged:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_adata()
+    >>> li.mt.rank_aggregate(adata, groupby='bulk_labels', n_perms=None)
+    >>> res = li.mt.process_scores(adata.uns['liana_res'],
+    ...                            score_key='magnitude_rank')
+
     """
     df = liana_res.copy()
     scores = get_method_scores()
@@ -99,4 +131,4 @@ def process_scores(liana_res: DataFrame,
     return df
 
 # Remove these
-del Callable, DataFrame, V
+del Callable, DataFrame, V, d

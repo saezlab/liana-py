@@ -301,6 +301,25 @@ class CrossPCF:
         dict with keys ``cell_types``, ``radii``, ``results`` if
         ``inplace=False``, else ``None``.
         ``results`` maps ``(sender, receiver)`` tuples to ``(n_bins,)`` arrays.
+
+        Examples
+        --------
+        Uses cell positions only -- no expression -- so it answers which cell types sit
+        near which, and at what length scales:
+
+        >>> import liana as li
+        >>> adata = li.testing.generate_toy_spatial()
+        >>> li.mt.cross_pcf(adata,
+        ...                 groupby='bulk_labels',
+        ...                 radius_step=50,
+        ...                 annulus_width=50)
+
+        ``adata.uns['cross_pcf']`` then holds one `g(r)` curve per *directed* cell-type
+        pair, evaluated on the annuli in `radii`. Values above 1 mean co-localisation at
+        that distance, below 1 avoidance. Plot the curves with
+        :func:`liana.plotting.lric_lineplot`, and see ``liana.method.lric`` for the
+        expression-weighted version.
+
         """
         _adata_orig = adata
         adata = prep_check_adata(
@@ -509,6 +528,25 @@ class LRIC:
         Returns
         -------
         ``dict`` if ``inplace=False``, else ``None``.
+
+        Examples
+        --------
+        Weights the cell-type co-localisation of ``liana.method.cross_pcf`` by
+        ligand and receptor expression. Without `groupby` all cells are treated as both
+        senders and receivers, which screens every ligand-receptor pair for spatial
+        co-enrichment:
+
+        >>> import liana as li
+        >>> adata = li.testing.generate_toy_spatial()
+        >>> li.mt.lric(adata,
+        ...            resource_name='consensus',
+        ...            radius_step=50,
+        ...            annulus_width=50)
+
+        ``adata.uns['lric']`` then holds an annuli-by-interactions matrix, so one column
+        is one pair's `g(r)` profile, alongside `pair_names` and `radii`. Plot them with
+        :func:`liana.plotting.lric_lineplot`.
+
         """
         resource = _handle_resource(
             interactions=interactions,

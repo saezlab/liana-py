@@ -71,6 +71,20 @@ def tileplot(adata: ad.AnnData = None,
     -------
     The resulting tileplot
 
+    Examples
+    --------
+    `fill` and `label` each name a suffix shared by a `ligand_`/`receptor_` pair of
+    columns, so both sides of every interaction are tiled next to each other:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_adata()
+    >>> li.mt.cellphonedb(adata, groupby='bulk_labels', n_perms=100)
+    >>> p = li.pl.tileplot(adata,
+    ...                    fill='means',
+    ...                    label='props',
+    ...                    top_n=10,
+    ...                    orderby='lr_means')
+
     """
     liana_res = _prep_liana_res(adata=adata,
                                 liana_res=liana_res,

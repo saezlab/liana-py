@@ -33,6 +33,23 @@ def get_factor_scores(adata: AnnData | MuData,
     ValueError
         If `obsm_key` not in `.obsm`
 
+    Examples
+    --------
+    `obsm_key` points at the cell-or-sample by factor matrix written by a
+    factorization model -- MOFA (`'X_mofa'`), or :func:`liana.multi.nmf` as here:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> lrdata = li.mt.bivariate(adata, resource_name='consensus',
+    ...                          local_name='cosine', global_name=None,
+    ...                          n_perms=None)
+    >>> li.multi.nmf(lrdata, n_components=3, random_state=0)
+    >>> scores = li.ut.get_factor_scores(lrdata, obsm_key='NMF_W',
+    ...                                  obs_keys=['bulk_labels'])
+
+    `scores` has one `Factor{i}` column per factor, an `index` column of the original
+    barcodes, and any `.obs` columns named in `obs_keys`.
+
     """
     if obsm_key not in adata.obsm.keys():
         raise ValueError(f'{obsm_key} not found in `.obsm`')
@@ -97,6 +114,34 @@ def get_variable_loadings(adata: AnnData | MuData = None,
     ------
     ValueError
         If `varm_key` not found in `.varm` (when `loadings` is not provided)
+
+    Examples
+    --------
+    `varm_key` points at the feature by factor matrix written by a factorization
+    model -- here :func:`liana.multi.nmf` on the local scores of
+    ``liana.method.bivariate``, whose `var_names` are `'ligand^receptor'`:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> lrdata = li.mt.bivariate(adata, resource_name='consensus',
+    ...                          local_name='cosine', global_name=None,
+    ...                          n_perms=None)
+    >>> li.multi.nmf(lrdata, n_components=3, random_state=0)
+    >>> loadings = li.ut.get_variable_loadings(lrdata, varm_key='NMF_H',
+    ...                                        variable_sep='^')
+
+    The separators split those composite names back into their parts, and the rows
+    are ordered by the absolute loading on the first factor:
+
+    >>> loadings.head(3).round(3)
+      ligand_complex receptor_complex  Factor1  Factor2  Factor3
+    6       HLA-DPB1              CD4    2.518      0.0    0.114
+    4       HLA-DQB1              CD4    2.498      0.0    0.034
+    0        HLA-DRA              CD4    2.486      0.0    0.160
+
+    Views built by :func:`liana.multi.lrs_to_views` name their variables
+    `'source&target:ligand^receptor'`, which `view_sep=':'`, `variable_sep='^'` and
+    `pair_sep='&'` split in the same way.
 
     """
     if var_names is None:

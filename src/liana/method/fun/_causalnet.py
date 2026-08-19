@@ -30,6 +30,24 @@ def build_prior_network(ppis: pd.DataFrame | list[tuple[str, str]],
     -------
     corneto.Graph
 
+    Examples
+    --------
+    `ppis` is a signed protein-protein interaction network -- normally from
+    OmniPath -- given either as `(source, sign, target)` tuples or as a `DataFrame`
+    with `source`/`mor`/`target` columns. A tiny one is written out here so the
+    example stays offline. `lr_sep` strips the ligand from an interaction name, so
+    that `'HLA-DRA^CD4'` matches the receptor `'CD4'`:
+
+    >>> import liana as li
+    >>> ppis = [('CD4', 1, 'LCK'), ('LCK', 1, 'JUN'), ('LCK', -1, 'FOS')]
+    >>> prior = li.mt.build_prior_network(ppis,
+    ...                                   input_nodes={'HLA-DRA^CD4': 1.0},
+    ...                                   output_nodes={'JUN': 1.0, 'FOS': -1.0},
+    ...                                   lr_sep='^')
+
+    The network is pruned to what lies on a path from an input to an output. Hand
+    the result to :func:`liana.method.find_causalnet`.
+
     """
     cn = _check_if_installed("corneto")
 
@@ -152,6 +170,33 @@ def find_causalnet(
         DataFrame containing the resulting causal network
     P
         Insantce of the Corneto problem definition
+
+    Examples
+    --------
+    Takes the pruned graph from :func:`liana.method.build_prior_network` and selects
+    the sub-network whose signs are consistent with the input and output scores.
+    This needs a mixed-integer solver; without one installed, `corneto` falls back
+    to the solver bundled with SciPy:
+
+    >>> import liana as li
+    >>> ppis = [('CD4', 1, 'LCK'), ('LCK', 1, 'JUN'), ('LCK', -1, 'FOS')]
+    >>> prior = li.mt.build_prior_network(ppis,
+    ...                                   input_nodes={'CD4': 1.0},
+    ...                                   output_nodes={'JUN': 1.0, 'FOS': -1.0})
+    >>> df, problem = li.mt.find_causalnet(prior,
+    ...                                    input_node_scores={'CD4': 1.0},
+    ...                                    output_node_scores={'JUN': 1.0,
+    ...                                                        'FOS': -1.0},
+    ...                                    verbose=False)
+
+    `df` holds the selected edges, with a `source`, `target` and signed `edge_type`
+    per row, alongside the weights and predicted values of both nodes. `corneto`'s
+    own bookkeeping nodes appear there too, named with a leading underscore.
+
+    Pass `node_weights` (e.g. the proportion of cells expressing each gene) to
+    penalise nodes that are not measured, and raise `max_runs` if the solution is
+    unstable.
+
     """
     cn = _check_if_installed("corneto")
 

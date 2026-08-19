@@ -68,6 +68,21 @@ def to_tensor_c2c(adata: AnnData = None,
     ValueError
         If any of the provided keys (`sample_key`, `source_key`, `target_key`, `ligand_key` or `receptor_key`) are not found in `liana_res.uns[uns_key]` or if input data contains duplicates.
 
+    Examples
+    --------
+    Expects a by-sample ligand-receptor result, as written by any method's
+    `.by_sample`. A toy result stands in here:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_adata()
+    >>> adata.uns['liana_res'] = li.testing.sample_lrs(by_sample=True)
+    >>> tensor = li.mu.to_tensor_c2c(adata,
+    ...                              sample_key='sample',
+    ...                              score_key='specificity_rank')
+
+    The result is a 4D tensor of samples by senders by receivers by interactions,
+    ready to be decomposed with Tensor-cell2cell.
+
     """
     # check if cell2cell is installed
     c2c = _check_if_installed("cell2cell")

@@ -152,9 +152,10 @@ uns_key
 
 _inverse_fun = """\
 inverse_fun
-    Function that is applied to the scores before building the views. Default is `lambda x: 1 - x` which is used to invert the scores
-    reflect probabilities (e.g. magnitude_rank), i.e. such for which lower values reflect higher relevance.
-    This is handled automatically for the scores in liana."""
+    Function applied to scores for which a *lower* value is the stronger one -- p-values
+    and aggregate ranks such as `magnitude_rank` -- so that "higher is stronger" holds
+    throughout. Defaults to `-log10(x + eps)`. Which scores are inverted is decided by
+    `liana.method.get_method_scores`, so this is handled automatically for liana's own scores."""
 
 
 # Spatial specific docstrings
@@ -164,7 +165,7 @@ spatial_key
 
 _connectivity_key = """\
 connectivity_key
-    Key in `adata.obsp` that contains the spatial connectivity matrix. Default is `'spatial_connectivity'`. """
+    Key in `adata.obsp` that contains the spatial connectivity matrix. Default is `'spatial_connectivities'`. """
 
 _local_name = """\
 local_name

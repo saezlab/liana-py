@@ -148,6 +148,21 @@ class AggregateClass(MethodMeta):
 
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
 
+        Examples
+        --------
+        Runs the individual methods and aggregates their ranks. `n_perms=None` skips
+        the permutations that the permutation-based methods would otherwise need --
+        drop it, or set an integer, for a real analysis:
+
+        >>> import liana as li
+        >>> adata = li.testing.generate_toy_adata()
+        >>> li.mt.rank_aggregate(adata, groupby='bulk_labels', n_perms=None)
+
+        ``adata.uns['liana_res']`` then holds `magnitude_rank` and `specificity_rank`
+        alongside the scores of each aggregated method. Which methods are aggregated is
+        set on the instance -- see :class:`liana.method.AggregateClass` -- and
+        ``li.mt.rank_aggregate.describe()`` summarises what the ranks mean.
+
         """
         if mdata_kwargs is None:
             mdata_kwargs = {}

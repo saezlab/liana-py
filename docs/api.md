@@ -201,6 +201,7 @@ Passed as `model=` when calling a `MistyData` object:
     kang_2018
     generate_toy_adata
     generate_toy_spatial
+    generate_toy_mdata
     sample_lrs
 ```
 

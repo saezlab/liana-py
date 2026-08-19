@@ -4,11 +4,13 @@ from mudata import MuData
 from pandas import DataFrame, concat
 
 from liana._constants import DefaultValues as V
+from liana._docs import d
 from liana._logging import _check_if_installed
 from liana.method._pipe_utils import prep_check_adata
 from liana.utils import obsm_to_adata
 
 
+@d.dedent
 def estimate_metalinks(adata: AnnData,
                        resource: DataFrame,
                        pd_net: DataFrame,
@@ -46,6 +48,34 @@ def estimate_metalinks(adata: AnnData,
     Returns
     -------
     A MuData object with metabolite & receptor assays.
+
+    Examples
+    --------
+    `pd_net` is a metabolite-to-enzyme network whose weights say whether a gene
+    produces (+) or degrades (-) a metabolite, and `resource` links metabolites to
+    their receptors. Both normally come from MetalinksDB (see
+    :func:`liana.resource.get_metalinks`); toy ones are built here so the example
+    stays offline:
+
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_adata()
+    >>> genes = adata.var_names[:16].tolist()
+    >>> pd_net = pd.DataFrame({'source': np.repeat(['HMDB0000122',
+    ...                                            'HMDB0000148'], 8),
+    ...                        'target': genes,
+    ...                        'weight': 1.0})
+    >>> resource = pd.DataFrame({'source': ['HMDB0000122', 'HMDB0000148'],
+    ...                          'receptor': ['CD4', 'ITGB2']})
+    >>> mdata = li.mt.estimate_metalinks(adata, resource=resource, pd_net=pd_net)
+
+    Metabolite abundances are estimated from the enzyme expression and returned in
+    a `'metabolite'` modality, next to the receptors in a `'receptor'` one. Pass
+    `t_net` to additionally require a transporter for metabolites that cannot cross
+    the membrane on their own. The result is the input to
+    ``liana.method.bivariate`` or to any single-cell method, with
+    `x_mod='metabolite'` and `y_mod='receptor'`.
 
     """
     dc = _check_if_installed(package_name="decoupler")

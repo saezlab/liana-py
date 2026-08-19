@@ -39,12 +39,12 @@ def query_bandwidth(coordinates: np.ndarray,
 
     Examples
     --------
-    See here `[1]`_ or here `[2]`_.
+    Helps choose the `bandwidth` for :func:`liana.utils.spatial_neighbors` by
+    showing how many neighbours each candidate value admits:
 
-    .. _[1]: https://liana-py.readthedocs.io/en/latest/notebooks/sma.html#compu\
-    te-spatial-proximies-for-the-multi-view-model
-    .. _[2]: https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html\
-    #spatial-connectivity
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> fig, df = li.ut.query_bandwidth(adata.obsm['spatial'], start=0, end=1000)
 
     """
     tree = BallTree(coordinates, metric='euclidean')

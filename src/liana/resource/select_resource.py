@@ -25,6 +25,20 @@ def select_resource(resource_name: str = V.resource_name) -> DataFrame:
     -------
     A dataframe with ``['ligand', 'receptor']`` columns
 
+    Examples
+    --------
+    The `'consensus'` resource ships with LIANA+ and is the one used by default:
+
+    >>> import liana as li
+    >>> resource = li.rs.select_resource('consensus')
+    >>> resource.head(3)
+       ligand receptor
+    0  LGALS9    PTPRC
+    1  LGALS9      MET
+    2  LGALS9     CD44
+
+    Pass the frame to any method via `resource=`.
+
     """
     resource_name = resource_name.lower()
 
@@ -52,6 +66,14 @@ def show_resources():
     Returns
     -------
     A list of resource names available via ``liana.resource.select_resource``
+
+    Examples
+    --------
+    Lists the resource names that :func:`liana.resource.select_resource` accepts --
+    `'consensus'`, `'cellphonedb'`, `'cellchatdb'` and a dozen others:
+
+    >>> import liana as li
+    >>> resources = li.rs.show_resources()
 
     """
     resource_path = pathlib.Path(__file__).parent.joinpath("omni_resource.csv")

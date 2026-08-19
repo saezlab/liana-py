@@ -54,6 +54,24 @@ def lric_lineplot(
     -------
     :class:`~matplotlib.figure.Figure` if ``return_fig`` is ``True``,
     otherwise ``None``.
+
+    Examples
+    --------
+    `radii` and the curves come from ``liana.method.cross_pcf`` (cell-type
+    co-localisation) or ``liana.method.lric`` (expression-weighted). The dotted
+    line at `g(r) = 1` marks spatial independence:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> res = li.mt.cross_pcf(adata, groupby='bulk_labels',
+    ...                       radius_step=50, annulus_width=50,
+    ...                       inplace=False)
+    >>> curves = {f'{s} -> {r}': g
+    ...           for (s, r), g in list(res['results'].items())[:2]}
+    >>> fig = li.pl.lric_lineplot(res['radii'], curves, overlay=True)
+
+    One subplot per curve without `overlay`.
+
     """
     labels = list(curves.keys())
     n = len(labels)

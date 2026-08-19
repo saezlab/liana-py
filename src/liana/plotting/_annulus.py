@@ -40,7 +40,7 @@ def annulus_plot(
     extend_first_annulus
         If ``True`` (default), draw the innermost ring from radius 0 (spanning
         ``[0, radius_step + annulus_width)``) to mirror the merged first bin used
-        by :func:`liana.mt.lric` / :func:`liana.mt.cross_pcf`. ``False`` starts
+        by ``liana.method.lric`` / ``liana.method.cross_pcf``. ``False`` starts
         the first ring at ``radius_step``.
     n_rings
         Number of concentric rings to draw.
@@ -51,6 +51,18 @@ def annulus_plot(
     ------
     KeyError
         If ``spatial_key`` is not found in ``adata.obsm``.
+
+    Examples
+    --------
+    Draws the annuli that ``liana.method.cross_pcf`` and
+    ``liana.method.lric`` bin distances into, around one seeded random cell,
+    with the number of cells falling in each ring. Use it to sanity-check
+    `radius_step` and `annulus_width` against the density of the tissue:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> li.pl.annulus_plot(adata, radius_step=200, annulus_width=200, n_rings=4)
+
     """
     if spatial_key not in adata.obsm:
         raise KeyError(f"'{spatial_key}' not found in adata.obsm.")
