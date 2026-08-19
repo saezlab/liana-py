@@ -116,6 +116,8 @@ def test_vectorized_spearman(mdata, interactions):
 ### Test on AnnData and LRs
 # NOTE: these should be the same regardless of the local function
 def test_morans_analytical(toy_spatial):
+    annotations = (set(toy_spatial.obsm), set(toy_spatial.uns), set(toy_spatial.obsp))
+
     lrdata = bivariate(toy_spatial,
               local_name='morans',
               global_name=['morans'],
@@ -124,11 +126,11 @@ def test_morans_analytical(toy_spatial):
               use_raw=True,
               mask_negatives=True
               )
-    assert 'spatial' in toy_spatial.obsm.keys()
-    assert 'louvain' in toy_spatial.uns.keys()
-    assert 'spatial_connectivities' in toy_spatial.obsp.keys()
-
     assert 'pvals' in lrdata.layers.keys()
+
+    # the caller's object is read from, never stripped
+    assert (set(toy_spatial.obsm), set(toy_spatial.uns),
+            set(toy_spatial.obsp)) == annotations
 
     np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].X), 0.12803833, decimal=6)
     np.testing.assert_almost_equal(np.mean(lrdata[:,'MIF^CD74_CXCR4'].layers['pvals']), 0.8764923, decimal=6)
@@ -203,9 +205,11 @@ def test_bivar_product(mdata, interactions):
               add_categories=True,
               )
     assert 'cats' in bdata.layers.keys()
-    assert bdata.uns is not None
-    assert bdata.obsm is not None
-    assert bdata.obsp is not None
+    # the cell-level annotations are carried over onto the interaction-level object
+    assert bdata.uns.keys() == mdata.uns.keys()
+    assert bdata.obsm.keys() == mdata.obsm.keys()
+    assert bdata.obsp.keys() == mdata.obsp.keys()
+    np.testing.assert_array_equal(bdata.obsm['spatial'], mdata.obsm['spatial'])
     np.testing.assert_almost_equal(bdata.X.max(), 0.63145)
     assert 'lee' not in bdata.var.columns
 

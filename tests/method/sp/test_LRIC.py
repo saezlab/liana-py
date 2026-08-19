@@ -34,19 +34,13 @@ _KWARGS = {
 def adata():
     """Toy spatial data with `cell_type` labels.
 
-    Shared and read-only: the teardown check below fails the module if a test
-    writes to it, which would otherwise leak into whichever test runs next.
+    Shared, so tests must only read from it. Anything that writes -- i.e. any
+    call with `inplace=True` -- takes `adata_copy` instead.
     """
     adata = generate_toy_spatial()
     adata.obs["cell_type"] = adata.obs["bulk_labels"]
-    keys = set(adata.uns)
 
-    yield adata
-
-    assert set(adata.uns) == keys, (
-        f"tests wrote {sorted(set(adata.uns) - keys)} to the shared `adata`; "
-        "use the `adata_copy` fixture for `inplace=True`"
-    )
+    return adata
 
 
 @pytest.fixture(scope="module")

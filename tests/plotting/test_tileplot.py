@@ -12,5 +12,11 @@ def test_tileplot(liana_res):
                      orderby='specificity_rank',
                      orderby_ascending=True
                      )
-    assert my_p2 is not None
     assert isinstance(my_p2.data['pvals'].values[0], str)
+    # `top_n` keeps the n best interactions by `orderby`, in that order
+    assert my_p2.data['interaction'].notna().all()
+    assert my_p2.data['interaction'].nunique() == 10
+    interaction = liana_res['ligand_complex'] + ' -> ' + liana_res['receptor_complex']
+    best = (liana_res.groupby(interaction)['specificity_rank'].min()
+            .sort_values().head(10).index.tolist())
+    assert list(my_p2.data['interaction'].cat.categories) == best

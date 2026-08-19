@@ -1,10 +1,12 @@
 import decoupler as dc
 import numpy as np
+import pytest
 
 from liana.resource import select_resource
 from liana.resource._resource_utils import generate_lr_geneset
 
 
+@pytest.mark.network
 def test_generate_lr_resource():
     """Test generate_lr_resource."""
     # load data
@@ -18,6 +20,7 @@ def test_generate_lr_resource():
     assert np.isclose(lr_net[lr_net['interaction'] == 'LAMB3^ITGAV_ITGB8']['weight'].values[0], 3.62299, atol=1e-5)
 
 
+@pytest.mark.network
 def test_generate_nondefault_lr_resource():
     """Test generate_lr_resource."""
     # load data

@@ -9,7 +9,9 @@ from liana.method.sc._liana_pipe import _trimean
 
 @pytest.fixture
 def adata(pbmc68k):
-    """`pbmc68k_reduced` as the pipe expects it: raw counts in X, labels in `@label`."""
+    """`pbmc68k_reduced` as the pipe expects it: `.raw` (log-normalised)
+    expression in `.X`, labels in `@label`.
+    """
     pbmc68k.X = pbmc68k.raw.X
     pbmc68k.obs['@label'] = pbmc68k.obs.bulk_labels
 
@@ -61,7 +63,7 @@ def test_cellchat_perms(adata):
                         34304.404, 33644.323])
     expected = perms.sum(axis=0).sum(axis=1)
 
-    assert np.testing.assert_almost_equal(desired, expected, decimal=3) is None
+    np.testing.assert_almost_equal(expected, desired, decimal=3)
 
     perms = _get_means_perms(adata=adata,
                              norm_factor=mat_max,
@@ -77,4 +79,4 @@ def test_cellchat_perms(adata):
                         5184.824284])
     expected = perms.sum(axis=0).sum(axis=1)
 
-    assert np.testing.assert_almost_equal(desired, expected, decimal=6) is None
+    np.testing.assert_almost_equal(expected, desired, decimal=6)

@@ -12,10 +12,8 @@ def test_dotplot_order(liana_res):
                    orderby_ascending=False,
                    target_labels=["A", "B", "C"]
                    )
-    assert my_p is not None
     assert 'interaction' in my_p.data.columns
     np.testing.assert_equal(np.unique(my_p.data.interaction).shape, (20,))
-    set(my_p.data.target)
     assert {'A', 'B', 'C'} == set(my_p.data.target)
 
 
@@ -27,11 +25,17 @@ def test_doplot_filter(liana_res):
                     inverse_colour=True,
                     source_labels=["A"]
                     )
-    assert my_p2 is not None
+    assert set(my_p2.data['source']) == {'A'}
     # we force this, but not intended all interactions
     # to be only 0.95, but rather for an interaction to get
     # plotted, in at least one cell type pair it should be > 0.95
     assert all(my_p2.data['specificity_rank'] > 0.95) is True
+
+    # `inverse_colour` replaces the colour column with its -log10
+    np.testing.assert_allclose(
+        my_p2.data['magnitude'],
+        -np.log10(liana_res.loc[my_p2.data.index, 'magnitude'] + np.finfo(float).eps),
+    )
 
 
 def test_dotplot_bysample(liana_res_by_sample):
@@ -40,7 +44,7 @@ def test_dotplot_bysample(liana_res_by_sample):
                               colour='magnitude',
                               target_labels='E',
                               sample_key='sample')
-    assert my_p3 is not None
     assert 'interaction' in my_p3.data.columns
     assert 'sample' in my_p3.data.columns
-    assert 'B' not in my_p3.data['target']
+    # `target_labels` keeps only the labels asked for
+    assert set(my_p3.data['target']) == {'E'}

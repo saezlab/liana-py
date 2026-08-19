@@ -8,8 +8,8 @@ from liana.testing import _sample_interactions, _sample_target_metrics
 @pytest.fixture
 def misty(toy_spatial):
     """A spatial AnnData carrying toy misty results."""
-    toy_spatial.uns['target_metrics'] = _sample_target_metrics()
-    toy_spatial.uns['interactions'] = _sample_interactions()
+    toy_spatial.uns['target_metrics'] = _sample_target_metrics(seed=0)
+    toy_spatial.uns['interactions'] = _sample_interactions(seed=0)
     toy_spatial.view_names = ['intra', 'extra']
 
     return toy_spatial
@@ -18,7 +18,8 @@ def misty(toy_spatial):
 @pytest.fixture
 def target_metrics():
     """Target metrics for two groups, e.g. two samples to aggregate over."""
-    target_metrics = pd.concat([_sample_target_metrics()] * 2)
+    target_metrics = pd.concat([_sample_target_metrics(seed=0),
+                                _sample_target_metrics(seed=1)])
     target_metrics['group'] = ['a'] * 3 + ['b'] * 3
 
     return target_metrics
@@ -27,7 +28,8 @@ def target_metrics():
 @pytest.fixture
 def interactions():
     """Interactions for two groups, e.g. two samples to aggregate over."""
-    interactions = pd.concat([_sample_interactions()] * 2)
+    interactions = pd.concat([_sample_interactions(seed=0),
+                              _sample_interactions(seed=1)])
     interactions['group'] = ['a'] * 9 + ['b'] * 9
 
     return interactions
@@ -60,6 +62,7 @@ def test_target_metrics_plot(misty):
     filtered = pl.target_metrics(misty=misty, stat='gain_R2',
                                  filter_fun=lambda x: x['multi_R2'] > 0.5).data
     expected = target_metrics[target_metrics['multi_R2'] > 0.5]['target']
+    assert 0 < len(expected) < len(target_metrics)  # else the check below is vacuous
     assert set(filtered['target']) == set(expected)
 
     assert pl.target_metrics(misty=misty, stat='gain_R2', return_fig=False) is None
@@ -140,6 +143,7 @@ def test_contributions_filter(misty):
 
     target_metrics = misty.uns['target_metrics']
     expected = target_metrics[target_metrics['multi_R2'] > 0.5]['target']
+    assert 0 < len(expected) < len(target_metrics) 
     assert set(plot_data['target']) == set(expected)
 
 

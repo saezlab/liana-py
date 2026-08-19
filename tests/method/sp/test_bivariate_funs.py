@@ -32,7 +32,7 @@ def mats():
 
 @pytest.fixture
 def pval_mats():
-    """A row-standardized weight matrix and two 10x10 feature matrices."""
+    """Two 10x10 feature matrices and a weight matrix scaled to sum to `n`."""
     seed = 0
     rng = np.random.default_rng(seed=seed)
 

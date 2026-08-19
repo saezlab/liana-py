@@ -160,8 +160,12 @@ lint.pydocstyle.convention = "numpy"
 [tool.pytest.ini_options]
 testpaths = [ "tests" ]
 xfail_strict = true
+markers = [
+  "network: needs internet access; deselect with `-m \"not network\"`",
+]
 addopts = [
   "--import-mode=importlib", # allow using test files with same name
+  "--strict-markers",
 ]
 
 [tool.coverage.run]

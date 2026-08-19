@@ -13,7 +13,7 @@ def test_compute_global_specificity(pbmc68k):
 
     assert "global_interactions" in pbmc68k.uns
     res = pbmc68k.uns["global_interactions"]
-    assert hasattr(res, "shape")
+    assert list(res.columns) == ["index", "feature", "lr_mean", "pval"]
     assert res["pval"].between(0.0, 1.0).all()
 
 

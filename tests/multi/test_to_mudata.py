@@ -4,7 +4,6 @@ import pytest
 from anndata import AnnData, concat
 
 from liana.multi import adata_to_views, filter_view_markers, lrdata_to_mudata, lrs_to_views
-from liana.testing import sample_lrs
 
 
 def _generate_toy_lrdata(n_obs=20, n_lrs=15):
@@ -49,7 +48,7 @@ def test_lrs_to_views(toy_adata, liana_res_by_sample):
     assert len(mdata.varm_keys())==3
 
 
-def test_lrs_to_views_batch(toy_adata):
+def test_lrs_to_views_batch(toy_adata, liana_res_by_sample):
     toy_adata.obs['batch'] = 1
     adata2 = toy_adata.copy()
     adata2.obs['batch'] = 2
@@ -58,7 +57,7 @@ def test_lrs_to_views_batch(toy_adata):
     adata3.obs['sample'] = adata3.obs['sample'].apply(lambda x: x+'3')
     toy_adata = concat([toy_adata, adata2, adata3], join='inner', label='sample_number', keys=['0', '1', '2'], index_unique='-')
 
-    liana_res = sample_lrs(by_sample=True)
+    liana_res = liana_res_by_sample
     liana_res2 = liana_res.copy()
     liana_res2['sample'] = liana_res['sample'].apply(lambda x: x+'2')
     liana_res['batch']=1
