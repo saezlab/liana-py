@@ -92,28 +92,41 @@ class SpatialBivariate:
             Separator to use for interaction names.
         %(verbose)s
         **kwargs
-            Additional keyword arguments:
-            - For AnnData:
-                %(x_name)s By default: 'ligand'.
-                %(y_name)s By default: 'receptor'.
+            Additional keyword arguments.
 
-            - For MuData:
-                %(x_mod)s
-                %(y_mod)s
-                %(x_name)s By default: 'x'.
-                %(y_name)s By default: 'y'.
-                x_use_raw: bool
-                    Whether to use the raw counts for the x-mod.
-                y_use_raw: bool
-                    Whether to use the raw counts for y-mod.
-                x_layer: str
-                    Layer to use for x-mod.
-                y_layer: str
-                    Layer to use for y-mod.
-                x_transform: bool
-                    Function to transform the x-mod.
-                y_transform: bool
-                    Function to transform the y-mod.
+            For an `AnnData` input:
+
+            x_name
+                Name of the x-variable. If passing a `resource` dataframe, this should
+                match the first column. By default: 'ligand'.
+            y_name
+                Name of the y-variable. If passing a `resource` dataframe, this should
+                match the second column. By default: 'receptor'.
+
+            For a `MuData` input:
+
+            x_mod
+                Name of the modality to use for the x-axis.
+            y_mod
+                Name of the modality to use for the y-axis.
+            x_name
+                Name of the x-variable. If passing a `resource` dataframe, this should
+                match the first column. By default: 'x'.
+            y_name
+                Name of the y-variable. If passing a `resource` dataframe, this should
+                match the second column. By default: 'y'.
+            x_use_raw: bool
+                Whether to use the raw counts for the x-mod.
+            y_use_raw: bool
+                Whether to use the raw counts for y-mod.
+            x_layer: str
+                Layer to use for x-mod.
+            y_layer: str
+                Layer to use for y-mod.
+            x_transform: bool
+                Function to transform the x-mod.
+            y_transform: bool
+                Function to transform the y-mod.
 
         Raises
         ------

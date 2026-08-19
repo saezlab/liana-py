@@ -147,6 +147,8 @@ nitpick_ignore = [
     ("py:class", "csr_matrix"),
     ("py:class", "tuples"),
     ("py:class", "corneto.Graph"),
+    # Base classes for *defining* methods, deliberately not in the public API
+    ("py:class", "liana.method.sc._Method.Method"),
     ("py:attr", "n_obs"),
     ("py:attr", "n_var"),
     ("py:attr", "obs"),

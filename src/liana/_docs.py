@@ -183,14 +183,6 @@ _add_categories = """\
 add_categories
     Whether to add categories about the local scores."""
 
-_x_mod = """\
-x_mod
-    Name of the modality to use for the x-axis."""
-
-_y_mod = """\
-y_mod
-    Name of the modality to use for the y-axis."""
-
 _x_name = """\
 x_name
     Name of the x-variable. If passing a `resource` dataframe, this should match the first column."""
@@ -357,8 +349,6 @@ d = DocstringProcessor(
     global_name=_global_name,
     positive_only=_positive_only,
     add_categories=_add_categories,
-    x_mod=_x_mod,
-    y_mod=_y_mod,
     x_name=_x_name,
     y_name=_y_name,
     mask_negatives=_mask_negatives,
