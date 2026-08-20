@@ -8,7 +8,7 @@ from liana._logging import _logg
 
 
 @d.dedent
-def filter_reassemble_complexes(lr_res: pd.DataFrame,
+def _filter_reassemble_complexes(lr_res: pd.DataFrame,
                                 _key_cols: list[str],
                                 complex_cols: list[str],
                                 expr_prop: float,
@@ -103,7 +103,7 @@ def _reduce_complexes(col: str,
     return lr_res
 
 
-def explode_complexes(resource: pd.DataFrame,
+def _explode_complexes(resource: pd.DataFrame,
                       SOURCE: str = 'ligand',
                       TARGET: str = 'receptor'
                       ) -> pd.DataFrame:

@@ -216,6 +216,19 @@ def circle_plot(
     ValueError
         If `groupby` is not provided
 
+    Examples
+    --------
+    `groupby` must name the `.obs` column that the interactions' `source`/`target`
+    labels came from, so that its colours can be re-used for the nodes:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_adata()
+    >>> li.mt.rank_aggregate(adata, groupby='bulk_labels', n_perms=None)
+    >>> ax = li.pl.circle_plot(adata, groupby='bulk_labels')
+
+    With `pivot_mode='mean'` and a `score_key` the edges are weighted by that
+    score's mean instead of by the number of interactions.
+
     """
     if groupby is None:
         raise ValueError('`groupby` must be provided!')

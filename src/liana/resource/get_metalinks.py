@@ -107,6 +107,17 @@ def get_metalinks(db_path: str | None = None,
     -------
     A pandas DataFrame containing the query results without the source column.
 
+    Examples
+    --------
+    This function downloads MetalinksDB on first use, so it is not run here.
+    Metabolite-receptor edges restricted to secreted metabolites are obtained
+    with::
+
+        resource = get_metalinks(
+            types=['lr'],
+            biospecimen_location='Blood',
+        )
+
     """
     if db_path is None:
         db_path = _download_metalinksdb()
@@ -197,6 +208,15 @@ def get_metalinks_values(table_name: str,
     -------
     A list of distinct values from the specified column.
 
+    Examples
+    --------
+    This function downloads MetalinksDB on first use, so it is not run here. Use
+    it to discover the values accepted by the filters of
+    :func:`liana.resource.get_metalinks`::
+
+        get_metalinks_values(table_name='tissue_location',
+                             column_name='tissue_location')
+
     """
     if db_path is None:
         db_path = _download_metalinksdb()
@@ -227,6 +247,14 @@ def describe_metalinks(db_path: str | None = None,
     Returns
     -------
     The database schema description.
+
+    Examples
+    --------
+    This function downloads MetalinksDB on first use, so it is not run here. It
+    prints the tables and columns that :func:`liana.resource.get_metalinks` and
+    :func:`liana.resource.get_metalinks_values` query::
+
+        describe_metalinks()
 
     """
     if db_path is None:

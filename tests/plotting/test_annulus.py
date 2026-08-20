@@ -1,0 +1,17 @@
+import pytest
+
+from liana.plotting import annulus_plot
+
+
+def test_annulus_plot(toy_spatial):
+    annulus_plot(
+        toy_spatial,
+        spatial_key="spatial",
+        annulus_width=200,
+        radius_step=200,
+        n_rings=5,
+        seed=42,
+    )
+
+    with pytest.raises(KeyError, match="not found in adata.obsm"):
+        annulus_plot(toy_spatial, spatial_key="missing_key")

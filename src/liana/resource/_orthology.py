@@ -82,7 +82,7 @@ def translate_column(
         Column name to translate.
     replace
         Whether to replace the original column with the translated values. Default is True.
-        If False, it will create a new column with the prefix "orthology_".
+        If False, it will create a new column with the prefix ``orthology_``.
     one_to_many
         Maximum number of orthologs allowed per gene. Default is 1.
 
@@ -100,6 +100,27 @@ def translate_column(
     ------
     ValueError
         If the `mapping_df` does not contain 'source' and 'target' columns or `one_to_many` is not an integer
+
+    Examples
+    --------
+    `map_df` maps human symbols (`source`) to the target organism (`target`).
+    :func:`liana.resource.get_hcop_orthologs` builds one; it is written out here to
+    keep the example offline:
+
+    >>> import pandas as pd
+    >>> import liana as li
+    >>> resource = li.rs.select_resource('consensus').head(3)
+    >>> map_df = pd.DataFrame({'source': ['LGALS9', 'PTPRC', 'MET', 'CD44'],
+    ...                        'target': ['Lgals9', 'Ptprc', 'Met', 'Cd44']})
+    >>> li.rs.translate_column(resource, map_df, column='ligand')
+       ligand receptor
+    0  Lgals9    PTPRC
+    1  Lgals9      MET
+    2  Lgals9     CD44
+
+    With `replace=False` the translation is added as an `orthology_ligand` column
+    instead of overwriting `ligand`. Use
+    :func:`liana.resource.translate_resource` to do both sides at once.
 
     """
     if not isinstance(one_to_many, int):
@@ -159,6 +180,23 @@ def translate_resource(
     -------
     Resulting DataFrame with translated columns.
 
+    Examples
+    --------
+    Translates the `'ligand'` and `'receptor'` columns in one go. In practice
+    `map_df` comes from :func:`liana.resource.get_hcop_orthologs`; interactions
+    whose partners have no ortholog are dropped:
+
+    >>> import pandas as pd
+    >>> import liana as li
+    >>> resource = li.rs.select_resource('consensus').head(3)
+    >>> map_df = pd.DataFrame({'source': ['LGALS9', 'PTPRC', 'MET', 'CD44'],
+    ...                        'target': ['Lgals9', 'Ptprc', 'Met', 'Cd44']})
+    >>> li.rs.translate_resource(resource, map_df)
+       ligand receptor
+    0  Lgals9    Ptprc
+    1  Lgals9      Met
+    2  Lgals9     Cd44
+
     """
     if columns is None:
         columns = ['ligand', 'receptor']
@@ -213,6 +251,18 @@ def get_hcop_orthologs(target_organism="mouse",
     - Yates, B., Gray, K.A., Jones, T.E. and Bruford, E.A., 2021. Updates to HCOP: the HGNC comparison of orthology predictions tool. Briefings in Bioinformatics, 22(6), p.bbab155.
 
     For more information, please visit the HCOP website: https://www.genenames.org/tools/hcop/
+
+    Examples
+    --------
+    This function downloads from HCOP, so it is not run here. A typical call
+    keeps only the two symbol columns needed by
+    :func:`liana.resource.translate_resource`::
+
+        map_df = get_hcop_orthologs(
+            target_organism='mouse',
+            columns=['human_symbol', 'mouse_symbol'],
+            min_evidence=3,
+        ).rename(columns={'human_symbol': 'source', 'mouse_symbol': 'target'})
 
     """
     if url is None:

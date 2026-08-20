@@ -47,6 +47,27 @@ class MistyData(MuData):
     obs
         See parameter with the same name.
 
+    Examples
+    --------
+    Views are `AnnData`s that share observations. The `'intra'` view holds the
+    targets to be predicted; every other view is a spatial context and must carry
+    its own connectivities in `.obsp['spatial_connectivities']`:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> adata = adata[:, adata.var_names[:5]].copy()
+    >>> extra = adata.copy()
+    >>> extra.obsp['spatial_connectivities'] = li.ut.spatial_neighbors(
+    ...     extra, bandwidth=200, set_diag=True, inplace=False)
+    >>> misty = li.mt.MistyData({'intra': adata.copy(), 'extra': extra})
+
+    Each extra view's expression is multiplied by its connectivities on
+    construction, so that a predictor is a *neighbourhood* value rather than the
+    spot's own. :func:`liana.method.genericMistyData` and
+    :func:`liana.method.lrMistyData` build the views for the two most common
+    designs. Call the object to fit the model -- see
+    :func:`liana.method.MistyData.__call__`.
+
     """
 
     def __init__(self,
@@ -167,11 +188,30 @@ class MistyData(MuData):
         %(verbose)s
         **kwargs
             Keyword arguments passed to the Regressors. Note that random_state is already set via ``seed``.
+            ``n_jobs`` is instead used to cross-validate each target and defaults to 1, as the
+            folds are few and each fit is cheap; raise it only for expensive regressors.
 
         Returns
         -------
-        If inplace is True, the results are written to the `.uns` attribute of the object.
-        Otherwise two DataFrames are returned, one for target metrics and one for importances.
+        If inplace is True, two DataFrames are written to `misty.uns`. `'target_metrics'` is one row per
+        target: how well the intra view alone explains it (`intra_R2`), how well all
+        views together do (`multi_R2`), what the extra views add (`gain_R2`), and each
+        view's contribution. `'interactions'` is one row per predictor-target pair per
+        view, with the importance the model gave it.
+        
+        Otherwise the two DataFrames are returned, one for target metrics and one for importances.
+
+        Examples
+        --------
+        Each variable of the `'intra'` view is modelled in turn, from the other
+        intra-view variables and from every other view:
+
+        >>> import liana as li
+        >>> adata = li.testing.generate_toy_spatial()
+        >>> adata = adata[:, adata.var_names[:5]].copy()
+        >>> misty = li.mt.genericMistyData(intra=adata, bandwidth=200,
+        ...                                set_diag=True)
+        >>> misty(model=li.mt.sp.LinearModel)
 
         """
         model = model(seed, **kwargs)  # type: ignore[operator]

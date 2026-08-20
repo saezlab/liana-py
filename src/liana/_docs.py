@@ -60,7 +60,7 @@ layer
 
 _mdata_kwargs = """\
 mdata_kwargs
-    Keyword arguments to be passed to `li.fun.mdata_to_anndata` if `adata` is an instance of `MuData`.
+    Keyword arguments to be passed to `li.ut.mdata_to_anndata` if `adata` is an instance of `MuData`.
     If an AnnData object is passed, these arguments are ignored."""
 
 _inplace = """\
@@ -152,9 +152,10 @@ uns_key
 
 _inverse_fun = """\
 inverse_fun
-    Function that is applied to the scores before building the views. Default is `lambda x: 1 - x` which is used to invert the scores
-    reflect probabilities (e.g. magnitude_rank), i.e. such for which lower values reflect higher relevance.
-    This is handled automatically for the scores in liana."""
+    Function applied to scores for which a *lower* value is the stronger one -- p-values
+    and aggregate ranks such as `magnitude_rank` -- so that "higher is stronger" holds
+    throughout. Defaults to `-log10(x + eps)`. Which scores are inverted is decided by
+    `liana.method.get_method_scores`, so this is handled automatically for liana's own scores."""
 
 
 # Spatial specific docstrings
@@ -164,7 +165,7 @@ spatial_key
 
 _connectivity_key = """\
 connectivity_key
-    Key in `adata.obsp` that contains the spatial connectivity matrix. Default is `'spatial_connectivity'`. """
+    Key in `adata.obsp` that contains the spatial connectivity matrix. Default is `'spatial_connectivities'`. """
 
 _local_name = """\
 local_name
@@ -181,14 +182,6 @@ positive_only
 _add_categories = """\
 add_categories
     Whether to add categories about the local scores."""
-
-_x_mod = """\
-x_mod
-    Name of the modality to use for the x-axis."""
-
-_y_mod = """\
-y_mod
-    Name of the modality to use for the y-axis."""
 
 _x_name = """\
 x_name
@@ -356,8 +349,6 @@ d = DocstringProcessor(
     global_name=_global_name,
     positive_only=_positive_only,
     add_categories=_add_categories,
-    x_mod=_x_mod,
-    y_mod=_y_mod,
     x_name=_x_name,
     y_name=_y_name,
     mask_negatives=_mask_negatives,

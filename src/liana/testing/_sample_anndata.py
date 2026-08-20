@@ -6,6 +6,18 @@ from liana.utils.spatial_neighbors import spatial_neighbors
 
 
 def generate_toy_spatial():
+    """
+    Build a toy spatial AnnData from `pbmc68k_reduced`.
+
+    Coordinates are drawn at random (seeded), so they carry no biological signal
+    -- this is for exercising code paths, not for interpreting results.
+
+    Returns
+    -------
+    `pbmc68k_reduced` with random `obsm['spatial']` coordinates and the spatial
+    connectivities that :func:`liana.utils.spatial_neighbors` derives from them.
+
+    """
     adata = pbmc68k_reduced()
 
     rng = np.random.default_rng(seed=1337)
@@ -17,6 +29,21 @@ def generate_toy_spatial():
     return adata
 
 def generate_toy_mdata():
+    """
+    Build a toy two-view MuData from `pbmc68k_reduced`.
+
+    The two views (`'adata_x'` and `'adata_y'`) hold the same 10 genes, so any
+    relationship learnt between them is trivial -- this is for exercising code
+    paths, not for interpreting results. Spatial coordinates, connectivities and
+    `.obs` are carried over from :func:`liana.testing.generate_toy_spatial`.
+
+    Returns
+    -------
+    A MuData object with two views, `'adata_x'` and `'adata_y'`, each with a
+    `'scaled'` layer, and with `.obsm['spatial']`,
+    `.obsp['spatial_connectivities']`, `.obs` and `.uns` shared at the top level.
+
+    """
     import scanpy as sc
     from mudata import MuData
 
@@ -40,6 +67,15 @@ def generate_toy_mdata():
 
 
 def generate_toy_adata():
+    """
+    Build a toy multi-sample AnnData from `pbmc68k_reduced`.
+
+    Returns
+    -------
+    `pbmc68k_reduced` with a randomly-assigned (seeded) `obs['sample']` of four
+    samples, and an `obs['case']` splitting those samples into two conditions.
+
+    """
     adata = pbmc68k_reduced()
     sample_key = 'sample'
 

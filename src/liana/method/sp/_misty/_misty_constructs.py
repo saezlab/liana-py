@@ -106,6 +106,21 @@ def genericMistyData(intra: AnnData,
     -------
     `MistyData` object with the intra view, and two fixed extra view(s): para and juxta.
 
+    Examples
+    --------
+    Builds the three-view design of the MISTy manuscript from one spatial
+    `AnnData`: the measurements themselves (`'intra'`), the immediate neighbours
+    (`'juxta'`), and the wider neighbourhood (`'para'`):
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> misty = li.mt.genericMistyData(intra=adata, bandwidth=200,
+    ...                                set_diag=True)
+
+    Pass a second object as `extra` to predict the intra view from a different
+    modality (e.g. cell-type composition, or pathway activities). Then call the
+    object to fit the model -- see :func:`liana.method.MistyData.__call__`.
+
     """
     # init views
     views = {}
@@ -210,6 +225,20 @@ def lrMistyData(adata: AnnData,
     Returns
     -------
     A `MistyData` object with receptors in the intra view & ligands in the extra view.
+
+    Examples
+    --------
+    Splits the data by the roles in a ligand-receptor resource: receptors become
+    the targets (`'intra'`), and the ligands of neighbouring cells the predictors
+    (`'extra'`):
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> misty = li.mt.lrMistyData(adata, bandwidth=200)
+
+    Fitting this asks, per receptor, which neighbouring ligands predict it -- call
+    the object with ``bypass_intra=True`` so that the receptors are not predicted
+    from each other. See :func:`liana.method.MistyData.__call__`.
 
     """
     # TODO: reduce redundancies in documentation

@@ -157,8 +157,12 @@ class LinearModel(SingleViewModel):
             Number of cross-validation folds. If None, no cross-validation is performed.
 
         """
-        # pop n_jobs if it exists
-        n_jobs = self.kwargs.pop('n_jobs', -1)
+        # NOTE: read, don't pop -- `fit` is called once per target on the same
+        # instance, so popping would apply `n_jobs` to the first target only.
+        # Folds are few and each fit is cheap, so serial is the sane default:
+        # `-1` would fork a worker per core to cross-validate a linear model.
+        n_jobs = self.kwargs.get('n_jobs', 1)
+        ols_kwargs = {k: v for k, v in self.kwargs.items() if k != 'n_jobs'}
         model = LinearRegression(n_jobs=1)
         self.predictions = cross_val_predict(model,
                                              X, y,
@@ -168,7 +172,7 @@ class LinearModel(SingleViewModel):
                                              n_jobs=n_jobs
                                              )
         X = sm.add_constant(X)
-        model_full = sm.OLS(y, X, **self.kwargs).fit()
+        model_full = sm.OLS(y, X, **ols_kwargs).fit()
         self.importances = dict(zip(predictors, model_full.tvalues[1:], strict=False))  # type: ignore[assignment]
 
     def _fit_ols(self, y, X):

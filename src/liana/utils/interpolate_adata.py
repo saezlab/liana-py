@@ -41,6 +41,19 @@ def interpolate_adata(target: AnnData,
     -------
     AnnData: A new AnnData object with the same metadata as the reference but with interpolated spatial data in `.X`.
 
+    Examples
+    --------
+    Brings two spatial modalities measured on different coordinate grids (e.g.
+    metabolomics and transcriptomics of the same slide) onto a shared set of
+    locations. Here a coarser grid stands in for the reference:
+
+    >>> import liana as li
+    >>> target = li.testing.generate_toy_spatial()
+    >>> reference = target[::2].copy()
+    >>> interpolated = li.ut.interpolate_adata(target=target,
+    ...                                        reference=reference,
+    ...                                        spatial_key='spatial')
+
     """
     target_coords = target.obsm[spatial_key]
     reference_coords = reference.obsm[spatial_key]

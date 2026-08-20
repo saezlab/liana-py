@@ -51,6 +51,22 @@ def target_metrics(misty: MistyData = None,
     ValueError
         If the `misty` input or `stat` provided are not valid.
 
+    Examples
+    --------
+    Fit a MiSTy model, then plot one bar per target. `stat` chooses which of the
+    `misty.uns['target_metrics']` columns is shown, and orders the targets by it:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> adata = adata[:, adata.var_names[:5]].copy()
+    >>> misty = li.mt.genericMistyData(intra=adata, bandwidth=200,
+    ...                                set_diag=True)
+    >>> misty(model=li.mt.sp.LinearModel)
+    >>> p = li.pl.target_metrics(misty, stat='gain_R2')
+
+    Pass `aggregate_fun` (e.g. `numpy.mean`) to summarise a masked model's
+    per-group rows into boxplots.
+
     """
     if target_metrics is not None:
         target_metrics = target_metrics.copy()
@@ -121,6 +137,19 @@ def contributions(misty: MistyData = None,
     ValueError
         If the `misty` input is not valid or no `view_names` provided.
 
+    Examples
+    --------
+    Stacks each view's contribution to every target into one bar, read from
+    `misty.uns['target_metrics']`:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> adata = adata[:, adata.var_names[:5]].copy()
+    >>> misty = li.mt.genericMistyData(intra=adata, bandwidth=200,
+    ...                                set_diag=True)
+    >>> misty(model=li.mt.sp.LinearModel)
+    >>> p = li.pl.contributions(misty)
+
     """
     if target_metrics is not None:
         target_metrics = target_metrics.copy()
@@ -138,7 +167,9 @@ def contributions(misty: MistyData = None,
 
     if filter_fun is not None:
         target_metrics = target_metrics[target_metrics.apply(filter_fun, axis=1).astype(bool)]
-        target_metrics['target'] = target_metrics['target'].cat.remove_unused_categories()
+        # NOTE: `target` is only categorical when it comes from an aggregated table
+        if isinstance(target_metrics['target'].dtype, pd.CategoricalDtype):
+            target_metrics['target'] = target_metrics['target'].cat.remove_unused_categories()
 
     target_metrics = target_metrics[['target', *view_names]]
     target_metrics = target_metrics.melt(id_vars='target', var_name='view', value_name='contribution')
@@ -200,6 +231,22 @@ def interactions(misty: MistyData = None,
     ------
     ValueError
         If neither `misty` or `interactions` input or `view` are not provided.
+
+    Examples
+    --------
+    One tile per predictor-target pair of the chosen `view`, coloured by the
+    importance the model gave it, read from `misty.uns['interactions']`:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> adata = adata[:, adata.var_names[:5]].copy()
+    >>> misty = li.mt.genericMistyData(intra=adata, bandwidth=200,
+    ...                                set_diag=True)
+    >>> misty(model=li.mt.sp.LinearModel)
+    >>> p = li.pl.interactions(misty, view='intra')
+
+    `misty.view_names` lists the views available -- here `'intra'`, `'juxta'` and
+    `'para'`.
 
     """
     if interactions is not None:

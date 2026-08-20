@@ -59,6 +59,24 @@ def adata_to_views(adata: AnnData,
     -------
     Returns a MuData object with views that represent an aggregate for each entity in `adata.obs[groupby]`.
 
+    Examples
+    --------
+    Each cell type becomes a view of pseudobulk profiles, with samples as the
+    observations -- the multicellular structure that MOFA is then fit on:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_adata()
+    >>> mdata = li.mu.adata_to_views(adata,
+    ...                              groupby='bulk_labels',
+    ...                              sample_key='sample',
+    ...                              obs_keys=['case'],
+    ...                              psbulk_kwargs={'raw': True, 'skip_checks': True})
+
+    Only the views that survive the expression filters are kept, each variable is
+    prefixed with its view, and `obs_keys` are joined onto the sample-level `.obs`.
+    Pass `filter_by_expr_kwargs` to tighten or relax those filters -- they go
+    straight to `decoupler`.
+
     """
     # Check if MuData & decoupler are installed
     if filter_by_prop_kwargs is None:
@@ -217,6 +235,28 @@ def lrs_to_views(adata: AnnData,
     ValueError
         If any of the provided keys are not found in the corresponding `adata` view.
 
+    Examples
+    --------
+    Expects a by-sample ligand-receptor result in `adata.uns`, as written by any
+    method's `.by_sample`. A toy result stands in here:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_adata()
+    >>> adata.uns['liana_res'] = li.testing.sample_lrs(by_sample=True)
+    >>> mdata = li.mu.lrs_to_views(adata,
+    ...                            score_key='specificity_rank',
+    ...                            obs_keys=['case'],
+    ...                            lr_prop=0.1,
+    ...                            lrs_per_sample=0,
+    ...                            lrs_per_view=5,
+    ...                            samples_per_view=0,
+    ...                            min_variance=-1)
+
+    Each source-target cell type pair becomes a view named `'source&target'`, of
+    interactions by sample. The thresholds are relaxed below their defaults here
+    only because the toy scores are random and no view would otherwise survive
+    them -- on real data the defaults are the sensible starting point.
+
     """
     if (sample_key not in adata.obs.columns) or (sample_key not in adata.uns[uns_key].columns):
         raise ValueError(f'`{sample_key}` not found in `adata.obs` or `adata.uns[uns_key]`!' +
@@ -325,7 +365,7 @@ def lrdata_to_mudata(lrdata: AnnData,
     xy_sep
         Separator between the sender cell-type/view prefix and the ligand-receptor interaction
         name in ``lrdata.var_names`` (e.g. ``"celltype^ligand^receptor"``). Matches the ``xy_sep``
-        convention used by :func:`liana.method.inflow`. Defaults to ``'^'``.
+        convention used by ``liana.method.inflow``. Defaults to ``'^'``.
     %(min_cells)s
     min_features : int | None, default 10
         Modalities with fewer than this many features after cell-filtering are
@@ -348,7 +388,17 @@ def lrdata_to_mudata(lrdata: AnnData,
 
     Examples
     --------
-    >>> mdata = lrdata_to_mudata(lrdata, min_cells=5, min_features=10)
+    `lrdata` is normally the output of ``liana.method.inflow``, whose ``var_names``
+    encode the sender cell type as a prefix:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> lrdata = li.mt.inflow(adata, groupby='bulk_labels',
+    ...                       resource_name='consensus')
+    >>> mdata = li.mu.lrdata_to_mudata(lrdata)
+
+    The sender in each `'sender^ligand^receptor'` name becomes one modality, so that
+    every sender cell type can be modelled as its own view.
 
     """
     if not isinstance(lrdata, AnnData):
@@ -477,6 +527,38 @@ def filter_view_markers(mdata: MuData,
     Returns
     -------
         The filtered `mdata` instance or `None` if `inplace=True`.
+
+    Examples
+    --------
+    Takes a multi-view object -- normally from :func:`liana.multi.adata_to_views`,
+    whose `var_names` are prefixed with the view they belong to -- and drops from
+    each view the genes that mark a *different* view, since those are picked up
+    from the background rather than expressed by the view's own cells. Two small
+    views are built by hand here to show the naming convention:
+
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>> from anndata import AnnData
+    >>> from mudata import MuData
+    >>> import liana as li
+    >>> views = {v: AnnData(X=np.ones((3, 3)),
+    ...                     obs=pd.DataFrame(index=['s1', 's2', 's3']),
+    ...                     var=pd.DataFrame(index=[f'{v}:g1', f'{v}:g2', f'{v}:g3']))
+    ...          for v in ['A', 'B']}
+    >>> mdata = MuData(views)
+    >>> markers = {'A': ['g1'], 'B': ['g2']}
+
+    With `var_column=None` the offending genes are removed outright -- each view
+    keeps its own marker and the unmarked `g3`:
+
+    >>> filtered = li.mu.filter_view_markers(mdata, markers, var_column=None)
+    >>> filtered.mod['A'].var_names.tolist()
+    ['A:g1', 'A:g3']
+    >>> filtered.mod['B'].var_names.tolist()
+    ['B:g2', 'B:g3']
+
+    Pass `var_column='highly_variable'` instead to only flag them, and
+    `inplace=True` to modify `mdata` rather than return a copy.
 
     """
     # check if markers is a dict

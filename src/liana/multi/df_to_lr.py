@@ -11,7 +11,7 @@ from liana._docs import d
 from liana._logging import _logg
 from liana.method._pipe_utils import _check_groupby, assert_covered, filter_resource, prep_check_adata
 from liana.method._pipe_utils._common import _get_groupby_subset, _get_props, _join_stats
-from liana.resource import explode_complexes, filter_reassemble_complexes
+from liana.resource._reassemble_complexes import _explode_complexes, _filter_reassemble_complexes
 from liana.resource.select_resource import _handle_resource
 
 
@@ -73,6 +73,31 @@ def df_to_lr(adata: AnnData,
         If the `groupby` value is not in `adata` or `dea_df`, if `dea_df` indexes do not match `adata.var_names` or if `complex_col` does not match one of the computed stats.
     AssertionError
         If there's no match when grouping-by between `adata.obs` and `dea_df`.
+
+    Examples
+    --------
+    `dea_df` holds per-cell-type differential expression statistics, indexed by
+    gene. It normally comes from a tool such as `pydeseq2` or `scanpy`; a stand-in
+    is built here so the example stays offline:
+
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_adata()
+    >>> groups = adata.obs['bulk_labels'].cat.categories
+    >>> rng = np.random.default_rng(1337)
+    >>> dea_df = pd.DataFrame(
+    ...     {'bulk_labels': np.repeat(groups, adata.n_vars),
+    ...      'stat': rng.normal(size=len(groups) * adata.n_vars)},
+    ...     index=np.tile(adata.var_names, len(groups)))
+    >>> lr_res = li.mu.df_to_lr(adata,
+    ...                         dea_df=dea_df,
+    ...                         groupby='bulk_labels',
+    ...                         stat_keys=['stat'])
+
+    Each statistic named in `stat_keys` is carried over to both sides of every
+    interaction -- as `ligand_stat` and `receptor_stat` -- and averaged into an
+    `interaction_stat` column.
 
     """
     _check_groupby(adata=adata, groupby=groupby, verbose=verbose)
@@ -152,7 +177,7 @@ def df_to_lr(adata: AnnData,
     if target_labels is not None:
         pairs = pairs[pairs['target'].isin(target_labels)]
 
-    resource = explode_complexes(resource)
+    resource = _explode_complexes(resource)
 
     # Check overlap between resource and adata
     assert_covered(np.union1d(np.unique(resource["ligand"]),
@@ -179,7 +204,7 @@ def df_to_lr(adata: AnnData,
     if return_all_lrs:
         lr_res[_placeholders] = lr_res[_placeholders].fillna(0)
 
-    lr_res = filter_reassemble_complexes(lr_res=lr_res,
+    lr_res = _filter_reassemble_complexes(lr_res=lr_res,
                                          _key_cols=P.primary,
                                          expr_prop=expr_prop,
                                          return_all_lrs=return_all_lrs,

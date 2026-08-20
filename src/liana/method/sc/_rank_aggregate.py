@@ -145,7 +145,23 @@ class AggregateClass(MethodMeta):
         -------
         If ``inplace = False``, returns a `DataFrame` with ligand-receptor results
         Otherwise, modifies the ``adata`` object with the following key:
+
             - :attr:`anndata.AnnData.uns` ``['liana_res']`` with the aforementioned DataFrame
+
+        Examples
+        --------
+        Runs the individual methods and aggregates their ranks. `n_perms=None` skips
+        the permutations that the permutation-based methods would otherwise need --
+        drop it, or set an integer, for a real analysis:
+
+        >>> import liana as li
+        >>> adata = li.testing.generate_toy_adata()
+        >>> li.mt.rank_aggregate(adata, groupby='bulk_labels', n_perms=None)
+
+        The frame carries `magnitude_rank` and `specificity_rank` alongside each
+        aggregated method's own scores -- ``li.mt.rank_aggregate.describe()`` says what
+        the ranks mean, and :class:`liana.method.AggregateClass` which methods go into
+        them.
 
         """
         if mdata_kwargs is None:

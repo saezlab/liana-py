@@ -92,28 +92,41 @@ class SpatialBivariate:
             Separator to use for interaction names.
         %(verbose)s
         **kwargs
-            Additional keyword arguments:
-            - For AnnData:
-                %(x_name)s By default: 'ligand'.
-                %(y_name)s By default: 'receptor'.
+            Additional keyword arguments.
 
-            - For MuData:
-                %(x_mod)s
-                %(y_mod)s
-                %(x_name)s By default: 'x'.
-                %(y_name)s By default: 'y'.
-                x_use_raw: bool
-                    Whether to use the raw counts for the x-mod.
-                y_use_raw: bool
-                    Whether to use the raw counts for y-mod.
-                x_layer: str
-                    Layer to use for x-mod.
-                y_layer: str
-                    Layer to use for y-mod.
-                x_transform: bool
-                    Function to transform the x-mod.
-                y_transform: bool
-                    Function to transform the y-mod.
+            For an `AnnData` input:
+
+            x_name
+                Name of the x-variable. If passing a `resource` dataframe, this should
+                match the first column. By default: 'ligand'.
+            y_name
+                Name of the y-variable. If passing a `resource` dataframe, this should
+                match the second column. By default: 'receptor'.
+
+            For a `MuData` input:
+
+            x_mod
+                Name of the modality to use for the x-axis.
+            y_mod
+                Name of the modality to use for the y-axis.
+            x_name
+                Name of the x-variable. If passing a `resource` dataframe, this should
+                match the first column. By default: 'x'.
+            y_name
+                Name of the y-variable. If passing a `resource` dataframe, this should
+                match the second column. By default: 'y'.
+            x_use_raw: bool
+                Whether to use the raw counts for the x-mod.
+            y_use_raw: bool
+                Whether to use the raw counts for y-mod.
+            x_layer: str
+                Layer to use for x-mod.
+            y_layer: str
+                Layer to use for y-mod.
+            x_transform: bool
+                Function to transform the x-mod.
+            y_transform: bool
+                Function to transform the y-mod.
 
         Raises
         ------
@@ -125,6 +138,28 @@ class SpatialBivariate:
         An AnnData object, (optionally) with multiple layers which correspond
         categories/p-values, and the actual scores are stored in `.X`.
         Moreover, global stats are stored in ``.var``.
+
+        Examples
+        --------
+        Relates each ligand to its receptor at every spot, given the spatial
+        connectivities of :func:`liana.utils.spatial_neighbors`:
+
+        >>> import liana as li
+        >>> adata = li.testing.generate_toy_spatial()
+        >>> lrdata = li.mt.bivariate(adata,
+        ...                          resource_name='consensus',
+        ...                          local_name='morans',
+        ...                          global_name='morans',
+        ...                          n_perms=0)
+
+        One column per ligand-receptor pair that passed the expression filters, named
+        `'ligand^receptor'`. `n_perms=0` uses the analytical p-values available for
+        Moran's R -- a positive integer runs that many permutations instead, `None`
+        skips them.
+
+        ``li.mt.bivariate.show_functions()`` lists the available `local_name` choices.
+        Pass a `MuData` with `x_mod`/`y_mod` instead of an `AnnData` to relate two
+        modalities.
 
         """
         if n_perms is not None:

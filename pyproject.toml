@@ -4,7 +4,7 @@ requires = [ "hatchling" ]
 
 [project]
 name = "liana"
-version = "1.8.1"
+version = "1.9.0"
 description = "LIANA+: a one-stop-shop framework for cell-cell communication"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -103,6 +103,13 @@ scripts.build = "sphinx-build -M html docs docs/_build -W {args}"
 scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
 scripts.clean = "git clean -fdX -- {args:docs}"
 
+# Runs the `>>>` examples in `src/` docstrings. Separate from `hatch-test`
+# because it imports every module under `src/` and re-executes each example --
+# work the unit suite should not pay for.
+[tool.hatch.envs.doctest]
+features = [ "test", "extras" ]
+scripts.run = "pytest --doctest-modules src/liana {args}"
+
 [[tool.hatch.envs.hatch-test.matrix]]
 deps = [ "stable" ]
 python = [ "3.10", "3.13" ]
@@ -160,8 +167,19 @@ lint.pydocstyle.convention = "numpy"
 [tool.pytest.ini_options]
 testpaths = [ "tests" ]
 xfail_strict = true
+markers = [
+  "network: needs internet access; deselect with `-m \"not network\"`",
+]
 addopts = [
   "--import-mode=importlib", # allow using test files with same name
+  "--strict-markers",
+]
+# Applies to the `>>>` examples in `src/` docstrings, collected by the
+# `hatch.envs.doctest` script above. Without these, an example breaks whenever a dependency changes
+# how it formats a repr, which is what happened to `liana.utils.transform`.
+doctest_optionflags = [
+  "NORMALIZE_WHITESPACE", # tabs/indent in a repr are not the contract
+  "ELLIPSIS",             # `...` to elide float tails and wide frames
 ]
 
 [tool.coverage.run]

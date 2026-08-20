@@ -77,6 +77,21 @@ def dotplot(adata: AnnData = None,
     -------
     The resulting dotplot
 
+    Examples
+    --------
+    Pass either a method's result as `liana_res`, or the `adata` it was written to:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_adata()
+    >>> li.mt.rank_aggregate(adata, groupby='bulk_labels', n_perms=None)
+    >>> p = li.pl.dotplot(adata,
+    ...                   colour='lr_means',
+    ...                   size='magnitude_rank',
+    ...                   inverse_size=True,
+    ...                   top_n=10,
+    ...                   orderby='magnitude_rank',
+    ...                   orderby_ascending=True)
+
     """
     liana_res = _prep_liana_res(adata=adata,
                                 liana_res=liana_res,
@@ -172,6 +187,19 @@ def dotplot_by_sample(adata: AnnData = None,
     Returns
     -------
     Returns a dot plot for the specified interactions by sample.
+
+    Examples
+    --------
+    Expects a by-sample result, as written by any method's `.by_sample`:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_adata()
+    >>> li.mt.rank_aggregate.by_sample(adata, sample_key='sample',
+    ...                                groupby='bulk_labels', n_perms=None)
+    >>> p = li.pl.dotplot_by_sample(adata,
+    ...                             colour='lr_means',
+    ...                             size='magnitude_rank',
+    ...                             ligand_complex='HLA-DRA')
 
     """
     liana_res = _prep_liana_res(adata=adata,

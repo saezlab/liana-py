@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.9.0
+
+### Added
+
+- **`Examples` sections across the public API (#192).** Minimal runnable calls on `liana.testing` toy data that point at where the result lands, following pertpy's style; `hatch run doctest:run` executes them (the few that need a download are shown as literal blocks).
+
+### Fixed
+
+- **MiSTy's `LinearModel` applied `n_jobs` to the first target only, then forked a worker per core for every other one.** `fit` *popped* `n_jobs` from state shared across targets, so all but the first fell back to the `-1` default -- spending ~4s on joblib pool startup to cross-validate a linear regression. It is now read rather than popped, defaults to `1`, and is documented; results are bit-identical.
+- **`import liana.mu` raised `ModuleNotFoundError`.** `mu` was the one short alias missing from the `sys.modules` registration, so it failed while its four siblings resolved.
+- **`_calc_log2fc` raised a bare `ZeroDivisionError` when a group had nothing to compare against (#93).** A `sample_key` group holding a single `groupby` category leaves the "rest" side empty; a `ValueError` now names the cause.
+- **Dropped the `MAML2-NOTCH1/2/3/4` rows from the consensus resource (#207, PR #247).** MAML2 is a nuclear transcriptional co-activator, not a surface ligand, so these were a curation artifact; a regression test keeps them out.
+- **`_get_means_perms` mutated the caller's matrix and upcast it to float64.** `adata.X /= norm_factor` wrote into a buffer that can be shared with `adata.raw.X`; the division is now out-of-place and cast back to the original dtype, halving peak memory.
+- **Three plotting bugs surfaced by the new tests:** `li.pl.dotplot`/`li.pl.tileplot` constructed `ValueError`s for a missing `orderby`/`orderby_ascending` but never raised them; `li.pl.feature_by_group` called `_logg.warning(...)` on a function, which would have raised `AttributeError`; `li.pl.contributions` assumed a categorical `target` and failed on a plain string column.
+
+### Changed
+
+- **Breaking: the public namespaces no longer export internals.** `Method` and `MethodMeta` are now `_Method`/`_MethodMeta` (base classes for defining methods, not user-facing API); `explode_complexes` and `filter_reassemble_complexes` stay behind the private `_reassemble_complexes` module and left `docs/api.md`; the `LRIC` class is no longer exported -- call `li.mt.lric` or `li.mt.cross_pcf`; and the duplicate `li.multi.process_scores` was dropped in favour of `li.mt.process_scores`.
+- **Tests now mirror the package layout and share their data via fixtures (#194).** `tests/` follows `src/liana` with one directory per public namespace (`method/{sc,sp}`, `multi`, `plotting`, `resource`, `utils`); private subpackages are not mirrored, matching decoupler and squidpy. Module-level test objects were replaced by fixtures in `tests/conftest.py`, so no test inherits another's mutations, and the download fixtures in `tests/resource/conftest.py` cache to `tests/.cache`. Plotting tests were extended to assert on the plot's underlying data rather than only that a figure was produced.
+- **Tests that need the internet are marked `network`,** so `pytest -m "not network"` runs the suite offline; `--strict-markers` is enabled.
+- **Assertions that could not fail were replaced or removed** -- membership checks against a `Series` (which test the index, not the values), `assert ... is not None` on always-present AnnData attributes, and checks made against a test's input rather than its output. `liana.testing._sample_target_metrics` and `_sample_interactions` now require a `seed`, so the misty plot tests no longer depend on global RNG state.
+
 ## 1.8.1 (15.07.2026)
 
 ### Added

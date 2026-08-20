@@ -55,6 +55,24 @@ def nmf(adata: AnnData = None,
         ValueError
             If `adata` is provided but it's not a valid instance of an `AnnData` object or neither an `AnnData` or `DataFrame` intance is provided as input
 
+    Examples
+    --------
+    ``nmf`` expects a *non-negative* matrix -- typically the local ligand-receptor
+    scores from ``liana.method.bivariate``:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> lrdata = li.mt.bivariate(adata, resource_name='consensus',
+    ...                          local_name='cosine', global_name=None,
+    ...                          n_perms=None)
+    >>> li.multi.nmf(lrdata, n_components=3, random_state=0)
+
+    Leaving `n_components` as `None` instead estimates the rank with
+    :func:`liana.multi.estimate_elbow` and draws the elbow plot.
+
+    Read the factors out with :func:`liana.utils.get_factor_scores` and
+    :func:`liana.utils.get_variable_loadings`.
+
     """
     if adata is not None:
         if isinstance(adata, AnnData):
@@ -87,6 +105,48 @@ def nmf(adata: AnnData = None,
 
 
 def estimate_elbow(X, k_range, verbose=False, **kwargs):
+    """
+    Estimate the rank of an NMF factorization from the elbow of its error curve.
+
+    Parameters
+    ----------
+    X
+        Non-negative matrix to factorize.
+    k_range
+        Ranks to fit. The elbow is located among these, so `None` is returned if
+        no knee is found within them.
+    verbose
+        Whether to show a progress bar and report the estimated rank.
+    kwargs
+        Keyword arguments passed to :class:`sklearn.decomposition.NMF`.
+
+    Returns
+    -------
+    A tuple of the reconstruction error per rank (a `DataFrame` with columns
+    `k` and `error`) and the estimated rank.
+
+    Examples
+    --------
+    Called by :func:`liana.multi.nmf` when `n_components` is `None`. Unlike `nmf`
+    it takes a plain non-negative matrix, not an AnnData. This one is built from
+    two blocks, so its true rank is 2:
+
+    >>> import numpy as np
+    >>> import liana as li
+    >>> W = np.repeat(np.eye(2), 6, axis=0)
+    >>> H = np.array([[3., 2., 1., 0., 0., 0.],
+    ...               [0., 0., 0., 1., 2., 3.]])
+    >>> errors, rank = li.multi.estimate_elbow(W @ H, k_range=range(1, 6),
+    ...                                        random_state=0, max_iter=500)
+
+    `rank` is the knee of the error curve -- 2 here, since the error collapses as soon
+    as `k` reaches the true rank and cannot improve after.
+
+    If no knee can be located within `k_range`, `rank` comes back as `None` --
+    widen the range. A `k_range` that starts above the true rank returns its own
+    lowest value.
+
+    """
     kn = _check_if_installed('kneed')
     errors = []
     for k in tqdm(k_range, disable=not verbose):

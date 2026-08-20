@@ -41,6 +41,26 @@ def feature_by_group(
         Tuple specifying percentiles for scaling.
     show_counts
         Show counts of expression cells (expression > 0).
+
+    Returns
+    -------
+    A tuple of the matplotlib ``Figure`` and its main ``Axes``.
+
+    Examples
+    --------
+    `adata` is typically the output of ``liana.method.inflow``, whose
+    `var_names` are `'source^ligand^receptor'` triplets. Each label in `labels`
+    gets its own colormap and colorbar, so the groups can be compared in place:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> lrdata = li.mt.inflow(adata, groupby='bulk_labels',
+    ...                       resource_name='consensus')
+    >>> fig, ax = li.pl.feature_by_group(lrdata,
+    ...                                  groupby='bulk_labels',
+    ...                                  labels=['Dendritic', 'CD14+ Monocyte'],
+    ...                                  feature=lrdata.var_names[0])
+
     """
     # Validate inputs
     if labels is None or len(labels) == 0:
@@ -63,7 +83,8 @@ def feature_by_group(
     for label in labels:
         mask=adata.obs[groupby] == label
         if not np.any(mask):
-            _logg.warning(f"No cells found for label '{label}' in groupby '{groupby}'")  # type: ignore[attr-defined]
+            _logg(f"No cells found for label '{label}' in groupby '{groupby}'",
+                  level='warn', verbose=True)
             continue
         adata_sub = adata[mask, :]
         expr = adata_sub[:, feature].X.toarray().ravel()

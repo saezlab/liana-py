@@ -85,30 +85,44 @@ class SpatialInflow:
         %(verbose)s
 
         **kwargs : dict, optional
-            Additional keyword arguments:
-            - For AnnData:
-                %(x_name)s By default: 'ligand'.
-                %(y_name)s By default: 'receptor'.
+            Additional keyword arguments.
 
-            - For MuData:
-                %(x_mod)s
-                %(y_mod)s
-                %(x_name)s By default: 'x'.
-                %(y_name)s By default: 'y'.
-                x_use_raw: bool
-                    Whether to use raw counts for x modality.
-                y_use_raw: bool
-                    Whether to use raw counts for y modality.
-                x_layer: str
-                    Layer to use for x modality.
-                y_layer: str
-                    Layer to use for y modality.
+            For an `AnnData` input:
 
-            - For both AnnData and MuData:
-                x_transform_kwargs: dict
-                    Keyword arguments to pass to x_transform function.
-                y_transform_kwargs: dict
-                    Keyword arguments to pass to y_transform function.
+            x_name
+                Name of the x-variable. If passing a `resource` dataframe, this should
+                match the first column. By default: 'ligand'.
+            y_name
+                Name of the y-variable. If passing a `resource` dataframe, this should
+                match the second column. By default: 'receptor'.
+
+            For a `MuData` input:
+
+            x_mod
+                Name of the modality to use for the x-axis.
+            y_mod
+                Name of the modality to use for the y-axis.
+            x_name
+                Name of the x-variable. If passing a `resource` dataframe, this should
+                match the first column. By default: 'x'.
+            y_name
+                Name of the y-variable. If passing a `resource` dataframe, this should
+                match the second column. By default: 'y'.
+            x_use_raw: bool
+                Whether to use raw counts for x modality.
+            y_use_raw: bool
+                Whether to use raw counts for y modality.
+            x_layer: str
+                Layer to use for x modality.
+            y_layer: str
+                Layer to use for y modality.
+
+            For either input:
+
+            x_transform_kwargs: dict
+                Keyword arguments to pass to x_transform function.
+            y_transform_kwargs: dict
+                Keyword arguments to pass to y_transform function.
 
         Returns
         -------
@@ -116,6 +130,23 @@ class SpatialInflow:
         n_cell_type_ligand_receptor_combinations corresponds to the combinations of cell types (as defined by the
         ``groupby`` parameter) with ligands and receptors expressed in the data and covered by the resource, and
         n_observations is the number of observations.
+
+        Examples
+        --------
+        For each cell, scores how much of a given ligand reaches it from a given
+        neighbouring cell type, against its own receptor expression:
+
+        >>> import liana as li
+        >>> adata = li.testing.generate_toy_spatial()
+        >>> lrdata = li.mt.inflow(adata,
+        ...                       groupby='bulk_labels',
+        ...                       resource_name='consensus')
+
+        The result is cells by `'source^ligand^receptor'` triplets, e.g.
+        `'CD4+/CD25 T Reg^HLA-DRA^CD4'`. Cell-type proportions per spot can be given
+        via `obsm_key` instead of `groupby`, which is what deconvolved spot data calls
+        for.
+
         """
         # Process MuData or AnnData - check instance and process accordingly
         is_mudata = _check_instance(adata)

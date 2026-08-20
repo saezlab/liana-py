@@ -42,6 +42,15 @@ def connectivity(adata: AnnData,
     AssertionError
         If `connectivity_key` or `spatial_key` are not in `adata.obsp` or `adata.obsm` respectively.
 
+    Examples
+    --------
+    `idx` picks one spot, and the plot shows how strongly every other spot is
+    connected to it under the kernel of :func:`liana.utils.spatial_neighbors`:
+
+    >>> import liana as li
+    >>> adata = li.testing.generate_toy_spatial()
+    >>> p = li.pl.connectivity(adata, idx=0)
+
     """
     assert connectivity_key in list(adata.obsp.keys())
     assert spatial_key in adata.obsm_keys()
