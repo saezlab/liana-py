@@ -47,10 +47,6 @@ def obsm_to_adata(adata: AnnData,
     >>> adata = li.testing.generate_toy_adata()
     >>> pca = li.ut.obsm_to_adata(adata, 'X_pca')
 
-    ``pca.X`` is then what was in ``adata.obsm['X_pca']``, with `.obs` carried over.
-    This is how a table of cell-type proportions or pathway activities is handed to
-    :class:`liana.method.MistyData` as one of its views.
-
     """
     if df is None:
         df = pd.DataFrame(adata.obsm[obsm_key])

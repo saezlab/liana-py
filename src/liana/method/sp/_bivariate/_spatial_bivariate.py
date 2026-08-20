@@ -152,12 +152,10 @@ class SpatialBivariate:
         ...                          global_name='morans',
         ...                          n_perms=0)
 
-        The result is spots by interactions -- one column per ligand-receptor pair that
-        passed the expression filters, named `'ligand^receptor'` -- with the local
-        scores in `.X` and their p-values in `.layers['pvals']`. `global_name` adds a
-        summary statistic per interaction to `.var`, and `n_perms=0` uses the analytical
-        p-values available for Moran's R (a positive integer runs that many permutations
-        instead, `None` skips them).
+        One column per ligand-receptor pair that passed the expression filters, named
+        `'ligand^receptor'`. `n_perms=0` uses the analytical p-values available for
+        Moran's R -- a positive integer runs that many permutations instead, `None`
+        skips them.
 
         ``li.mt.bivariate.show_functions()`` lists the available `local_name` choices.
         Pass a `MuData` with `x_mod`/`y_mod` instead of an `AnnData` to relate two

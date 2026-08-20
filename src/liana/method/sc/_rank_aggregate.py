@@ -158,10 +158,10 @@ class AggregateClass(MethodMeta):
         >>> adata = li.testing.generate_toy_adata()
         >>> li.mt.rank_aggregate(adata, groupby='bulk_labels', n_perms=None)
 
-        ``adata.uns['liana_res']`` then holds `magnitude_rank` and `specificity_rank`
-        alongside the scores of each aggregated method. Which methods are aggregated is
-        set on the instance -- see :class:`liana.method.AggregateClass` -- and
-        ``li.mt.rank_aggregate.describe()`` summarises what the ranks mean.
+        The frame carries `magnitude_rank` and `specificity_rank` alongside each
+        aggregated method's own scores -- ``li.mt.rank_aggregate.describe()`` says what
+        the ranks mean, and :class:`liana.method.AggregateClass` which methods go into
+        them.
 
         """
         if mdata_kwargs is None:

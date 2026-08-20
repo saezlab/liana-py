@@ -49,11 +49,6 @@ def expand_coordinates(
     >>> adata.obs['sample'] = rng.choice(['A', 'B', 'C', 'D'], size=adata.n_obs)
     >>> expanded = li.ut.expand_coordinates(adata, sample_key='sample')
 
-    The shifted coordinates replace ``obsm['spatial']``, and the originals are kept
-    in ``obsm['spatial_original']``. Use `n_cols` and `margin` to control the
-    layout -- `n_cols=4, margin=0` puts the four samples in one row, packed
-    edge-to-edge.
-
     """
     if sample_key not in adata.obs:
         raise ValueError(f"`sample_key` '{sample_key}' was not found in `adata.obs`.")

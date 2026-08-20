@@ -123,10 +123,9 @@ def spatial_neighbors(adata: AnnData,
     >>> adata = li.testing.generate_toy_spatial()
     >>> li.ut.spatial_neighbors(adata, bandwidth=500)
 
-    The weights land in ``adata.obsp['spatial_connectivities']`` as a sparse
-    spots-by-spots matrix. `bandwidth` is required and sets the distance over which
-    proximity decays -- :func:`liana.utils.query_bandwidth` helps pick it -- while
-    `kernel` sets the shape of that decay.
+    `bandwidth` is required and sets the distance over which proximity decays --
+    :func:`liana.utils.query_bandwidth` helps pick it -- while `kernel` sets the shape
+    of that decay.
 
     """
     if cutoff is None:

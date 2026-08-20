@@ -64,9 +64,6 @@ def mdata_to_anndata(mdata: MuData,
     ...                                x_layer='scaled',
     ...                                y_layer='scaled')
 
-    Observation-level annotations -- `.obs`, `.obsm` and the spatial
-    connectivities in `.obsp` -- are carried over from the `MuData`.
-
     """
     if x_mod is None or y_mod is None:
         raise ValueError("Both `x_mod` and `y_mod` must be provided!")

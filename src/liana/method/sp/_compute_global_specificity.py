@@ -81,11 +81,10 @@ def compute_global_specificity(
     ...                                  use_raw=False,
     ...                                  n_jobs=1)
 
-    ``lrdata.uns['global_interactions']`` then holds one row per sender, ligand,
-    receptor and receiver group, with its mean score and permutation p-value,
-    sorted by the latter. Use many more permutations than the 10 here -- the
-    smallest attainable p-value is `1 / (n_perms + 1)`. `n_jobs=1` avoids the
-    process-spawn overhead that the default `-1` costs at this size.
+    One row per sender, ligand, receptor and receiver group, sorted by p-value. Use many
+    more permutations than the 10 here -- the smallest attainable p-value is
+    `1/(n_perms+1)`. `n_jobs=1` avoids the process-spawn overhead that the default `-1`
+    costs at this size.
 
     """
     if groupby not in adata.obs.columns:

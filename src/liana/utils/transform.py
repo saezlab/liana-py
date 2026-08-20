@@ -26,9 +26,6 @@ def zi_minmax(X: ArrayLike, cutoff: float = 0.5) -> csr_matrix:
 
     Examples
     --------
-    Each column is scaled independently, so the column minima land on 0 and the
-    maxima on 1. The result is sparse; densified here to read it:
-
     >>> import numpy as np
     >>> import liana as li
     >>> x = np.array([[0.1, 0.3],
@@ -86,9 +83,6 @@ def neg_to_zero(X: ArrayLike, cutoff: float = 0) -> csr_matrix:
 
     Examples
     --------
-    Values below `cutoff` are set to 0 and the result comes back sparse, so a 1-D
-    input is returned as a single row:
-
     >>> import numpy as np
     >>> import liana as li
     >>> x = np.array([-1, -0.5, 0.1, 0.4, 2])

@@ -193,8 +193,13 @@ class MistyData(MuData):
 
         Returns
         -------
-        If inplace is True, the results are written to the `.uns` attribute of the object.
-        Otherwise two DataFrames are returned, one for target metrics and one for importances.
+        If inplace is True, two DataFrames are written to `misty.uns`. `'target_metrics'` is one row per
+        target: how well the intra view alone explains it (`intra_R2`), how well all
+        views together do (`multi_R2`), what the extra views add (`gain_R2`), and each
+        view's contribution. `'interactions'` is one row per predictor-target pair per
+        view, with the importance the model gave it.
+        
+        Otherwise the two DataFrames are returned, one for target metrics and one for importances.
 
         Examples
         --------
@@ -207,18 +212,6 @@ class MistyData(MuData):
         >>> misty = li.mt.genericMistyData(intra=adata, bandwidth=200,
         ...                                set_diag=True)
         >>> misty(model=li.mt.sp.LinearModel)
-
-        Two frames are written to `misty.uns`. `'target_metrics'` is one row per
-        target: how well the intra view alone explains it (`intra_R2`), how well all
-        views together do (`multi_R2`), what the extra views add (`gain_R2`), and each
-        view's contribution. `'interactions'` is one row per predictor-target pair per
-        view, with the importance the model gave it.
-
-        Plot them with :func:`liana.plotting.target_metrics`,
-        :func:`liana.plotting.contributions` and
-        :func:`liana.plotting.interactions`. Pass `bypass_intra=True` to skip
-        predicting the intra view from itself, and `model=li.mt.sp.RandomForestModel`
-        for a non-linear fit.
 
         """
         model = model(seed, **kwargs)  # type: ignore[operator]

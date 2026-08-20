@@ -54,10 +54,6 @@ def interpolate_adata(target: AnnData,
     ...                                        reference=reference,
     ...                                        spatial_key='spatial')
 
-    The result carries the reference's observations and the target's variables, so
-    the two can then be joined into a `MuData` and related with
-    ``liana.method.bivariate``.
-
     """
     target_coords = target.obsm[spatial_key]
     reference_coords = reference.obsm[spatial_key]

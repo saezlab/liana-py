@@ -80,8 +80,7 @@ def to_tensor_c2c(adata: AnnData = None,
     ...                              sample_key='sample',
     ...                              score_key='specificity_rank')
 
-    The result is a 4D tensor of samples by senders by receivers by interactions,
-    ready to be decomposed with Tensor-cell2cell.
+    The tensor can then be decomposed with Tensor-cell2cell.
 
     """
     # check if cell2cell is installed

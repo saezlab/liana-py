@@ -189,14 +189,6 @@ def find_causalnet(
     ...                                                        'FOS': -1.0},
     ...                                    verbose=False)
 
-    `df` holds the selected edges, with a `source`, `target` and signed `edge_type`
-    per row, alongside the weights and predicted values of both nodes. `corneto`'s
-    own bookkeeping nodes appear there too, named with a leading underscore.
-
-    Pass `node_weights` (e.g. the proportion of cells expressing each gene) to
-    penalise nodes that are not measured, and raise `max_runs` if the solution is
-    unstable.
-
     """
     cn = _check_if_installed("corneto")
 

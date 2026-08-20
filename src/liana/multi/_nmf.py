@@ -67,10 +67,8 @@ def nmf(adata: AnnData = None,
     ...                          n_perms=None)
     >>> li.multi.nmf(lrdata, n_components=3, random_state=0)
 
-    With `inplace=True` (the default) the cell factors land in
-    ``lrdata.obsm['NMF_W']`` and the interaction loadings in
-    ``lrdata.varm['NMF_H']``. Leaving `n_components` as `None` instead estimates
-    the rank with :func:`liana.multi.estimate_elbow` and draws the elbow plot.
+    Leaving `n_components` as `None` instead estimates the rank with
+    :func:`liana.multi.estimate_elbow` and draws the elbow plot.
 
     Read the factors out with :func:`liana.utils.get_factor_scores` and
     :func:`liana.utils.get_variable_loadings`.
@@ -141,9 +139,8 @@ def estimate_elbow(X, k_range, verbose=False, **kwargs):
     >>> errors, rank = li.multi.estimate_elbow(W @ H, k_range=range(1, 6),
     ...                                        random_state=0, max_iter=500)
 
-    One NMF is fit per rank in `k_range`. `errors` is the reconstruction error at
-    each of them, and `rank` the knee of that curve -- 2 here, since the error
-    collapses as soon as `k` reaches the true rank and cannot improve after.
+    `rank` is the knee of the error curve -- 2 here, since the error collapses as soon
+    as `k` reaches the true rank and cannot improve after.
 
     If no knee can be located within `k_range`, `rank` comes back as `None` --
     widen the range. A `k_range` that starts above the true rank returns its own
