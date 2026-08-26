@@ -7,8 +7,8 @@ def test_annulus_plot(toy_spatial):
     annulus_plot(
         toy_spatial,
         spatial_key="spatial",
-        annulus_width=200,
         radius_step=200,
+        annulus_steps=1,
         n_rings=5,
         seed=42,
     )

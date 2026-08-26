@@ -8,13 +8,11 @@ from scipy.sparse import csr_matrix
 from scipy.spatial import cKDTree
 
 from liana.method.sp._LRIC import (
-    _bin_pair_counts,
     _default_min_cells,
     _edge_group_bounds,
     _index_resource,
     _linear_transform,
     _make_radii,
-    _null_pair_product,
     _pair_weights,
     _support_edge_list,
     _to_dense,
@@ -25,7 +23,7 @@ from liana.method.sp._LRIC import (
 from liana.testing import generate_toy_spatial
 from liana.testing._sample_resource import sample_resource
 
-_KWARGS = {"max_radius": 100, "radius_step": 20, "annulus_width": 20, "verbose": False}
+_KWARGS = {"max_radius": 100, "radius_step": 20, "verbose": False}
 
 # NOTE: the fixtures below are module-scoped, as running `cross_pcf`/`lric` is
 # comparatively expensive and the tests only read from their results.
@@ -105,21 +103,26 @@ def test_to_dense():
 
 
 def test_make_radii():
-    # default extend_first_annulus=True merges the [0, radius_step) band into the first bin
-    ri, ro = _make_radii(max_radius=100, radius_step=20, annulus_width=20)
+    # annulus_steps=1 (default): disjoint annuli one radius_step wide; the default
+    # extend_first_annulus=True merges the [0, radius_step) band into the first bin
+    ri, ro = _make_radii(max_radius=100, radius_step=20)
     np.testing.assert_almost_equal(ri, [0, 40, 60, 80, 100])
     np.testing.assert_almost_equal(ro, [40, 60, 80, 100, 120])
     # extend_first_annulus=False keeps the first annulus at [radius_step, ...)
-    ri_f, ro_f = _make_radii(max_radius=100, radius_step=20, annulus_width=20, extend_first_annulus=False)
+    ri_f, ro_f = _make_radii(max_radius=100, radius_step=20, extend_first_annulus=False)
     np.testing.assert_almost_equal(ri_f, [20, 40, 60, 80, 100])
     np.testing.assert_almost_equal(ro_f, [40, 60, 80, 100, 120])
-    # annulus_width is respected on every bin when the first one is not extended
-    ri2, ro2 = _make_radii(60, 20, 10, extend_first_annulus=False)
-    np.testing.assert_almost_equal(ro2 - ri2, 10)
-    # with the default merge, only the first bin is widened (to radius_step + annulus_width)
-    ri3, ro3 = _make_radii(60, 20, 10)
-    np.testing.assert_almost_equal((ro3 - ri3)[0], 30)
-    np.testing.assert_almost_equal((ro3 - ri3)[1:], 10)
+    # annulus_steps=2: same inner edges (so the same `radii`), annuli twice as wide
+    # and therefore overlapping
+    ri2, ro2 = _make_radii(max_radius=100, radius_step=20, annulus_steps=2)
+    np.testing.assert_almost_equal(ri2, ri)
+    np.testing.assert_almost_equal(ro2, [60, 80, 100, 120, 140])
+
+
+def test_annulus_steps_validation(adata):
+    for bad in (0, 1.5):
+        with raises(ValueError, match="annulus_steps"):
+            cross_pcf(adata, groupby="cell_type", annulus_steps=bad, inplace=False, verbose=False)
 
 
 def test_index_resource():
@@ -174,18 +177,6 @@ def test_default_min_cells():
     assert _default_min_cells(a, None, verbose=False) == 11
 
 
-def test_bin_pair_counts():
-    # 3 points on a line, spacing 10: pairwise distances are 10, 10, 20
-    coords = np.array([[0.0, 0.0], [10.0, 0.0], [20.0, 0.0]])
-    tree = cKDTree(coords)
-    radii_inner = np.array([0.0, 15.0])
-    radii_outer = np.array([15.0, 25.0])
-    counts = _bin_pair_counts(tree, tree, radii_inner, radii_outer)
-    # bin 0 ([0, 15)): ordered pairs (0,1),(1,0),(1,2),(2,1) -- self-pairs cancel exactly
-    # bin 1 ([15, 25)): ordered pairs (0,2),(2,0)
-    np.testing.assert_array_equal(counts, [4.0, 2.0])
-
-
 def test_support_edge_list():
     coords = np.array([[0.0, 0.0], [10.0, 0.0], [20.0, 0.0]])
     tree = cKDTree(coords)
@@ -206,15 +197,11 @@ def test_edge_group_bounds():
     np.testing.assert_array_equal(bounds, [0, 2, 5, 5, 6])
 
 
-def test_type_mean_weights_and_null_pair_product():
+def test_type_mean_weights():
     W = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]])
     obs_types = np.array(["A", "A", "B", "B"])
     m = _type_mean_weights(W, obs_types, ["A", "B"])
     np.testing.assert_almost_equal(m, [[2.0, 3.0], [6.0, 7.0]])
-
-    mR = m * 2
-    prod = _null_pair_product(0, 1, m, mR)
-    np.testing.assert_almost_equal(prod, m[0] * mR[1])
 
 
 # ── CrossPCF ──────────────────────────────────────────────────────────────────
@@ -283,7 +270,11 @@ def test_lric_agnostic(lric_agnostic):
 
 def test_lric_agnostic_reduces_to_cross_pcf(adata):
     """Docstring claim: agnostic LRIC reduces exactly to CrossPCF's directed
-    curve when ligand/receptor weights are one-hot cell-type indicators."""
+    curve when ligand/receptor weights are one-hot cell-type indicators.
+
+    Both bin on the same half-open `[inner, outer)` tiles, so this holds even on
+    the integer toy lattice, where distances land exactly on bin edges.
+    """
     sender_type, receiver_type = "CD14+ Monocyte", "CD19+ B"
     ind = pd.DataFrame(
         {
@@ -303,7 +294,7 @@ def test_lric_agnostic_reduces_to_cross_pcf(adata):
     cp = cross_pcf(adata, groupby="cell_type", min_cells=1, inplace=False, **_KWARGS)
 
     np.testing.assert_array_almost_equal(
-        agnostic["lric"][:, 0], cp["results"][(sender_type, receiver_type)], decimal=5
+        agnostic["lric"][:, 0], cp["results"][(sender_type, receiver_type)], decimal=6
     )
 
 
@@ -374,7 +365,7 @@ def test_lric_pairwise_g_pcf_matches_cross_pcf(adata, resource):
         cell_types=list(pair), inplace=False, **_KWARGS,
     )
     cp = cross_pcf(adata, groupby="cell_type", cell_types=list(pair), inplace=False, **_KWARGS)
-    np.testing.assert_array_almost_equal(lric_pw["g_pcf"][pair], cp["results"][pair], decimal=5)
+    np.testing.assert_array_almost_equal(lric_pw["g_pcf"][pair], cp["results"][pair], decimal=12)
 
 
 def test_lric_pairwise_results_equals_g_pcf_times_g_expr(lric_pairwise):
@@ -466,6 +457,88 @@ def test_lric_pairwise_expr_prop(adata, resource):
     )
     for arr in result_partial["results"].values():
         assert arr.shape == (5, 5)
+
+
+# ── regression: numerator and denominator must bin pairs identically ──────────
+
+
+def _constant_expression_adata(coords, cell_types=None):
+    """An AnnData whose every cell expresses the single L and R at exactly 1.
+
+    With position-independent weights the expression term of `g(r)` is
+    identically 1, so LRIC must return exactly 1 in every bin: the numerator and
+    the denominator are then counting the very same pairs. Any deviation is a
+    binning inconsistency between the two sides.
+    """
+    a = AnnData(
+        np.ones((len(coords), 2), dtype=np.float32), var=pd.DataFrame(index=["L", "R"])
+    )
+    a.obsm["spatial"] = np.asarray(coords, dtype=float)
+    if cell_types is not None:
+        a.obs["ct"] = pd.Categorical(cell_types)
+    return a
+
+
+_CONST_RESOURCE = pd.DataFrame({"ligand": ["L"], "receptor": ["R"]})
+_CONST_KWARGS = {
+    "resource": _CONST_RESOURCE, "max_radius": 100, "radius_step": 20,
+    "use_raw": False, "verbose": False, "inplace": False,
+}
+_RNG = np.random.default_rng(0)
+_CONT_COORDS = _RNG.uniform(0, 500, (400, 2))
+# a 20-unit lattice, i.e. Visium-like: whole distance shells land exactly on bin
+# edges, which used to swing `g` between ~0.67 and ~1.25
+_GRID_COORDS = np.stack(
+    np.meshgrid(np.arange(20) * 20.0, np.arange(20) * 20.0), axis=-1
+).reshape(-1, 2)
+# coincident cells: distance-0 pairs between *distinct* cells, which used to
+# enter the numerator but not the denominator and so inflated the contact bin
+_DUP_COORDS = np.repeat(_RNG.uniform(0, 500, (200, 2)), 2, axis=0)
+
+
+@pytest.mark.parametrize(
+    ("coords", "annulus_steps", "extend_first"),
+    [
+        (_CONT_COORDS, 1, True),   # continuous coordinates, disjoint annuli
+        (_CONT_COORDS, 2, True),   # overlapping annuli used to bias `g` by ~1/k
+        (_CONT_COORDS, 1, False),  # unmerged first annulus (the other `_roll_tiles` window)
+        (_GRID_COORDS, 1, True),   # gridded coordinates: distances exactly on bin edges
+        (_GRID_COORDS, 2, True),
+        (_DUP_COORDS, 1, True),    # duplicated coordinates (distance-0 distinct pairs)
+    ],
+    ids=["continuous-k1", "continuous-k2", "continuous-k1-nomerge",
+         "grid-k1", "grid-k2", "duplicated-k1"],
+)
+def test_lric_agnostic_constant_expression_is_one(coords, annulus_steps, extend_first):
+    result = lric(
+        _constant_expression_adata(coords), annulus_steps=annulus_steps,
+        extend_first_annulus=extend_first, **_CONST_KWARGS
+    )["lric"][:, 0]
+    keep = ~np.isnan(result)
+    assert keep.any()
+    np.testing.assert_allclose(result[keep], 1.0, atol=1e-9)
+
+
+def test_lric_pairwise_constant_expression_is_one():
+    """Pairwise counterpart: with constant weights the expression term `g_expr` is
+    exactly 1 and `results` collapses onto the pure-architecture `g_pcf`.
+
+    `g_pcf` itself is a finite-sample statistic of the (random) labelling rather
+    than an identity, so it only sits *near* 1 -- it is the exactness of `g_expr`
+    that pins the numerator and denominator to the same binning.
+    """
+    cell_types = np.array(["A", "B"] * (len(_GRID_COORDS) // 2))
+    _RNG.shuffle(cell_types)
+    result = lric(
+        _constant_expression_adata(_GRID_COORDS, cell_types), groupby="ct", **_CONST_KWARGS
+    )
+    assert len(result["results"]) == 2
+    for pair, mat in result["results"].items():
+        keep = ~np.isnan(mat[:, 0])
+        assert keep.any()
+        np.testing.assert_allclose(result["g_expr"][pair][keep, 0], 1.0, atol=1e-9)
+        np.testing.assert_allclose(mat[keep, 0], result["g_pcf"][pair][keep], rtol=1e-5)
+        np.testing.assert_allclose(result["g_pcf"][pair][keep], 1.0, atol=0.1)
 
 
 # ── error cases ───────────────────────────────────────────────────────────────

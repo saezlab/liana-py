@@ -6,7 +6,7 @@ from liana.plotting import lric_lineplot
 from liana.testing import generate_toy_spatial
 from liana.testing._sample_resource import sample_resource
 
-_KWARGS = {"max_radius": 100, "radius_step": 20, "annulus_width": 20, "verbose": False}
+_KWARGS = {"max_radius": 100, "radius_step": 20, "verbose": False}
 
 
 @pytest.fixture(scope="module")

@@ -105,14 +105,45 @@ def _index_resource(
     ).tolist()
     return lr_pairs, unique_ligands, unique_receptors, pair_names
 
+def _check_annulus_steps(annulus_steps: int) -> int:
+    if not isinstance(annulus_steps, (int, np.integer)) or annulus_steps < 1:
+        raise ValueError(f"`annulus_steps` must be an integer >= 1, got {annulus_steps!r}.")
+    return int(annulus_steps)
+
 def _make_radii(
-    max_radius: float, radius_step: float, annulus_width: float, extend_first_annulus: bool = True
+    max_radius: float, radius_step: float, annulus_steps: int = 1, extend_first_annulus: bool = True
 ) -> tuple[np.ndarray, np.ndarray]:
+    """Inner/outer edges of the output annuli; each is ``annulus_steps`` radius steps wide."""
     radii_inner = np.arange(radius_step, max_radius + radius_step, radius_step, dtype=float)
-    radii_outer = radii_inner + annulus_width
+    radii_outer = radii_inner + annulus_steps * radius_step
     if extend_first_annulus:
         radii_inner[0] = 0.0  # merge the [0, radius_step) contact band into the first annulus
     return radii_inner, radii_outer
+
+def _fine_tiles(
+    n_bins: int, radius_step: float, annulus_steps: int
+) -> tuple[np.ndarray, np.ndarray]:
+    """Disjoint ``radius_step``-wide tiles from 0 out to the last annulus' outer edge.
+
+    Binning on these and summing afterwards (:func:`_roll_tiles`) keeps numerator
+    and denominator on one shared partition of the pairs.
+    """
+    fine_inner = np.arange(n_bins + annulus_steps, dtype=float) * radius_step
+    return fine_inner, fine_inner + radius_step
+
+def _roll_tiles(fine: np.ndarray, n_bins: int, k: int, extend_first: bool) -> np.ndarray:
+    """Sum ``k`` consecutive fine tiles per output annulus.
+
+    Output annulus ``b`` covers fine tiles ``[b + 1, b + 1 + k)``; when
+    ``extend_first`` the first one reaches back to tile 0 (the contact band).
+    Works for 1-D (pair counts) and 2-D (weighted sums) fine arrays alike.
+    """
+    C = np.concatenate([np.zeros((1, *fine.shape[1:])), np.cumsum(fine, axis=0)], axis=0)
+    los = np.arange(n_bins) + 1
+    his = los + k
+    if extend_first:
+        los[0] = 0
+    return C[his] - C[los]
 
 def _expr_prop_mask(
     mat: np.ndarray, prop_snd: np.ndarray, prop_rcv: np.ndarray, expr_prop: float
@@ -126,22 +157,13 @@ def _expr_prop_mask(
         mat[:, filt] = np.nan
     return mat
 
-def _bin_pair_counts(
-    tree_a: cKDTree, tree_b: cKDTree, radii_inner: np.ndarray, radii_outer: np.ndarray
-) -> np.ndarray:
-    """Ordered pair count (a in ``tree_a``, b in ``tree_b``) per annulus bin.
-    Self-pairs (distance 0) cancel exactly in the ``outer - inner`` difference.
-    """
-    cum_o = np.asarray(tree_a.count_neighbors(tree_b, radii_outer), dtype=np.float64)
-    cum_i = np.asarray(tree_a.count_neighbors(tree_b, radii_inner), dtype=np.float64)
-    return cum_o - cum_i #to get count within an annulus
-
-#for pairwise LRIC
 def _support_edge_list(
     tree: cKDTree, radii_inner: np.ndarray, radii_outer: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Global (i, j, bin) edge list for all ordered pairs within ``radii_outer[-1]``,
-    self-pairs excluded, binned via the same half-open ``[inner, outer)`` convention."""
+    self-pairs excluded, binned on the half-open ``[inner, outer)`` convention.
+    Each pair is assigned to exactly one bin, so the bins must be disjoint tiles
+    for the counts to be complete."""
     n_bins = len(radii_inner)
     spdm = tree.sparse_distance_matrix(tree, max_distance=float(radii_outer[-1]), output_type="coo_matrix")
     I, J, D = spdm.row, spdm.col, spdm.data.astype(np.float32)
@@ -151,32 +173,6 @@ def _support_edge_list(
     clipped = np.minimum(bin_idx, n_bins - 1)
     valid = (bin_idx < n_bins) & (D >= radii_inner[clipped])
     return I[valid], J[valid], bin_idx[valid]
-
-# LR pair weighting
-def _weighted_support_numerator(
-    I: np.ndarray,
-    J: np.ndarray,
-    bin_idx: np.ndarray,
-    WL: np.ndarray,
-    WR: np.ndarray,
-    n_bins: int,
-    N: int,
-    pair_chunk: int,
-) -> np.ndarray:
-    """Weighted pair-sum per radius bin: ``sum_{(i,j) in bin b} WL[i,:] * WR[j,:]``.
-    Returns ``(n_bins, n_pairs)``.
-    """
-    n_pairs = WL.shape[1]
-    num = np.zeros((n_bins, n_pairs), dtype=np.float64)
-    for b in range(n_bins):
-        mb = bin_idx == b
-        if not mb.any():
-            continue
-        Ab = sparse.csr_matrix((np.ones(mb.sum(), np.float32), (I[mb], J[mb])), shape=(N, N))
-        for p0 in range(0, n_pairs, pair_chunk):
-            p1 = min(p0 + pair_chunk, n_pairs)
-            num[b, p0:p1] = (WL[:, p0:p1] * (Ab @ WR[:, p0:p1])).sum(axis=0) 
-    return num
 
 def _edge_group_bounds(group_key_sorted: np.ndarray, n_groups: int) -> np.ndarray:
     """Start offsets of every group in a group-key-sorted edge list.
@@ -233,12 +229,6 @@ def _type_mean_weights(
         out[ci] = W[obs_types == ct].mean(axis=0)
     return out
 
-def _null_pair_product(si: int, ri: int, mL: np.ndarray, mR: np.ndarray) -> np.ndarray:
-    """``E[wL_i wR_j]`` for a random ordered S->R pair (S != R) under the
-    within-type weight permutation: exactly ``w̄L^S * w̄R^R``, since the
-    within-S and within-R permutations are independent."""
-    return mL[si] * mR[ri]
-
 
 # ── CrossPCF ───────────────────────────────────────────
 
@@ -278,7 +268,7 @@ class CrossPCF:
         min_cells: int | None = None,
         max_radius: float = 200,
         radius_step: float = 20,
-        annulus_width: float = 20,
+        annulus_steps: int = 1,
         extend_first_annulus: bool = True,
         key_added: str = "cross_pcf",
         inplace: bool = V.inplace,
@@ -303,7 +293,7 @@ class CrossPCF:
             1% of all cells are dropped.
         %(max_radius)s
         %(radius_step)s
-        %(annulus_width)s
+        %(annulus_steps)s
         %(extend_first_annulus)s
         %(key_added)s
         %(inplace)s
@@ -315,6 +305,13 @@ class CrossPCF:
         ``inplace=False``, else ``None`` (stored in ``adata.uns[key_added]``).
         ``results`` maps ``(sender, receiver)`` tuples to ``(n_bins,)`` arrays.
 
+        Notes
+        -----
+        ``CrossPCF`` and :class:`LRIC` share the same binning: half-open
+        ``[inner, outer)`` tiles read off a single edge list, with distance-0
+        pairs between distinct cells counted in the contact band. Pairwise
+        ``LRIC``'s ``g_pcf`` therefore equals ``cross_pcf`` exactly.
+
         Examples
         --------
         >>> import liana as li
@@ -325,6 +322,7 @@ class CrossPCF:
         Rank the pairs with :func:`liana.ut.get_lric_auc` and draw one
         with :func:`liana.pl.lric_lineplot`.
         """
+        annulus_steps = _check_annulus_steps(annulus_steps)
         _adata_orig = adata
         adata = prep_check_adata(
             adata=adata,
@@ -349,21 +347,40 @@ class CrossPCF:
 
         coords = np.asarray(adata.obsm[spatial_key], dtype=float)
         N = len(coords)
-        radii_inner, radii_outer = _make_radii(
-            max_radius, radius_step, annulus_width, extend_first_annulus
+        n_types = len(cell_types_list)
+        radii_inner, _ = _make_radii(
+            max_radius, radius_step, annulus_steps, extend_first_annulus
+        )
+        n_bins = len(radii_inner)
+        fine_inner, fine_outer = _fine_tiles(n_bins, radius_step, annulus_steps)
+        n_fine = len(fine_inner)
+
+        # same shared edge list on disjoint fine tiles as LRIC, so numerator and
+        # denominator bin every pair identically; a single `bincount` on the
+        # composite (sender, receiver, tile) key gives all directed pairs at once
+        tree = cKDTree(coords)
+        I, J, bin_idx = _support_edge_list(tree, fine_inner, fine_outer)
+        T = _roll_tiles(
+            np.bincount(bin_idx, minlength=n_fine).astype(np.float64),
+            n_bins, annulus_steps, extend_first_annulus,
+        )  # (n_bins,) whole-tissue support
+        type_code = pd.Categorical(obs_types, categories=cell_types_list).codes.astype(np.int64)
+        key = (type_code[I] * n_types + type_code[J]) * n_fine + bin_idx
+        O = _roll_tiles(  # (n_bins, n_types * n_types)
+            np.bincount(key, minlength=n_types * n_types * n_fine)
+            .reshape(-1, n_fine).T.astype(np.float64),
+            n_bins, annulus_steps, extend_first_annulus,
         )
 
-        tree_all = cKDTree(coords)
-        T = _bin_pair_counts(tree_all, tree_all, radii_inner, radii_outer)  # (n_bins,) whole-tissue support
-
         counts = {ct: int((obs_types == ct).sum()) for ct in cell_types_list}
-        ct_trees = {ct: cKDTree(coords[obs_types == ct]) for ct in cell_types_list}
+        idx_of = {ct: i for i, ct in enumerate(cell_types_list)}
 
         results: dict[tuple[str, str], np.ndarray] = {}
-        for sender, receiver in tqdm(pairs, disable=not verbose, desc="cross-PCF"):
-            O = _bin_pair_counts(ct_trees[sender], ct_trees[receiver], radii_inner, radii_outer)
+        for sender, receiver in pairs:
             with np.errstate(divide="ignore", invalid="ignore"):
-                g = O * (N * (N - 1)) / (counts[sender] * counts[receiver] * T)
+                g = O[:, idx_of[sender] * n_types + idx_of[receiver]] * (N * (N - 1)) / (
+                    counts[sender] * counts[receiver] * T
+                )
                 g[T == 0] = np.nan
             results[(sender, receiver)] = g
 
@@ -416,7 +433,7 @@ class LRIC:
         spatial_key: str = K.spatial_key,
         max_radius: float = 200,
         radius_step: float = 20,
-        annulus_width: float = 20,
+        annulus_steps: int = 1,
         extend_first_annulus: bool = True,
         cell_types: Iterable[str] | None = None,
         min_cells: int | None = None,
@@ -467,7 +484,7 @@ class LRIC:
         %(spatial_key)s
         %(max_radius)s
         %(radius_step)s
-        %(annulus_width)s
+        %(annulus_steps)s
         %(extend_first_annulus)s
             In LRIC this specifically preserves juxtacrine (direct-contact)
             ligand-receptor signal in the first bin.
@@ -524,6 +541,7 @@ class LRIC:
         >>> li.mt.lric(adata, resource_name='consensus', groupby='cell_type',
         ...            key_added='lric_ct')
         """
+        annulus_steps = _check_annulus_steps(annulus_steps)
         resource = _handle_resource(
             interactions=interactions,
             resource=resource,
@@ -564,9 +582,6 @@ class LRIC:
             if any(complex_sep in e for e in entities):
                 adata = _add_complexes_to_var(adata, entities, complex_sep=complex_sep)
 
-        resource = resource[
-            resource["ligand"].isin(adata.var_names) & resource["receptor"].isin(adata.var_names)
-        ]
         assert_covered(
             np.union1d(resource["ligand"], resource["receptor"]), adata.var_names, verbose=verbose
         )
@@ -578,7 +593,7 @@ class LRIC:
                 spatial_key=spatial_key,
                 max_radius=max_radius,
                 radius_step=radius_step,
-                annulus_width=annulus_width,
+                annulus_steps=annulus_steps,
                 extend_first_annulus=extend_first_annulus,
                 expr_prop=expr_prop,
                 lr_sep=lr_sep,
@@ -594,7 +609,7 @@ class LRIC:
                 spatial_key=spatial_key,
                 max_radius=max_radius,
                 radius_step=radius_step,
-                annulus_width=annulus_width,
+                annulus_steps=annulus_steps,
                 extend_first_annulus=extend_first_annulus,
                 groupby_pairs=groupby_pairs,
                 expr_prop=expr_prop,
@@ -616,7 +631,7 @@ class LRIC:
         spatial_key: str,
         max_radius: float,
         radius_step: float,
-        annulus_width: float,
+        annulus_steps: int,
         extend_first_annulus: bool,
         expr_prop: float,
         lr_sep: str,
@@ -647,18 +662,31 @@ class LRIC:
 
         coords = np.asarray(adata.obsm[spatial_key], dtype=float)
         N = len(coords)
-        radii_inner, radii_outer = _make_radii(
-            max_radius, radius_step, annulus_width, extend_first_annulus
+        radii_inner, _ = _make_radii(
+            max_radius, radius_step, annulus_steps, extend_first_annulus
         )
         n_bins = len(radii_inner)
+        fine_inner, fine_outer = _fine_tiles(n_bins, radius_step, annulus_steps)
+        n_fine = len(fine_inner)
 
         WL = _pair_weights(adata, unique_ligands, lr_pairs[:, 0], transform)
         WR = _pair_weights(adata, unique_receptors, lr_pairs[:, 1], transform)
 
+        # numerator and denominator both come off the SAME edge list on disjoint
+        # fine tiles, then get rolled up into the (possibly overlapping) output
+        # annuli -- so every pair is counted identically on both sides
         tree = cKDTree(coords)
-        T = _bin_pair_counts(tree, tree, radii_inner, radii_outer)  # (n_bins,) whole-tissue support
-        I, J, bin_idx = _support_edge_list(tree, radii_inner, radii_outer)
-        num = _weighted_support_numerator(I, J, bin_idx, WL, WR, n_bins, N, pair_chunk)
+        I, J, bin_idx = _support_edge_list(tree, fine_inner, fine_outer)
+        T = _roll_tiles(
+            np.bincount(bin_idx, minlength=n_fine).astype(np.float64),
+            n_bins, annulus_steps, extend_first_annulus,
+        )  # (n_bins,) whole-tissue support
+        order = np.argsort(bin_idx, kind="stable")  # group edges by tile, contiguous slices
+        bounds = _edge_group_bounds(bin_idx[order], n_fine)
+        num = _roll_tiles(
+            _segment_weighted_sums(I[order], J[order], bounds, WL, WR, pair_chunk),
+            n_bins, annulus_steps, extend_first_annulus,
+        )
 
         # closed-form null mean: T(b) * E[wL(i) wR(j)] over random distinct pairs
         S_L, S_R, cross = WL.sum(0), WR.sum(0), (WL * WR).sum(0)
@@ -682,7 +710,7 @@ class LRIC:
         spatial_key: str,
         max_radius: float,
         radius_step: float,
-        annulus_width: float,
+        annulus_steps: int,
         extend_first_annulus: bool,
         groupby_pairs: pd.DataFrame | None,
         expr_prop: float,
@@ -731,10 +759,12 @@ class LRIC:
 
         coords = np.asarray(adata.obsm[spatial_key], dtype=float)
         N = len(coords)
-        radii_inner, radii_outer = _make_radii(
-            max_radius, radius_step, annulus_width, extend_first_annulus
+        radii_inner, _ = _make_radii(
+            max_radius, radius_step, annulus_steps, extend_first_annulus
         )
         n_bins = len(radii_inner)
+        fine_inner, fine_outer = _fine_tiles(n_bins, radius_step, annulus_steps)
+        n_fine = len(fine_inner)
 
         WL = _pair_weights(adata, unique_ligands, lr_pairs[:, 0], transform)
         WR = _pair_weights(adata, unique_receptors, lr_pairs[:, 1], transform)
@@ -745,23 +775,30 @@ class LRIC:
 
         counts = {ct: int((obs_types == ct).sum()) for ct in cell_types_list}
 
+        # everything -- numerator, per-pair and whole-tissue pair counts -- is read
+        # off this one edge list on disjoint fine tiles, then rolled up into the
+        # (possibly overlapping) output annuli, so both sides of every ratio bin
+        # the pairs identically
         tree = cKDTree(coords)
-        T_all = _bin_pair_counts(tree, tree, radii_inner, radii_outer)  # geometry only
-        I, J, bin_idx = _support_edge_list(tree, radii_inner, radii_outer)
+        I, J, bin_idx = _support_edge_list(tree, fine_inner, fine_outer)
+        T_all = _roll_tiles(  # geometry only
+            np.bincount(bin_idx, minlength=n_fine).astype(np.float64),
+            n_bins, annulus_steps, extend_first_annulus,
+        )
 
-        # Group the edge list by (sender type, receiver type, bin) with a single
+        # Group the edge list by (sender type, receiver type, tile) with a single
         # stable sort, so that each directed pair's edges occupy a contiguous
         # slice addressable via `bounds`. On a large slide (big `max_radius` =>
         # tens of millions of edges) the edge list dominates memory, so the key
-        # is int32 (keys are bounded by n_types^2 * n_bins, far below int32
+        # is int32 (keys are bounded by n_types^2 * n_fine, far below int32
         # range), is built in place, and every temporary is released as soon as
         # it has been consumed.
         type_code = pd.Categorical(obs_types, categories=cell_types_list).codes.astype(np.int32)
-        n_groups = n_types * n_types * n_bins
+        n_groups = n_types * n_types * n_fine
         group_key = type_code[I].astype(np.int32)
         group_key *= n_types
         group_key += type_code[J]
-        group_key *= n_bins
+        group_key *= n_fine
         np.add(group_key, bin_idx, out=group_key, casting="unsafe")
         order = np.argsort(group_key, kind="stable")
         bounds = _edge_group_bounds(group_key[order], n_groups)
@@ -792,13 +829,18 @@ class LRIC:
             si, ri = idx_of[sender], idx_of[receiver]
             n_S, n_R = counts[sender], counts[receiver]
 
-            g0 = (si * n_types + ri) * n_bins
-            grp = bounds[g0 : g0 + n_bins + 1]
-            Num_SR = _segment_weighted_sums(I_sorted, J_sorted, grp, WL, WR, pair_chunk)
-            # edges per group == observed ordered S->R pair count per bin
-            T_SR = np.diff(grp).astype(np.float64)
+            g0 = (si * n_types + ri) * n_fine
+            grp = bounds[g0 : g0 + n_fine + 1]
+            Num_SR = _roll_tiles(
+                _segment_weighted_sums(I_sorted, J_sorted, grp, WL, WR, pair_chunk),
+                n_bins, annulus_steps, extend_first_annulus,
+            )
+            # edges per group == observed ordered S->R pair count per tile
+            T_SR = _roll_tiles(
+                np.diff(grp).astype(np.float64), n_bins, annulus_steps, extend_first_annulus
+            )
 
-            pair_prod = _null_pair_product(si, ri, mL, mR)
+            pair_prod = mL[si] * mR[ri]
             exp_T = n_S * n_R / (N * (N - 1)) * T_all              # null pair count
             expected = exp_T[:, None] * pair_prod[None, :]         # null weighted pair-sum
 
