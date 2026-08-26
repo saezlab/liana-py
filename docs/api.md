@@ -166,6 +166,7 @@ Passed as `model=` when calling a `MistyData` object:
     query_bandwidth
     get_factor_scores
     get_variable_loadings
+    get_lric_auc
     interpolate_adata
 ```
 

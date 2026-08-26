@@ -1,7 +1,7 @@
-import math
-
-import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import plotnine as p9
+from anndata import AnnData
 from matplotlib.figure import Figure
 
 from liana._constants import DefaultValues as V
@@ -10,152 +10,84 @@ from liana._docs import d
 
 @d.dedent
 def lric_lineplot(
-    radii,
-    curves: dict,
-    *,
-    overlay: bool = False,
-    ncols: int = 4,
-    colors=None,
-    title: str | None = None,
-    figure_size: tuple | None = None,
-    ax=None,
+    adata: AnnData,
+    uns_key: str,
+    feature,
+    max_dist: float | None = None,
+    figure_size: tuple[float, float] = (6, 4),
     return_fig: bool = V.return_fig,
-) -> Figure | None:
+) -> Figure:
     """
-    Line plot for cross-PCF / LRIC g(r) curves with a baseline at 1.
+    Plot the g(r) profile of a single interaction from ``lric`` / ``cross_pcf``.
+
+    ``g(r)`` is the observed count at radius ``r`` relative to the closed-form
+    random-labelling null; ``g(r) > 1`` is co-enrichment, ``< 1`` depletion, and
+    the dashed line at ``1`` marks the null. For pairwise LRIC the full coupling
+    is decomposed into its architecture-only (``g_pcf``) and expression-only
+    (``g_expr``) components, drawn as separate lines.
 
     Parameters
     ----------
-    radii
-        1-D array of radius values shared by all curves.  Individual curves
-        may supply their own radii by passing ``(radii, g)`` tuples as values.
-    curves
-        ``{label: g}`` or ``{label: (radii, g)}``.  In small-multiples mode
-        labels become subplot titles; in overlay mode they become legend entries.
-    overlay
-        ``False`` (default) — one subplot per curve arranged in a grid.
-        ``True`` — all curves drawn on a single axis.
-    ncols
-        Number of columns for the small-multiples grid (ignored when
-        ``overlay=True``).
-    colors
-        Colour specification.  Accepts a single colour string (applied to all
-        curves), a list (one per curve, in dict-insertion order), or a dict
-        keyed by label.  Defaults to the matplotlib tab10 cycle.
-    title
-        Figure-level super-title.
+    %(adata)s
+    uns_key
+        Key in ``adata.uns`` holding a ``lric`` or ``cross_pcf`` result (the
+        ``key_added`` used when it was computed).
+    feature
+        The interaction to plot, matching the stored result:
+        ``(sender, receiver)`` for ``cross_pcf``; a ``"ligand^receptor"`` string
+        for agnostic LRIC; and ``((sender, receiver), "ligand^receptor")`` for
+        pairwise LRIC.
+    max_dist
+        If given, draw a dotted vertical line at this radius to mark the
+        short-range window of interest.
     %(figure_size)s
-    ax
-        Existing :class:`~matplotlib.axes.Axes` to draw into.  Only used when
-        ``overlay=True``; ignored otherwise.
     %(return_fig)s
 
     Returns
     -------
-    :class:`~matplotlib.figure.Figure` if ``return_fig`` is ``True``,
-    otherwise ``None``.
-
-    Examples
-    --------
-    `radii` and the curves come from ``liana.method.cross_pcf`` (cell-type
-    co-localisation) or ``liana.method.lric`` (expression-weighted). The dotted
-    line at `g(r) = 1` marks spatial independence:
-
-    >>> import liana as li
-    >>> adata = li.testing.generate_toy_spatial()
-    >>> res = li.mt.cross_pcf(adata, groupby='bulk_labels',
-    ...                       radius_step=50, annulus_width=50,
-    ...                       inplace=False)
-    >>> curves = {f'{s} -> {r}': g
-    ...           for (s, r), g in list(res['results'].items())[:2]}
-    >>> fig = li.pl.lric_lineplot(res['radii'], curves, overlay=True)
-
-    One subplot per curve without `overlay`.
-
+    A ``plotnine.ggplot`` if ``return_fig`` else ``None`` (draws the plot).
     """
-    labels = list(curves.keys())
-    n = len(labels)
+    res = adata.uns[uns_key]
+    radii = np.asarray(res["radii"], float)
 
-    if n == 0:
-        raise ValueError("`curves` must contain at least one entry.")
+    if "lric" in res:  # agnostic LRIC -- feature = "ligand^receptor"
+        j = list(res["pair_names"]).index(feature)
+        curves = {"g(r)": res["lric"][:, j]}
+        title = feature
+    elif "pair_names" in res:  # pairwise LRIC -- feature = ((sender, receiver), "ligand^receptor")
+        (sender, receiver), lr = feature
+        j = list(res["pair_names"]).index(lr)
+        curves = {
+            "g (full)": res["results"][sender, receiver][:, j],
+            "g_pcf": res["g_pcf"][sender, receiver],  # (n_bins,), shared across LR pairs
+            "g_expr": res["g_expr"][sender, receiver][:, j],
+        }
+        title = f"{sender} -> {receiver}: {lr}"
+    else:  # cross_pcf -- feature = (sender, receiver), symmetric
+        key = feature if feature in res["results"] else feature[::-1]
+        curves = {"g(r)": res["results"][key]}
+        title = f"{feature[0]} vs {feature[1]}"
 
-    color_map = _resolve_colors(labels, colors)
-
-    if overlay:
-        fig, ax = _ensure_ax(ax, figure_size or (6, 4))
-        for label in labels:
-            r, g = _unpack(radii, curves[label])
-            ax.plot(r, g, lw=2, marker="o", ms=4,
-                    color=color_map[label], label=label)
-        ax.axhline(1, linestyle=":", color="0.3", lw=1.4, label="g(r) = 1")
-        ax.set_xlabel("Radius (µm)")
-        ax.set_ylabel("g(r)")
-        ax.grid(alpha=0.25)
-        ax.legend(frameon=False, fontsize=8)
-        if title:
-            ax.set_title(title, fontsize=10)
-        _finish(fig, title=None, return_fig=return_fig)
-        return fig if return_fig else None
-
-    # small multiples
-    nrows = math.ceil(n / ncols)
-    default_w = min(ncols, n) * 3
-    default_h = nrows * 3
-    fig, axes = plt.subplots(
-        nrows, min(ncols, n),
-        figsize=figure_size or (default_w, default_h),
-        layout="constrained",
-        squeeze=False,
+    df = pd.concat(
+        [pd.DataFrame({"radius": radii, "g": np.asarray(y, float), "curve": label}) for label, y in curves.items()],
+        ignore_index=True,
     )
-    all_axes = list(axes.flat)
-    for ax_i, label in zip(all_axes, labels):
-        r, g = _unpack(radii, curves[label])
-        ax_i.plot(r, g, lw=2, marker="o", ms=4, color=color_map[label])
-        ax_i.axhline(1, linestyle=":", color="0.3", lw=1.2)
-        ax_i.set_title(label, fontsize=9)
-        ax_i.set_xlabel("Radius (µm)", fontsize=8)
-        ax_i.set_ylabel("g(r)", fontsize=8)
-        ax_i.grid(alpha=0.2)
-        ax_i.tick_params(labelsize=7)
 
-    for ax_i in all_axes[n:]:
-        ax_i.set_visible(False)
+    p = (
+        p9.ggplot(df, p9.aes("radius", "g", color="curve"))
+        + p9.geom_hline(yintercept=1, linetype="dashed", color="grey")
+        + p9.geom_line()
+        + p9.geom_point(size=1.2)
+        + p9.labs(x="Radius (r)", y="g(r)", title=title, color="")
+        + p9.theme_bw()
+        + p9.theme(figure_size=figure_size)
+    )
+    if len(curves) == 1:  # single curve -> the legend adds nothing
+        p = p + p9.theme(legend_position="none")
+    if max_dist is not None:
+        p = p + p9.geom_vline(xintercept=max_dist, linetype="dotted", color="black")
 
-    _finish(fig, title=title, return_fig=return_fig)
-    return fig if return_fig else None
+    if return_fig:
+        return p
 
-
-# ── helpers ──────────────────────────────────────────────────────────────────
-
-
-def _unpack(shared_radii, value):
-    if isinstance(value, tuple) and len(value) == 2:
-        return np.asarray(value[0], dtype=float), np.asarray(value[1], dtype=float)
-    return np.asarray(shared_radii, dtype=float), np.asarray(value, dtype=float)
-
-
-def _resolve_colors(labels, colors):
-    if colors is None:
-        cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-        return {lbl: cycle[i % len(cycle)] for i, lbl in enumerate(labels)}
-    if isinstance(colors, str):
-        return dict.fromkeys(labels, colors)
-    if isinstance(colors, list):
-        return {lbl: colors[i % len(colors)] for i, lbl in enumerate(labels)}
-    if isinstance(colors, dict):
-        return colors
-    raise TypeError(f"Unsupported type for `colors`: {type(colors)}")
-
-
-def _ensure_ax(ax, figure_size):
-    if ax is not None:
-        return ax.get_figure(), ax
-    fig, ax = plt.subplots(figsize=figure_size)
-    return fig, ax
-
-
-def _finish(fig, title, return_fig):
-    if title:
-        fig.suptitle(title, fontsize=12)
-    if not return_fig:
-        plt.show()
+    p.draw()
