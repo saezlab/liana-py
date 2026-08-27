@@ -9,7 +9,7 @@ from anndata import AnnData
 from pandas import DataFrame, Index
 from scipy.sparse import csr_matrix, isspmatrix_csr
 
-from liana._logging import _logg
+from liana._common import _logg
 
 
 def assert_covered(

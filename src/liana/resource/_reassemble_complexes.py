@@ -4,7 +4,7 @@ from __future__ import annotations
 import pandas as pd
 
 from liana._docs import d
-from liana._logging import _logg
+from liana._common import _logg
 
 
 @d.dedent

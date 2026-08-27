@@ -1,161 +1,241 @@
-import math
-
-import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import plotnine as p9
+from anndata import AnnData
 from matplotlib.figure import Figure
 
+from liana._common import _get_liana_res
 from liana._constants import DefaultValues as V
 from liana._docs import d
+from liana.utils._lric_helpers import _log2_floor, _mean_curve, get_lric_divergence
+
+_ID_COLS = ("source", "target", "ligand_complex", "receptor_complex", "interaction")
+
+
+def _preview(values, n=10):
+    values = list(dict.fromkeys(map(str, values)))
+    return ", ".join(values[:n]) + (f", ... ({len(values)} total)" if len(values) > n else "")
 
 
 @d.dedent
 def lric_lineplot(
-    radii,
-    curves: dict,
-    *,
-    overlay: bool = False,
-    ncols: int = 4,
-    colors=None,
-    title: str | None = None,
-    figure_size: tuple | None = None,
-    ax=None,
+    adata: AnnData | None = None,
+    uns_key: str = "lric",
+    liana_res: pd.DataFrame | None = None,
+    interaction: str | None = None,
+    source: str | None = None,
+    target: str | None = None,
+    max_dist: float | None = None,
+    figure_size: tuple[float, float] = (6, 4),
     return_fig: bool = V.return_fig,
-) -> Figure | None:
+) -> Figure:
     """
-    Line plot for cross-PCF / LRIC g(r) curves with a baseline at 1.
+    Plot the g(r) profile of a single interaction from ``lric`` / ``cross_pcf``.
+
+    ``g(r)`` is the observed count at radius ``r`` relative to the closed-form
+    random-labelling null; ``g(r) > 1`` is co-enrichment, ``< 1`` depletion, and
+    the dashed line at ``1`` marks the null. For pairwise LRIC the full coupling
+    is decomposed into its architecture-only (``g_pcf``) and expression-only
+    (``g_expr``) components, drawn as separate lines.
 
     Parameters
     ----------
-    radii
-        1-D array of radius values shared by all curves.  Individual curves
-        may supply their own radii by passing ``(radii, g)`` tuples as values.
-    curves
-        ``{label: g}`` or ``{label: (radii, g)}``.  In small-multiples mode
-        labels become subplot titles; in overlay mode they become legend entries.
-    overlay
-        ``False`` (default) — one subplot per curve arranged in a grid.
-        ``True`` — all curves drawn on a single axis.
-    ncols
-        Number of columns for the small-multiples grid (ignored when
-        ``overlay=True``).
-    colors
-        Colour specification.  Accepts a single colour string (applied to all
-        curves), a list (one per curve, in dict-insertion order), or a dict
-        keyed by label.  Defaults to the matplotlib tab10 cycle.
-    title
-        Figure-level super-title.
+    %(adata)s
+        Its ``.uns[uns_key]`` holds the result. Mutually exclusive with
+        ``liana_res``.
+    %(uns_key)s
+    %(liana_res)s
+        A ``lric`` / ``cross_pcf`` result, used when ``adata`` is ``None``.
+    interaction
+        The ``interaction`` to plot -- ``"source^target"`` for ``cross_pcf``,
+        ``"ligand^receptor"`` for ``lric``.
+    source
+        Sender cell type; only for results that carry a ``source`` column.
+    target
+        Receiver cell type; only for results that carry a ``target`` column.
+    max_dist
+        Plot only radii ``r < max_dist``; ``None`` uses all radii.
     %(figure_size)s
-    ax
-        Existing :class:`~matplotlib.axes.Axes` to draw into.  Only used when
-        ``overlay=True``; ignored otherwise.
     %(return_fig)s
 
     Returns
     -------
-    :class:`~matplotlib.figure.Figure` if ``return_fig`` is ``True``,
-    otherwise ``None``.
+    A ``plotnine.ggplot`` if ``return_fig`` else ``None`` (draws the plot).
+    """
+    res = _get_liana_res(adata, liana_res, uns_key)
+    ids = [c for c in _ID_COLS if c in res.columns]
+
+    for col, value in (("interaction", interaction), ("source", source), ("target", target)):
+        if value is None:
+            continue
+        if col not in ids:
+            raise ValueError(f"`{col}` is not a column of this result; it has {ids}.")
+        subset = res[res[col] == value]
+        if subset.empty:
+            raise ValueError(f"`{col}={value!r}` not found. Available: {_preview(res[col])}")
+        res = subset
+
+    combos = res[ids].drop_duplicates()
+    if len(combos) != 1:
+        raise ValueError(
+            f"The selection resolves to {len(combos)} interactions, expected exactly one. "
+            f"Narrow it down with {[c for c in ids if c in ('interaction', 'source', 'target')]}; "
+            f"candidates: {_preview(combos.astype(str).agg(' | '.join, axis=1))}"
+        )
+
+    row = combos.iloc[0]
+    title = " -> ".join(str(row[c]) for c in ("source", "target") if c in ids)
+    if "ligand_complex" in ids:
+        title = f"{title}: {row['interaction']}" if title else str(row["interaction"])
+
+    curves = (
+        {"g": "g (full)", "g_pcf": "g_pcf", "g_expr": "g_expr"}
+        if "g_pcf" in res.columns
+        else {"g": "g(r)"}
+    )
+    res = res.sort_values("radius")
+    if max_dist is not None:
+        in_window = res[res["radius"] < max_dist]
+        if in_window.empty:
+            raise ValueError(
+                f"No radii below `max_dist={max_dist}`; the grid is "
+                f"{_preview(res['radius'].unique())}."
+            )
+        res = in_window
+    df = pd.concat(
+        [
+            pd.DataFrame(
+                {"radius": res["radius"].to_numpy(float),
+                 "g": res[col].to_numpy(float),
+                 "curve": label}
+            )
+            for col, label in curves.items()
+        ],
+        ignore_index=True,
+    )
+    df["curve"] = pd.Categorical(df["curve"], categories=list(curves.values()))
+
+    p = (
+        p9.ggplot(df, p9.aes("radius", "g", color="curve"))
+        + p9.geom_hline(yintercept=1, linetype="dashed", color="grey")
+        + p9.geom_line()
+        + p9.geom_point(size=1.2)
+        + p9.labs(x="Radius (r)", y="g(r)", title=title, color="")
+        + p9.theme_bw()
+        + p9.theme(figure_size=figure_size)
+    )
+    if len(curves) == 1:  # single curve -> the legend adds nothing
+        p = p + p9.theme(legend_position="none")
+
+    if return_fig:
+        return p
+
+    p.draw()
+
+
+@d.dedent
+def lric_divergence_plot(
+    adata: AnnData | None = None,
+    uns_key: str = "lric",
+    liana_res: pd.DataFrame | None = None,
+    feature_a: dict | None = None,
+    feature_b: dict | None = None,
+    max_dist: float | None = None,
+    transform_fn=_log2_floor,
+    min_bins: int = 3,
+    figure_size: tuple[float, float] = (6, 4),
+    return_fig: bool = V.return_fig,
+) -> Figure:
+    """
+    Plot two ``transform_fn(g(r))`` curves and the area between them.
+
+    The visual companion of :func:`liana.ut.get_lric_divergence`: both curves
+    are drawn over radius, the grey ribbon spans their separation, the dashed
+    line at ``0`` marks the null, and the dotted vertical line marks ``r_star``
+    -- the radius where the curves diverge most. The title carries the
+    span-normalised divergence and ``r_star``.
+
+    Parameters
+    ----------
+    %(adata)s
+        Its ``.uns[uns_key]`` holds the result. Mutually exclusive with
+        ``liana_res``.
+    %(uns_key)s
+    %(liana_res)s
+        A ``lric`` / ``cross_pcf`` result, used when ``adata`` is ``None``.
+    feature_a
+        Selection of the first curve as ``{column: value}`` over any columns of
+        the result, e.g. ``dict(interaction="Dcn^Egfr")``. It must resolve to a
+        single interaction; see :func:`liana.ut.get_lric_divergence`.
+    feature_b
+        Selection of the second curve; same rules as ``feature_a``.
+    max_dist
+        Compare and draw only radii ``r < max_dist``; ``None`` uses all radii.
+    transform_fn
+        Applied to ``g`` before comparing; defaults to log2 with ``g`` floored
+        at ``0.05``. Pass :func:`numpy.log2` to drop non-finite bins instead.
+    min_bins
+        Minimum shared finite radius bins required; fewer raises a ``ValueError``.
+    %(figure_size)s
+    %(return_fig)s
+
+    Returns
+    -------
+    A ``plotnine.ggplot`` if ``return_fig`` else ``None`` (draws the plot).
 
     Examples
     --------
-    `radii` and the curves come from ``liana.method.cross_pcf`` (cell-type
-    co-localisation) or ``liana.method.lric`` (expression-weighted). The dotted
-    line at `g(r) = 1` marks spatial independence:
-
     >>> import liana as li
     >>> adata = li.testing.generate_toy_spatial()
-    >>> res = li.mt.cross_pcf(adata, groupby='bulk_labels',
-    ...                       radius_step=50, annulus_width=50,
-    ...                       inplace=False)
-    >>> curves = {f'{s} -> {r}': g
-    ...           for (s, r), g in list(res['results'].items())[:2]}
-    >>> fig = li.pl.lric_lineplot(res['radii'], curves, overlay=True)
-
-    One subplot per curve without `overlay`.
-
+    >>> li.mt.cross_pcf(adata, groupby='bulk_labels', key_added='cross_pcf')
+    >>> p = li.pl.lric_divergence_plot(
+    ...     adata, 'cross_pcf',
+    ...     feature_a=dict(source='CD14+ Monocyte', target='CD34+'),
+    ...     feature_b=dict(source='CD14+ Monocyte', target='CD19+ B'),
+    ... )
     """
-    labels = list(curves.keys())
-    n = len(labels)
-
-    if n == 0:
-        raise ValueError("`curves` must contain at least one entry.")
-
-    color_map = _resolve_colors(labels, colors)
-
-    if overlay:
-        fig, ax = _ensure_ax(ax, figure_size or (6, 4))
-        for label in labels:
-            r, g = _unpack(radii, curves[label])
-            ax.plot(r, g, lw=2, marker="o", ms=4,
-                    color=color_map[label], label=label)
-        ax.axhline(1, linestyle=":", color="0.3", lw=1.4, label="g(r) = 1")
-        ax.set_xlabel("Radius (µm)")
-        ax.set_ylabel("g(r)")
-        ax.grid(alpha=0.25)
-        ax.legend(frameon=False, fontsize=8)
-        if title:
-            ax.set_title(title, fontsize=10)
-        _finish(fig, title=None, return_fig=return_fig)
-        return fig if return_fig else None
-
-    # small multiples
-    nrows = math.ceil(n / ncols)
-    default_w = min(ncols, n) * 3
-    default_h = nrows * 3
-    fig, axes = plt.subplots(
-        nrows, min(ncols, n),
-        figsize=figure_size or (default_w, default_h),
-        layout="constrained",
-        squeeze=False,
+    res = _get_liana_res(adata, liana_res, uns_key)
+    div = get_lric_divergence(
+        liana_res=res, feature_a=feature_a, feature_b=feature_b,
+        max_dist=max_dist, transform_fn=transform_fn, min_bins=min_bins,
     )
-    all_axes = list(axes.flat)
-    for ax_i, label in zip(all_axes, labels):
-        r, g = _unpack(radii, curves[label])
-        ax_i.plot(r, g, lw=2, marker="o", ms=4, color=color_map[label])
-        ax_i.axhline(1, linestyle=":", color="0.3", lw=1.2)
-        ax_i.set_title(label, fontsize=9)
-        ax_i.set_xlabel("Radius (µm)", fontsize=8)
-        ax_i.set_ylabel("g(r)", fontsize=8)
-        ax_i.grid(alpha=0.2)
-        ax_i.tick_params(labelsize=7)
 
-    for ax_i in all_axes[n:]:
-        ax_i.set_visible(False)
+    ids = [c for c in _ID_COLS if c in res.columns]
+    curves = pd.concat(
+        {div["label_a"]: _mean_curve(res, feature_a, ids, transform_fn),
+         div["label_b"]: _mean_curve(res, feature_b, ids, transform_fn)},
+        axis=1,
+    )
+    curves = curves[np.isfinite(curves).all(axis=1)]
+    if max_dist is not None:
+        curves = curves[curves.index < max_dist]
 
-    _finish(fig, title=title, return_fig=return_fig)
-    return fig if return_fig else None
+    ribbon = pd.DataFrame({
+        "radius": curves.index,
+        "ymin": curves.min(axis=1),
+        "ymax": curves.max(axis=1),
+    })
+    df = curves.rename_axis("radius").reset_index().melt(
+        id_vars="radius", var_name="curve", value_name="g"
+    )
 
+    ylab = "log2 g(r)" if transform_fn in (_log2_floor, np.log2) else "transform(g(r))"
+    p = (
+        p9.ggplot(df, p9.aes("radius", "g", color="curve"))
+        + p9.geom_ribbon(p9.aes(x="radius", ymin="ymin", ymax="ymax"),
+                         data=ribbon, fill="grey", alpha=0.35, inherit_aes=False)
+        + p9.geom_hline(yintercept=0, linetype="dashed", color="grey")
+        + p9.geom_vline(xintercept=div["r_star"], linetype="dotted", color="black")
+        + p9.geom_line()
+        + p9.geom_point(size=1.2)
+        + p9.labs(x="Radius (r)", y=ylab,
+                  title=f"divergence={div['divergence']:.3g}  r*={div['r_star']:g}",
+                  color="")
+        + p9.theme_bw()
+        + p9.theme(figure_size=figure_size)
+    )
 
-# ── helpers ──────────────────────────────────────────────────────────────────
+    if return_fig:
+        return p
 
-
-def _unpack(shared_radii, value):
-    if isinstance(value, tuple) and len(value) == 2:
-        return np.asarray(value[0], dtype=float), np.asarray(value[1], dtype=float)
-    return np.asarray(shared_radii, dtype=float), np.asarray(value, dtype=float)
-
-
-def _resolve_colors(labels, colors):
-    if colors is None:
-        cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-        return {lbl: cycle[i % len(cycle)] for i, lbl in enumerate(labels)}
-    if isinstance(colors, str):
-        return dict.fromkeys(labels, colors)
-    if isinstance(colors, list):
-        return {lbl: colors[i % len(colors)] for i, lbl in enumerate(labels)}
-    if isinstance(colors, dict):
-        return colors
-    raise TypeError(f"Unsupported type for `colors`: {type(colors)}")
-
-
-def _ensure_ax(ax, figure_size):
-    if ax is not None:
-        return ax.get_figure(), ax
-    fig, ax = plt.subplots(figsize=figure_size)
-    return fig, ax
-
-
-def _finish(fig, title, return_fig):
-    if title:
-        fig.suptitle(title, fontsize=12)
-    if not return_fig:
-        plt.show()
+    p.draw()

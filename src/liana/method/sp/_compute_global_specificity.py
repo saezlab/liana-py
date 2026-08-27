@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from liana._constants import DefaultValues as V
 from liana._docs import d
-from liana._logging import _logg
+from liana._common import _logg
 from liana.method._pipe_utils._pre import _choose_mtx_rep
 
 

@@ -11,7 +11,7 @@ from tqdm import tqdm
 from liana._constants import DefaultValues as V
 from liana._constants import Keys as K
 from liana._docs import d
-from liana._logging import _logg
+from liana._common import _logg
 from liana.method.sc._liana_pipe import liana_pipe
 
 

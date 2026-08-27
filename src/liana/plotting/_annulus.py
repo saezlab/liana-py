@@ -13,8 +13,8 @@ from liana._docs import d
 def annulus_plot(
     adata: AnnData,
     spatial_key: str = K.spatial_key,
-    annulus_width: float = 20.0,
     radius_step: float = 20.0,
+    annulus_steps: int = 1,
     extend_first_annulus: bool = True,
     n_rings: int = 10,
     seed: int = V.seed,
@@ -24,23 +24,21 @@ def annulus_plot(
     Visualise concentric annuli around a randomly chosen cell on a tissue section.
 
     Useful for inspecting the local neighbourhood structure and choosing sensible
-    ``radius_step`` / ``annulus_width`` parameters before running spatial statistics
+    ``radius_step`` / ``annulus_steps`` parameters before running spatial statistics
     (e.g. cross-PCF or LRIC).
 
     Parameters
     ----------
     %(adata)s
     %(spatial_key)s
-    annulus_width
-        Radial width of each annulus ring (in coordinate units, e.g. µm).
-        Setting ``annulus_width == radius_step`` avoids double-counting.
     radius_step
         Step size between successive ring inner radii (in the same units as
-        the spatial coordinates).
+        the spatial coordinates, e.g. µm).
+    %(annulus_steps)s
     extend_first_annulus
         If ``True`` (default), draw the innermost ring from radius 0 (spanning
-        ``[0, radius_step + annulus_width)``) to mirror the merged first bin used
-        by ``liana.method.lric`` / ``liana.method.cross_pcf``. ``False`` starts
+        ``[0, (1 + annulus_steps) * radius_step)``) to mirror the merged first bin
+        used by ``liana.method.lric`` / ``liana.method.cross_pcf``. ``False`` starts
         the first ring at ``radius_step``.
     n_rings
         Number of concentric rings to draw.
@@ -57,11 +55,11 @@ def annulus_plot(
     Draws the annuli that ``liana.method.cross_pcf`` and
     ``liana.method.lric`` bin distances into, around one seeded random cell,
     with the number of cells falling in each ring. Use it to sanity-check
-    `radius_step` and `annulus_width` against the density of the tissue:
+    `radius_step` and `annulus_steps` against the density of the tissue:
 
     >>> import liana as li
     >>> adata = li.testing.generate_toy_spatial()
-    >>> li.pl.annulus_plot(adata, radius_step=200, annulus_width=200, n_rings=4)
+    >>> li.pl.annulus_plot(adata, radius_step=200, n_rings=4)
 
     """
     if spatial_key not in adata.obsm:
@@ -70,7 +68,7 @@ def annulus_plot(
     coords = adata.obsm[spatial_key]
 
     sel_inner = np.arange(1, n_rings + 1, dtype=float) * radius_step
-    sel_outer = sel_inner + annulus_width
+    sel_outer = sel_inner + annulus_steps * radius_step
     if extend_first_annulus:
         sel_inner[0] = 0.0  # merge the [0, radius_step) contact band into the first ring
 

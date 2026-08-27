@@ -8,7 +8,7 @@ from sklearn.decomposition import NMF
 from tqdm import tqdm
 
 from liana._docs import d
-from liana._logging import _check_if_installed, _logg
+from liana._common import _check_if_installed, _logg
 from liana.method._pipe_utils._pre import _choose_mtx_rep
 
 

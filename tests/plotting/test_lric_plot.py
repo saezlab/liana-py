@@ -1,65 +1,99 @@
-import numpy as np
+import plotnine as p9
 import pytest
-from matplotlib.figure import Figure
 
-from liana.plotting import lric_lineplot
+from liana.method.sp._LRIC import cross_pcf, lric
+from liana.plotting import lric_divergence_plot, lric_lineplot
+from liana.testing import generate_toy_spatial
+from liana.testing._sample_resource import sample_resource
 
-
-@pytest.fixture
-def curves():
-    """Five random LRIC-like curves over a shared radius grid."""
-    rng = np.random.default_rng(seed=0)
-    return {f"pair_{i}": rng.random(20) + 0.5 for i in range(5)}
+_KWARGS = {"max_radius": 100, "radius_step": 20, "verbose": False}
 
 
-@pytest.fixture
-def radii():
-    return np.linspace(0, 500, 20)
+@pytest.fixture(scope="module")
+def adata():
+    ad = generate_toy_spatial()
+    ad.obs["cell_type"] = ad.obs["bulk_labels"]
+    res = sample_resource(ad, n_lrs=5, seed=42)
+    cross_pcf(ad, groupby="cell_type", key_added="cross_pcf", **_KWARGS)
+    lric(ad, resource=res, key_added="lric_ag", **_KWARGS)
+    lric(ad, resource=res, groupby="cell_type", key_added="lric_ct", **_KWARGS)
+    return ad
 
 
-def test_lric_lineplot_small_multiples(radii, curves):
-    # small-multiples: returns figure, unused axes hidden
-    fig = lric_lineplot(radii, curves, return_fig=True)
-    assert isinstance(fig, Figure)
-    visible = [ax for ax in fig.axes if ax.get_visible()]
-    assert len(visible) == 5
+def test_cross_pcf_lineplot(adata):
+    row = adata.uns["cross_pcf"].iloc[0]
+    p = lric_lineplot(adata, "cross_pcf", interaction=row["interaction"], max_dist=60, return_fig=True)
+    assert isinstance(p, p9.ggplot)
+    # source/target select the same (symmetric) curve
+    lric_lineplot(adata, "cross_pcf", source=row["source"], target=row["target"], return_fig=True)
 
 
-def test_lric_lineplot_overlay(radii, curves):
-    fig = lric_lineplot(radii, curves, overlay=True, title="test", return_fig=True)
-    assert isinstance(fig, Figure)
-    assert len(fig.axes) == 1
+def test_lric_agnostic_lineplot(adata):
+    interaction = adata.uns["lric_ag"]["interaction"].iloc[0]
+    p = lric_lineplot(adata, "lric_ag", interaction=interaction, return_fig=True)
+    assert isinstance(p, p9.ggplot)
+    # `liana_res=` is accepted in place of an AnnData
+    lric_lineplot(liana_res=adata.uns["lric_ag"], interaction=interaction, return_fig=True)
 
 
-def test_lric_lineplot_per_curve_radii(radii):
-    # per-curve radii as (r, g) tuples
-    mixed = {"a": (radii * 0.5, np.ones(20)), "b": np.ones(20) * 1.2}
-    assert isinstance(lric_lineplot(radii, mixed, return_fig=True), Figure)
-
-    # radii=None, all curves carry their own
-    all_tuples = {"a": (radii * 0.5, np.ones(20)), "b": (radii * 0.8, np.ones(20) * 1.5)}
-    assert isinstance(lric_lineplot(None, all_tuples, overlay=True, return_fig=True), Figure)
-
-
-def test_lric_lineplot_colors(radii, curves):
-    lric_lineplot(radii, curves, colors="red", return_fig=True)
-    lric_lineplot(radii, curves, colors=["red", "blue"], return_fig=True)
-    lric_lineplot(radii, curves, colors=dict.fromkeys(curves, "green"), return_fig=True)
+def test_lric_pairwise_lineplot_decomposes(adata):
+    row = adata.uns["lric_ct"].iloc[0]
+    p = lric_lineplot(
+        adata, "lric_ct", interaction=row["interaction"],
+        source=row["source"], target=row["target"], return_fig=True,
+    )
+    assert isinstance(p, p9.ggplot)
+    # full + architecture-only + expression-only
+    assert set(p.data["curve"].unique()) == {"g (full)", "g_pcf", "g_expr"}
 
 
-def test_lric_lineplot_empty_raises(radii):
-    with pytest.raises(ValueError, match="at least one entry"):
-        lric_lineplot(radii, {}, return_fig=True)
+def test_max_dist_restricts_the_plotted_radii(adata):
+    # `max_dist` means the same thing here as in `get_lric_auc` -- it is a window,
+    # not just a marker
+    row = adata.uns["cross_pcf"].iloc[0]
+    sel = {"source": row["source"], "target": row["target"]}
+    full = lric_lineplot(adata, "cross_pcf", **sel, return_fig=True)
+    windowed = lric_lineplot(adata, "cross_pcf", **sel, max_dist=45, return_fig=True)
+    assert (windowed.data["radius"] < 45).all()
+    assert len(windowed.data) < len(full.data)
+
+    with pytest.raises(ValueError, match="No radii below"):
+        lric_lineplot(adata, "cross_pcf", **sel, max_dist=-1, return_fig=True)
 
 
-def test_lric_lineplot_into_given_ax(radii, curves):
-    from matplotlib import pyplot as plt
+def test_divergence_plot(adata):
+    two = adata.uns["cross_pcf"]["interaction"].unique()[:2]
+    p = lric_divergence_plot(
+        adata, "cross_pcf",
+        feature_a={"interaction": two[0]}, feature_b={"interaction": two[1]},
+        min_bins=2, return_fig=True,
+    )
+    assert isinstance(p, p9.ggplot)
+    # both curves are drawn
+    assert p.data["curve"].nunique() == 2
+    # `liana_res=` is accepted in place of an AnnData
+    lric_divergence_plot(
+        liana_res=adata.uns["cross_pcf"],
+        feature_a={"interaction": two[0]}, feature_b={"interaction": two[1]},
+        min_bins=2, return_fig=True,
+    )
 
-    _, ax = plt.subplots()
-    fig = lric_lineplot(radii, curves, overlay=True, ax=ax, return_fig=True)
-    assert fig is ax.get_figure()
+
+def test_divergence_plot_bad_selection_raises(adata):
+    with pytest.raises(ValueError, match="No rows match"):
+        lric_divergence_plot(
+            adata, "cross_pcf",
+            feature_a={"interaction": "nope^nope"}, feature_b={"interaction": "nope^nope"},
+            return_fig=True,
+        )
 
 
-def test_lric_lineplot_bad_colors_raises(radii, curves):
-    with pytest.raises(TypeError, match='Unsupported type for `colors`'):
-        lric_lineplot(radii, curves, colors=1.0, return_fig=True)
+def test_bad_selection_raises(adata):
+    with pytest.raises(ValueError, match="not found"):
+        lric_lineplot(adata, "cross_pcf", interaction="nope", return_fig=True)
+    # an under-specified selection is ambiguous
+    with pytest.raises(ValueError, match="expected exactly one"):
+        lric_lineplot(adata, "lric_ct", source=adata.uns["lric_ct"]["source"].iloc[0], return_fig=True)
+    # `source` is not a column of an agnostic result
+    with pytest.raises(ValueError, match="not a column"):
+        lric_lineplot(adata, "lric_ag", source="CD19+ B", return_fig=True)

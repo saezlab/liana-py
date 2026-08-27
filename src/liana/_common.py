@@ -1,6 +1,8 @@
 import logging
 from types import ModuleType
 
+from liana._constants import Keys as K
+
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 
@@ -60,3 +62,13 @@ def _check_if_installed(package_name: str,
                     f'{package_name} is not installed. Please install it with: \
                     pip install {package_name}'
                 ) from None
+
+
+def _get_liana_res(adata, liana_res, uns_key=K.uns_key):
+    if adata is not None:
+        assert uns_key in adata.uns.keys()
+        _logg(f"Using `adata.uns['{uns_key}']`")
+        return adata.uns[uns_key].copy()
+    if liana_res is not None:
+        return liana_res.copy()
+    raise ValueError('`liana_res` or AnnData with `uns_key` must be provided!')

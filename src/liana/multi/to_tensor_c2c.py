@@ -10,7 +10,7 @@ from liana._constants import DefaultValues as V
 from liana._constants import Keys as K
 from liana._constants import PrimaryColumns as P
 from liana._docs import d
-from liana._logging import _check_if_installed
+from liana._common import _check_if_installed, _get_liana_res
 from liana.method import process_scores
 
 
@@ -61,12 +61,10 @@ def to_tensor_c2c(adata: AnnData = None,
 
     Raises
     ------
-    AttributeError
-        If neither `liana_res` or `adata` are provided.
     AssertionError
         If `uns_key` is not provided when given an `adata` instance.
     ValueError
-        If any of the provided keys (`sample_key`, `source_key`, `target_key`, `ligand_key` or `receptor_key`) are not found in `liana_res.uns[uns_key]` or if input data contains duplicates.
+        If neither `liana_res` or `adata` are provided, or if any of the provided keys (`sample_key`, `source_key`, `target_key`, `ligand_key` or `receptor_key`) are not found in `liana_res.uns[uns_key]` or if input data contains duplicates.
 
     Examples
     --------
@@ -86,15 +84,7 @@ def to_tensor_c2c(adata: AnnData = None,
     # check if cell2cell is installed
     c2c = _check_if_installed("cell2cell")
 
-    if (liana_res is None) & (adata is None):
-        raise AttributeError('Ambiguous! One of `liana_res` or `adata` should be provided.')
-    if adata is not None:
-        assert uns_key in adata.uns_keys()
-        liana_res = adata.uns[uns_key].copy()
-    if liana_res is not None:
-        liana_res = liana_res.copy()
-    if (liana_res is None) & (adata is None): # XXX: Isn't this redundant with AttributeError above?
-        raise ValueError('`liana_res` or `adata` must be provided!')
+    liana_res = _get_liana_res(adata, liana_res, uns_key)
 
     keys = np.array([sample_key, source_key, target_key, ligand_key, receptor_key])
     missing_keys = keys[[ key not in liana_res.columns for key in keys]]

@@ -3,7 +3,7 @@ import sqlite3
 
 import pandas as pd
 
-from liana._logging import _check_if_installed, _logg
+from liana._common import _check_if_installed, _logg
 
 
 def _download_metalinksdb(verbose: bool = True) -> str:

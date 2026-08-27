@@ -1,6 +1,23 @@
 # Changelog
 
-## 1.9.0
+## 1.10.0 (27.08.2026)
+
+### Changed
+
+- **LRIC & cross-PCF reworked onto an analytical null and one shared, exact binning** (#250, by @AtheerAS). `li.mt.lric` and `li.mt.cross_pcf` now compute `g(r)` against a closed-form random-labelling null conditioned on the observed cell positions, replacing the CSR area expectation with bounding-box edge correction; cell-type-pairwise LRIC decomposes the full coupling into architecture-only (`g_pcf`, identical to `cross_pcf`) and expression-only (`g_expr`) components. Numerator and denominator are binned on a single shared partition of disjoint `radius_step`-wide tiles, with each output annulus reconstructed as `annulus_steps` consecutive tiles — fixing deflated `g` under overlapping annuli, bin-edge convention mismatches on gridded coordinates, and zero-distance pairs. The float `annulus_width` parameter is replaced by `annulus_steps` (int ≥ 1) in `lric`, `cross_pcf` and `annulus_plot`.
+- Internal logging and result-resolution helpers were consolidated into `liana._common`; resolution consistently prefers `adata` over `liana_res` and raises a `ValueError` when neither is given.
+- `li.mt.cross_pcf` gained `groupby_pairs`, matching `li.mt.lric`: it restricts the emitted cell-type combinations (matched regardless of orientation, since `g(r)` is symmetric) and folds the referenced cell types into `cell_types`. Both methods now warn when `groupby_pairs` names a cell type that is not in the data, or matches nothing at all, instead of silently returning an empty result.
+- The three `g(r)` variants (`cross_pcf`, agnostic and pairwise `lric`) now share their geometry prelude, edge grouping, random-labelling null, LR weighting, cell-type indexing and long-format output instead of repeating them, so numerator and denominator cannot drift apart between variants. Output is unchanged.
+- **LRIC / cross-PCF results are long-format DataFrames.** Both methods return/store a tidy frame (`source`, `target`, `ligand_complex`, `receptor_complex`, `interaction`, `radius`, `g`, plus `g_expr`/`g_pcf` for pairwise LRIC) in `adata.uns[key_added]`, column-compatible with the dotplot family; `cross_pcf` emits each unordered cell-type pair once. The LRIC tutorial was rewritten for the new API.
+
+### Added
+
+- **`li.ut.get_lric_auc`** — ranks interactions by the span-normalised area under `transform_fn(g(r))` (default: log2 with `g` floored at `0.05`; pass `np.log2` for the strict behaviour that drops non-finite bins), and reports `peak_radius`, the radius of the largest deviation from the null; its output feeds `li.pl.dotplot` directly. When the result is empty, a warning logs why (too few radius bins in-window, or too few finite bins per interaction).
+- **`li.ut.get_lric_divergence`** — the span-normalised area between two `g(r)` curves and the radius where their separation peaks. Curves are selected as `{column: value}` dicts over any columns of the result, so concatenated results from several samples/conditions (e.g. with a `condition` column) support cross-condition comparison of the same interaction; unpinned replicate rows average into one curve. Same floored-log2 default transform as `get_lric_auc`.
+- **`li.pl.lric_lineplot`** — the `g(r)` profile of a single interaction, with the pairwise decomposition drawn as separate curves.
+- **`li.pl.lric_divergence_plot`** — the two `transform_fn(g(r))` curves behind a `get_lric_divergence` result, with the area between them shaded and `r_star` marked.
+
+## 1.9.0 (19.08.2026)
 
 ### Added
 
@@ -44,7 +61,7 @@
 
 - **`li.mt.lric` — Ligand-Receptor Interaction Correlation (LRIC).** A new spatial method for single-cell-resolution data that computes an expression-weighted cross pair-correlation function: each cell's contribution at distance `r` is weighted by its ligand (sender) and receptor (receiver) expression, so the resulting `g(r)` reflects whether ligand- and receptor-expressing cells are spatially co-enriched at distance `r`, beyond what cell-type co-localisation alone predicts. Uses distance-binned annuli with bounding-box edge correction. (`src/liana/method/sp/_LRIC.py`)
 - **`li.mt.cross_pcf` — cross pair-correlation function (cross-PCF).** The classical point-pattern statistic underlying LRIC: the distance-resolved `g(r)` for every directed sender→receiver cell-type pair, using cell positions only (no expression). Inspired by the cross-PCF in the MuSpAn toolbox (Bull et al., 2024, doi:10.1101/2024.12.06.627195).
-- New plots: `li.pl.annulus_plot` (visualise per-annulus interaction profiles) and `li.pl.lric_lineplot` (LRIC `g(r)` line plots). (`src/liana/plotting/_annulus.py`, `src/liana/plotting/_lric_plot.py`)
+- New plots: `li.pl.annulus_plot` (visualise per-annulus interaction profiles) (`src/liana/plotting/_annulus.py`)
 - **pyCrossTalkeR integration tutorial** (`liana_pyCrossTalkeR.ipynb`) showing network-based differential CCC analysis, plus a dedicated LRIC tutorial (`LRIC_tutorial.ipynb`).
 - Mermaid diagram rendering in the docs (`sphinxcontrib-mermaid` doc dependency, `myst_fence_as_directive`/`mermaid_init_config` in `conf.py`); reworked the README decision tree with clickable nodes, colour-coded branches, and the new LRIC / spatially-constrained / pyCrossTalkeR entry points.
 - Expanded `docs/api.md` to document previously-undocumented public functions (`compute_global_specificity`, `filter_view_markers`, `circle_plot`, `feature_by_group`, `spatial_pair_proximity`, `query_bandwidth`, `filter_reassemble_complexes`, `translate_resource`, `translate_column`, `get_hcop_orthologs`) alongside the new spatial methods and plots.

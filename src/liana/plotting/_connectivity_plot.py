@@ -6,7 +6,7 @@ from plotnine import aes, geom_point, ggplot, labs, theme, theme_minimal
 from liana._constants import DefaultValues as V
 from liana._constants import Keys as K
 from liana._docs import d
-from liana._logging import _logg
+from liana._common import _logg
 
 
 @d.dedent

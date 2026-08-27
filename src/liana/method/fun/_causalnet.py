@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from liana._constants import DefaultValues as V
-from liana._logging import _check_if_installed, _logg
+from liana._common import _check_if_installed, _logg
 
 
 def build_prior_network(ppis: pd.DataFrame | list[tuple[str, str]],

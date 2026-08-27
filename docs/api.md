@@ -144,6 +144,7 @@ Passed as `model=` when calling a `MistyData` object:
     interactions
     annulus_plot
     lric_lineplot
+    lric_divergence_plot
     feature_by_group
 ```
 
@@ -166,6 +167,8 @@ Passed as `model=` when calling a `MistyData` object:
     query_bandwidth
     get_factor_scores
     get_variable_loadings
+    get_lric_auc
+    get_lric_divergence
     interpolate_adata
 ```
 
