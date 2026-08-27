@@ -5,7 +5,7 @@ from itertools import product
 import numpy as np
 import pandas as pd
 
-from liana._common import _logg
+from liana._core._common import _logg
 
 _HCOP_BASE = "https://storage.googleapis.com/public-download-files/hcop"
 
@@ -174,7 +174,7 @@ def translate_resource(
     columns
         List of column names to translate.
     **kwargs
-        Additional arguments for `liana.utils.translate_column`.
+        Additional arguments for `liana.rs.translate_column`.
 
     Returns
     -------

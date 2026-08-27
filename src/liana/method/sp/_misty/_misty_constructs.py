@@ -4,13 +4,13 @@ import numpy as np
 import pandas as pd
 from anndata import AnnData
 
-from liana.method._pipe_utils import prep_check_adata
-from liana.method._pipe_utils._common import _get_props
-from liana.method._pipe_utils._pre import _choose_mtx_rep
+from liana._core._pipe_utils import prep_check_adata
+from liana._core._pipe_utils._common import _get_props
+from liana._core._pipe_utils._pre import _choose_mtx_rep
 from liana.method.sp._misty._Misty import MistyData
 from liana.method.sp._utils import _add_complexes_to_var
 from liana.resource import select_resource
-from liana.utils.spatial_neighbors import spatial_neighbors
+from liana.preprocessing.spatial_neighbors import spatial_neighbors
 
 
 def _make_view(adata, nz_threshold=0.1, add_obs=False, use_raw=False,
@@ -113,13 +113,13 @@ def genericMistyData(intra: AnnData,
     (`'juxta'`), and the wider neighbourhood (`'para'`):
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_spatial()
+    >>> adata = li.ds.generate_toy_spatial()
     >>> misty = li.mt.genericMistyData(intra=adata, bandwidth=200,
     ...                                set_diag=True)
 
     Pass a second object as `extra` to predict the intra view from a different
     modality (e.g. cell-type composition, or pathway activities). Then call the
-    object to fit the model -- see :func:`liana.method.MistyData.__call__`.
+    object to fit the model -- see :func:`liana.mt.MistyData.__call__`.
 
     """
     # init views
@@ -233,7 +233,7 @@ def lrMistyData(adata: AnnData,
     (`'extra'`):
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_spatial()
+    >>> adata = li.ds.generate_toy_spatial()
     >>> misty = li.mt.lrMistyData(adata, bandwidth=200)
 
     Fitting this asks, per receptor, which neighbouring ligands predict it -- call

@@ -3,9 +3,9 @@ import pandas as pd
 import pytest
 
 from liana.method.sp._LRIC import cross_pcf, lric
-from liana.testing import generate_toy_spatial
-from liana.testing._sample_resource import sample_resource
-from liana.utils import get_lric_auc, get_lric_divergence
+from liana.datasets import generate_toy_spatial
+from liana.datasets._sample_resource import sample_resource
+from liana.method import get_lric_auc, get_lric_divergence
 
 _KWARGS = {"max_radius": 100, "radius_step": 20, "verbose": False}
 

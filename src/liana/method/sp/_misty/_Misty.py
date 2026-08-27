@@ -7,10 +7,10 @@ from sklearn.linear_model import LinearRegression, RidgeCV
 from sklearn.model_selection import KFold
 from tqdm import tqdm
 
-from liana._constants import DefaultValues as V
-from liana._constants import Keys as K
-from liana._docs import d
-from liana._common import _logg
+from liana._core._constants import DefaultValues as V
+from liana._core._constants import Keys as K
+from liana._core._docs import d
+from liana._core._common import _logg
 from liana.method.sp._misty._single_view_models import SingleViewModel
 
 
@@ -54,19 +54,19 @@ class MistyData(MuData):
     its own connectivities in `.obsp['spatial_connectivities']`:
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_spatial()
+    >>> adata = li.ds.generate_toy_spatial()
     >>> adata = adata[:, adata.var_names[:5]].copy()
     >>> extra = adata.copy()
-    >>> extra.obsp['spatial_connectivities'] = li.ut.spatial_neighbors(
+    >>> extra.obsp['spatial_connectivities'] = li.pp.spatial_neighbors(
     ...     extra, bandwidth=200, set_diag=True, inplace=False)
     >>> misty = li.mt.MistyData({'intra': adata.copy(), 'extra': extra})
 
     Each extra view's expression is multiplied by its connectivities on
     construction, so that a predictor is a *neighbourhood* value rather than the
-    spot's own. :func:`liana.method.genericMistyData` and
-    :func:`liana.method.lrMistyData` build the views for the two most common
+    spot's own. :func:`liana.mt.genericMistyData` and
+    :func:`liana.mt.lrMistyData` build the views for the two most common
     designs. Call the object to fit the model -- see
-    :func:`liana.method.MistyData.__call__`.
+    :func:`liana.mt.MistyData.__call__`.
 
     """
 
@@ -207,7 +207,7 @@ class MistyData(MuData):
         intra-view variables and from every other view:
 
         >>> import liana as li
-        >>> adata = li.testing.generate_toy_spatial()
+        >>> adata = li.ds.generate_toy_spatial()
         >>> adata = adata[:, adata.var_names[:5]].copy()
         >>> misty = li.mt.genericMistyData(intra=adata, bandwidth=200,
         ...                                set_diag=True)

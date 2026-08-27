@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 import liana.plotting as pl
-from liana.testing import _sample_interactions, _sample_target_metrics
+from liana.datasets import _sample_interactions, _sample_target_metrics
 
 
 @pytest.fixture

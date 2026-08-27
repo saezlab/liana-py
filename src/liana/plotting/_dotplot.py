@@ -19,9 +19,9 @@ from plotnine import (
     theme_bw,
 )
 
-from liana._constants import DefaultValues as V
-from liana._constants import Keys as K
-from liana._docs import d
+from liana._core._constants import DefaultValues as V
+from liana._core._constants import Keys as K
+from liana._core._docs import d
 from liana.plotting._common import _check_var, _filter_by, _get_top_n, _invert_scores, _prep_liana_res
 
 
@@ -82,7 +82,7 @@ def dotplot(adata: AnnData = None,
     Pass either a method's result as `liana_res`, or the `adata` it was written to:
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_adata()
+    >>> adata = li.ds.generate_toy_adata()
     >>> li.mt.rank_aggregate(adata, groupby='bulk_labels', n_perms=None)
     >>> p = li.pl.dotplot(adata,
     ...                   colour='lr_means',
@@ -193,7 +193,7 @@ def dotplot_by_sample(adata: AnnData = None,
     Expects a by-sample result, as written by any method's `.by_sample`:
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_adata()
+    >>> adata = li.ds.generate_toy_adata()
     >>> li.mt.rank_aggregate.by_sample(adata, sample_key='sample',
     ...                                groupby='bulk_labels', n_perms=None)
     >>> p = li.pl.dotplot_by_sample(adata,

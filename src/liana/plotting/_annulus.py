@@ -4,9 +4,9 @@ import numpy as np
 from anndata import AnnData
 from matplotlib.patches import Annulus
 
-from liana._constants import DefaultValues as V
-from liana._constants import Keys as K
-from liana._docs import d
+from liana._core._constants import DefaultValues as V
+from liana._core._constants import Keys as K
+from liana._core._docs import d
 
 
 @d.dedent
@@ -38,7 +38,7 @@ def annulus_plot(
     extend_first_annulus
         If ``True`` (default), draw the innermost ring from radius 0 (spanning
         ``[0, (1 + annulus_steps) * radius_step)``) to mirror the merged first bin
-        used by ``liana.method.lric`` / ``liana.method.cross_pcf``. ``False`` starts
+        used by ``liana.mt.lric`` / ``liana.mt.cross_pcf``. ``False`` starts
         the first ring at ``radius_step``.
     n_rings
         Number of concentric rings to draw.
@@ -52,13 +52,13 @@ def annulus_plot(
 
     Examples
     --------
-    Draws the annuli that ``liana.method.cross_pcf`` and
-    ``liana.method.lric`` bin distances into, around one seeded random cell,
+    Draws the annuli that ``liana.mt.cross_pcf`` and
+    ``liana.mt.lric`` bin distances into, around one seeded random cell,
     with the number of cells falling in each ring. Use it to sanity-check
     `radius_step` and `annulus_steps` against the density of the tissue:
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_spatial()
+    >>> adata = li.ds.generate_toy_spatial()
     >>> li.pl.annulus_plot(adata, radius_step=200, n_rings=4)
 
     """

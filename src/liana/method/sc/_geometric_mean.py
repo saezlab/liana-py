@@ -1,6 +1,6 @@
 from scipy.stats import gmean
 
-from liana.method._pipe_utils._get_mean_perms import _apply_proximity_weights, _calculate_pvals
+from liana._core._pipe_utils._get_mean_perms import _apply_proximity_weights, _calculate_pvals
 from liana.method.sc._Method import Method, MethodMeta
 
 

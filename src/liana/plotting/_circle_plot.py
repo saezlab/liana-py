@@ -10,8 +10,8 @@ import scanpy as sc
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
-from liana._constants import Keys as K
-from liana._docs import d
+from liana._core._constants import Keys as K
+from liana._core._docs import d
 from liana.plotting._common import _filter_by, _get_top_n, _invert_scores, _prep_liana_res
 
 
@@ -222,7 +222,7 @@ def circle_plot(
     labels came from, so that its colours can be re-used for the nodes:
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_adata()
+    >>> adata = li.ds.generate_toy_adata()
     >>> li.mt.rank_aggregate(adata, groupby='bulk_labels', n_perms=None)
     >>> ax = li.pl.circle_plot(adata, groupby='bulk_labels')
 

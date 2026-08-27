@@ -3,11 +3,11 @@ from anndata import AnnData
 from mudata import MuData
 from pandas import DataFrame, concat
 
-from liana._constants import DefaultValues as V
-from liana._docs import d
-from liana._common import _check_if_installed
-from liana.method._pipe_utils import prep_check_adata
-from liana.utils import obsm_to_adata
+from liana._core._constants import DefaultValues as V
+from liana._core._docs import d
+from liana._core._common import _check_if_installed
+from liana._core._pipe_utils import prep_check_adata
+from liana.preprocessing import obsm_to_adata
 
 
 @d.dedent
@@ -60,7 +60,7 @@ def estimate_metalinks(adata: AnnData,
     >>> import numpy as np
     >>> import pandas as pd
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_adata()
+    >>> adata = li.ds.generate_toy_adata()
     >>> genes = adata.var_names[:16].tolist()
     >>> pd_net = pd.DataFrame({'source': np.repeat(['HMDB0000122',
     ...                                            'HMDB0000148'], 8),
@@ -74,7 +74,7 @@ def estimate_metalinks(adata: AnnData,
     a `'metabolite'` modality, next to the receptors in a `'receptor'` one. Pass
     `t_net` to additionally require a transporter for metabolites that cannot cross
     the membrane on their own. The result is the input to
-    ``liana.method.bivariate`` or to any single-cell method, with
+    ``liana.mt.bivariate`` or to any single-cell method, with
     `x_mod='metabolite'` and `y_mod='receptor'`.
 
     """

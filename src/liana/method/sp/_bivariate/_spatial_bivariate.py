@@ -6,12 +6,12 @@ from anndata import AnnData
 from mudata import MuData
 from scipy.sparse import csr_matrix
 
-from liana._constants import DefaultValues as V
-from liana._constants import Keys as K
-from liana._docs import d
-from liana._common import _logg
-from liana.method._pipe_utils import assert_covered
-from liana.method._pipe_utils._common import _get_props
+from liana._core._constants import DefaultValues as V
+from liana._core._constants import Keys as K
+from liana._core._docs import d
+from liana._core._common import _logg
+from liana._core._pipe_utils import assert_covered
+from liana._core._pipe_utils._common import _get_props
 from liana.method.sp._bivariate._global_functions import GlobalFunction
 from liana.method.sp._bivariate._local_functions import LocalFunction
 from liana.method.sp._utils import (
@@ -142,10 +142,10 @@ class SpatialBivariate:
         Examples
         --------
         Relates each ligand to its receptor at every spot, given the spatial
-        connectivities of :func:`liana.utils.spatial_neighbors`:
+        connectivities of :func:`liana.pp.spatial_neighbors`:
 
         >>> import liana as li
-        >>> adata = li.testing.generate_toy_spatial()
+        >>> adata = li.ds.generate_toy_spatial()
         >>> lrdata = li.mt.bivariate(adata,
         ...                          resource_name='consensus',
         ...                          local_name='morans',

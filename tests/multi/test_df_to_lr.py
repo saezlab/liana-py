@@ -1,7 +1,7 @@
 import pytest
 
-from liana.multi import df_to_lr
-from liana.testing import _sample_dea
+from liana.method import df_to_lr
+from liana.datasets import _sample_dea
 
 groupby = 'bulk_labels'
 

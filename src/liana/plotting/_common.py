@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from liana._common import _get_liana_res  # noqa: F401 (re-exported for the plotting modules)
-from liana._constants import Keys as K
+from liana._core._common import _get_liana_res  # noqa: F401 (re-exported for the plotting modules)
+from liana._core._constants import Keys as K
 
 
 def _check_var(liana_res, var_name, var):

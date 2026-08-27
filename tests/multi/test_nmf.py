@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from liana.multi import estimate_elbow, nmf
+from liana.multisample import estimate_elbow, nmf
 
 
 @pytest.fixture

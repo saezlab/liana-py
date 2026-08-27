@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from pandas import read_csv
 
-from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_positions
+from liana._core._pipe_utils._get_mean_perms import _get_means_perms, _get_positions
 from liana.method.sc._cellphonedb import _mean
 from liana.method.sc._liana_pipe import _trimean
 

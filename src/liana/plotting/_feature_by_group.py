@@ -4,9 +4,9 @@ import anndata
 import matplotlib.pyplot as plt
 import numpy as np
 
-from liana._constants import Keys as K
-from liana._docs import d
-from liana._common import _logg
+from liana._core._constants import Keys as K
+from liana._core._docs import d
+from liana._core._common import _logg
 
 
 @d.dedent
@@ -48,12 +48,12 @@ def feature_by_group(
 
     Examples
     --------
-    `adata` is typically the output of ``liana.method.inflow``, whose
+    `adata` is typically the output of ``liana.mt.inflow``, whose
     `var_names` are `'source^ligand^receptor'` triplets. Each label in `labels`
     gets its own colormap and colorbar, so the groups can be compared in place:
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_spatial()
+    >>> adata = li.ds.generate_toy_spatial()
     >>> lrdata = li.mt.inflow(adata, groupby='bulk_labels',
     ...                       resource_name='consensus')
     >>> fig, ax = li.pl.feature_by_group(lrdata,

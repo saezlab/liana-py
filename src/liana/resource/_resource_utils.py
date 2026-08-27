@@ -1,9 +1,9 @@
 import numpy as np
 from pandas import DataFrame
 
-from liana._constants import DefaultValues as V
-from liana._constants import PrimaryColumns as P
-from liana._docs import d
+from liana._core._constants import DefaultValues as V
+from liana._core._constants import PrimaryColumns as P
+from liana._core._docs import d
 
 
 @d.dedent

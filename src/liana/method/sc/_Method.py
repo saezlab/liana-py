@@ -8,10 +8,10 @@ from mudata import MuData
 from pandas import DataFrame, concat
 from tqdm import tqdm
 
-from liana._constants import DefaultValues as V
-from liana._constants import Keys as K
-from liana._docs import d
-from liana._common import _logg
+from liana._core._constants import DefaultValues as V
+from liana._core._constants import Keys as K
+from liana._core._docs import d
+from liana._core._common import _logg
 from liana.method.sc._liana_pipe import liana_pipe
 
 
@@ -292,7 +292,7 @@ class Method(MethodMeta):
         Every method instance is called the same way; ``cellphonedb`` shown here:
 
         >>> import liana as li
-        >>> adata = li.testing.generate_toy_adata()
+        >>> adata = li.ds.generate_toy_adata()
         >>> li.mt.cellphonedb(adata, groupby='bulk_labels', n_perms=100)
 
         """

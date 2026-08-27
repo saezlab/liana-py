@@ -5,7 +5,7 @@ import pytest
 from pandas import DataFrame, read_csv
 from pandas.testing import assert_frame_equal
 
-from liana._constants import DefaultValues as V
+from liana._core._constants import DefaultValues as V
 from liana.method.sc._liana_pipe import _calc_log2fc, _expm1_base, liana_pipe
 
 groupby = 'bulk_labels'

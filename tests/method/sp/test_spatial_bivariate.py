@@ -3,11 +3,11 @@ from itertools import product
 import numpy as np
 import pytest
 
-from liana._constants import DefaultValues as V
+from liana._core._constants import DefaultValues as V
 from liana.method.sp._bivariate._spatial_bivariate import bivariate
-from liana.testing._sample_anndata import generate_anndata
-from liana.testing._sample_resource import sample_resource
-from liana.utils.transform import zi_minmax
+from liana.datasets._sample_anndata import generate_anndata
+from liana.datasets._sample_resource import sample_resource
+from liana.preprocessing.transform import zi_minmax
 
 expected_gmorans = 0.0994394
 expected_glee = 0.04854206

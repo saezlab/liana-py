@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from liana.method._pipe_utils._pre import assert_covered, prep_check_adata
+from liana._core._pipe_utils._pre import assert_covered, prep_check_adata
 
 
 def test_prep_check_adata(pbmc68k):

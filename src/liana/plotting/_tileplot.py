@@ -5,9 +5,9 @@ import pandas as pd
 import plotnine as p9
 from matplotlib.figure import Figure
 
-from liana._constants import DefaultValues as V
-from liana._constants import Keys as K
-from liana._docs import d
+from liana._core._constants import DefaultValues as V
+from liana._core._constants import Keys as K
+from liana._core._docs import d
 from liana.plotting._common import _check_var, _filter_by, _get_top_n, _prep_liana_res
 
 
@@ -77,7 +77,7 @@ def tileplot(adata: ad.AnnData = None,
     columns, so both sides of every interaction are tiled next to each other:
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_adata()
+    >>> adata = li.ds.generate_toy_adata()
     >>> li.mt.cellphonedb(adata, groupby='bulk_labels', n_perms=100)
     >>> p = li.pl.tileplot(adata,
     ...                    fill='means',

@@ -10,19 +10,19 @@ from anndata import AnnData
 from mudata import MuData
 from scipy.stats import norm
 
-from liana._constants import CommonColumns as C
-from liana._constants import InternalValues as I
-from liana._constants import MethodColumns as M
-from liana._constants import PrimaryColumns as P
-from liana._docs import d
-from liana.method._pipe_utils import assert_covered, filter_resource, prep_check_adata
-from liana.method._pipe_utils._aggregate import _aggregate
-from liana.method._pipe_utils._common import _get_groupby_subset, _get_props, _join_stats
-from liana.method._pipe_utils._get_mean_perms import _get_mat_idx, _get_means_perms
+from liana._core._constants import CommonColumns as C
+from liana._core._constants import InternalValues as I
+from liana._core._constants import MethodColumns as M
+from liana._core._constants import PrimaryColumns as P
+from liana._core._docs import d
+from liana._core._pipe_utils import assert_covered, filter_resource, prep_check_adata
+from liana._core._pipe_utils._aggregate import _aggregate
+from liana._core._pipe_utils._common import _get_groupby_subset, _get_props, _join_stats
+from liana._core._pipe_utils._get_mean_perms import _get_mat_idx, _get_means_perms
 from liana.resource._reassemble_complexes import _explode_complexes, _filter_reassemble_complexes
 from liana.resource.select_resource import _handle_resource
-from liana.utils import mdata_to_anndata
-from liana.utils.spatial_neighbors import spatial_pair_proximity
+from liana.multisample import mdata_to_anndata
+from liana.preprocessing.spatial_neighbors import spatial_pair_proximity
 
 
 @d.dedent

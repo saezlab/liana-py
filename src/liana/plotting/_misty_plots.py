@@ -4,9 +4,9 @@ import pandas as pd
 import plotnine as p9
 from matplotlib.figure import Figure
 
-from liana._constants import DefaultValues as V
-from liana._constants import Keys as K
-from liana._docs import d
+from liana._core._constants import DefaultValues as V
+from liana._core._constants import Keys as K
+from liana._core._docs import d
 from liana.method.sp._misty._Misty import MistyData
 
 
@@ -57,7 +57,7 @@ def target_metrics(misty: MistyData = None,
     `misty.uns['target_metrics']` columns is shown, and orders the targets by it:
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_spatial()
+    >>> adata = li.ds.generate_toy_spatial()
     >>> adata = adata[:, adata.var_names[:5]].copy()
     >>> misty = li.mt.genericMistyData(intra=adata, bandwidth=200,
     ...                                set_diag=True)
@@ -143,7 +143,7 @@ def contributions(misty: MistyData = None,
     `misty.uns['target_metrics']`:
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_spatial()
+    >>> adata = li.ds.generate_toy_spatial()
     >>> adata = adata[:, adata.var_names[:5]].copy()
     >>> misty = li.mt.genericMistyData(intra=adata, bandwidth=200,
     ...                                set_diag=True)
@@ -238,7 +238,7 @@ def interactions(misty: MistyData = None,
     importance the model gave it, read from `misty.uns['interactions']`:
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_spatial()
+    >>> adata = li.ds.generate_toy_spatial()
     >>> adata = adata[:, adata.var_names[:5]].copy()
     >>> misty = li.mt.genericMistyData(intra=adata, bandwidth=200,
     ...                                set_diag=True)

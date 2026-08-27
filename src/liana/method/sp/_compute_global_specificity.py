@@ -5,10 +5,10 @@ from joblib import Parallel, delayed
 from scipy.sparse import csr_matrix, diags
 from tqdm import tqdm
 
-from liana._constants import DefaultValues as V
-from liana._docs import d
-from liana._common import _logg
-from liana.method._pipe_utils._pre import _choose_mtx_rep
+from liana._core._constants import DefaultValues as V
+from liana._core._docs import d
+from liana._core._common import _logg
+from liana._core._pipe_utils._pre import _choose_mtx_rep
 
 
 def _get_group_mean(X, groupby_labels, var_names, groups_order=None):
@@ -67,11 +67,11 @@ def compute_global_specificity(
 
     Examples
     --------
-    Takes the output of ``liana.method.inflow``, whose `var_names` are the
+    Takes the output of ``liana.mt.inflow``, whose `var_names` are the
     `'source^ligand^receptor'` triplets that `lr_sep` splits back apart:
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_spatial()
+    >>> adata = li.ds.generate_toy_spatial()
     >>> lrdata = li.mt.inflow(adata,
     ...                       groupby='bulk_labels',
     ...                       resource_name='consensus')

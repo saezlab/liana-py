@@ -4,9 +4,9 @@ import anndata as an
 from mudata import MuData
 from pandas import DataFrame
 
-from liana._constants import DefaultValues as V
-from liana._constants import Keys as K
-from liana._docs import d
+from liana._core._constants import DefaultValues as V
+from liana._core._constants import Keys as K
+from liana._core._docs import d
 from liana.method.sc._liana_pipe import liana_pipe
 from liana.method.sc._Method import Method, MethodMeta
 
@@ -155,7 +155,7 @@ class AggregateClass(MethodMeta):
         drop it, or set an integer, for a real analysis:
 
         >>> import liana as li
-        >>> adata = li.testing.generate_toy_adata()
+        >>> adata = li.ds.generate_toy_adata()
         >>> li.mt.rank_aggregate(adata, groupby='bulk_labels', n_perms=None)
 
         The frame carries `magnitude_rank` and `specificity_rank` alongside each

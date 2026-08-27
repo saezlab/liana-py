@@ -11,13 +11,13 @@ from scipy import sparse
 from scipy.spatial import cKDTree
 from tqdm import tqdm
 
-from liana._common import _logg
-from liana._constants import DefaultValues as V
-from liana._constants import Keys as K
-from liana._constants import PrimaryColumns as P
-from liana._docs import d
-from liana.method._pipe_utils import assert_covered, prep_check_adata
-from liana.method._pipe_utils._common import _get_groupby_subset
+from liana._core._common import _logg
+from liana._core._constants import DefaultValues as V
+from liana._core._constants import Keys as K
+from liana._core._constants import PrimaryColumns as P
+from liana._core._docs import d
+from liana._core._pipe_utils import assert_covered, prep_check_adata
+from liana._core._pipe_utils._common import _get_groupby_subset
 from liana.method.sp._utils import _add_complexes_to_var
 from liana.resource.select_resource import _handle_resource
 
@@ -449,13 +449,13 @@ class CrossPCF:
         Examples
         --------
         >>> import liana as li
-        >>> adata = li.testing.generate_toy_spatial()
+        >>> adata = li.ds.generate_toy_spatial()
         >>> adata.obs['cell_type'] = adata.obs['bulk_labels']
         >>> li.mt.cross_pcf(adata, groupby='cell_type', key_added='cross_pcf')
         >>> list(adata.uns['cross_pcf'].columns)
         ['source', 'target', 'interaction', 'radius', 'g']
 
-        Rank the pairs with :func:`liana.ut.get_lric_auc` and draw one
+        Rank the pairs with :func:`liana.mt.get_lric_auc` and draw one
         with :func:`liana.pl.lric_lineplot`.
         """
         annulus_steps = _check_annulus_steps(annulus_steps)
@@ -671,7 +671,7 @@ class LRIC:
         Cell-type-agnostic LRIC across all cells:
 
         >>> import liana as li
-        >>> adata = li.testing.generate_toy_spatial()
+        >>> adata = li.ds.generate_toy_spatial()
         >>> li.mt.lric(adata, resource_name='consensus', key_added='lric')
         >>> list(adata.uns['lric'].columns)
         ['ligand_complex', 'receptor_complex', 'interaction', 'radius', 'g']
@@ -683,7 +683,7 @@ class LRIC:
         >>> li.mt.lric(adata, resource_name='consensus', groupby='cell_type',
         ...            key_added='lric_ct')
 
-        Rank the interactions with :func:`liana.ut.get_lric_auc` -- its output
+        Rank the interactions with :func:`liana.mt.get_lric_auc` -- its output
         feeds straight into :func:`liana.pl.dotplot` -- and draw a single
         ``g(r)`` profile with :func:`liana.pl.lric_lineplot`.
         """

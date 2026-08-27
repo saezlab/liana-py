@@ -1,4 +1,4 @@
-from liana.multi import to_tensor_c2c
+from liana.multisample import to_tensor_c2c
 
 
 def test_to_tensor_c2c(liana_res_by_sample):

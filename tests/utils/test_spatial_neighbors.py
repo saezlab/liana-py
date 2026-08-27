@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from liana.method import cellphonedb, natmi
-from liana.utils.spatial_neighbors import spatial_neighbors, spatial_pair_proximity
+from liana.preprocessing.spatial_neighbors import spatial_neighbors, spatial_pair_proximity
 
 
 def test_get_spatial_connectivities(toy_spatial):
