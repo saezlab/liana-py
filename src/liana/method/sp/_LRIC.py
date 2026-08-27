@@ -452,7 +452,8 @@ class CrossPCF:
         >>> adata = li.testing.generate_toy_spatial()
         >>> adata.obs['cell_type'] = adata.obs['bulk_labels']
         >>> li.mt.cross_pcf(adata, groupby='cell_type', key_added='cross_pcf')
-        >>> adata.uns['cross_pcf'].head()
+        >>> list(adata.uns['cross_pcf'].columns)
+        ['source', 'target', 'interaction', 'radius', 'g']
 
         Rank the pairs with :func:`liana.ut.get_lric_auc` and draw one
         with :func:`liana.pl.lric_lineplot`.
@@ -672,7 +673,8 @@ class LRIC:
         >>> import liana as li
         >>> adata = li.testing.generate_toy_spatial()
         >>> li.mt.lric(adata, resource_name='consensus', key_added='lric')
-        >>> adata.uns['lric'].head()
+        >>> list(adata.uns['lric'].columns)
+        ['ligand_complex', 'receptor_complex', 'interaction', 'radius', 'g']
 
         The cell-type pairwise variant additionally decomposes each interaction
         into architecture (``g_pcf``) and expression (``g_expr``) components:

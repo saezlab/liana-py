@@ -1,4 +1,4 @@
-__version__ = '1.9.0'
+__version__ = '1.10.0'
 
 # done after everything has been imported (adapted from scanpy)
 import sys
