@@ -9,7 +9,7 @@ from scipy.sparse import csr_matrix
 from liana._constants import DefaultValues as V
 from liana._constants import Keys as K
 from liana._docs import d
-from liana._logging import _logg
+from liana._common import _logg
 from liana.method._pipe_utils import assert_covered
 from liana.method._pipe_utils._common import _get_props
 from liana.method.sp._bivariate._global_functions import GlobalFunction

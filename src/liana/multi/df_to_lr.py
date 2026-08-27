@@ -8,7 +8,7 @@ from liana._constants import DefaultValues as V
 from liana._constants import InternalValues as I
 from liana._constants import PrimaryColumns as P
 from liana._docs import d
-from liana._logging import _logg
+from liana._common import _logg
 from liana.method._pipe_utils import _check_groupby, assert_covered, filter_resource, prep_check_adata
 from liana.method._pipe_utils._common import _get_groupby_subset, _get_props, _join_stats
 from liana.resource._reassemble_complexes import _explode_complexes, _filter_reassemble_complexes

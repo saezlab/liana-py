@@ -1,5 +1,5 @@
 from liana.utils._getters import get_factor_scores, get_variable_loadings
-from liana.utils._lric_auc import get_lric_auc
+from liana.utils._lric_helpers import get_lric_auc, get_lric_divergence
 from liana.utils.expand_coordinates import expand_coordinates
 from liana.utils.interpolate_adata import interpolate_adata
 from liana.utils.mdata_to_anndata import mdata_to_anndata

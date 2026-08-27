@@ -13,7 +13,7 @@ from liana._constants import DefaultValues as V
 from liana._constants import Keys as K
 from liana._constants import PrimaryColumns as P
 from liana._docs import d
-from liana._logging import _logg
+from liana._common import _logg
 from liana.method._pipe_utils import assert_covered, prep_check_adata
 from liana.method._pipe_utils._common import _get_groupby_subset
 from liana.method.sp._utils import _add_complexes_to_var
@@ -215,6 +215,20 @@ def _segment_weighted_sums(
                 acc += (WLc[I_sorted[e0:e1]] * WRc[J_sorted[e0:e1]]).sum(axis=0, dtype=np.float64)
     return out
 
+def _melt_curves(radii: np.ndarray, ids: dict[str, list], **values: np.ndarray) -> pd.DataFrame:
+    """Long ("liana_res") frame: one row per curve x radius bin.
+
+    ``ids`` maps column name -> one label per curve; ``values`` maps column name
+    -> ``(n_bins, n_curves)`` matrix. Row order is curve-major, bin-minor.
+    """
+    n_bins, n_curves = next(iter(values.values())).shape
+    df = pd.DataFrame({k: pd.Categorical(np.repeat(v, n_bins)) for k, v in ids.items()})
+    df["radius"] = np.tile(np.asarray(radii, dtype=float), n_curves)
+    for k, v in values.items():
+        df[k] = np.ascontiguousarray(v.T).ravel()
+    return df
+
+
 def _type_mean_weights(
     W: np.ndarray, obs_types: np.ndarray, cell_types_list: list[str]
 ) -> np.ndarray:
@@ -273,13 +287,13 @@ class CrossPCF:
         key_added: str = "cross_pcf",
         inplace: bool = V.inplace,
         verbose: bool = V.verbose,
-    ) -> dict | None:
+    ) -> pd.DataFrame | None:
         """Cross pair-correlation function (cross-PCF) between cell types.
 
-        Computes the distance-resolved cross-PCF ``g(r)`` for every directed
-        sender->receiver combination of cell types present in
-        ``adata.obs[groupby]``, normalised against the empirical any-cell-type
-        pair count within this tissue (a random-labelling null).
+        Computes the distance-resolved cross-PCF ``g(r)`` for every combination
+        of cell types present in ``adata.obs[groupby]``, normalised against the
+        empirical any-cell-type pair count within this tissue (a
+        random-labelling null).
 
         Parameters
         ----------
@@ -301,12 +315,18 @@ class CrossPCF:
 
         Returns
         -------
-        dict with keys ``cell_types``, ``radii``, ``results`` if
+        A long-format ``pandas.DataFrame`` (liana's ``liana_res`` convention)
+        with one row per cell-type pair x radius bin and columns
+        ``source``, ``target``, ``interaction`` (``"source^target"``),
+        ``radius`` (the annulus' inner edge) and ``g``. Returned if
         ``inplace=False``, else ``None`` (stored in ``adata.uns[key_added]``).
-        ``results`` maps ``(sender, receiver)`` tuples to ``(n_bins,)`` arrays.
 
         Notes
         -----
+        ``g(r)`` is symmetric in ``source``/``target``, so each unordered pair
+        is emitted once, with ``source`` before ``target`` in sorted cell-type
+        order. Self-pairs are excluded.
+
         ``CrossPCF`` and :class:`LRIC` share the same binning: half-open
         ``[inner, outer)`` tiles read off a single edge list, with distance-0
         pairs between distinct cells counted in the contact band. Pairwise
@@ -318,6 +338,7 @@ class CrossPCF:
         >>> adata = li.testing.generate_toy_spatial()
         >>> adata.obs['cell_type'] = adata.obs['bulk_labels']
         >>> li.mt.cross_pcf(adata, groupby='cell_type', key_added='cross_pcf')
+        >>> adata.uns['cross_pcf'].head()
 
         Rank the pairs with :func:`liana.ut.get_lric_auc` and draw one
         with :func:`liana.pl.lric_lineplot`.
@@ -338,10 +359,15 @@ class CrossPCF:
 
         obs_types = adata.obs[groupby].astype(str).values
         cell_types_list = sorted(np.unique(obs_types).tolist())
-        pairs = [(s, r) for s in cell_types_list for r in cell_types_list if s != r]
+        # g(r) is symmetric in (sender, receiver) -- emit each unordered pair once
+        pairs = [
+            (s, r)
+            for i, s in enumerate(cell_types_list)
+            for r in cell_types_list[i + 1 :]
+        ]
         _logg(
             f"Computing cross-PCF for {len(cell_types_list)} cell types "
-            f"({len(pairs)} directed pairs).",
+            f"({len(pairs)} pairs).",
             verbose=verbose,
         )
 
@@ -375,16 +401,27 @@ class CrossPCF:
         counts = {ct: int((obs_types == ct).sum()) for ct in cell_types_list}
         idx_of = {ct: i for i, ct in enumerate(cell_types_list)}
 
-        results: dict[tuple[str, str], np.ndarray] = {}
-        for sender, receiver in pairs:
+        G = np.empty((n_bins, len(pairs)), dtype=np.float32)
+        for k, (sender, receiver) in enumerate(pairs):
             with np.errstate(divide="ignore", invalid="ignore"):
                 g = O[:, idx_of[sender] * n_types + idx_of[receiver]] * (N * (N - 1)) / (
                     counts[sender] * counts[receiver] * T
                 )
                 g[T == 0] = np.nan
-            results[(sender, receiver)] = g
+            G[:, k] = g
 
-        res = {"cell_types": cell_types_list, "radii": radii_inner, "results": results}
+        res = _melt_curves(
+            radii_inner,
+            {
+                P.source: [s for s, _ in pairs],
+                P.target: [t for _, t in pairs],
+                "interaction": [f"{s}{V.lr_sep}{t}" for s, t in pairs],
+            },
+            g=G,
+        )
+        # keep every retained cell type as a category, incl. any that only appear as `target`
+        res[P.source] = res[P.source].cat.set_categories(cell_types_list)
+        res[P.target] = res[P.target].cat.set_categories(cell_types_list)
         if inplace:
             _adata_orig.uns[key_added] = res
             return None
@@ -448,7 +485,7 @@ class LRIC:
         key_added: str = "lric",
         inplace: bool = V.inplace,
         verbose: bool = V.verbose,
-    ) -> dict | None:
+    ) -> pd.DataFrame | None:
         """
 
         Ligand-Receptor Interaction Correlation (LRIC).
@@ -463,14 +500,11 @@ class LRIC:
         When ``groupby`` is ``None`` (default), all cells are treated as
         potential senders and receivers (self-pairs excluded), providing a
         global screen for LR pairs with strong spatial co-enrichment signal.
-        Result dict keys: ``pair_names``, ``radii``, ``lric``
-        (shape ``(n_bins, n_pairs)``).
 
         When ``groupby`` is a column name in ``adata.obs``, the LRIC is
-        computed for every directed sender→receiver cell-type pair.
-        Result dict keys: ``cell_types``, ``pair_names``, ``radii``,
-        ``results`` mapping ``(sender, receiver)`` tuples to
-        ``(n_bins, n_pairs)`` arrays.
+        computed for every directed sender→receiver cell-type pair, and each
+        interaction is additionally decomposed into an architecture-only
+        (``g_pcf``) and an expression-only (``g_expr``) component.
 
         Parameters
         ----------
@@ -524,7 +558,20 @@ class LRIC:
 
         Returns
         -------
-        Result dict keys: cell_types, pair_names, radii, results
+        A long-format ``pandas.DataFrame`` (liana's ``liana_res`` convention)
+        with one row per interaction x radius bin, returned if
+        ``inplace=False``, else ``None`` (stored in ``adata.uns[key_added]``).
+
+        Agnostic mode columns: ``ligand_complex``, ``receptor_complex``,
+        ``interaction`` (``"ligand<lr_sep>receptor"``), ``radius`` (the
+        annulus' inner edge) and ``g``.
+
+        Pairwise mode additionally carries ``source`` / ``target`` (the sender
+        and receiver cell types) and the ``g_expr`` / ``g_pcf`` decomposition,
+        where ``g_pcf`` is shared by all LR pairs of a given ``source``
+        ->``target``.
+
+        ``expr_prop``-masked interactions are kept as ``NaN`` rows.
 
         Examples
         --------
@@ -533,6 +580,7 @@ class LRIC:
         >>> import liana as li
         >>> adata = li.testing.generate_toy_spatial()
         >>> li.mt.lric(adata, resource_name='consensus', key_added='lric')
+        >>> adata.uns['lric'].head()
 
         The cell-type pairwise variant additionally decomposes each interaction
         into architecture (``g_pcf``) and expression (``g_expr``) components:
@@ -540,6 +588,10 @@ class LRIC:
         >>> adata.obs['cell_type'] = adata.obs['bulk_labels']
         >>> li.mt.lric(adata, resource_name='consensus', groupby='cell_type',
         ...            key_added='lric_ct')
+
+        Rank the interactions with :func:`liana.ut.get_lric_auc` -- its output
+        feeds straight into :func:`liana.pl.dotplot` -- and draw a single
+        ``g(r)`` profile with :func:`liana.pl.lric_lineplot`.
         """
         annulus_steps = _check_annulus_steps(annulus_steps)
         resource = _handle_resource(
@@ -638,7 +690,7 @@ class LRIC:
         transform_fn: Callable | None,
         pair_chunk: int,
         verbose: bool,
-    ) -> dict:
+    ) -> pd.DataFrame:
         """Cell-type-agnostic LRIC across all cells (self-pairs excluded).
 
         Null: jointly permute which position gets which (ligand, receptor)
@@ -700,7 +752,15 @@ class LRIC:
             lric = _expr_prop_mask(
                 lric, (WL > 0).sum(axis=0) / N, (WR > 0).sum(axis=0) / N, expr_prop
             )
-        return {"pair_names": pair_names, "radii": radii_inner, "lric": lric}
+        return _melt_curves(
+            radii_inner,
+            {
+                P.ligand_complex: [unique_ligands[i] for i in lr_pairs[:, 0]],
+                P.receptor_complex: [unique_receptors[j] for j in lr_pairs[:, 1]],
+                "interaction": pair_names,
+            },
+            g=lric,
+        )
 
     def _pairwise(
         self,
@@ -718,7 +778,7 @@ class LRIC:
         transform_fn: Callable | None,
         pair_chunk: int,
         verbose: bool,
-    ) -> dict:
+    ) -> pd.DataFrame:
         """Cell-type pairwise ("ct") LRIC under the conditional (within-type) null.
 
         Weights are computed TISSUE-WIDE (all N cells). Null, in two stages:
@@ -821,11 +881,13 @@ class LRIC:
                 pexp_R[ci] = (WR[ct_mask] > 0).sum(axis=0) / counts[ct]
 
         idx_of = {ct: i for i, ct in enumerate(cell_types_list)}
-        results: dict[tuple[str, str], np.ndarray] = {}
-        g_expr_d: dict[tuple[str, str], np.ndarray] = {}
-        g_pcf_d: dict[tuple[str, str], np.ndarray] = {}
+        n_lr = len(pair_names)
+        # one flat, curve-major (source, target, lr, bin) block per output column
+        g_flat = np.empty(len(pairs) * n_lr * n_bins, dtype=np.float32)
+        e_flat = np.empty_like(g_flat)
+        p_flat = np.empty_like(g_flat)
 
-        for sender, receiver in tqdm(pairs, disable=not verbose, desc="LRIC"):
+        for k, (sender, receiver) in enumerate(tqdm(pairs, disable=not verbose, desc="LRIC")):
             si, ri = idx_of[sender], idx_of[receiver]
             n_S, n_R = counts[sender], counts[receiver]
 
@@ -852,25 +914,37 @@ class LRIC:
                 g_expr = Num_SR / (T_SR[:, None] * pair_prod[None, :])
                 g_expr[(T_SR[:, None] * pair_prod[None, :]) == 0] = np.nan
 
-            mat = g_full.astype(np.float32)
-            mat_e = g_expr.astype(np.float32)
+            mat = g_full.astype(np.float32)      # architecture x expression coupling
+            mat_e = g_expr.astype(np.float32)    # expression coupling ALONE, given where the cells sit
             if expr_prop > 0:
                 mat = _expr_prop_mask(mat, pexp_L[si], pexp_R[ri], expr_prop)
                 mat_e = _expr_prop_mask(mat_e, pexp_L[si], pexp_R[ri], expr_prop)
 
-            results[(sender, receiver)] = mat
-            g_expr_d[(sender, receiver)] = mat_e
-            g_pcf_d[(sender, receiver)] = g_pcf
+            block = slice(k * n_lr * n_bins, (k + 1) * n_lr * n_bins)
+            g_flat[block] = np.ascontiguousarray(mat.T).ravel()
+            e_flat[block] = np.ascontiguousarray(mat_e.T).ravel()
+            # architecture ALONE (equals cross_pcf) -- shared by every LR pair
+            p_flat[block] = np.tile(g_pcf.astype(np.float32), n_lr)
 
-        out = {
-            "cell_types": cell_types_list,
-            "pair_names": pair_names,
-            "radii": radii_inner,
-            "results": results,  # (n_bins, n_pairs) per pair. Architecture x expression coupling
-            "g_expr": g_expr_d, # (n_bins, n_pairs) per pair -- expression coupling ALONE, conditioned on where
-            # the cells already sit.
-            "g_pcf": g_pcf_d,  # (n_bins,) per pair -- architecture ALONE, equals cross_pcf
-        }
-        return out
+        ligands = [unique_ligands[i] for i in lr_pairs[:, 0]]
+        receptors = [unique_receptors[j] for j in lr_pairs[:, 1]]
+        def rep(labels):  # one label per LR pair -> one per (ct pair, LR pair, bin) row
+            return pd.Categorical(np.tile(np.repeat(labels, n_bins), len(pairs)))
+
+        return pd.DataFrame({
+            P.source: pd.Categorical(
+                np.repeat([s for s, _ in pairs], n_lr * n_bins), categories=cell_types_list
+            ),
+            P.target: pd.Categorical(
+                np.repeat([t for _, t in pairs], n_lr * n_bins), categories=cell_types_list
+            ),
+            P.ligand_complex: rep(ligands),
+            P.receptor_complex: rep(receptors),
+            "interaction": rep(pair_names),
+            "radius": np.tile(radii_inner.astype(float), len(pairs) * n_lr),
+            "g": g_flat,
+            "g_expr": e_flat,
+            "g_pcf": p_flat,
+        })
 
 lric = LRIC()

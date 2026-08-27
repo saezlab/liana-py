@@ -5,7 +5,7 @@ from pandas import DataFrame, concat
 
 from liana._constants import DefaultValues as V
 from liana._docs import d
-from liana._logging import _check_if_installed
+from liana._common import _check_if_installed
 from liana.method._pipe_utils import prep_check_adata
 from liana.utils import obsm_to_adata
 

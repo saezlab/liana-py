@@ -1,6 +1,21 @@
 # Changelog
 
-## 1.9.0
+## 1.10.0 (26.08.2026)
+
+### Changed
+
+- **LRIC & cross-PCF reworked onto an analytical null and one shared, exact binning** (#250, by @AtheerAS). `li.mt.lric` and `li.mt.cross_pcf` now compute `g(r)` against a closed-form random-labelling null conditioned on the observed cell positions, replacing the CSR area expectation with bounding-box edge correction; cell-type-pairwise LRIC decomposes the full coupling into architecture-only (`g_pcf`, identical to `cross_pcf`) and expression-only (`g_expr`) components. Numerator and denominator are binned on a single shared partition of disjoint `radius_step`-wide tiles, with each output annulus reconstructed as `annulus_steps` consecutive tiles — fixing deflated `g` under overlapping annuli, bin-edge convention mismatches on gridded coordinates, and zero-distance pairs. The float `annulus_width` parameter is replaced by `annulus_steps` (int ≥ 1) in `lric`, `cross_pcf` and `annulus_plot`.
+- Internal logging and result-resolution helpers were consolidated into `liana._common`; resolution consistently prefers `adata` over `liana_res` and raises a `ValueError` when neither is given.
+- **LRIC / cross-PCF results are long-format DataFrames.** Both methods return/store a tidy frame (`source`, `target`, `ligand_complex`, `receptor_complex`, `interaction`, `radius`, `g`, plus `g_expr`/`g_pcf` for pairwise LRIC) in `adata.uns[key_added]`, column-compatible with the dotplot family; `cross_pcf` emits each unordered cell-type pair once. The LRIC tutorial was rewritten for the new API.
+
+### Added
+
+- **`li.ut.get_lric_auc`** — ranks interactions by the span-normalised area under `transform_fn(g(r))` (default: log2 with `g` floored at `0.05`; pass `np.log2` for the strict behaviour that drops non-finite bins), and reports `peak_radius`, the radius of the largest deviation from the null; its output feeds `li.pl.dotplot` directly. When the result is empty, a warning logs why (too few radius bins in-window, or too few finite bins per interaction).
+- **`li.ut.get_lric_divergence`** — the span-normalised area between two `g(r)` curves and the radius where their separation peaks. Curves are selected as `{column: value}` dicts over any columns of the result, so concatenated results from several samples/conditions (e.g. with a `condition` column) support cross-condition comparison of the same interaction; unpinned replicate rows average into one curve. Same floored-log2 default transform as `get_lric_auc`.
+- **`li.pl.lric_lineplot`** — the `g(r)` profile of a single interaction, with the pairwise decomposition drawn as separate curves.
+- **`li.pl.lric_divergence_plot`** — the two `transform_fn(g(r))` curves behind a `get_lric_divergence` result, with the area between them shaded and `r_star` marked.
+
+## 1.9.0 (19.08.2026)
 
 ### Added
 

@@ -13,7 +13,7 @@ from liana._constants import DefaultValues as V
 from liana._constants import Keys as K
 from liana._constants import PrimaryColumns as P
 from liana._docs import d
-from liana._logging import _check_if_installed, _logg
+from liana._common import _check_if_installed, _logg
 from liana.method import process_scores
 from liana.method._pipe_utils import _check_groupby
 

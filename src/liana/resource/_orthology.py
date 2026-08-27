@@ -5,7 +5,7 @@ from itertools import product
 import numpy as np
 import pandas as pd
 
-from liana._logging import _logg
+from liana._common import _logg
 
 _HCOP_BASE = "https://storage.googleapis.com/public-download-files/hcop"
 

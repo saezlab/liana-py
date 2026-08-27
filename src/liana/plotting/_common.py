@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
+from liana._common import _get_liana_res  # noqa: F401 (re-exported for the plotting modules)
 from liana._constants import Keys as K
-from liana._logging import _logg
 
 
 def _check_var(liana_res, var_name, var):
@@ -10,16 +10,6 @@ def _check_var(liana_res, var_name, var):
         raise ValueError(f'`{var_name}` must be provided!')
     if var not in liana_res.columns:
         raise ValueError(f'`{var}` ({var_name}) must be one of {liana_res.columns}')
-
-def _get_liana_res(adata, liana_res, uns_key=K.uns_key):
-    if adata is not None:
-        assert uns_key in adata.uns.keys()
-        _logg(f"Using `adata.uns['{uns_key}']`")
-        return adata.uns[uns_key].copy()
-    if liana_res is not None:
-        return liana_res.copy()
-    if (liana_res is None) & (uns_key is None):
-        raise ValueError('`liana_res` or AnnData with `uns_key` must be provided!')
 
 
 def _prep_liana_res(adata=None,
