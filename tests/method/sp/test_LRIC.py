@@ -276,6 +276,37 @@ def test_cross_pcf_matches_brute_force(adata, annulus_steps):
         np.testing.assert_allclose(g, observed / expected, rtol=1e-5, atol=1e-6)
 
 
+def test_cross_pcf_groupby_pairs(adata):
+    a, b, c = "CD14+ Monocyte", "CD19+ B", "CD56+ NK"
+    # two of the three unordered pairs over three cell types, so that folding the
+    # referenced types into the population cannot do the filtering on its own;
+    # both are requested reversed, as g(r) is symmetric in source/target
+    result = cross_pcf(
+        adata, groupby="cell_type", min_cells=5, inplace=False,
+        groupby_pairs=pd.DataFrame({"source": [b, c], "target": [a, a]}), **_KWARGS,
+    )
+    assert _directed_pairs(result) == {(a, b), (a, c)}
+    assert set(_cell_types(result)) == {a, b, c}
+
+    # same population, so the filter only drops rows -- it must not move the null
+    unfiltered = cross_pcf(
+        adata, groupby="cell_type", cell_types=[a, b, c], min_cells=5, inplace=False, **_KWARGS,
+    )
+    assert _directed_pairs(unfiltered) == {(a, b), (a, c), (b, c)}
+    keep = ~((unfiltered["source"] == b) & (unfiltered["target"] == c))
+    np.testing.assert_array_almost_equal(result["g"], unfiltered.loc[keep, "g"], decimal=6)
+
+
+def test_cross_pcf_groupby_pairs_unknown_type_warns(adata, caplog):
+    # a typo'd cell type used to yield an empty frame and no explanation
+    result = cross_pcf(
+        adata, groupby="cell_type", inplace=False,
+        groupby_pairs=pd.DataFrame({"source": ["CD19+ Bee"], "target": ["CD34+"]}), **_KWARGS,
+    )
+    assert result.empty
+    assert "not in the data" in caplog.text and "CD19+ Bee" in caplog.text
+
+
 def test_cross_pcf_inplace(adata_copy):
     cross_pcf(adata_copy, groupby="cell_type", key_added="cross_pcf_test", inplace=True, **_KWARGS)
     assert "cross_pcf_test" in adata_copy.uns
@@ -410,6 +441,10 @@ def test_lric_pairwise(lric_pairwise):
     # all directed cell-type pairs x 5 LR pairs x 5 radius bins
     assert len(result) == n_ct * (n_ct - 1) * 5 * 5
     assert np.all(np.isnan(result["g"]) | (result["g"] >= 0))
+    # each row's id columns describe the same interaction: the labels are built by
+    # separate repeat/tile expansions, so one of them alone can fall out of step
+    labels = result["ligand_complex"].astype(str) + "^" + result["receptor_complex"].astype(str)
+    assert (labels == result["interaction"].astype(str)).all()
 
 
 def test_lric_pairwise_g_pcf_matches_cross_pcf(adata, resource):
