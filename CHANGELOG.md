@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.0.0 (28.08.2026)
+
+### Changed
+
+- **Breaking: the public namespaces were reorganised to match scverse-style.** The top-level API is now `li.ds`, `li.ms`, `li.mt`, `li.pl`, `li.pp`, `li.rs` (`li.ut` and `li.mu` are gone). The functions themselves are unchanged — only their import path moved:
+
+  | Was | Now | Moved |
+  |---|---|---|
+  | `li.ut` (`utils`) | **removed**, split three ways | — |
+  | `li.ut.spatial_neighbors` / `spatial_pair_proximity` / `obsm_to_adata` / `interpolate_adata` / `expand_coordinates` / `query_bandwidth` / `neg_to_zero` / `zi_minmax` | **`li.pp`** (`preprocessing`, new) | preprocessing/coordinate utilities |
+  | `li.ut.get_factor_scores` / `get_variable_loadings` / `mdata_to_anndata` | **`li.ms`** (`multisample`) | multi-sample helpers |
+  | `li.ut.get_lric_auc` / `get_lric_divergence` | **`li.mt`** | live with the LRIC method |
+  | `li.mu` (`multi`) | **renamed `li.ms`** (`multisample`) | `nmf` / `estimate_elbow`, `adata_to_views` / `lrs_to_views` / `lrdata_to_mudata` / `filter_view_markers`, `to_tensor_c2c` |
+  | `li.mu.df_to_lr` | **`li.mt.df_to_lr`** | sits with the methods |
+  | `li.testing` | **renamed `li.ds`** (`datasets`) | `kang_2018`, `generate_toy_adata` / `generate_toy_mdata` / `generate_toy_spatial`, `sample_lrs` |
+  | `li.mt.build_prior_network` | **`li.rs.build_prior_network`** | it builds a resource, not a method result (`li.mt.find_causalnet` stays) |
+
+### Packaging
+
+- **Tutorial CI dependency recipes.** `docs/notebooks` are now runnable from declared extras rather than ad-hoc `pip install` lines, with a committed `uv.lock` for reproducibility. Two install targets cover all 14 notebooks: `uv sync --extra tutorials` (12 CPU notebooks) and `uv sync --extra tutorials-gpu` (the two heavy ones, `inflow_mofaflex` + `liana_c2c`). `tutorials` layers `liana[extras]` with the notebook-only viz/runtime packages (`matplotlib`, `seaborn`, `adjustText`, `marsilea`, `pycrosstalker`); `tutorials-gpu` adds `tensorly`, `mofaflex` and `torch`. Naming follows pertpy/scvi-tools conventions.
+- **`squidpy` added to `[extras]`** — it backs `li.mt.MistyData` and `li.pp.spatial_neighbors` (lazy-imported) and was the one optional-feature dependency the extra never declared.
+- **`torch` is routed to the CPU wheel index** via `[tool.uv.sources]`, keeping tutorial CI off the ~2.5 GB CUDA build; swap the index url for cu124 when GPU CI lands. **`mofaflex` is pinned to git `@main`** there — `inflow_mofaflex.ipynb` needs the unreleased 0.2.0 terms/priors API, which PyPI 0.1.2 does not provide; the override is uv-only, so published metadata stays PyPI-clean.
+- **Minimum Python is now 3.11** (`requires-python = ">=3.11,<3.14"`); the 3.10 classifier and hatch-test matrix entry were dropped.
+
 ## 1.10.0 (27.08.2026)
 
 ### Changed

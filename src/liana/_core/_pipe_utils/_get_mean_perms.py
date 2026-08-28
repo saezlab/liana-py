@@ -11,7 +11,7 @@ from tqdm import tqdm
 def _get_means_perms(adata: AnnData,
                      n_perms: int,
                      seed: int,
-                     agg_fun: Callable,
+                     agg_fn: Callable,
                      norm_factor: float | None,
                      n_jobs: int,
                      verbose: bool):
@@ -26,7 +26,7 @@ def _get_means_perms(adata: AnnData,
         Number of permutations to be calculated
     seed
         Random seed for reproducibility.
-    agg_fun
+    agg_fn
         Function by which to aggregate the matrix, should take `axis` argument
     norm_factor
         Additionally normalize the data by some factor (e.g. matrix max for CellChat)
@@ -59,19 +59,19 @@ def _get_means_perms(adata: AnnData,
         labels_mask[:, ct_idx] = adata.obs['@label'] == label
 
     # Perm should be a cube /w dims: n_perms x idents x n_genes
-    perms = _generate_perms_cube(adata.X, n_perms, labels_mask, seed, agg_fun, n_jobs, verbose)
+    perms = _generate_perms_cube(adata.X, n_perms, labels_mask, seed, agg_fn, n_jobs, verbose)
 
     return perms
 
 
 # Define a helper function for parallel processing
-def _permute_and_aggregate(perm, perm_idx, X, labels_mask, agg_fun):
+def _permute_and_aggregate(perm, perm_idx, X, labels_mask, agg_fn):
     perm_mat = X[perm_idx]
-    permuted_means = np.array([agg_fun(perm_mat[labels_mask[:, i]], axis=0) for i in range(labels_mask.shape[1])])
+    permuted_means = np.array([agg_fn(perm_mat[labels_mask[:, i]], axis=0) for i in range(labels_mask.shape[1])])
     return perm, permuted_means
 
 
-def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fun, n_jobs, verbose):
+def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fn, n_jobs, verbose):
     # initialize rng
     rng = np.random.default_rng(seed=seed)
 
@@ -83,7 +83,7 @@ def _generate_perms_cube(X, n_perms, labels_mask, seed, agg_fun, n_jobs, verbose
 
     # Use Parallel to enable parallelization
     results = Parallel(n_jobs=n_jobs)(delayed(_permute_and_aggregate)
-                                      (perm, rng.permutation(idx), X, labels_mask, agg_fun)
+                                      (perm, rng.permutation(idx), X, labels_mask, agg_fn)
                                       for perm in tqdm(range(n_perms), disable=not verbose)
                                       )
 
@@ -121,7 +121,7 @@ def _get_mat_idx(adata, lr_res):
 
 
 
-def _calculate_pvals(lr_truth, perm_stats, _score_fun, proximity_weights=None):
+def _calculate_pvals(lr_truth, perm_stats, _score_fn, proximity_weights=None):
     """
     Calculate p-values for a given DataFrame x and permutation statistics
 
@@ -131,7 +131,7 @@ def _calculate_pvals(lr_truth, perm_stats, _score_fun, proximity_weights=None):
         Observed LR scores, shape (n_interactions,)
     perm_stats
         Permutation statistics, shape (2, n_perms, n_interactions)
-    _score_fun
+    _score_fn
         Function to combine ligand and receptor statistics
     proximity_weights
         Optional spatial proximity weights, shape (n_interactions,)
@@ -143,7 +143,7 @@ def _calculate_pvals(lr_truth, perm_stats, _score_fun, proximity_weights=None):
     """
     # calculate p-values
     if perm_stats is not None:
-        lr_perm_means = _score_fun(perm_stats, axis=0)
+        lr_perm_means = _score_fn(perm_stats, axis=0)
 
         # Apply proximity weights to both observed and permuted if provided
         # Note: proximity weights, if any, are expected to have been applied

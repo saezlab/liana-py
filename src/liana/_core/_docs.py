@@ -150,8 +150,8 @@ uns_key
     Key in `adata.uns` that contains the LIANA results. Default is `'liana_res'`."""
 
 
-_inverse_fun = """\
-inverse_fun
+_inverse_fn = """\
+inverse_fn
     Function applied to scores for which a *lower* value is the stronger one -- p-values
     and aggregate ranks such as `magnitude_rank` -- so that "higher is stronger" holds
     throughout. Defaults to `-log10(x + eps)`. Which scores are inverted is decided by
@@ -290,13 +290,13 @@ orderby_absolute
     If `top_n` is not `None`, whether to order by the absolute value of the `orderby` column.
 """
 
-_filter_fun = """\
-filter_fun
+_filter_fn = """\
+filter_fn
     A function, applied along the columns (axis=1), used to filter the results to be plotted.
 """
 
-_aggregate_fun = """\
-aggregate_fun
+_aggregate_fn = """\
+aggregate_fn
     A function used to aggregate the results to be plotted.
 """
 
@@ -374,7 +374,7 @@ d = DocstringProcessor(
     receptor_key=_receptor_key,
     score_key=_score_key,
     uns_key=_uns_key,
-    inverse_fun=_inverse_fun,
+    inverse_fn=_inverse_fn,
     spatial_key=_spatial_key,
     connectivity_key=_connectivity_key,
     local_name=_local_name,
@@ -392,8 +392,8 @@ d = DocstringProcessor(
     orderby=_orderby,
     orderby_ascending=_orderby_ascending,
     orderby_absolute=_orderby_absolute,
-    filter_fun =_filter_fun,
-    aggregate_fun=_aggregate_fun,
+    filter_fn =_filter_fn,
+    aggregate_fn=_aggregate_fn,
     ligand_complex=_ligand_complex,
     receptor_complex=_receptor_complex,
     inverse_colour=_inverse_colour,

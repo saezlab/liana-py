@@ -162,7 +162,7 @@ def adata_to_views(adata: AnnData,
 @d.dedent
 def lrs_to_views(adata: AnnData,
                  score_key: str | None = None,
-                 inverse_fun: Callable = V.inverse_fun,
+                 inverse_fn: Callable = V.inverse_fn,
                  obs_keys: list | None = None,
                  lr_prop: float = 0.5,
                  lr_fill: float = np.nan,
@@ -190,7 +190,7 @@ def lrs_to_views(adata: AnnData,
     ----------
     %(adata)s
     %(score_key)s
-    %(inverse_fun)s
+    %(inverse_fn)s
     obs_keys
         List of keys in `adata.obs` that should be included in the MuData object.
         These columns should correspond to the number of samples in `adata.obs[sample_key]`.
@@ -295,7 +295,7 @@ def lrs_to_views(adata: AnnData,
     from liana.method import process_scores
     liana_res = process_scores(liana_res=liana_res,
                                 score_key=score_key,
-                                inverse_fun=inverse_fun)
+                                inverse_fn=inverse_fn)
 
     # count samples per interaction
     count_pairs = (liana_res.

@@ -23,10 +23,9 @@ authors = [
   { name = "Ricardo Omar Ramirez Flores"},
   { name = "Julio Saez-Rodriguez"},
 ]
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.11,<3.14"
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -65,6 +64,31 @@ optional-dependencies.extras = [
   "corneto==0.9.1-alpha.6",
   "cvxpy-base>=1.6.1",
   "PySCIPOpt>=5.2.1",
+  "squidpy>=1.5",  # backs li.mt.MistyData / spatial_neighbors (lazy-imported)
+]
+
+# Runtime deps to execute the tutorial notebooks under docs/notebooks on CPU.
+# = extras (liana features) + notebook-only viz/runtime packages not imported by src.
+optional-dependencies.tutorials = [
+  "liana[extras]",
+  "matplotlib",
+  "seaborn",
+  "adjustText",
+  "marsilea",
+  "pycrosstalker",
+]
+
+# The two heavy notebooks (inflow_mofaflex, liana_c2c): tensor-cell2cell's tensorly
+# backend + mofaflex + torch. torch is routed to the CPU wheel index in
+# [tool.uv.sources] (CI is CPU-only; point it at a cu124 index when GPU CI lands).
+# mofaflex is pinned to git @main there -- the notebook uses the unreleased 0.2.0
+# API, absent from PyPI 0.1.2.
+#   uv sync --extra tutorials-gpu
+optional-dependencies.tutorials-gpu = [
+  "liana[tutorials]",
+  "tensorly>=0.8",
+  "mofaflex",
+  "torch",
 ]
 
 optional-dependencies.doc = [
@@ -112,7 +136,7 @@ scripts.run = "pytest --doctest-modules src/liana {args}"
 
 [[tool.hatch.envs.hatch-test.matrix]]
 deps = [ "stable" ]
-python = [ "3.10", "3.13" ]
+python = [ "3.11", "3.13" ]
 
 [tool.hatch.envs.hatch-test]
 features = [ "test", "extras" ]
@@ -123,6 +147,19 @@ features = [ "test", "extras" ]
 matrix.deps.env-vars = [
   { key = "UV_PRERELEASE", value = "allow", if = [ "pre" ] },
 ]
+
+[tool.uv.sources]
+# CPU torch wheels -- keeps tutorial CI off the ~2.5GB CUDA build. Swap the index
+# url for download.pytorch.org/whl/cu124 when GPU CI lands.
+torch = { index = "pytorch-cpu" }
+# inflow_mofaflex.ipynb needs the unreleased 0.2.0 API (terms/priors); PyPI 0.1.2
+# is incompatible. uv-only override -- keeps published metadata PyPI-clean.
+mofaflex = { git = "https://github.com/bioFAM/mofaflex.git", branch = "main" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.ruff]
 line-length = 120

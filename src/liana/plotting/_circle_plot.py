@@ -138,7 +138,7 @@ def circle_plot(
         orderby: str | None = None,
         orderby_ascending: bool | None = None,
         orderby_absolute: bool = False,
-        filter_fun: Callable = None,
+        filter_fn: Callable = None,
         source_labels: list[str] | str | None = None,
         target_labels: list[str] | str | None = None,
         ligand_complex: list[str] | str | None = None,
@@ -173,7 +173,7 @@ def circle_plot(
     %(orderby)s
     %(orderby_ascending)s
     %(orderby_absolute)s
-    %(filter_fun)s
+    %(filter_fn)s
     %(source_labels)s
     %(target_labels)s
     %(ligand_complex)s
@@ -182,7 +182,7 @@ def circle_plot(
         The mode of the pivot table, by default 'counts'.
         - 'counts': The number of connections between source and target.
         - 'mean': The mean of the values of `score_key` between source and target cell types (groupby).
-        Note that `filter_fun` differs by pivot_mode: when counts it would remove all interactions
+        Note that `filter_fn` differs by pivot_mode: when counts it would remove all interactions
         that don't pass the filter, while for 'mean' it would retain interactions don't pass the filter
         if the same interaction passes it for any cell type pair.
     mask_mode
@@ -243,11 +243,11 @@ def circle_plot(
         uns_key=uns_key)
 
     if pivot_mode == 'counts':
-        if filter_fun is not None:
-            mask = liana_res.apply(filter_fun, axis=1).astype(bool)
+        if filter_fn is not None:
+            mask = liana_res.apply(filter_fn, axis=1).astype(bool)
             liana_res = liana_res[mask]
     elif pivot_mode == 'mean':
-        liana_res = _filter_by(liana_res, filter_fun)
+        liana_res = _filter_by(liana_res, filter_fn)
     else:
         raise ValueError("`pivot_mode` must be 'counts' or 'mean'!")
     liana_res = _get_top_n(liana_res, top_n, orderby, orderby_ascending, orderby_absolute)

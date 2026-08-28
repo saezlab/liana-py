@@ -28,7 +28,7 @@ def test_circle_plot(adata, liana_res):
 
     # ... while 'counts' counts the interactions surviving the filter
     circle_plot(adata, groupby='random', liana_res=liana_res, pivot_mode='counts',
-                filter_fun=lambda x: x['specificity_rank'] < 0.95)
+                filter_fn=lambda x: x['specificity_rank'] < 0.95)
     kept = liana_res[liana_res['specificity_rank'] < 0.95]
     counts = _pivot_liana_res(kept, mode='counts')
     assert counts.loc['A', 'B'] == (kept['source'].eq('A') & kept['target'].eq('B')).sum()

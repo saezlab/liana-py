@@ -24,7 +24,7 @@ def to_tensor_c2c(adata: AnnData = None,
                   receptor_key: str = P.receptor_complex,
                   uns_key: str = K.uns_key,
                   non_expressed_fill: float | None = None,
-                  inverse_fun: Callable = V.inverse_fun,
+                  inverse_fn: Callable = V.inverse_fn,
                   non_negative: bool = True,
                   return_dict: bool = False,
                   **kwargs
@@ -46,7 +46,7 @@ def to_tensor_c2c(adata: AnnData = None,
     %(uns_key)s
     non_expressed_fill
         Value to fill for non-expressed ligand-receptor pairs.
-    %(inverse_fun)s
+    %(inverse_fn)s
     non_negative
         Whether to make the tensor non-negative.
     return_dict
@@ -103,7 +103,7 @@ def to_tensor_c2c(adata: AnnData = None,
     # local import: liana.method imports this package during its init, so a
     # module-level import here would close a circular import
     from liana.method import process_scores
-    liana_res = process_scores(liana_res, score_key, inverse_fun)
+    liana_res = process_scores(liana_res, score_key, inverse_fn)
 
     # set negative to 0
     if non_negative:

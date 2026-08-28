@@ -37,7 +37,7 @@ def dotplot(adata: AnnData = None,
             orderby: str | None = None,
             orderby_ascending: bool | None = None,
             orderby_absolute: bool = False,
-            filter_fun: Callable = None,
+            filter_fn: Callable = None,
             ligand_complex: str | None = None,
             receptor_complex: str | None = None,
             inverse_colour: bool = False,
@@ -63,7 +63,7 @@ def dotplot(adata: AnnData = None,
     %(orderby)s
     %(orderby_ascending)s
     %(orderby_absolute)s
-    %(filter_fun)s
+    %(filter_fn)s
     %(ligand_complex)s
     %(receptor_complex)s
     %(inverse_colour)s
@@ -104,7 +104,7 @@ def dotplot(adata: AnnData = None,
     _check_var(liana_res, var=colour, var_name='colour')
     _check_var(liana_res, var=size, var_name='size')
 
-    liana_res = _filter_by(liana_res, filter_fun)
+    liana_res = _filter_by(liana_res, filter_fn)
     liana_res = _get_top_n(liana_res, top_n, orderby, orderby_ascending, orderby_absolute)
 
     # inverse sc if needed

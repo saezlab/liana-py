@@ -17,9 +17,9 @@ def target_metrics(misty: MistyData = None,
                    top_n: int = None,
                    ascending: bool = False,
                    key: Callable = None,
-                   filter_fun: Callable = None,
+                   filter_fn: Callable = None,
                    figure_size: tuple[float, float] = (5, 5),
-                   aggregate_fun: Callable = None,
+                   aggregate_fn: Callable = None,
                    return_fig: bool = V.return_fig
                    ) -> Figure:
     """
@@ -37,8 +37,8 @@ def target_metrics(misty: MistyData = None,
         Whether to sort in ascending order
     key
         Function to use to sort the dataframe
-    %(filter_fun)s
-    %(aggregate_fun)s
+    %(filter_fn)s
+    %(aggregate_fn)s
     %(figure_size)s
     %(return_fig)s
 
@@ -64,7 +64,7 @@ def target_metrics(misty: MistyData = None,
     >>> misty(model=li.mt.sp.LinearModel)
     >>> p = li.pl.target_metrics(misty, stat='gain_R2')
 
-    Pass `aggregate_fun` (e.g. `numpy.mean`) to summarise a masked model's
+    Pass `aggregate_fn` (e.g. `numpy.mean`) to summarise a masked model's
     per-group rows into boxplots.
 
     """
@@ -77,10 +77,10 @@ def target_metrics(misty: MistyData = None,
     if stat is None:
         raise ValueError("Provide a statistic to plot")
 
-    if filter_fun is not None:
-        target_metrics = target_metrics[target_metrics.apply(filter_fun, axis=1).astype(bool)]
-    if aggregate_fun is not None:
-        targets = target_metrics.groupby(['target']).agg({stat: aggregate_fun})
+    if filter_fn is not None:
+        target_metrics = target_metrics[target_metrics.apply(filter_fn, axis=1).astype(bool)]
+    if aggregate_fn is not None:
+        targets = target_metrics.groupby(['target']).agg({stat: aggregate_fn})
         targets = targets.sort_values(by=stat, ascending=ascending).index
     else:
         targets = target_metrics.sort_values(by=stat, ascending=ascending, key=key)['target'].unique()
@@ -93,7 +93,7 @@ def target_metrics(misty: MistyData = None,
                                               ordered=True)
 
     p = (p9.ggplot(target_metrics, p9.aes(x='target', y=stat)) +
-         (p9.geom_boxplot() if aggregate_fun is not None else p9.geom_point(size=3)) +
+         (p9.geom_boxplot() if aggregate_fn is not None else p9.geom_point(size=3)) +
          p9.theme_bw() +
          p9.theme(axis_text_x=p9.element_text(rotation=90),
                   figure_size=figure_size) +
@@ -108,8 +108,8 @@ def target_metrics(misty: MistyData = None,
 def contributions(misty: MistyData = None,
                   target_metrics: pd.DataFrame = None,
                   view_names: list[str] = None,
-                  filter_fun: Callable = None,
-                  aggregate_fun: Callable = None,
+                  filter_fn: Callable = None,
+                  aggregate_fn: Callable = None,
                   figure_size: tuple[float, float] = (5, 5),
                   return_fig: bool = V.return_fig
                   ) -> Figure:
@@ -123,8 +123,8 @@ def contributions(misty: MistyData = None,
         A target_metrics DataFrame
     view_names
         A list of view names to plot
-    %(filter_fun)s
-    %(aggregate_fun)s
+    %(filter_fn)s
+    %(aggregate_fn)s
     %(figure_size)s
     %(return_fig)s
 
@@ -165,8 +165,8 @@ def contributions(misty: MistyData = None,
         if 'intra' not in target_metrics.columns:
             view_names.remove('intra')
 
-    if filter_fun is not None:
-        target_metrics = target_metrics[target_metrics.apply(filter_fun, axis=1).astype(bool)]
+    if filter_fn is not None:
+        target_metrics = target_metrics[target_metrics.apply(filter_fn, axis=1).astype(bool)]
         # NOTE: `target` is only categorical when it comes from an aggregated table
         if isinstance(target_metrics['target'].dtype, pd.CategoricalDtype):
             target_metrics['target'] = target_metrics['target'].cat.remove_unused_categories()
@@ -174,8 +174,8 @@ def contributions(misty: MistyData = None,
     target_metrics = target_metrics[['target', *view_names]]
     target_metrics = target_metrics.melt(id_vars='target', var_name='view', value_name='contribution')
 
-    if aggregate_fun is not None:
-        target_metrics = target_metrics.groupby(['target', 'view']).agg({'contribution': aggregate_fun}).reset_index()
+    if aggregate_fn is not None:
+        target_metrics = target_metrics.groupby(['target', 'view']).agg({'contribution': aggregate_fn}).reset_index()
 
     p = (p9.ggplot(target_metrics, p9.aes(x='target', y='contribution', fill='view')) +
             p9.geom_bar(stat='identity') +
@@ -198,8 +198,8 @@ def interactions(misty: MistyData = None,
                  top_n: int = None,
                  ascending: bool = False,
                  key: str = None,
-                 filter_fun: Callable = None,
-                 aggregate_fun: Callable = None,
+                 filter_fn: Callable = None,
+                 aggregate_fn: Callable = None,
                  figure_size: tuple[float, float] = (5, 5),
                  return_fig: bool = V.return_fig
                  ) -> Figure:
@@ -218,8 +218,8 @@ def interactions(misty: MistyData = None,
         Whether to sort interactions in ascending order
     key
         Key to use when sorting interactions
-    %(filter_fun)s
-    %(aggregate_fun)s
+    %(filter_fn)s
+    %(aggregate_fn)s
     %(figure_size)s
     %(return_fig)s
 
@@ -262,10 +262,10 @@ def interactions(misty: MistyData = None,
     grouped = interactions.groupby('predictor')['importances'].apply(lambda x: x.isna().all())
     interactions = interactions[~interactions['predictor'].isin(grouped[grouped].index)]
 
-    if filter_fun is not None:
-        interactions = interactions[interactions.apply(filter_fun, axis=1).astype(bool)]
-    if aggregate_fun is not None:
-        interactions = interactions.groupby(['target', 'predictor']).agg({'importances': aggregate_fun}).reset_index()
+    if filter_fn is not None:
+        interactions = interactions[interactions.apply(filter_fn, axis=1).astype(bool)]
+    if aggregate_fn is not None:
+        interactions = interactions.groupby(['target', 'predictor']).agg({'importances': aggregate_fn}).reset_index()
     if top_n is not None:
         interactions = interactions.sort_values(by='importances', key=key, ascending=ascending)
         top_interactions = interactions.drop_duplicates(['target', 'predictor']).head(top_n)

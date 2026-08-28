@@ -7,7 +7,7 @@ def test_tileplot(liana_res):
                      # ligand_ and receptor_ columns
                      fill='means',
                      label='pvals',
-                     label_fun=lambda x: f'{x:.2f}',
+                     label_fn=lambda x: f'{x:.2f}',
                      top_n=10,
                      orderby='specificity_rank',
                      orderby_ascending=True

@@ -91,7 +91,7 @@ def get_method_scores() -> dict:
 @d.dedent
 def process_scores(liana_res: DataFrame,
                    score_key: str,
-                   inverse_fun: Callable = V.inverse_fun
+                   inverse_fn: Callable = V.inverse_fn
                    ) -> DataFrame:
     """
     Processes and outputs a given score.
@@ -100,7 +100,7 @@ def process_scores(liana_res: DataFrame,
     ----------
     %(liana_res)s
     %(score_key)s
-    %(inverse_fun)s
+    %(inverse_fn)s
 
     Returns
     -------
@@ -109,7 +109,7 @@ def process_scores(liana_res: DataFrame,
     Examples
     --------
     `magnitude_rank` is one of the scores for which a lower value is the stronger
-    one, so it is inverted with `inverse_fun`. A score that is already
+    one, so it is inverted with `inverse_fn`. A score that is already
     "higher is stronger" is returned unchanged:
 
     >>> import liana as li
@@ -128,7 +128,7 @@ def process_scores(liana_res: DataFrame,
     # reverse if ascending order
     ascending_order = scores[score_key]
     if(ascending_order):
-        df[score_key] = inverse_fun(df[score_key])
+        df[score_key] = inverse_fn(df[score_key])
 
     return df
 

@@ -172,7 +172,7 @@ class SpatialBivariate:
             raise ValueError("An analytical solution is currently available only for Moran's R")
 
         if local_name is not None:
-            local_fun = LocalFunction._get_instance(name=local_name)
+            local_fn = LocalFunction._get_instance(name=local_name)
 
         is_mudata = _check_instance(mdata)
         if is_mudata:
@@ -239,8 +239,8 @@ class SpatialBivariate:
 
         if global_name is not None:
             for gname in global_name:
-                global_fun = GlobalFunction.instances[gname]
-                global_fun(xy_stats,
+                global_fn = GlobalFunction.instances[gname]
+                global_fn(xy_stats,
                            x_mat=x_mat,
                            y_mat=y_mat,
                            weight=weight,
@@ -264,7 +264,7 @@ class SpatialBivariate:
 
         # get local scores
         local_scores, local_pvals = \
-            local_fun(x_mat=x_mat,
+            local_fn(x_mat=x_mat,
                       y_mat=y_mat,
                       weight=weight,
                       seed=seed,

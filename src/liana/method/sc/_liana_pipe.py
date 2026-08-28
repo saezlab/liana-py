@@ -438,10 +438,10 @@ def _run_method(lr_res: pandas.DataFrame,
     if (M.mat_max in _add_cols) & (_score.method_name == "CellChat"):
         # CellChat matrix_max
         norm_factor = np.unique(lr_res[M.mat_max].values)[0]
-        agg_fun = _trimean # Calculate sparse matrix quantiles?
+        agg_fn = _trimean # Calculate sparse matrix quantiles?
     else:
         norm_factor = None
-        agg_fun = np.mean # NOTE: change to sparse matrix mean?
+        agg_fn = np.mean # NOTE: change to sparse matrix mean?
 
     if _score.permute:
         # get permutations
@@ -449,7 +449,7 @@ def _run_method(lr_res: pandas.DataFrame,
             perms = _get_means_perms(adata=adata,
                                      n_perms=n_perms,
                                      seed=seed,
-                                     agg_fun=agg_fun,
+                                     agg_fn=agg_fn,
                                      norm_factor=norm_factor,
                                      n_jobs=n_jobs,
                                      verbose=verbose)
