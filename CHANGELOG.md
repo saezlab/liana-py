@@ -4,7 +4,7 @@
 
 ### Changed
 
-- **Breaking: the public namespaces were reorganised to match scverse-style.** The top-level API is now `li.ds`, `li.ms`, `li.mt`, `li.pl`, `li.pp`, `li.rs` (`li.ut` and `li.mu` are gone). The functions themselves are unchanged — only their import path moved:
+- **Breaking: the public namespaces were reorganised to match scverse-style.** The top-level API is now `li.ds`, `li.ms`, `li.mt`, `li.pl`, `li.pp`, `li.rs` (`li.ut`, `li.mu` and `li.testing` are gone; `li.ds`, `li.pp` and `li.ms` are new). The functions themselves are unchanged — only their import path moved:
 
   | Was | Now | Moved |
   |---|---|---|
@@ -17,12 +17,20 @@
   | `li.testing` | **renamed `li.ds`** (`datasets`) | `kang_2018`, `generate_toy_adata` / `generate_toy_mdata` / `generate_toy_spatial`, `sample_lrs` |
   | `li.mt.build_prior_network` | **`li.rs.build_prior_network`** | it builds a resource, not a method result (`li.mt.find_causalnet` stays) |
 
+- The six namespaces are also importable directly (`import liana.ms`, `import liana.pp`, …); the removed aliases (`import liana.ut` / `liana.mu` / `liana.testing`) no longer resolve — update both attribute access and direct imports.
+- **Internal: shared machinery consolidated into a private `liana._core` package.** `liana._common`, `_constants` and `_docs` moved under `liana._core`, and the pipeline internals (`_pipe_utils`: `_pre`, `_aggregate`, `_get_mean_perms`, …) moved out of `liana.method` into `liana._core`. The public subpackages now depend on `_core` rather than reaching into one another, removing cross-imports between `method`/`multisample`/`plotting`/`preprocessing`/`resource`. No user-facing symbols changed.
+
 ### Packaging
 
 - **Tutorial CI dependency recipes.** `docs/notebooks` are now runnable from declared extras rather than ad-hoc `pip install` lines, with a committed `uv.lock` for reproducibility. Two install targets cover all 14 notebooks: `uv sync --extra tutorials` (12 CPU notebooks) and `uv sync --extra tutorials-gpu` (the two heavy ones, `inflow_mofaflex` + `liana_c2c`). `tutorials` layers `liana[extras]` with the notebook-only viz/runtime packages (`matplotlib`, `seaborn`, `adjustText`, `marsilea`, `pycrosstalker`); `tutorials-gpu` adds `tensorly`, `mofaflex` and `torch`. Naming follows pertpy/scvi-tools conventions.
 - **`squidpy` added to `[extras]`** — it backs `li.mt.MistyData` and `li.pp.spatial_neighbors` (lazy-imported) and was the one optional-feature dependency the extra never declared.
 - **`torch` is routed to the CPU wheel index** via `[tool.uv.sources]`, keeping tutorial CI off the ~2.5 GB CUDA build; swap the index url for cu124 when GPU CI lands. **`mofaflex` is pinned to git `@main`** there — `inflow_mofaflex.ipynb` needs the unreleased 0.2.0 terms/priors API, which PyPI 0.1.2 does not provide; the override is uv-only, so published metadata stays PyPI-clean.
 - **Minimum Python is now 3.11** (`requires-python = ">=3.11,<3.14"`); the 3.10 classifier and hatch-test matrix entry were dropped.
+
+### Documentation
+
+- **Tutorials moved to a dedicated repository** ([dbdimitrov/liana-tutorials](https://github.com/dbdimitrov/liana-tutorials)) and pulled back in as a git submodule at `docs/tutorials` (the pertpy-tutorials pattern). `docs/notebooks/` was removed; the toctree now lives in `docs/tutorials.md` and renders the notebooks from `docs/tutorials/notebooks/*.ipynb`. Rendered tutorial URLs move from `…/notebooks/<name>.html` to `…/tutorials/notebooks/<name>.html`. RTD builds the submodule (`submodules: include: all`); the tutorial-execution extras (`tutorials` / `tutorials-gpu`) stay in liana-py.
+- All 14 tutorials were re-run and their headings normalised to a consistent hierarchy.
 
 ## 1.10.0 (27.08.2026)
 

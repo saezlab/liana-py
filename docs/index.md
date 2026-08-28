@@ -6,7 +6,7 @@
 :hidden: true
 :maxdepth: 2
 
-notebooks/index
+tutorials
 
 installation.md
 api.md

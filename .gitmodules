@@ -1,0 +1,3 @@
+[submodule "docs/tutorials"]
+	path = docs/tutorials
+	url = https://github.com/dbdimitrov/liana-tutorials.git
