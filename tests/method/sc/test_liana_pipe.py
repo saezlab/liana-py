@@ -25,7 +25,7 @@ def test_liana_pipe_defaults(pbmc68k, data_dir):
                               verbose=V.seed,
                               supp_columns=[],
                               resource=V.resource,
-                              use_raw=V.use_raw,
+                              use_raw=True,  # pbmc68k_reduced stores log-norm in .raw; .X is scaled
                               layer=V.layer,
                               n_jobs=1,
                               interactions=V.interactions,
@@ -57,7 +57,7 @@ def test_liana_pipe_not_defaults(pbmc68k, data_dir):
                               verbose=V.verbose,
                               supp_columns=['ligand_pvals', 'receptor_pvals'],
                               resource=V.resource,
-                              use_raw=V.use_raw,
+                              use_raw=True,  # pbmc68k_reduced stores log-norm in .raw; .X is scaled
                               layer=V.layer,
                               return_all_lrs=True,
                               n_jobs=1,
@@ -94,7 +94,7 @@ def test_liana_pipe_subset(pbmc68k):
                         seed=V.seed,
                         verbose=V.verbose,
                         resource=V.resource,
-                        use_raw=V.use_raw,
+                        use_raw=True,  # pbmc68k_reduced stores log-norm in .raw; .X is scaled
                         layer=V.layer,
                         n_jobs=1,
                         interactions=V.interactions,

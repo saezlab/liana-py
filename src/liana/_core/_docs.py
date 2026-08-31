@@ -52,7 +52,7 @@ key_added
 
 _use_raw = """\
 use_raw
-    Use raw attribute of adata if present."""
+    Whether to use the `.raw` attribute of adata. Defaults to False (uses `.X`)."""
 
 _layer = """\
 layer

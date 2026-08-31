@@ -34,7 +34,7 @@ def test_aggregate_specs():
 
 def test_aggregate_res(toy_adata, data_dir):
     lr_res = rank_aggregate(toy_adata, groupby='bulk_labels', n_perms=2,
-                            seed=1337, inplace=False, n_jobs=1)
+                            seed=1337, inplace=False, n_jobs=1, use_raw=True)
     lr_exp = read_csv(data_dir / "aggregate_rank_rest.csv", index_col=0)
     lr_res = lr_res.sort_values(by=list(lr_res.columns))
     lr_exp = lr_exp.sort_values(by=list(lr_res.columns))

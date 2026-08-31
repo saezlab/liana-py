@@ -14,7 +14,7 @@ class DefaultValues:
     resource = None
     interactions = None
     layer = None
-    use_raw = True
+    use_raw = False
     verbose = False
     return_all_lrs = False
     supp_columns = None
