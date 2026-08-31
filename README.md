@@ -4,7 +4,7 @@
 [![main](https://github.com/scverse/liana-py/actions/workflows/test.yml/badge.svg)](https://github.com/scverse/liana-py/actions)
 [![GitHub issues](https://img.shields.io/github/issues/scverse/liana-py.svg)](https://github.com/scverse/liana-py/issues/)
 [![Documentation Status](https://readthedocs.org/projects/liana-py/badge/?version=latest)](https://liana-py.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/scverse/liana-py/branch/main/graph/badge.svg?token=TM0P29KKN5)](https://codecov.io/gh/scverse/liana-py)
+[![codecov](https://codecov.io/gh/scverse/liana-py/graph/badge.svg?token=2HvdhecFQU)](https://codecov.io/gh/scverse/liana-py)
 [![Downloads](https://static.pepy.tech/badge/liana)](https://pepy.tech/project/liana)
 <!-- badges: end -->
 

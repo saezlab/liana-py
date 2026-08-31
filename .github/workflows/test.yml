@@ -8,6 +8,9 @@ on:
   schedule:
     - cron: "0 5 1,15 * *"
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -52,6 +55,10 @@ jobs:
   test:
     needs: get-environments
 
+    permissions:
+      id-token: write # for codecov OIDC
+      contents: read
+
     strategy:
       fail-fast: false
       matrix:
@@ -82,7 +89,10 @@ jobs:
       - name: generate coverage report
         run: uvx hatch run ${{ matrix.env.name }}:coverage xml
       - name: Upload coverage
-        uses: codecov/codecov-action@v5.4.3
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          fail_ci_if_error: true
+          use_oidc: true
 
   # Run the `>>>` examples in the `src/` docstrings. Not part of the matrix above:
   # the examples assert on library output, which does not vary by Python version,
