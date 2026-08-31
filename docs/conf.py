@@ -36,7 +36,7 @@ needs_sphinx = "4.0"
 
 html_context = {
     "display_github": True,  # Integrate GitHub
-    "github_user": "dbdimitrov",
+    "github_user": "scverse",
     "github_repo": "liana-py",
     "github_version": "main",
     "conf_py_path": "/docs/",

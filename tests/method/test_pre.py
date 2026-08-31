@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from liana.method._pipe_utils._pre import assert_covered, prep_check_adata
+from liana._core._pipe_utils._pre import assert_covered, prep_check_adata
 
 
 def test_prep_check_adata(pbmc68k):
@@ -16,6 +16,21 @@ def test_prep_check_adata(pbmc68k):
     filt = prep_check_adata(adata=pbmc68k, groupby='bulk_labels',
                             min_cells=20, use_raw=True)
     assert len(filt.obs['@label']) == 660
+
+
+def test_default_reads_X_not_raw(pbmc68k):
+    # Guards the public default: use_raw defaults to False, so methods read .X.
+    # pbmc68k_reduced ships scaled data in .X and log-norm in .raw, so the two
+    # paths give different results -- the default must match the .X path.
+    from liana.method import cellphonedb
+
+    kw = dict(groupby='bulk_labels', n_perms=None, inplace=False)
+    default = cellphonedb(pbmc68k, **kw)
+    from_x = cellphonedb(pbmc68k, use_raw=False, **kw)
+    from_raw = cellphonedb(pbmc68k, use_raw=True, **kw)
+
+    assert default.equals(from_x)        # default == .X
+    assert not default.equals(from_raw)  # and differs from .raw
 
 
 def test_check_if_covered(pbmc68k):

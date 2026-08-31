@@ -3,7 +3,7 @@ import sqlite3
 
 import pandas as pd
 
-from liana._common import _check_if_installed, _logg
+from liana._core._common import _check_if_installed, _logg
 
 
 def _download_metalinksdb(verbose: bool = True) -> str:
@@ -20,7 +20,7 @@ def _download_metalinksdb(verbose: bool = True) -> str:
     requests = _check_if_installed("requests")
 
     # GitHub Releases URL (CI-friendly, no WAF issues)
-    METALINKS_URL = "https://github.com/saezlab/liana-py/releases/download/metalinksdb/metalinksdb.db"
+    METALINKS_URL = "https://github.com/scverse/liana-py/releases/download/metalinksdb/metalinksdb.db"
 
     db_file_name = 'metalinksdb.db'
     db_path = os.path.join(os.getcwd(), db_file_name)

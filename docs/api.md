@@ -6,7 +6,11 @@ Import liana as:
 import liana as li
 ```
 
-## Single-cell
+The public API is organized into six namespaces: `li.mt` (methods), `li.pp`
+(preprocessing), `li.ms` (multi-sample), `li.rs` (resources / prior knowledge),
+`li.ds` (datasets), and `li.pl` (plotting).
+
+## Methods (`li.mt`)
 
 ### Callable Ligand-Receptor Method instances
 
@@ -14,8 +18,8 @@ Ligand-receptor method instances provide helper functions and consistent
 attributes, to describe each method instance, and are callable:
 
 ```{eval-rst}
-.. module:: liana.method
-.. currentmodule:: liana.method
+.. module:: liana.mt
+.. currentmodule:: liana.mt
 
 .. autosummary::
     :toctree: generated
@@ -34,7 +38,7 @@ attributes, to describe each method instance, and are callable:
 ### Method metadata
 
 ```{eval-rst}
-.. currentmodule:: liana.method
+.. currentmodule:: liana.mt
 
 .. autosummary::
     :toctree: generated
@@ -42,17 +46,12 @@ attributes, to describe each method instance, and are callable:
     show_methods
     get_method_scores
     process_scores
-    AggregateClass
-    aggregate_meta
 ```
-
-## Spatial
 
 ### Local bivariate metrics
 
 ```{eval-rst}
-.. module:: liana.method
-.. currentmodule:: liana.method
+.. currentmodule:: liana.mt
 
 .. autosummary::
     :toctree: generated
@@ -64,7 +63,7 @@ attributes, to describe each method instance, and are callable:
 ### Spatial proximity & interaction metrics
 
 ```{eval-rst}
-.. currentmodule:: liana.method
+.. currentmodule:: liana.mt
 
 .. autosummary::
     :toctree: generated
@@ -72,13 +71,14 @@ attributes, to describe each method instance, and are callable:
     cross_pcf.__call__
     lric.__call__
     inflow.__call__
+    get_lric_auc
+    get_lric_divergence
 ```
 
 ### Learn Spatial Relationships
 
 ```{eval-rst}
-.. module:: liana.method
-.. currentmodule:: liana.method
+.. currentmodule:: liana.mt
 
 .. autosummary::
     :toctree: generated
@@ -89,7 +89,7 @@ attributes, to describe each method instance, and are callable:
     lrMistyData
 ```
 
-### Single-view models
+#### Single-view models
 
 Passed as `model=` when calling a `MistyData` object:
 
@@ -106,16 +106,47 @@ Passed as `model=` when calling a `MistyData` object:
     RobustLinearModel
 ```
 
-## Multi-Sample
+### Intracellular & multi-sample helpers
 
 ```{eval-rst}
-.. module:: liana.multi
-.. currentmodule:: liana.multi
+.. currentmodule:: liana.mt
 
 .. autosummary::
     :toctree: generated
 
+    find_causalnet
+    estimate_metalinks
     df_to_lr
+```
+
+## Preprocessing (`li.pp`)
+
+```{eval-rst}
+.. module:: liana.pp
+.. currentmodule:: liana.pp
+
+.. autosummary::
+    :toctree: generated
+
+    obsm_to_adata
+    zi_minmax
+    neg_to_zero
+    spatial_neighbors
+    spatial_pair_proximity
+    expand_coordinates
+    query_bandwidth
+    interpolate_adata
+```
+
+## Multi-Sample (`li.ms`)
+
+```{eval-rst}
+.. module:: liana.ms
+.. currentmodule:: liana.ms
+
+.. autosummary::
+    :toctree: generated
+
     to_tensor_c2c
     adata_to_views
     lrs_to_views
@@ -123,13 +154,53 @@ Passed as `model=` when calling a `MistyData` object:
     filter_view_markers
     nmf
     estimate_elbow
+    get_factor_scores
+    get_variable_loadings
+    mdata_to_anndata
 ```
 
-## Visualization
+## Prior knowledge (`li.rs`)
 
 ```{eval-rst}
-.. module:: liana.plotting
-.. currentmodule:: liana.plotting
+.. module:: liana.rs
+.. currentmodule:: liana.rs
+
+.. autosummary::
+    :toctree: generated
+
+    select_resource
+    show_resources
+    generate_lr_geneset
+    translate_resource
+    translate_column
+    get_hcop_orthologs
+    get_metalinks
+    describe_metalinks
+    get_metalinks_values
+    build_prior_network
+```
+
+## Datasets (`li.ds`)
+
+```{eval-rst}
+.. module:: liana.ds
+.. currentmodule:: liana.ds
+
+.. autosummary::
+    :toctree: generated
+
+    kang_2018
+    generate_toy_adata
+    generate_toy_spatial
+    generate_toy_mdata
+    sample_lrs
+```
+
+## Visualization (`li.pl`)
+
+```{eval-rst}
+.. module:: liana.pl
+.. currentmodule:: liana.pl
 
 .. autosummary::
     :toctree: generated
@@ -146,78 +217,4 @@ Passed as `model=` when calling a `MistyData` object:
     lric_lineplot
     lric_divergence_plot
     feature_by_group
-```
-
-## Utility
-
-```{eval-rst}
-.. module:: liana.utils
-.. currentmodule:: liana.utils
-
-.. autosummary::
-    :toctree: generated
-
-    obsm_to_adata
-    mdata_to_anndata
-    zi_minmax
-    neg_to_zero
-    spatial_neighbors
-    spatial_pair_proximity
-    expand_coordinates
-    query_bandwidth
-    get_factor_scores
-    get_variable_loadings
-    get_lric_auc
-    get_lric_divergence
-    interpolate_adata
-```
-
-## Prior knowledge
-
-```{eval-rst}
-.. module:: liana.resource
-.. currentmodule:: liana.resource
-
-.. autosummary::
-    :toctree: generated
-
-    select_resource
-    show_resources
-    generate_lr_geneset
-    translate_resource
-    translate_column
-    get_hcop_orthologs
-    get_metalinks
-    describe_metalinks
-    get_metalinks_values
-```
-
-## Datasets & testing
-
-```{eval-rst}
-.. module:: liana.testing
-.. currentmodule:: liana.testing
-
-.. autosummary::
-    :toctree: generated
-
-    kang_2018
-    generate_toy_adata
-    generate_toy_spatial
-    generate_toy_mdata
-    sample_lrs
-```
-
-## Intracellular
-
-```{eval-rst}
-.. module:: liana.method
-.. currentmodule:: liana.method
-
-.. autosummary::
-    :toctree: generated
-
-    find_causalnet
-    build_prior_network
-    estimate_metalinks
 ```

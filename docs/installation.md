@@ -37,7 +37,7 @@ This includes additional packages for:
 ### Development Installation From Source
 
 ```bash
-git clone https://github.com/saezlab/liana-py.git
+git clone https://github.com/scverse/liana-py.git
 cd liana-py
 pip install -e '.[dev]'
 ```

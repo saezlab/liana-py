@@ -5,9 +5,9 @@ import pandas as pd
 import plotnine as p9
 from matplotlib.figure import Figure
 
-from liana._constants import DefaultValues as V
-from liana._constants import Keys as K
-from liana._docs import d
+from liana._core._constants import DefaultValues as V
+from liana._core._constants import Keys as K
+from liana._core._docs import d
 from liana.plotting._common import _check_var, _filter_by, _get_top_n, _prep_liana_res
 
 
@@ -16,7 +16,7 @@ def tileplot(adata: ad.AnnData = None,
              liana_res: pd.DataFrame = None,
              fill: str = None,
              label: str = None,
-             label_fun: Callable = None,
+             label_fn: Callable = None,
              source_labels: str | list[str] = None,
              target_labels: str | list[str] = None,
              ligand_complex: str | list[str] = None,
@@ -26,7 +26,7 @@ def tileplot(adata: ad.AnnData = None,
              orderby: str = None,
              orderby_ascending: bool = False,
              orderby_absolute: bool = True,
-             filter_fun: Callable = None,
+             filter_fn: Callable = None,
              source_title=None,
              target_title=None,
              cmap: str = V.cmap,
@@ -45,7 +45,7 @@ def tileplot(adata: ad.AnnData = None,
         `column` in `liana_res` to define the fill of the tiles
     label
         `column` in `liana_res` to define the label of the tiles
-    label_fun
+    label_fn
         `callable` to apply to the `label` column
     %(source_labels)s
     %(target_labels)s
@@ -56,7 +56,7 @@ def tileplot(adata: ad.AnnData = None,
     %(orderby)s
     %(orderby_ascending)s
     %(orderby_absolute)s
-    %(filter_fun)s
+    %(filter_fn)s
     source_title
         Title for the source facet. Default is 'Source'
     target_title
@@ -77,7 +77,7 @@ def tileplot(adata: ad.AnnData = None,
     columns, so both sides of every interaction are tiled next to each other:
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_adata()
+    >>> adata = li.ds.generate_toy_adata()
     >>> li.mt.cellphonedb(adata, groupby='bulk_labels', n_perms=100)
     >>> p = li.pl.tileplot(adata,
     ...                    fill='means',
@@ -94,7 +94,7 @@ def tileplot(adata: ad.AnnData = None,
                                 receptor_complex=receptor_complex,
                                 uns_key=uns_key)
 
-    liana_res = _filter_by(liana_res, filter_fun)
+    liana_res = _filter_by(liana_res, filter_fn)
     liana_res = _get_top_n(liana_res, top_n, orderby, orderby_ascending, orderby_absolute)
 
     # get columns which ends with fill or label
@@ -117,8 +117,8 @@ def tileplot(adata: ad.AnnData = None,
 
     liana_res = pd.concat([ligand_stats, receptor_stats])
 
-    if label_fun is not None:
-        liana_res[label] = liana_res[label].apply(label_fun)
+    if label_fn is not None:
+        liana_res[label] = liana_res[label].apply(label_fn)
 
     p = (
         p9.ggplot(liana_res, p9.aes(x='cell_type', y='interaction', fill=fill)) +

@@ -1,16 +1,16 @@
-# LIANA+: an all-in-one cell-cell communication framework <img src="https://raw.githubusercontent.com/saezlab/liana-py/main/docs/_static/logo.png" align="right" height="125">
+# LIANA+: an all-in-one cell-cell communication framework <img src="https://raw.githubusercontent.com/scverse/liana-py/main/docs/_static/logo.png" align="right" height="125">
 
 <!-- badges: start -->
-[![main](https://github.com/saezlab/liana-py/actions/workflows/test.yml/badge.svg)](https://github.com/saezlab/liana-py/actions)
-[![GitHub issues](https://img.shields.io/github/issues/saezlab/liana-py.svg)](https://github.com/saezlab/liana-py/issues/)
+[![main](https://github.com/scverse/liana-py/actions/workflows/test.yml/badge.svg)](https://github.com/scverse/liana-py/actions)
+[![GitHub issues](https://img.shields.io/github/issues/scverse/liana-py.svg)](https://github.com/scverse/liana-py/issues/)
 [![Documentation Status](https://readthedocs.org/projects/liana-py/badge/?version=latest)](https://liana-py.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/saezlab/liana-py/branch/main/graph/badge.svg?token=TM0P29KKN5)](https://codecov.io/gh/saezlab/liana-py)
+[![codecov](https://codecov.io/gh/scverse/liana-py/branch/main/graph/badge.svg?token=TM0P29KKN5)](https://codecov.io/gh/scverse/liana-py)
 [![Downloads](https://static.pepy.tech/badge/liana)](https://pepy.tech/project/liana)
 <!-- badges: end -->
 
 LIANA+ is a scalable framework that adapts and extends existing methods and knowledge to study cell-cell communication in single-cell, spatially-resolved, and multi-modal omics data. It is part of the [scverse ecosystem](https://github.com/scverse), and relies on [AnnData](https://github.com/scverse/anndata) & [MuData](https://github.com/scverse/mudata) objects as input.
 
-<img src="https://raw.githubusercontent.com/saezlab/liana-py/main/docs/_static/abstract.png" width="700" align="center">
+<img src="https://raw.githubusercontent.com/scverse/liana-py/main/docs/_static/abstract.png" width="700" align="center">
 
 ## Contributions
 
@@ -71,26 +71,26 @@ flowchart TD
     class TensorExt,TensorMet external;
 
     %% ===== Links (click events) =====
-    click Inflow "https://liana-py.readthedocs.io/en/latest/notebooks/inflow_score.html"
-    click LRIC "https://liana-py.readthedocs.io/en/latest/notebooks/LRIC_tutorial.html"
-    click InflowMofa "https://liana-py.readthedocs.io/en/latest/notebooks/inflow_mofaflex.html"
-    click ScConstr "https://liana-py.readthedocs.io/en/latest/notebooks/inflow_score.html"
-    click Local "https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html"
-    click Global "https://liana-py.readthedocs.io/en/latest/notebooks/bivariate.html"
-    click MISTy "https://liana-py.readthedocs.io/en/latest/notebooks/misty.html"
-    click Steady "https://liana-py.readthedocs.io/en/latest/notebooks/basic_usage.html"
-    click Targeted "https://liana-py.readthedocs.io/en/latest/notebooks/targeted.html"
-    click CrossTalk "https://liana-py.readthedocs.io/en/latest/notebooks/liana_pyCrossTalkeR.html"
-    click MOFA "https://liana-py.readthedocs.io/en/latest/notebooks/mofatalk.html"
-    click Tensor "https://liana-py.readthedocs.io/en/latest/notebooks/liana_c2c.html"
+    click Inflow "https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/inflow_score.html"
+    click LRIC "https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/LRIC_tutorial.html"
+    click InflowMofa "https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/inflow_mofaflex.html"
+    click ScConstr "https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/inflow_score.html"
+    click Local "https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/bivariate.html"
+    click Global "https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/bivariate.html"
+    click MISTy "https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/misty.html"
+    click Steady "https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/basic_usage.html"
+    click Targeted "https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/targeted.html"
+    click CrossTalk "https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/liana_pyCrossTalkeR.html"
+    click MOFA "https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/mofatalk.html"
+    click Tensor "https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/liana_c2c.html"
     click TensorExt "https://ccc-protocols.readthedocs.io/en/latest/"
     click TensorMet "https://earmingol.github.io/cell2cell/tutorials/Version2/Tensor-cell2cell-CTCA-LIANA/"
-    click SMA "https://liana-py.readthedocs.io/en/latest/notebooks/sma.html"
-    click SCMulti "https://liana-py.readthedocs.io/en/latest/notebooks/sc_multi.html"
-    click Metab "https://liana-py.readthedocs.io/en/latest/notebooks/sc_multi.html#metabolite-mediated-ccc-from-transcriptomics-data"
+    click SMA "https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/sma.html"
+    click SCMulti "https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/sc_multi.html"
+    click Metab "https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/sc_multi.html#metabolite-mediated-ccc-from-transcriptomics-data"
 ```
 
-This tree is a guide rather than an exhaustive map: the methods are modular and can be adapted or combined across data types and questions, and all of them typically build on curated prior knowledge (see the [prior knowledge](https://liana-py.readthedocs.io/en/latest/notebooks/prior_knowledge.html) tutorial for working with ligand–receptor and other resources).
+This tree is a guide rather than an exhaustive map: the methods are modular and can be adapted or combined across data types and questions, and all of them typically build on curated prior knowledge (see the [prior knowledge](https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/prior_knowledge.html) tutorial for working with ligand–receptor and other resources).
 
 ## API
 For further information please check LIANA's [API documentation](https://liana-py.readthedocs.io/en/latest/api.html).
@@ -129,8 +129,8 @@ Please also consider citing any of the methods and/or resources that were partic
 
 [uv]: https://github.com/astral-sh/uv
 [scverse discourse]: https://discourse.scverse.org/
-[issue tracker]: https://github.com/saezlab/liana-py/issues
-[tests]: https://github.com/saezlab/liana-py/actions/workflows/test.yml
+[issue tracker]: https://github.com/scverse/liana-py/issues
+[tests]: https://github.com/scverse/liana-py/actions/workflows/test.yml
 [documentation]: https://liana-py.readthedocs.io
 [changelog]: https://liana-py.readthedocs.io/en/latest/changelog.html
 [api documentation]: https://liana-py.readthedocs.io/en/latest/api.html

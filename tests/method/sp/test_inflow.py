@@ -6,8 +6,8 @@ import pytest
 from scipy.sparse import csr_matrix
 
 from liana.method import inflow
-from liana.testing._sample_resource import sample_resource
-from liana.utils.transform import zi_minmax
+from liana.datasets._sample_resource import sample_resource
+from liana.preprocessing.transform import zi_minmax
 
 
 def test_inflow_basic_structure(toy_spatial):
@@ -282,7 +282,7 @@ def test_inflow_with_mudata(toy_mdata):
 
 def test_inflow_mudata_vs_anndata_equivalence(toy_mdata):
     """Test that MuData and AnnData give same results when data is identical."""
-    from liana.utils.mdata_to_anndata import mdata_to_anndata
+    from liana.multisample.mdata_to_anndata import mdata_to_anndata
     interactions = list(product(toy_mdata.mod['adata_x'].var.index,
                                 toy_mdata.mod['adata_y'].var.index))
 
@@ -353,7 +353,7 @@ def test_inflow_mudata_missing_mod(toy_mdata):
 
 def custom_transform_with_kwargs(mat, clip_max=1.0):
     """Custom transform that uses kwargs."""
-    from liana.utils.transform import zi_minmax
+    from liana.preprocessing.transform import zi_minmax
     transformed = zi_minmax(mat)
     # Clip to a custom max value
     transformed.data = np.clip(transformed.data, 0, clip_max)

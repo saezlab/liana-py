@@ -3,8 +3,8 @@ import pytest
 
 from liana.method.sp._LRIC import cross_pcf, lric
 from liana.plotting import lric_divergence_plot, lric_lineplot
-from liana.testing import generate_toy_spatial
-from liana.testing._sample_resource import sample_resource
+from liana.datasets import generate_toy_spatial
+from liana.datasets._sample_resource import sample_resource
 
 _KWARGS = {"max_radius": 100, "radius_step": 20, "verbose": False}
 

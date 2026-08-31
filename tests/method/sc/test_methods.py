@@ -15,7 +15,7 @@ def expected_shape(toy_adata):
 
 
 def test_cellchat(toy_adata, expected_shape):
-    cellchat(toy_adata, groupby='bulk_labels', use_raw=True, n_perms=4)
+    cellchat(toy_adata, groupby='bulk_labels', n_perms=4)
 
     assert toy_adata.shape == expected_shape
     assert 'liana_res' in toy_adata.uns.keys()
@@ -31,6 +31,7 @@ def test_cellchat(toy_adata, expected_shape):
 
 
 def test_cellphonedb(toy_adata, expected_shape):
+    # legacy check: use_raw=True (read .raw) still works; siblings use the .X default
     cellphonedb(toy_adata, groupby='bulk_labels', use_raw=True, n_perms=4)
 
     assert toy_adata.shape == expected_shape
@@ -47,7 +48,7 @@ def test_cellphonedb(toy_adata, expected_shape):
 
 
 def test_cellphonedb_none(toy_adata, expected_shape):
-    cellphonedb(toy_adata, groupby='bulk_labels', use_raw=True, n_perms=None)
+    cellphonedb(toy_adata, groupby='bulk_labels', n_perms=None)
     assert toy_adata.shape == expected_shape
     liana_res = toy_adata.uns['liana_res']
     assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['lr_means'].max(), 1.4035000205039978, decimal=6)
@@ -55,7 +56,7 @@ def test_cellphonedb_none(toy_adata, expected_shape):
 
 
 def test_geometric_mean(toy_adata, expected_shape):
-    geometric_mean(toy_adata, groupby='bulk_labels', use_raw=True, n_perms=4, n_jobs=2)
+    geometric_mean(toy_adata, groupby='bulk_labels', n_perms=4, n_jobs=2)
 
     assert toy_adata.shape == expected_shape
     assert 'liana_res' in toy_adata.uns.keys()
@@ -71,6 +72,7 @@ def test_geometric_mean(toy_adata, expected_shape):
 
 
 def test_natmi(toy_adata, expected_shape):
+    # legacy check: use_raw=True (read .raw) still works; siblings use the .X default
     natmi(toy_adata, groupby='bulk_labels', use_raw=True)
 
     assert toy_adata.shape == expected_shape
@@ -87,7 +89,7 @@ def test_natmi(toy_adata, expected_shape):
     assert_almost_equal(liana_res[liana_res['receptor_complex']=='CD74_CXCR4']['expr_prod'].max(), 1.9646283122925752, decimal=6)
 
 def test_scseqcomm(toy_adata, expected_shape):
-    scseqcomm(toy_adata, groupby='bulk_labels', use_raw=True, expr_prop = 0, return_all_lrs=True)
+    scseqcomm(toy_adata, groupby='bulk_labels', expr_prop = 0, return_all_lrs=True)
 
     assert toy_adata.shape == expected_shape
     assert 'liana_res' in toy_adata.uns.keys()
@@ -105,7 +107,7 @@ def test_scseqcomm(toy_adata, expected_shape):
 
 
 def test_sca(toy_adata, expected_shape):
-    sca(toy_adata, groupby='bulk_labels', use_raw=True)
+    sca(toy_adata, groupby='bulk_labels')
 
     assert toy_adata.shape == expected_shape
     assert 'liana_res' in toy_adata.uns.keys()
@@ -119,7 +121,7 @@ def test_sca(toy_adata, expected_shape):
 
 
 def test_logfc(toy_adata, expected_shape):
-    logfc(toy_adata, groupby='bulk_labels', use_raw=True)
+    logfc(toy_adata, groupby='bulk_labels')
 
     assert toy_adata.shape == expected_shape
     assert 'liana_res' in toy_adata.uns.keys()
@@ -133,7 +135,7 @@ def test_logfc(toy_adata, expected_shape):
 
 
 def test_connectome(toy_adata, expected_shape):
-    connectome(toy_adata, groupby='bulk_labels', use_raw=True)
+    connectome(toy_adata, groupby='bulk_labels')
     assert toy_adata.shape == expected_shape
     assert 'liana_res' in toy_adata.uns.keys()
 
@@ -150,7 +152,7 @@ def test_connectome(toy_adata, expected_shape):
 
 
 def test_with_all_lrs(toy_adata):
-    natmi(toy_adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, key_added='all_res')
+    natmi(toy_adata, groupby='bulk_labels', return_all_lrs=True, key_added='all_res')
     lr_all = toy_adata.uns['all_res']
     assert lr_all.shape == (4200, 15)
     assert all(lr_all[~lr_all.lrs_to_keep][natmi.magnitude] == min(lr_all[natmi.magnitude])) is True
@@ -158,7 +160,7 @@ def test_with_all_lrs(toy_adata):
 
 
 def test_methods_by_sample(toy_adata):
-    logfc.by_sample(toy_adata, groupby='bulk_labels', use_raw=True, return_all_lrs=True, sample_key='sample')
+    logfc.by_sample(toy_adata, groupby='bulk_labels', return_all_lrs=True, sample_key='sample')
     lr_by_sample = toy_adata.uns['liana_res']
 
     assert 'sample' in lr_by_sample.columns
@@ -189,11 +191,11 @@ def test_methods_on_mdata(toy_mdata):
 def test_wrong_resource(toy_adata):
     from pytest import raises
     with raises(ValueError):
-        natmi(toy_adata, resource_name='mouseconsensus', groupby='bulk_labels', use_raw=True, n_perms=4)
+        natmi(toy_adata, resource_name='mouseconsensus', groupby='bulk_labels', n_perms=4)
 
     with raises(ValueError):
-        natmi(toy_adata, interactions=[('x', 'D')], groupby='bulk_labels', use_raw=True, n_perms=4)
+        natmi(toy_adata, interactions=[('x', 'D')], groupby='bulk_labels', n_perms=4)
 
     with raises(ValueError):
         resource = DataFrame({'ligand': ['A', 'B'], 'receptor': ['C', 'D']})
-        natmi(toy_adata, resource=resource, groupby='bulk_labels', use_raw=True, n_perms=4)
+        natmi(toy_adata, resource=resource, groupby='bulk_labels', n_perms=4)

@@ -4,7 +4,7 @@ import numpy as np
 from scipy.stats import norm
 from tqdm import tqdm
 
-from liana._common import _logg
+from liana._core._common import _logg
 from liana.method.sp._utils import _spatialdm_weight_norm, _zscore
 
 

@@ -10,11 +10,11 @@ from mudata import MuData
 from scipy.sparse import csr_matrix, hstack
 from sklearn.utils.sparsefuncs import mean_variance_axis
 
-from liana._constants import DefaultValues as V
-from liana._constants import Keys as K
-from liana._docs import d
-from liana.method._pipe_utils import assert_covered
-from liana.method._pipe_utils._common import _get_props
+from liana._core._constants import DefaultValues as V
+from liana._core._constants import Keys as K
+from liana._core._docs import d
+from liana._core._pipe_utils import assert_covered
+from liana._core._pipe_utils._common import _get_props
 from liana.method.sp._utils import (
     _add_complexes_to_var,
     _check_instance,
@@ -137,7 +137,7 @@ class SpatialInflow:
         neighbouring cell type, against its own receptor expression:
 
         >>> import liana as li
-        >>> adata = li.testing.generate_toy_spatial()
+        >>> adata = li.ds.generate_toy_spatial()
         >>> lrdata = li.mt.inflow(adata,
         ...                       groupby='bulk_labels',
         ...                       resource_name='consensus')

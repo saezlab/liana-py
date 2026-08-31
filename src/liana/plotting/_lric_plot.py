@@ -4,10 +4,10 @@ import plotnine as p9
 from anndata import AnnData
 from matplotlib.figure import Figure
 
-from liana._common import _get_liana_res
-from liana._constants import DefaultValues as V
-from liana._docs import d
-from liana.utils._lric_helpers import _log2_floor, _mean_curve, get_lric_divergence
+from liana._core._common import _get_liana_res
+from liana._core._constants import DefaultValues as V
+from liana._core._docs import d
+from liana.method.sp._lric_helpers import _log2_floor, _mean_curve, get_lric_divergence
 
 _ID_COLS = ("source", "target", "ligand_complex", "receptor_complex", "interaction")
 
@@ -149,7 +149,7 @@ def lric_divergence_plot(
     """
     Plot two ``transform_fn(g(r))`` curves and the area between them.
 
-    The visual companion of :func:`liana.ut.get_lric_divergence`: both curves
+    The visual companion of :func:`liana.mt.get_lric_divergence`: both curves
     are drawn over radius, the grey ribbon spans their separation, the dashed
     line at ``0`` marks the null, and the dotted vertical line marks ``r_star``
     -- the radius where the curves diverge most. The title carries the
@@ -166,7 +166,7 @@ def lric_divergence_plot(
     feature_a
         Selection of the first curve as ``{column: value}`` over any columns of
         the result, e.g. ``dict(interaction="Dcn^Egfr")``. It must resolve to a
-        single interaction; see :func:`liana.ut.get_lric_divergence`.
+        single interaction; see :func:`liana.mt.get_lric_divergence`.
     feature_b
         Selection of the second curve; same rules as ``feature_a``.
     max_dist
@@ -186,7 +186,7 @@ def lric_divergence_plot(
     Examples
     --------
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_spatial()
+    >>> adata = li.ds.generate_toy_spatial()
     >>> li.mt.cross_pcf(adata, groupby='bulk_labels', key_added='cross_pcf')
     >>> p = li.pl.lric_divergence_plot(
     ...     adata, 'cross_pcf',

@@ -3,10 +3,10 @@ from anndata import AnnData
 from matplotlib.figure import Figure
 from plotnine import aes, geom_point, ggplot, labs, theme, theme_minimal
 
-from liana._constants import DefaultValues as V
-from liana._constants import Keys as K
-from liana._docs import d
-from liana._common import _logg
+from liana._core._constants import DefaultValues as V
+from liana._core._constants import Keys as K
+from liana._core._docs import d
+from liana._core._common import _logg
 
 
 @d.dedent
@@ -45,10 +45,10 @@ def connectivity(adata: AnnData,
     Examples
     --------
     `idx` picks one spot, and the plot shows how strongly every other spot is
-    connected to it under the kernel of :func:`liana.utils.spatial_neighbors`:
+    connected to it under the kernel of :func:`liana.pp.spatial_neighbors`:
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_spatial()
+    >>> adata = li.ds.generate_toy_spatial()
     >>> p = li.pl.connectivity(adata, idx=0)
 
     """

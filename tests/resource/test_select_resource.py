@@ -45,6 +45,24 @@ def test_select_resource_name():
     assert resource.shape[0] == 1912
     assert (resource.columns == ['ligand', 'receptor']).all()
 
+def test_consensus_pecam1_cd38_direction():
+    # https://github.com/scverse/liana-py/issues/218
+    # The PECAM1-CD38 interaction is directed PECAM1 (ligand) -> CD38 (receptor),
+    # as in CellPhoneDB and the literature (PMID: 7542249). The consensus row was
+    # flipped (CD38 -> PECAM1); assert the corrected direction is the only one.
+    resource = select_resource("consensus")
+    pair = resource[resource[['ligand', 'receptor']].isin(['CD38', 'PECAM1']).all(axis=1)]
+    assert pair[['ligand', 'receptor']].values.tolist() == [['PECAM1', 'CD38']]
+
+
+def test_consensus_excludes_smad3_receptor():
+    # https://github.com/scverse/liana-py/issues/218
+    # SMAD3 is an intracellular transcription factor, not a membrane receptor,
+    # so it must not appear as a receptor in the consensus resource.
+    resource = select_resource("consensus")
+    assert not (resource['receptor'] == 'SMAD3').any()
+
+
 def test_resource_exception_none():
     with pytest.raises(ValueError):
         _handle_resource(interactions=None,

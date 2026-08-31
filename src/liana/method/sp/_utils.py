@@ -4,9 +4,9 @@ from mudata import MuData
 from pandas import Series
 from scipy.sparse import csr_matrix, hstack, isspmatrix_csr
 
-from liana._constants import DefaultValues as V
-from liana.method._pipe_utils import prep_check_adata
-from liana.utils.mdata_to_anndata import mdata_to_anndata
+from liana._core._constants import DefaultValues as V
+from liana._core._pipe_utils import prep_check_adata
+from liana.multisample.mdata_to_anndata import mdata_to_anndata
 
 
 def _add_complexes_to_var(adata, entities, complex_sep='_'):

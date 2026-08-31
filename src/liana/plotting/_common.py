@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
 
-from liana._common import _get_liana_res  # noqa: F401 (re-exported for the plotting modules)
-from liana._constants import Keys as K
+from liana._core._common import _get_liana_res  # noqa: F401 (re-exported for the plotting modules)
+from liana._core._constants import DefaultValues as V
+from liana._core._constants import Keys as K
 
 
 def _check_var(liana_res, var_name, var):
@@ -56,13 +57,13 @@ def _aggregate_scores(res, what, how, absolute, entities):
     return res
 
 
-def _invert_scores(score):
-    return -np.log10(score + np.finfo(float).eps)
+# single source of truth for the score inversion; see `process_scores(..., inverse_fn=)`
+_invert_scores = V.inverse_fn
 
 
-def _filter_by(liana_res, filter_fun):
-    if filter_fun is not None:
-        msk = liana_res.apply(filter_fun, axis=1).astype(bool)
+def _filter_by(liana_res, filter_fn):
+    if filter_fn is not None:
+        msk = liana_res.apply(filter_fn, axis=1).astype(bool)
         relevant_interactions = np.unique(liana_res[msk].interaction)
         liana_res = liana_res[np.isin(liana_res['interaction'], relevant_interactions)]
 

@@ -1,5 +1,40 @@
 # Changelog
 
+## 2.0.0 (28.08.2026)
+
+### Changed
+- liana+ now has a new home under the scverse organisation.
+
+- **Breaking: the public namespaces were reorganised to match scverse-style.** The top-level API is now `li.ds`, `li.ms`, `li.mt`, `li.pl`, `li.pp`, `li.rs` (`li.ut`, `li.mu` and `li.testing` are gone; `li.ds`, `li.pp` and `li.ms` are new). The functions themselves are unchanged — only their import path moved:
+
+  | Was | Now | Moved |
+  |---|---|---|
+  | `li.ut` (`utils`) | **removed**, split three ways | — |
+  | `li.ut.spatial_neighbors` / `spatial_pair_proximity` / `obsm_to_adata` / `interpolate_adata` / `expand_coordinates` / `query_bandwidth` / `neg_to_zero` / `zi_minmax` | **`li.pp`** (`preprocessing`, new) | preprocessing/coordinate utilities |
+  | `li.ut.get_factor_scores` / `get_variable_loadings` / `mdata_to_anndata` | **`li.ms`** (`multisample`) | multi-sample helpers |
+  | `li.ut.get_lric_auc` / `get_lric_divergence` | **`li.mt`** | live with the LRIC method |
+  | `li.mu` (`multi`) | **renamed `li.ms`** (`multisample`) | `nmf` / `estimate_elbow`, `adata_to_views` / `lrs_to_views` / `lrdata_to_mudata` / `filter_view_markers`, `to_tensor_c2c` |
+  | `li.mu.df_to_lr` | **`li.mt.df_to_lr`** | sits with the methods |
+  | `li.testing` | **renamed `li.ds`** (`datasets`) | `kang_2018`, `generate_toy_adata` / `generate_toy_mdata` / `generate_toy_spatial`, `sample_lrs` |
+  | `li.mt.build_prior_network` | **`li.rs.build_prior_network`** | it builds a resource, not a method result (`li.mt.find_causalnet` stays) |
+
+- The six namespaces are also importable directly (`import liana.ms`, `import liana.pp`, …); the removed aliases (`import liana.ut` / `liana.mu` / `liana.testing`) no longer resolve — update both attribute access and direct imports.
+- **Breaking: `use_raw` now defaults to `False` (was `True`) everywhere.** Methods read `adata.X` by default instead of `adata.raw.X`, aligning with the scverse ecosystem (scanpy auto/`None`, squidpy/decoupler `False`), where log-normalised expression is expected in `.X`. Pass `use_raw=True` explicitly to keep reading `.raw`. Relatedly, `li.ds.generate_toy_adata`/`generate_toy_spatial` now ship log-normalised expression in `.X` (matching `generate_toy_mdata`), so the default path works on valid data.
+- **Internal: shared machinery consolidated into a private `liana._core` package.** `liana._common`, `_constants` and `_docs` moved under `liana._core`, and the pipeline internals (`_pipe_utils`: `_pre`, `_aggregate`, `_get_mean_perms`, …) moved out of `liana.method` into `liana._core`. The public subpackages now depend on `_core` rather than reaching into one another, removing cross-imports between `method`/`multisample`/`plotting`/`preprocessing`/`resource`. No user-facing symbols changed.
+- Resolved #218
+
+### Packaging
+
+- **Tutorial CI dependency recipes.** `docs/notebooks` are now runnable from declared extras rather than ad-hoc `pip install` lines, with a committed `uv.lock` for reproducibility. Two install targets cover all 14 notebooks: `uv sync --extra tutorials` (12 CPU notebooks) and `uv sync --extra tutorials-gpu` (the two heavy ones, `inflow_mofaflex` + `liana_c2c`). `tutorials` layers `liana[extras]` with the notebook-only viz/runtime packages (`matplotlib`, `seaborn`, `adjustText`, `marsilea`, `pycrosstalker`); `tutorials-gpu` adds `tensorly`, `mofaflex` and `torch`. Naming follows pertpy/scvi-tools conventions.
+- **`squidpy` added to `[extras]`** — it backs `li.mt.MistyData` and `li.pp.spatial_neighbors` (lazy-imported) and was the one optional-feature dependency the extra never declared.
+- **`torch` is routed to the CPU wheel index** via `[tool.uv.sources]`, keeping tutorial CI off the ~2.5 GB CUDA build; swap the index url for cu124 when GPU CI lands. **`mofaflex` is pinned to git `@main`** there — `inflow_mofaflex.ipynb` needs the unreleased 0.2.0 terms/priors API, which PyPI 0.1.2 does not provide; the override is uv-only, so published metadata stays PyPI-clean.
+- **Minimum Python is now 3.11** (`requires-python = ">=3.11,<3.14"`); the 3.10 classifier and hatch-test matrix entry were dropped.
+
+### Documentation
+
+- **Tutorials moved to a dedicated repository** ([dbdimitrov/liana-tutorials](https://github.com/dbdimitrov/liana-tutorials)) and pulled back in as a git submodule at `docs/tutorials` (the pertpy-tutorials pattern). `docs/notebooks/` was removed; the toctree now lives in `docs/tutorials.md` and renders the notebooks from `docs/tutorials/notebooks/*.ipynb`. Rendered tutorial URLs move from `…/notebooks/<name>.html` to `…/tutorials/notebooks/<name>.html`. RTD builds the submodule (`submodules: include: all`); the tutorial-execution extras (`tutorials` / `tutorials-gpu`) stay in liana-py.
+- All 14 tutorials were re-run and their headings normalised to a consistent hierarchy.
+
 ## 1.10.0 (27.08.2026)
 
 ### Changed
@@ -29,6 +64,7 @@
 - **`import liana.mu` raised `ModuleNotFoundError`.** `mu` was the one short alias missing from the `sys.modules` registration, so it failed while its four siblings resolved.
 - **`_calc_log2fc` raised a bare `ZeroDivisionError` when a group had nothing to compare against (#93).** A `sample_key` group holding a single `groupby` category leaves the "rest" side empty; a `ValueError` now names the cause.
 - **Dropped the `MAML2-NOTCH1/2/3/4` rows from the consensus resource (#207, PR #247).** MAML2 is a nuclear transcriptional co-activator, not a surface ligand, so these were a curation artifact; a regression test keeps them out.
+- **Corrected the `CD38-PECAM1` direction in the consensus resource (#218).** The pair is directed `PECAM1` (ligand) -> `CD38` (receptor), as in CellPhoneDB and the literature (PMID: 7542249); the consensus row was flipped. Also guarded against `SMAD3` (a transcription factor) appearing as a consensus receptor. Regression tests keep both in check.
 - **`_get_means_perms` mutated the caller's matrix and upcast it to float64.** `adata.X /= norm_factor` wrote into a buffer that can be shared with `adata.raw.X`; the division is now out-of-place and cast back to the original dtype, halving peak memory.
 - **Three plotting bugs surfaced by the new tests:** `li.pl.dotplot`/`li.pl.tileplot` constructed `ValueError`s for a missing `orderby`/`orderby_ascending` but never raised them; `li.pl.feature_by_group` called `_logg.warning(...)` on a function, which would have raised `AttributeError`; `li.pl.contributions` assumed a categorical `target` and failed on a plain string column.
 
@@ -117,12 +153,12 @@
 ## 1.6.0 (09.07.2025)
 
 - Adapted and bumped requirements to decopler-py \>=2.0.0 \| PR #178 by
-  \@robinfallegger addresses [#179](https://github.com/saezlab/liana-py/issues/179)
-- Removed upper Python version requirement [#172](https://github.com/saezlab/liana-py/issues/172) [#170](https://github.com/saezlab/liana-py/issues/170)
-- Minor adjustment to SpatialDM Global Moran\'s R description [#176](https://github.com/saezlab/liana-py/issues/176)
-- Fix feature name warning logic [#169](https://github.com/saezlab/liana-py/issues/169)
-- Use scverse cookiecutter [#180](https://github.com/saezlab/liana-py/issues/180)
-- Address count issue with circle plot [#185](https://github.com/saezlab/liana-py/issues/185)
+  \@robinfallegger addresses [#179](https://github.com/scverse/liana-py/issues/179)
+- Removed upper Python version requirement [#172](https://github.com/scverse/liana-py/issues/172) [#170](https://github.com/scverse/liana-py/issues/170)
+- Minor adjustment to SpatialDM Global Moran\'s R description [#176](https://github.com/scverse/liana-py/issues/176)
+- Fix feature name warning logic [#169](https://github.com/scverse/liana-py/issues/169)
+- Use scverse cookiecutter [#180](https://github.com/scverse/liana-py/issues/180)
+- Address count issue with circle plot [#185](https://github.com/scverse/liana-py/issues/185)
 
 ## 1.5.1 (13.02.2025)
 
@@ -179,7 +215,7 @@ changed the order of filtering.
   kernel, but with a fixed number of neighbours for each spot. This does
   not account for edges, but differences are minimal does not require
   squidpy as a dependency. One can easily replace it on demand. (#
-  <https://github.com/saezlab/liana-py/issues/112>)
+  <https://github.com/scverse/liana-py/issues/112>)
 - Fixed Python version range between 3.8 and 3.12 (Merged #112)
 - Improved the Differential Expression Vignette be more explicit about
   the causal subnetwork search results (related to #66)

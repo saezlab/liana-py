@@ -19,9 +19,9 @@ from plotnine import (
     theme_bw,
 )
 
-from liana._constants import DefaultValues as V
-from liana._constants import Keys as K
-from liana._docs import d
+from liana._core._constants import DefaultValues as V
+from liana._core._constants import Keys as K
+from liana._core._docs import d
 from liana.plotting._common import _check_var, _filter_by, _get_top_n, _invert_scores, _prep_liana_res
 
 
@@ -37,7 +37,7 @@ def dotplot(adata: AnnData = None,
             orderby: str | None = None,
             orderby_ascending: bool | None = None,
             orderby_absolute: bool = False,
-            filter_fun: Callable = None,
+            filter_fn: Callable = None,
             ligand_complex: str | None = None,
             receptor_complex: str | None = None,
             inverse_colour: bool = False,
@@ -63,7 +63,7 @@ def dotplot(adata: AnnData = None,
     %(orderby)s
     %(orderby_ascending)s
     %(orderby_absolute)s
-    %(filter_fun)s
+    %(filter_fn)s
     %(ligand_complex)s
     %(receptor_complex)s
     %(inverse_colour)s
@@ -82,7 +82,7 @@ def dotplot(adata: AnnData = None,
     Pass either a method's result as `liana_res`, or the `adata` it was written to:
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_adata()
+    >>> adata = li.ds.generate_toy_adata()
     >>> li.mt.rank_aggregate(adata, groupby='bulk_labels', n_perms=None)
     >>> p = li.pl.dotplot(adata,
     ...                   colour='lr_means',
@@ -104,7 +104,7 @@ def dotplot(adata: AnnData = None,
     _check_var(liana_res, var=colour, var_name='colour')
     _check_var(liana_res, var=size, var_name='size')
 
-    liana_res = _filter_by(liana_res, filter_fun)
+    liana_res = _filter_by(liana_res, filter_fn)
     liana_res = _get_top_n(liana_res, top_n, orderby, orderby_ascending, orderby_absolute)
 
     # inverse sc if needed
@@ -193,7 +193,7 @@ def dotplot_by_sample(adata: AnnData = None,
     Expects a by-sample result, as written by any method's `.by_sample`:
 
     >>> import liana as li
-    >>> adata = li.testing.generate_toy_adata()
+    >>> adata = li.ds.generate_toy_adata()
     >>> li.mt.rank_aggregate.by_sample(adata, sample_key='sample',
     ...                                groupby='bulk_labels', n_perms=None)
     >>> p = li.pl.dotplot_by_sample(adata,

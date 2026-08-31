@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from liana._docs import d
-from liana._common import _logg
+from liana._core._docs import d
+from liana._core._common import _logg
 
 
 @d.dedent

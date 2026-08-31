@@ -31,7 +31,7 @@ def pbmc68k():
 @pytest.fixture
 def toy_adata():
     """`pbmc68k_reduced` with fake `sample` and `case` columns in `.obs`."""
-    from liana.testing import generate_toy_adata
+    from liana.datasets import generate_toy_adata
 
     return generate_toy_adata()
 
@@ -39,7 +39,7 @@ def toy_adata():
 @pytest.fixture
 def toy_spatial():
     """`pbmc68k_reduced` with random coordinates and spatial connectivities."""
-    from liana.testing import generate_toy_spatial
+    from liana.datasets import generate_toy_spatial
 
     return generate_toy_spatial()
 
@@ -47,7 +47,7 @@ def toy_spatial():
 @pytest.fixture
 def toy_mdata():
     """A two-modality MuData (`adata_x`, `adata_y`) built from `toy_spatial`."""
-    from liana.testing._sample_anndata import generate_toy_mdata
+    from liana.datasets._sample_anndata import generate_toy_mdata
 
     return generate_toy_mdata()
 
@@ -55,7 +55,7 @@ def toy_mdata():
 @pytest.fixture
 def liana_res():
     """A toy ligand-receptor result table, as returned by the methods."""
-    from liana.testing import sample_lrs
+    from liana.datasets import sample_lrs
 
     return sample_lrs()
 
@@ -63,7 +63,7 @@ def liana_res():
 @pytest.fixture
 def liana_res_by_sample():
     """A toy ligand-receptor result table with a `sample` column."""
-    from liana.testing import sample_lrs
+    from liana.datasets import sample_lrs
 
     return sample_lrs(by_sample=True)
 

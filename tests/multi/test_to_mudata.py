@@ -3,11 +3,11 @@ import pandas as pd
 import pytest
 from anndata import AnnData, concat
 
-from liana.multi import adata_to_views, filter_view_markers, lrdata_to_mudata, lrs_to_views
+from liana.multisample import adata_to_views, filter_view_markers, lrdata_to_mudata, lrs_to_views
 
 
 def _generate_toy_lrdata(n_obs=20, n_lrs=15):
-    """Build a small AnnData mimicking `liana.method.inflow`'s output convention."""
+    """Build a small AnnData mimicking `liana.mt.inflow`'s output convention."""
     celltypes = ['T_cell', 'B_cell']
     interactions = [f'lig{i}^rec{i}' for i in range(n_lrs)]
     var_names = [f'{ct}^{lr}' for ct in celltypes for lr in interactions]

@@ -5,10 +5,22 @@ import pytest
 from pandas import DataFrame, read_csv
 from pandas.testing import assert_frame_equal
 
-from liana._constants import DefaultValues as V
+from liana._core._constants import DefaultValues as V
 from liana.method.sc._liana_pipe import _calc_log2fc, _expm1_base, liana_pipe
 
 groupby = 'bulk_labels'
+
+
+@pytest.fixture
+def pbmc68k():
+    # pbmc68k_reduced ships scaled data in .X and log-norm in .raw; put log-norm in
+    # .X so the default (use_raw=False) path is exercised against the reference output.
+    from scanpy.datasets import pbmc68k_reduced
+
+    adata = pbmc68k_reduced()
+    adata.X = adata.raw.X.copy()
+    return adata
+
 
 # Test ALL Default parameters
 def test_liana_pipe_defaults(pbmc68k, data_dir):
@@ -25,7 +37,7 @@ def test_liana_pipe_defaults(pbmc68k, data_dir):
                               verbose=V.seed,
                               supp_columns=[],
                               resource=V.resource,
-                              use_raw=V.use_raw,
+                              use_raw=False,  # local fixture puts log-norm in .X
                               layer=V.layer,
                               n_jobs=1,
                               interactions=V.interactions,
@@ -57,7 +69,7 @@ def test_liana_pipe_not_defaults(pbmc68k, data_dir):
                               verbose=V.verbose,
                               supp_columns=['ligand_pvals', 'receptor_pvals'],
                               resource=V.resource,
-                              use_raw=V.use_raw,
+                              use_raw=False,  # local fixture puts log-norm in .X
                               layer=V.layer,
                               return_all_lrs=True,
                               n_jobs=1,
@@ -94,7 +106,7 @@ def test_liana_pipe_subset(pbmc68k):
                         seed=V.seed,
                         verbose=V.verbose,
                         resource=V.resource,
-                        use_raw=V.use_raw,
+                        use_raw=False,  # local fixture puts log-norm in .X
                         layer=V.layer,
                         n_jobs=1,
                         interactions=V.interactions,

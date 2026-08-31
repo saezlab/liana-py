@@ -189,7 +189,7 @@ See scanpy’s {doc}`scanpy:dev/documentation` for more information on how to wr
 
 ### Tutorials with myst-nb and jupyter notebooks
 
-The documentation is set-up to render jupyter notebooks stored in the `docs/notebooks` directory using [myst-nb][].
+The documentation is set-up to render jupyter notebooks using [myst-nb][]. The notebooks live in the [liana-tutorials](https://github.com/dbdimitrov/liana-tutorials) repository, included here as a git submodule at `docs/tutorials`.
 Currently, only notebooks in `.ipynb` format are supported that will be included with both their input and output cells.
 It is your responsibility to update and re-run the notebook whenever necessary.
 

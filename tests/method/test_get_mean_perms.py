@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from pandas import read_csv
 
-from liana.method._pipe_utils._get_mean_perms import _get_means_perms, _get_positions
+from liana._core._pipe_utils._get_mean_perms import _get_means_perms, _get_positions
 from liana.method.sc._cellphonedb import _mean
 from liana.method.sc._liana_pipe import _trimean
 
@@ -27,7 +27,7 @@ def all_defaults(data_dir):
 def test_perms(adata):
     perms = _get_means_perms(adata=adata,
                              norm_factor=None,
-                             agg_fun=_mean,
+                             agg_fn=_mean,
                              n_perms=100,
                              seed=1337,
                              n_jobs=1,
@@ -49,7 +49,7 @@ def test_cellchat_perms(adata):
 
     perms = _get_means_perms(adata=adata,
                              norm_factor=None,
-                             agg_fun=_trimean,
+                             agg_fn=_trimean,
                              n_perms=100,
                              seed=1337,
                              n_jobs=1,
@@ -67,7 +67,7 @@ def test_cellchat_perms(adata):
 
     perms = _get_means_perms(adata=adata,
                              norm_factor=mat_max,
-                             agg_fun=_trimean,
+                             agg_fn=_trimean,
                              n_perms=100,
                              seed=1337,
                              n_jobs=1,

@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 import liana.plotting as pl
-from liana.testing import _sample_interactions, _sample_target_metrics
+from liana.datasets import _sample_interactions, _sample_target_metrics
 
 
 @pytest.fixture
@@ -60,7 +60,7 @@ def test_target_metrics_plot(misty):
     assert set(top['target']) == {best}
 
     filtered = pl.target_metrics(misty=misty, stat='gain_R2',
-                                 filter_fun=lambda x: x['multi_R2'] > 0.5).data
+                                 filter_fn=lambda x: x['multi_R2'] > 0.5).data
     expected = target_metrics[target_metrics['multi_R2'] > 0.5]['target']
     assert 0 < len(expected) < len(target_metrics)  # else the check below is vacuous
     assert set(filtered['target']) == set(expected)
@@ -71,7 +71,7 @@ def test_target_metrics_plot(misty):
 def test_interactions_plot(misty, interactions):
     pl.interactions(misty=misty, top_n=3, view='extra', key=abs, ascending=False)
     plot_data = pl.interactions(interactions=interactions, view='extra',
-                                filter_fun=lambda x: x['group']=='b').data
+                                filter_fn=lambda x: x['group']=='b').data
     assert plot_data.shape[0] == 3
 
     assert pl.interactions(misty=misty, view='extra', return_fig=False) is None
@@ -79,7 +79,7 @@ def test_interactions_plot(misty, interactions):
 
 def test_target_metrics_aggregate(target_metrics):
     plot_data = pl.target_metrics(target_metrics=target_metrics, stat='gain_R2',
-                                  aggregate_fun='mean').data
+                                  aggregate_fn='mean').data
 
     # every group is kept - aggregation only decides the order the targets
     # are drawn in, best mean first
@@ -92,7 +92,7 @@ def test_target_metrics_aggregate(target_metrics):
 def test_contributions_aggregate(target_metrics):
     plot_data = pl.contributions(target_metrics=target_metrics,
                                  view_names=['intra', 'extra'],
-                                 aggregate_fun='median').data
+                                 aggregate_fn='median').data
 
     n_targets = target_metrics['target'].nunique()
     assert plot_data.shape[0] == n_targets * 2
@@ -104,7 +104,7 @@ def test_contributions_aggregate(target_metrics):
 
 def test_interactions_aggregate(interactions):
     plot_data = pl.interactions(interactions=interactions, view='intra',
-                                aggregate_fun='sum').data
+                                aggregate_fn='sum').data
 
     # only the requested view is drawn, with importances summed over the groups
     intra = interactions[interactions['view'] == 'intra']
@@ -139,7 +139,7 @@ def test_misty_plots_raise_on_missing_args(misty, target_metrics, interactions):
 
 def test_contributions_filter(misty):
     plot_data = pl.contributions(misty=misty,
-                                 filter_fun=lambda x: x['multi_R2'] > 0.5).data
+                                 filter_fn=lambda x: x['multi_R2'] > 0.5).data
 
     target_metrics = misty.uns['target_metrics']
     expected = target_metrics[target_metrics['multi_R2'] > 0.5]['target']
@@ -158,6 +158,6 @@ def test_contributions_filter_on_categorical_target(target_metrics):
     target_metrics['target'] = target_metrics['target'].astype('category')
     plot_data = pl.contributions(target_metrics=target_metrics,
                                  view_names=['intra', 'extra'],
-                                 aggregate_fun='mean',
-                                 filter_fun=lambda x: x['target'] != 'a').data
+                                 aggregate_fn='mean',
+                                 filter_fn=lambda x: x['target'] != 'a').data
     assert 'a' not in set(plot_data['target'].cat.categories)

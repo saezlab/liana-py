@@ -1,6 +1,7 @@
 from numpy.testing import assert_almost_equal
 
-from liana.utils import mdata_to_anndata, neg_to_zero, zi_minmax
+from liana.multisample import mdata_to_anndata
+from liana.preprocessing import neg_to_zero, zi_minmax
 
 
 def test_m_to_adata(toy_mdata):

@@ -3,7 +3,7 @@ import pytest
 from anndata import AnnData
 from scipy.sparse import csr_matrix
 
-from liana.utils.interpolate_adata import interpolate_adata
+from liana.preprocessing.interpolate_adata import interpolate_adata
 
 
 def create_test_adata(n_cells, n_genes, spatial_key='spatial'):

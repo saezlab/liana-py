@@ -84,9 +84,9 @@ def test_invert_scores():
 def test_filter_by(liana_res):
     liana_res['interaction'] = liana_res['ligand_complex'] + ' -> ' + liana_res['receptor_complex']
 
-    assert _filter_by(liana_res, filter_fun=None) is liana_res
+    assert _filter_by(liana_res, filter_fn=None) is liana_res
 
-    filtered = _filter_by(liana_res, filter_fun=lambda x: x['specificity_rank'] > 0.95)
+    filtered = _filter_by(liana_res, filter_fn=lambda x: x['specificity_rank'] > 0.95)
     # an interaction is kept whenever *any* of its cell type pairs passes
     kept = np.unique(liana_res[liana_res['specificity_rank'] > 0.95]['interaction'])
     assert set(filtered['interaction']) == set(kept)

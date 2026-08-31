@@ -3615,7 +3615,7 @@
 "3635","P06744","Q9UKV5","GPI","AMFR","consensus"
 "3636","P12004","O95944","PCNA","NCR2","consensus"
 "3637","P10144","P11717","GZMB","IGF2R","consensus"
-"3638","P28907","P16284","CD38","PECAM1","consensus"
+"3638","P16284","P28907","PECAM1","CD38","consensus"
 "3639","P01008","Q07954","SERPINC1","LRP1","consensus"
 "3640","P01009","Q07954","SERPINA1","LRP1","consensus"
 "3641","P63092","P16473","GNAS","TSHR","consensus"

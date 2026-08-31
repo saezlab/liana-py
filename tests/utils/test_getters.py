@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from liana.multi import lrs_to_views
-from liana.utils._getters import get_factor_scores, get_variable_loadings
+from liana.multisample import lrs_to_views
+from liana.multisample._getters import get_factor_scores, get_variable_loadings
 
 
 @pytest.fixture

@@ -10,19 +10,19 @@ from anndata import AnnData
 from mudata import MuData
 from scipy.stats import norm
 
-from liana._constants import CommonColumns as C
-from liana._constants import InternalValues as I
-from liana._constants import MethodColumns as M
-from liana._constants import PrimaryColumns as P
-from liana._docs import d
-from liana.method._pipe_utils import assert_covered, filter_resource, prep_check_adata
-from liana.method._pipe_utils._aggregate import _aggregate
-from liana.method._pipe_utils._common import _get_groupby_subset, _get_props, _join_stats
-from liana.method._pipe_utils._get_mean_perms import _get_mat_idx, _get_means_perms
+from liana._core._constants import CommonColumns as C
+from liana._core._constants import InternalValues as I
+from liana._core._constants import MethodColumns as M
+from liana._core._constants import PrimaryColumns as P
+from liana._core._docs import d
+from liana._core._pipe_utils import assert_covered, filter_resource, prep_check_adata
+from liana._core._pipe_utils._aggregate import _aggregate
+from liana._core._pipe_utils._common import _get_groupby_subset, _get_props, _join_stats
+from liana._core._pipe_utils._get_mean_perms import _get_mat_idx, _get_means_perms
 from liana.resource._reassemble_complexes import _explode_complexes, _filter_reassemble_complexes
 from liana.resource.select_resource import _handle_resource
-from liana.utils import mdata_to_anndata
-from liana.utils.spatial_neighbors import spatial_pair_proximity
+from liana.multisample import mdata_to_anndata
+from liana.preprocessing.spatial_neighbors import spatial_pair_proximity
 
 
 @d.dedent
@@ -438,10 +438,10 @@ def _run_method(lr_res: pandas.DataFrame,
     if (M.mat_max in _add_cols) & (_score.method_name == "CellChat"):
         # CellChat matrix_max
         norm_factor = np.unique(lr_res[M.mat_max].values)[0]
-        agg_fun = _trimean # Calculate sparse matrix quantiles?
+        agg_fn = _trimean # Calculate sparse matrix quantiles?
     else:
         norm_factor = None
-        agg_fun = np.mean # NOTE: change to sparse matrix mean?
+        agg_fn = np.mean # NOTE: change to sparse matrix mean?
 
     if _score.permute:
         # get permutations
@@ -449,7 +449,7 @@ def _run_method(lr_res: pandas.DataFrame,
             perms = _get_means_perms(adata=adata,
                                      n_perms=n_perms,
                                      seed=seed,
-                                     agg_fun=agg_fun,
+                                     agg_fn=agg_fn,
                                      norm_factor=norm_factor,
                                      n_jobs=n_jobs,
                                      verbose=verbose)

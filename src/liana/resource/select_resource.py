@@ -3,8 +3,8 @@ import pathlib
 from numpy import unique
 from pandas import DataFrame, read_csv
 
-from liana._constants import DefaultValues as V
-from liana._common import _logg
+from liana._core._constants import DefaultValues as V
+from liana._core._common import _logg
 
 
 def select_resource(resource_name: str = V.resource_name) -> DataFrame:

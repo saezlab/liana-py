@@ -21,7 +21,7 @@ def test_doplot_filter(liana_res):
     my_p2 = dotplot(liana_res=liana_res,
                     size='specificity_rank',
                     colour='magnitude',
-                    filter_fun=lambda x: x['specificity_rank'] > 0.95,
+                    filter_fn=lambda x: x['specificity_rank'] > 0.95,
                     inverse_colour=True,
                     source_labels=["A"]
                     )

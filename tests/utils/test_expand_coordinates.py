@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from anndata import AnnData
 
-from liana.utils import expand_coordinates
+from liana.preprocessing import expand_coordinates
 
 
 def create_test_adata(n_per_sample, n_samples, seed, spatial_key='spatial', sample_key='sample'):
