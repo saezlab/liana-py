@@ -4,18 +4,21 @@ from liana._core._constants import DefaultValues as V
 from liana._core._common import _check_if_installed, _logg
 
 
-def build_prior_network(ppis: pd.DataFrame | list[tuple[str, str]],
+def build_prior_network(ppis: pd.DataFrame | list[tuple[str, float, str]],
                         input_nodes: dict[str, float],
                         output_nodes: dict[str, float],
                         lr_sep: str | None = None,
-                        verbose:bool = V.verbose):
+                        verbose: bool = V.verbose):
     """
     Build Prior Network from PPIs and input/output nodes.
 
     Parameters
     ----------
     ppis
-        The PPIs to use for the prior network. If a pandas DataFrame is provided, it must have the columns
+        The PPIs to use for the prior network. If a list, each element must be a
+        ``(source, mor, target)`` tuple where ``mor`` is +1 or -1. If a pandas
+        DataFrame is provided, it must have the columns ``source``, ``mor``, and
+        ``target``.
     input_nodes
         A dictionary of input nodes. The keys are the node names, the values are the node scores.
     output_nodes
