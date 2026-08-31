@@ -19,6 +19,7 @@ def generate_toy_spatial():
 
     """
     adata = pbmc68k_reduced()
+    adata.X = adata.raw.X.copy()  # log-norm expression in .X (scverse convention); .raw kept
 
     rng = np.random.default_rng(seed=1337)
     x = rng.integers(low=0, high=5000, size=adata.shape[0])
@@ -77,6 +78,7 @@ def generate_toy_adata():
 
     """
     adata = pbmc68k_reduced()
+    adata.X = adata.raw.X.copy()  # log-norm expression in .X (scverse convention); .raw kept
     sample_key = 'sample'
 
     rng = np.random.default_rng(0)

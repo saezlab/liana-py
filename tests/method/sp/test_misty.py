@@ -88,13 +88,13 @@ def test_misty_groups(adata):
 
 def test_lr_misty(toy_spatial):
     misty = lrMistyData(toy_spatial, bandwidth=10, set_diag=True, cutoff=0)
-    assert misty.shape == (700, 42)
+    assert misty.shape == (700, 39)
 
     misty(model=RandomForestModel, n_estimators=10, bypass_intra=True)
     assert misty.uns['target_metrics'].shape == (16, 5)
 
     interactions = misty.uns['interactions']
-    assert interactions.shape == (415, 4)
+    assert interactions.shape == (367, 4)
     cmplxs = interactions[interactions['target'].str.contains('_')]['target'].unique()
     assert np.isin(['CD8A_CD8B', 'CD74_CXCR4'], cmplxs).all()
 
@@ -154,8 +154,8 @@ def test_misty_custom(toy_spatial):
     misty(model=RobustLinearModel, k_cv=25, seed=420)
 
     assert misty.uns['interactions'].shape == (120, 4)
-    np.testing.assert_almost_equal(misty.uns['interactions']['importances'].max(), 7.427809495362697, decimal=3)
-    np.testing.assert_almost_equal(misty.uns['interactions']['importances'].min(), -2.8430222384873396, decimal=3)
+    np.testing.assert_almost_equal(misty.uns['interactions']['importances'].max(), 4.208217548509984, decimal=3)
+    np.testing.assert_almost_equal(misty.uns['interactions']['importances'].min(), -2.905399645316733, decimal=3)
     # the data is random
     np.testing.assert_almost_equal(misty.uns['target_metrics']['multi_R2'].mean(), 0, decimal=3)
 

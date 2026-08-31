@@ -58,7 +58,6 @@ def adata():
     call with `inplace=True` -- takes `adata_copy` instead.
     """
     adata = generate_toy_spatial()
-    adata.X = adata.raw.X.copy()  # log-norm in .X; default use_raw=False, .X was scaled
     adata.obs["cell_type"] = adata.obs["bulk_labels"]
     return adata
 

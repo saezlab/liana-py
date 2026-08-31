@@ -18,6 +18,21 @@ def test_prep_check_adata(pbmc68k):
     assert len(filt.obs['@label']) == 660
 
 
+def test_default_reads_X_not_raw(pbmc68k):
+    # Guards the public default: use_raw defaults to False, so methods read .X.
+    # pbmc68k_reduced ships scaled data in .X and log-norm in .raw, so the two
+    # paths give different results -- the default must match the .X path.
+    from liana.method import cellphonedb
+
+    kw = dict(groupby='bulk_labels', n_perms=None, inplace=False)
+    default = cellphonedb(pbmc68k, **kw)
+    from_x = cellphonedb(pbmc68k, use_raw=False, **kw)
+    from_raw = cellphonedb(pbmc68k, use_raw=True, **kw)
+
+    assert default.equals(from_x)        # default == .X
+    assert not default.equals(from_raw)  # and differs from .raw
+
+
 def test_check_if_covered(pbmc68k):
     with pytest.raises(ValueError):
         assert_covered(['NOT', 'HERE'], pbmc68k.var_names, verbose=True)

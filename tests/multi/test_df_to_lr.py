@@ -25,14 +25,14 @@ def test_dea_to_lr(toy_adata, dea_df):
                       min_cells=10,
                       return_all_lrs=False
                       )
-    assert lr_res.shape == (374, 22)
+    assert lr_res.shape == (139, 22)
     # assert ligand_stat, ligand_pval, and ligand_padjusted are in lr_res.columns
     columns = lr_res.columns
     expected_columns = ['ligand', 'ligand_stat', 'ligand_pval', 'ligand_padjusted', 'ligand_expr',
                         'receptor', 'receptor_stat', 'receptor_pval', 'receptor_padjusted', 'receptor_expr']
     for col in expected_columns:
         assert col in columns
-    assert lr_res['interaction_padjusted'].mean() == 0.5540001846991026
+    assert lr_res['interaction_padjusted'].mean() == 0.56700673783093
 
 def test_dea_to_lr_params(toy_adata, dea_df):
     lr_res = df_to_lr(toy_adata,

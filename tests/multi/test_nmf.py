@@ -6,9 +6,7 @@ from liana.multisample import estimate_elbow, nmf
 
 @pytest.fixture
 def adata(toy_adata):
-    """NMF requires non-negative input."""
-    toy_adata.X = np.abs(toy_adata.X)
-
+    """NMF requires non-negative input; the toy `.X` is log-normalised (non-negative)."""
     return toy_adata
 
 
@@ -31,7 +29,7 @@ def test_estimate_elbow(adata):
     assert rank == 4
     assert errors.shape == (9, 2)
     assert errors['k'].tolist() == list(range(1, 10))
-    np.testing.assert_almost_equal(errors['error'].mean(), 0.3640689)
+    np.testing.assert_almost_equal(errors['error'].mean(), 0.5086648)
 
 
 def test_run_nmf_df(adata):
