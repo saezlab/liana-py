@@ -3,6 +3,7 @@
 ## 2.0.0 (28.08.2026)
 
 ### Changed
+- liana+ now has a new home under the scverse organisation.
 
 - **Breaking: the public namespaces were reorganised to match scverse-style.** The top-level API is now `li.ds`, `li.ms`, `li.mt`, `li.pl`, `li.pp`, `li.rs` (`li.ut`, `li.mu` and `li.testing` are gone; `li.ds`, `li.pp` and `li.ms` are new). The functions themselves are unchanged — only their import path moved:
 
@@ -149,12 +150,12 @@
 ## 1.6.0 (09.07.2025)
 
 - Adapted and bumped requirements to decopler-py \>=2.0.0 \| PR #178 by
-  \@robinfallegger addresses [#179](https://github.com/saezlab/liana-py/issues/179)
-- Removed upper Python version requirement [#172](https://github.com/saezlab/liana-py/issues/172) [#170](https://github.com/saezlab/liana-py/issues/170)
-- Minor adjustment to SpatialDM Global Moran\'s R description [#176](https://github.com/saezlab/liana-py/issues/176)
-- Fix feature name warning logic [#169](https://github.com/saezlab/liana-py/issues/169)
-- Use scverse cookiecutter [#180](https://github.com/saezlab/liana-py/issues/180)
-- Address count issue with circle plot [#185](https://github.com/saezlab/liana-py/issues/185)
+  \@robinfallegger addresses [#179](https://github.com/scverse/liana-py/issues/179)
+- Removed upper Python version requirement [#172](https://github.com/scverse/liana-py/issues/172) [#170](https://github.com/scverse/liana-py/issues/170)
+- Minor adjustment to SpatialDM Global Moran\'s R description [#176](https://github.com/scverse/liana-py/issues/176)
+- Fix feature name warning logic [#169](https://github.com/scverse/liana-py/issues/169)
+- Use scverse cookiecutter [#180](https://github.com/scverse/liana-py/issues/180)
+- Address count issue with circle plot [#185](https://github.com/scverse/liana-py/issues/185)
 
 ## 1.5.1 (13.02.2025)
 
@@ -211,7 +212,7 @@ changed the order of filtering.
   kernel, but with a fixed number of neighbours for each spot. This does
   not account for edges, but differences are minimal does not require
   squidpy as a dependency. One can easily replace it on demand. (#
-  <https://github.com/saezlab/liana-py/issues/112>)
+  <https://github.com/scverse/liana-py/issues/112>)
 - Fixed Python version range between 3.8 and 3.12 (Merged #112)
 - Improved the Differential Expression Vignette be more explicit about
   the causal subnetwork search results (related to #66)

@@ -1,16 +1,16 @@
-# LIANA+: an all-in-one cell-cell communication framework <img src="https://raw.githubusercontent.com/saezlab/liana-py/main/docs/_static/logo.png" align="right" height="125">
+# LIANA+: an all-in-one cell-cell communication framework <img src="https://raw.githubusercontent.com/scverse/liana-py/main/docs/_static/logo.png" align="right" height="125">
 
 <!-- badges: start -->
-[![main](https://github.com/saezlab/liana-py/actions/workflows/test.yml/badge.svg)](https://github.com/saezlab/liana-py/actions)
-[![GitHub issues](https://img.shields.io/github/issues/saezlab/liana-py.svg)](https://github.com/saezlab/liana-py/issues/)
+[![main](https://github.com/scverse/liana-py/actions/workflows/test.yml/badge.svg)](https://github.com/scverse/liana-py/actions)
+[![GitHub issues](https://img.shields.io/github/issues/scverse/liana-py.svg)](https://github.com/scverse/liana-py/issues/)
 [![Documentation Status](https://readthedocs.org/projects/liana-py/badge/?version=latest)](https://liana-py.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/saezlab/liana-py/branch/main/graph/badge.svg?token=TM0P29KKN5)](https://codecov.io/gh/saezlab/liana-py)
+[![codecov](https://codecov.io/gh/scverse/liana-py/branch/main/graph/badge.svg?token=TM0P29KKN5)](https://codecov.io/gh/scverse/liana-py)
 [![Downloads](https://static.pepy.tech/badge/liana)](https://pepy.tech/project/liana)
 <!-- badges: end -->
 
 LIANA+ is a scalable framework that adapts and extends existing methods and knowledge to study cell-cell communication in single-cell, spatially-resolved, and multi-modal omics data. It is part of the [scverse ecosystem](https://github.com/scverse), and relies on [AnnData](https://github.com/scverse/anndata) & [MuData](https://github.com/scverse/mudata) objects as input.
 
-<img src="https://raw.githubusercontent.com/saezlab/liana-py/main/docs/_static/abstract.png" width="700" align="center">
+<img src="https://raw.githubusercontent.com/scverse/liana-py/main/docs/_static/abstract.png" width="700" align="center">
 
 ## Contributions
 
@@ -129,8 +129,8 @@ Please also consider citing any of the methods and/or resources that were partic
 
 [uv]: https://github.com/astral-sh/uv
 [scverse discourse]: https://discourse.scverse.org/
-[issue tracker]: https://github.com/saezlab/liana-py/issues
-[tests]: https://github.com/saezlab/liana-py/actions/workflows/test.yml
+[issue tracker]: https://github.com/scverse/liana-py/issues
+[tests]: https://github.com/scverse/liana-py/actions/workflows/test.yml
 [documentation]: https://liana-py.readthedocs.io
 [changelog]: https://liana-py.readthedocs.io/en/latest/changelog.html
 [api documentation]: https://liana-py.readthedocs.io/en/latest/api.html

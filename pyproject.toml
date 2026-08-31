@@ -115,7 +115,7 @@ optional-dependencies.test = [
 
 urls.Documentation = "https://liana.readthedocs.io/"
 urls.Homepage = "https://liana-py.readthedocs.io"
-urls.Source = "https://github.com/saezlab/liana-py"
+urls.Source = "https://github.com/scverse/liana-py"
 
 [tool.hatch.envs.default]
 installer = "uv"
