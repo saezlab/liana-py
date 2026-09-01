@@ -35,9 +35,8 @@ release = info["Version"]
 bibtex_bibfiles = ["references.bib"]
 templates_path = ["_templates"]
 nitpicky = True  # Warn about broken links
-# The notebooks under `docs/tutorials` come from the liana-tutorials submodule and
-# are not editable from here; these three subtypes only fire inside them. Everything
-# else is built with `-W`.
+# The notebooks under `docs/tutorials` come from the liana-tutorials submodule and are not editable from here; these three subtypes only fire inside them.
+# Everything else is built with `-W`.
 suppress_warnings = ["myst.xref_missing", "image.not_readable", "myst.directive_unknown"]
 needs_sphinx = "4.0"
 
@@ -64,6 +63,7 @@ extensions = [
     "sphinxcontrib.bibtex",
     "sphinxcontrib.katex",
     "sphinx_autodoc_typehints",
+    "scanpydoc.elegant_typehints",
     "sphinx_design",
     "IPython.sphinxext.ipython_console_highlighting",
     "sphinxext.opengraph",
@@ -99,6 +99,7 @@ nb_output_stderr = "remove"
 nb_execution_mode = "off"
 nb_merge_streams = True
 typehints_defaults = "braces"
+
 always_use_bars_union = True  # use `|` instead of `Union` in types even when building with Python ≤3.14
 
 source_suffix = {
@@ -185,3 +186,10 @@ nitpick_ignore = [
     ("py:attr", "varm"),
     # add more as needed
 ]
+
+
+qualname_overrides = {
+    "pandas.core.series.Series": "pandas.Series",
+    "numpy._typing._array_like.NDArray": ("py:data", "numpy.typing.NDArray"),
+    "numpy._typing._array_like.ArrayLike": ("py:data", "numpy.typing.ArrayLike"),
+}

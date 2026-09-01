@@ -72,8 +72,7 @@ def get_lric_auc(
 
     Examples
     --------
-    Rank the interactions of a spatial result by how co-enriched they are across
-    radius -- here the cell-type-agnostic LRIC of :func:`liana.mt.lric.__call__`:
+    Rank the interactions of a spatial result by how co-enriched they are across radius -- here the cell-type-agnostic LRIC of :func:`liana.mt.lric.__call__`:
 
     >>> import liana as li
     >>> adata = li.ds.generate_toy_spatial()

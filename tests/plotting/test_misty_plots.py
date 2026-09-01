@@ -14,8 +14,7 @@ from liana.method.sp import MistyData
 def misty(toy_spatial: AnnData) -> MistyData:
     """A two-view `MistyData` carrying toy misty results.
 
-    A real `MistyData` rather than an AnnData wearing a `view_names` attribute,
-    so that it matches what the plotting functions declare they take.
+    A real `MistyData` rather than an AnnData wearing a `view_names` attribute, so that it matches what the plotting functions declare they take.
     """
     views = {"intra": toy_spatial.copy(), "extra": toy_spatial.copy()}
     misty = MistyData(views, obs=get_obs(toy_spatial))

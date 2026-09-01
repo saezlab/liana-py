@@ -1,13 +1,9 @@
 """Fixtures for the tests that need liana's external resources.
 
-These are the only tests that reach the network, and they cache what they
-download under ``tests/.cache``.
+These are the only tests that reach the network, and they cache what they download under ``tests/.cache``.
 
-CI runs the suite with ``pytest -n auto``, which gives every xdist worker its own
-session and so its own copy of these session-scoped fixtures. The cache directory
-is shared between them, so each download goes to a path private to the process and
-is then moved into place with :func:`os.replace`, which is atomic: a worker either
-sees the finished file or none at all, never a partial one.
+CI runs the suite with ``pytest -n auto``, which gives every xdist worker its own session and so its own copy of these session-scoped fixtures.
+The cache directory is shared between them, so each download goes to a path private to the process and is then moved into place with :func:`os.replace`, which is atomic: a worker either sees the finished file or none at all, never a partial one.
 """
 
 from __future__ import annotations

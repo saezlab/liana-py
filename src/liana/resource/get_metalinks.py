@@ -251,9 +251,8 @@ def describe_metalinks(db_path: str | None = None, return_output: bool = False) 
 
     Examples
     --------
-    This function downloads MetalinksDB on first use, so it is not run here. It
-    prints the tables and columns that :func:`liana.rs.get_metalinks` and
-    :func:`liana.rs.get_metalinks_values` query::
+    This function downloads MetalinksDB on first use, so it is not run here.
+    It prints the tables and columns that :func:`liana.rs.get_metalinks` and :func:`liana.rs.get_metalinks_values` query::
 
         describe_metalinks()
 

@@ -112,8 +112,7 @@ def translate_column(
     Examples
     --------
     `map_df` maps human symbols (`source`) to the target organism (`target`).
-    :func:`liana.rs.get_hcop_orthologs` builds one; it is written out here to
-    keep the example offline:
+    :func:`liana.rs.get_hcop_orthologs` builds one; it is written out here to keep the example offline:
 
     >>> import pandas as pd
     >>> import liana as li
@@ -189,9 +188,8 @@ def translate_resource(
 
     Examples
     --------
-    Translates the `'ligand'` and `'receptor'` columns in one go. In practice
-    `map_df` comes from :func:`liana.rs.get_hcop_orthologs`; interactions
-    whose partners have no ortholog are dropped:
+    Translates the `'ligand'` and `'receptor'` columns in one go.
+    In practice `map_df` comes from :func:`liana.rs.get_hcop_orthologs`; interactions whose partners have no ortholog are dropped:
 
     >>> import pandas as pd
     >>> import liana as li

@@ -18,8 +18,7 @@ if TYPE_CHECKING:
 def _check_var(liana_res: pd.DataFrame, var_name: str, var: str | None) -> str:
     """Check that ``var`` names a column of ``liana_res`` and return it.
 
-    Returning the name (rather than just validating) lets callers bind the result
-    and carry a non-optional `str` from there on.
+    Returning the name (rather than just validating) lets callers bind the result and carry a non-optional `str` from there on.
     """
     if var is None:
         raise ValueError(f"`{var_name}` must be provided!")

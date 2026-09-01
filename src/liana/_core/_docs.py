@@ -11,13 +11,10 @@ _PLACEHOLDER = re.compile(r"%\((\w+)\)s")
 class DocstringProcessor:
     """Substitutes ``%(name)s`` placeholders into the docstrings it decorates.
 
-    This replaces `docrep.DocstringProcessor`, which is unmaintained and ships no
-    type information -- an untyped decorator makes every function it decorates
-    untyped in turn, which `mypy --strict` rejects. `scanpy` carries an equivalent
-    helper of its own (`scanpy._utils._doc_params`) for the same reason.
+    This replaces `docrep.DocstringProcessor`, which is unmaintained and ships no type information -- an untyped decorator makes every function it decorates untyped in turn, which `mypy --strict` rejects.
+    `scanpy` carries an equivalent helper of its own (`scanpy._utils._doc_params`) for the same reason.
 
-    The placeholder syntax is kept as docrep spelled it, so the docstrings
-    themselves are unchanged.
+    The placeholder syntax is kept as docrep spelled it, so the docstrings themselves are unchanged.
 
     Examples
     --------

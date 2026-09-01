@@ -261,9 +261,8 @@ def lrMistyData(
     >>> adata = li.ds.generate_toy_spatial()
     >>> misty = li.mt.lrMistyData(adata, bandwidth=200)
 
-    Fitting this asks, per receptor, which neighbouring ligands predict it -- call
-    the object with ``bypass_intra=True`` so that the receptors are not predicted
-    from each other. See :func:`liana.mt.MistyData.__call__`.
+    Fitting this asks, per receptor, which neighbouring ligands predict it -- call the object with ``bypass_intra=True`` so that the receptors are not predicted from each other.
+    See :func:`liana.mt.MistyData.__call__`.
 
     """
     # TODO: reduce redundancies in documentation

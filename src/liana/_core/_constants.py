@@ -40,9 +40,7 @@ class DefaultValues:
     def inverse_fn[T: (Series, NDArray[floating])](x: T) -> T:
         """Turn a "lower is stronger" score into a "higher is stronger" one.
 
-        Called both with a DataFrame column (:func:`liana.method.process_scores`,
-        the plotting modules) and with a bare array, and returns whichever it was
-        given.
+        Called both with a DataFrame column (:func:`liana.method.process_scores`, the plotting modules) and with a bare array, and returns whichever it was given.
         """
         if isinstance(x, Series):
             # numpy's ufunc overloads return `Any` for a Series

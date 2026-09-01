@@ -360,13 +360,13 @@ def lrdata_to_mudata(
     ----------
     %(adata)s
     xy_sep
-        Separator between the sender cell-type/view prefix and the ligand-receptor interaction
-        name in ``lrdata.var_names`` (e.g. ``"celltype^ligand^receptor"``). Matches the ``xy_sep``
-        convention used by ``liana.mt.inflow``. Defaults to ``'^'``.
+        Separator between the sender cell-type/view prefix and the ligand-receptor interaction name in ``lrdata.var_names`` (e.g. ``"celltype^ligand^receptor"``).
+        Matches the ``xy_sep`` convention used by ``liana.mt.inflow``.
+        Defaults to ``'^'``.
     %(min_cells)s
-    min_features : int | None, default 10
-        Modalities with fewer than this many features after cell-filtering are
-        dropped entirely. Pass ``None`` to keep all modalities.
+    min_features
+        Modalities with fewer than this many features after cell-filtering are dropped entirely.
+        Pass ``None`` to keep all modalities.
     obs_keys
         List of keys in `lrdata.obs` that should be included in the MuData object.
     %(verbose)s

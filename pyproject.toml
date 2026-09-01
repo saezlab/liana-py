@@ -102,6 +102,7 @@ doc = [
   "ipykernel",
   "ipython",
   "myst-nb>=1.1",
+  "scanpydoc>=0.15.4",
   "setuptools",
   "sphinx>=8.1",
   "sphinx-autodoc-typehints",

@@ -152,8 +152,7 @@ def _fold_groupby_pairs(
 def _check_annulus_steps(annulus_steps: object) -> int:
     """Validate an ``annulus_steps`` argument coming from an untyped caller.
 
-    Takes `object` rather than `int` precisely because the `isinstance` check is the
-    point: a float would otherwise truncate silently.
+    Takes `object` rather than `int` precisely because the `isinstance` check is the point: a float would otherwise truncate silently.
     """
     if not isinstance(annulus_steps, int | np.integer) or annulus_steps < 1:
         raise ValueError(f"`annulus_steps` must be an integer >= 1, got {annulus_steps!r}.")
@@ -203,10 +202,8 @@ def _support_edge_list(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Global (i, j, bin) edge list for all ordered pairs within ``radii_outer[-1]``.
 
-    Self-pairs are excluded, and pairs are binned on the half-open
-    ``[inner, outer)`` convention.
-    Each pair is assigned to exactly one bin, so the bins must be disjoint tiles
-    for the counts to be complete.
+    Self-pairs are excluded, and pairs are binned on the half-open ``[inner, outer)`` convention.
+    Each pair is assigned to exactly one bin, so the bins must be disjoint tiles for the counts to be complete.
     """
     n_bins = len(radii_inner)
     spdm = tree.sparse_distance_matrix(tree, max_distance=float(radii_outer[-1]), output_type="coo_matrix")
@@ -396,9 +393,7 @@ class CrossPCF:
     that cell-type labels are spatially independent given the observed point
     pattern.
 
-    Unlike the classical cross-PCF (Bull et al., 2024, doi:10.1101/2024.12.06.627195),
-    which normalises against complete spatial randomness (CSR), this implementation uses
-    a closed-form random-labelling null.
+    Unlike the classical cross-PCF (Bull et al., 2024, doi:10.1101/2024.12.06.627195), which normalises against complete spatial randomness (CSR), this implementation uses a closed-form random-labelling null.
     By conditioning on the observed tissue support, it naturally accounts for
     non-convex tissue boundaries, holes, and fragmentation without estimating an
     effective tissue area.

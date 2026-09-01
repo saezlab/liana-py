@@ -55,10 +55,8 @@ def estimate_metalinks(
     Examples
     --------
     `pd_net` is a metabolite-to-enzyme network whose weights say whether a gene
-    produces (+) or degrades (-) a metabolite, and `resource` links metabolites to
-    their receptors. Both normally come from MetalinksDB (see
-    :func:`liana.rs.get_metalinks`); toy ones are built here so the example
-    stays offline:
+    produces (+) or degrades (-) a metabolite, and `resource` links metabolites to their receptors.
+    Both normally come from MetalinksDB (see :func:`liana.rs.get_metalinks`); toy ones are built here so the example stays offline:
 
     >>> import numpy as np
     >>> import pandas as pd

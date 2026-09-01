@@ -83,8 +83,7 @@ class MethodMeta:
 
     """
 
-    # initiate a list to store weak references to all instances
-    # weak references, so a method instance is not kept alive by this registry
+    # Weak references, so a method instance is not kept alive by this registry.
     instances: list[weakref.ref[MethodMeta]] = []
 
     # `Method` and `AggregateClass` each define `__call__`; `by_sample` invokes it

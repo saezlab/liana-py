@@ -163,10 +163,7 @@ class AggregateClass(MethodMeta):
         >>> adata = li.ds.generate_toy_adata()
         >>> li.mt.rank_aggregate(adata, groupby="bulk_labels", n_perms=None)
 
-        The frame carries `magnitude_rank` and `specificity_rank` alongside each
-        aggregated method's own scores -- ``li.mt.rank_aggregate.describe()`` says what
-        the ranks mean, and ``liana.mt.rank_aggregate`` which methods go into
-        them.
+        The frame carries `magnitude_rank` and `specificity_rank` alongside each aggregated method's own scores -- ``li.mt.rank_aggregate.describe()`` says what the ranks mean, and ``liana.mt.rank_aggregate`` which methods go into them.
 
         """
         if mdata_kwargs is None:

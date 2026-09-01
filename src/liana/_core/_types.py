@@ -1,11 +1,7 @@
 """Type aliases and narrowing helpers shared across liana.
 
-`anndata` types :attr:`~anndata.AnnData.X` as `_XDataType | None` and
-:attr:`~anndata.AnnData.obs` as `DataFrame | Dataset2D`, because it also supports
-on-disk and lazily-backed objects. liana only ever operates on in-memory arrays,
-so the helpers here narrow those unions once, at the point the data enters the
-package, and raise a clear error otherwise -- instead of every call site pushing
-the union around or silencing it.
+`anndata` types :attr:`~anndata.AnnData.X` as `_XDataType | None` and :attr:`~anndata.AnnData.obs` as `DataFrame | Dataset2D`, because it also supports on-disk and lazily-backed objects.
+liana only ever operates on in-memory arrays, so the helpers here narrow those unions once, at the point the data enters the package, and raise a clear error otherwise -- instead of every call site pushing the union around or silencing it.
 """
 
 from __future__ import annotations
@@ -79,10 +75,8 @@ def copy_aligned(
 ) -> None:
     """Copy ``obsm``/``obsp``/``varm`` entries onto an already-built ``target``.
 
-    :meth:`anndata.AnnData.__init__` types these arguments as
-    ``Mapping[str, Sequence[Any]]``, which is narrower than what anndata actually
-    stores there (frames and sparse matrices are neither). The per-key setters are
-    typed correctly, so the entries are assigned one at a time instead.
+    :meth:`anndata.AnnData.__init__` types these arguments as ``Mapping[str, Sequence[Any]]``, which is narrower than what anndata actually stores there (frames and sparse matrices are neither).
+    The per-key setters are typed correctly, so the entries are assigned one at a time instead.
     """
     for key, value in (obsm or {}).items():
         target.obsm[key] = value
@@ -102,9 +96,7 @@ def get_raw_x(adata: AnnData) -> MatrixLike:
 def get_coordinates(adata: AnnData, spatial_key: str) -> NDArray[np.float64]:
     """Return ``adata.obsm[spatial_key]`` as an ``(n_obs, n_dim)`` float array.
 
-    `obsm` can hold frames and sparse matrices as well as arrays; every spatial
-    function here needs plain dense coordinates, so the conversion and the
-    accompanying shape check happen once, here.
+    `obsm` can hold frames and sparse matrices as well as arrays; every spatial function here needs plain dense coordinates, so the conversion and the accompanying shape check happen once, here.
     """
     if spatial_key not in adata.obsm:
         raise KeyError(f"`adata.obsm['{spatial_key}']` not found; is the data spatial?")
