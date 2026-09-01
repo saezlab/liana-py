@@ -45,10 +45,7 @@ class DefaultValues:
         given.
         """
         if isinstance(x, Series):
-            # Built explicitly rather than `-log10(x + eps)`: numpy's ufunc overloads
-            # return `Any` for a Series, which would leak an untyped value into every
-            # caller. Index and name are preserved, so assigning the result back into
-            # a frame behaves identically.
+            # numpy's ufunc overloads return `Any` for a Series
             return Series(-log10(x.to_numpy() + finfo(float).eps), index=x.index, name=x.name)
         return -log10(x + finfo(float).eps)
 

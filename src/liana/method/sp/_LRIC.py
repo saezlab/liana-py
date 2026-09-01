@@ -928,8 +928,7 @@ class LRIC:
 
             mat = g_full.astype(np.float32)  # architecture x expression coupling
             mat_e = g_expr.astype(np.float32)  # expression coupling ALONE, given where the cells sit
-            # `pexp_L`/`pexp_R` are set exactly when `expr_prop > 0`; test them
-            # directly so the relationship is visible rather than implied.
+            # set exactly when `expr_prop > 0`
             if pexp_L is not None and pexp_R is not None:
                 mat = _expr_prop_mask(mat, pexp_L[si], pexp_R[ri], expr_prop)
                 mat_e = _expr_prop_mask(mat_e, pexp_L[si], pexp_R[ri], expr_prop)

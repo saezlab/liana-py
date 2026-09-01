@@ -12,10 +12,8 @@ from tqdm import tqdm
 from liana.method.sp._bivariate._global_functions import Weight
 
 if TYPE_CHECKING:
-    # `numba.prange.__new__` returns `range(*args)` but carries no annotation;
-    # numba documents the two as identical outside a parallel context. numba's
-    # parallel pass resolves `prange` through the module globals, so aliasing it
-    # here keeps `parallel=True` working.
+    # `prange.__new__` returns a `range` but is unannotated
+    # numba resolves the alias through the globals, so `parallel=True` still works
     prange = range
 else:
     prange = nb.prange

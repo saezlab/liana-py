@@ -168,8 +168,7 @@ class SpatialBivariate:
         if n_perms is not None and n_perms < 0:
             raise ValueError("n_perms must be None, 0 for analytical or > 0 for permutation")
         global_names = [global_name] if isinstance(global_name, str) else global_name
-        # Analytical p-values need Moran's: reject only when *none* of the requested
-        # statistics supports them (matching the previous `~np.isin(...).any()`).
+        # reject only when none of the requested statistics supports analytical p-values
         if n_perms == 0 and (
             local_name not in ["morans", None]
             or (global_names is not None and not any(name == "morans" for name in global_names))

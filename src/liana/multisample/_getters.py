@@ -6,7 +6,7 @@ from anndata import AnnData
 from mudata import MuData
 
 from liana._core._docs import d
-from liana._core._types import get_obs_frame, get_var_frame
+from liana._core._types import get_obs, get_var
 
 
 @d.dedent
@@ -52,7 +52,7 @@ def get_factor_scores(
     if obsm_key is None or obsm_key not in adata.obsm.keys():
         raise ValueError(f"{obsm_key} not found in `.obsm`")
 
-    obs = get_obs_frame(adata)
+    obs = get_obs(adata)
     df = pd.DataFrame(np.asarray(adata.obsm[obsm_key]), index=obs.index)
 
     df.columns = [f"Factor{x + 1}" for x in range(df.shape[1])]
@@ -157,7 +157,7 @@ def get_variable_loadings(
             raise ValueError(f"{varm_key} not found in adata.varm")
         loading_matrix = np.asarray(adata.varm[varm_key])
         factor_cols = [f"Factor{i + 1}" for i in range(loading_matrix.shape[1])]
-        df = pd.DataFrame(index=get_var_frame(adata).index, data=loading_matrix, columns=factor_cols)
+        df = pd.DataFrame(index=get_var(adata).index, data=loading_matrix, columns=factor_cols)
 
     df.index.name = None
     df = df.reset_index()

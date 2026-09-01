@@ -479,8 +479,7 @@ def _remove_mod_var(
     view_sep: str,
     var_column: str | None,
 ) -> None:
-    # `MuData.mod` is annotated as a read-only Mapping, but the views are replaced
-    # in place below, so check the concrete type the attribute actually holds.
+    # `MuData.mod` is annotated read-only, but the views are replaced in place below
     mods = mdata.mod
     if not isinstance(mods, dict):
         raise TypeError(f"`mdata.mod` must be a dict, got {type(mods).__name__}.")

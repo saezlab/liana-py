@@ -14,7 +14,6 @@ def test_to_tensor_c2c(liana_res_by_sample: DataFrame) -> None:
 
     tensor = to_tensor_c2c(liana_res=liana_res_by_sample, sample_key="sample", score_key="specificity_rank")
     assert isinstance(tensor, PreBuiltTensor)
-    # bound back to the class itself: the intersection type `isinstance` narrows to
-    # is not what `untyped_calls_exclude` matches against
+    # `untyped_calls_exclude` does not match the intersection type `isinstance` narrows to
     prebuilt: PreBuiltTensor = tensor
     assert prebuilt.sparsity_fraction() == 0.0

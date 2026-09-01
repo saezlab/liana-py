@@ -80,8 +80,7 @@ def build_prior_network(
     _logg("Importing network...", verbose=verbose)
     if isinstance(ppis, pd.DataFrame):
         ppis = [(r.source, r.mor, r.target) for (_, r) in ppis.iterrows() if r.source != r.target]
-    # corneto ships no annotations, so its constructors return `Any`; state the type
-    # once here, at the boundary, and the rest of the function stays checked.
+    # corneto is unannotated, so name the type once at the boundary
     G: Graph = Graph.from_sif_tuples(ppis)
     _logg("done.", verbose=verbose)
 

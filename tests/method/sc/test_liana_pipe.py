@@ -136,8 +136,7 @@ def test_expm1_fun(pbmc68k: AnnData) -> None:
 
 
 def test_calc_log2fc(pbmc68k: AnnData) -> None:
-    # `_expm1_base(X, base)`; the arguments used to be passed the other way round,
-    # so this exercised `data ** e` rather than the `e ** data` the pipeline applies.
+    # the arguments used to be swapped, so this exercised `data ** e`
     normcounts = get_raw_csr(pbmc68k).copy()
     normcounts.data = _expm1_base(normcounts.data, V.logbase)
     pbmc68k.layers["normcounts"] = normcounts

@@ -58,8 +58,10 @@ def _filter_reassemble_complexes(
         # deal with duplicated subunits
         # subunits that are not expressed might not represent the most relevant subunit
         lr_res.drop_duplicates(subset=_key_cols, inplace=True)
-        lr_res["lrs_to_keep"].fillna(value=False, inplace=True)
-        lr_res["prop_min"].fillna(value=0, inplace=True)
+        # chained inplace assignment is a no-op under copy-on-write
+        # `~` on an object-dtype bool is a bitwise not, so `~True == -2`
+        lr_res["lrs_to_keep"] = lr_res["lrs_to_keep"].fillna(value=False).astype(bool)
+        lr_res["prop_min"] = lr_res["prop_min"].fillna(value=0)
 
     # check if complex policy is only min
     aggs = {complex_policy, "min"}

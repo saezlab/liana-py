@@ -12,6 +12,7 @@ from typing import Any
 
 import numpy as np
 from anndata import AnnData
+from fast_array_utils.conv import to_dense
 from numpy.typing import NDArray
 from pandas import DataFrame
 from scipy.sparse import csr_matrix
@@ -23,7 +24,6 @@ from liana._core._types import (
     get_raw_x,
     get_var,
     get_x,
-    to_dense,
 )
 
 __all__ = [

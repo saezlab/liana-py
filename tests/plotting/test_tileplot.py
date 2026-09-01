@@ -8,8 +8,7 @@ def test_tileplot(liana_res: DataFrame) -> None:
     my_p2 = not_none(
         tileplot(
             liana_res=liana_res,
-            # NOTE: fill & label need to exist for both
-            # ligand_ and receptor_ columns
+            # NOTE: fill & label need to exist for both ligand_ and receptor_ columns
             fill="means",
             label="pvals",
             label_fn=lambda x: f"{x:.2f}",

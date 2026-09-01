@@ -47,8 +47,7 @@ class SingleViewModel:
     def __init__(self, seed: int, **kwargs: Any) -> None:
         self.seed = seed
         self.kwargs = kwargs  # Store kwargs to be used in fit method
-        # The estimator itself is model-specific, so the base class only records that
-        # one has been fitted; the subclasses work with their concrete type locally.
+        # the estimator is model-specific; subclasses keep their concrete type locally
         self.model: object | None = None
         self.predictions: np.ndarray | None = None
         self.importances: dict[str, float] | None = None

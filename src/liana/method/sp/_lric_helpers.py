@@ -19,8 +19,8 @@ type CurveTransform = Callable[[NDArray[np.floating]], NDArray[np.floating]]
 
 def _log2_floor(g: NDArray[np.floating]) -> NDArray[np.floating]:
     """log2 of g floored at 0.05, so empty/depleted bins stay finite (~-4.3)."""
-    # `np.asarray` only to keep the result typed: numpy's ufunc stubs widen to `Any`
-    # for a generic `NDArray` input. It is a no-op on an array.
+    # `np.asarray` only to keep it typed: numpy's ufunc stubs widen to `Any`
+    # It is a no-op on an array.
     return np.asarray(np.log2(np.maximum(g, 0.05)))
 
 

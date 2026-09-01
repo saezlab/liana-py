@@ -142,9 +142,7 @@ def prep_check_adata(
         if not isinstance(value, AnnData):
             obsm_arrays[key] = value
 
-    # `X` is tracked as a local rather than re-read from `adata.X`: anndata types the
-    # attribute as the full union of everything it can store (backed, dask, cupy, ...),
-    # while `_choose_mtx_rep` has already reduced it to an in-memory `csr_matrix`.
+    # kept as a local because `adata.X` re-widens to everything anndata can store
     X = X.astype(np.float32, copy=True)
     adata = sc.AnnData(
         X=X,
@@ -152,9 +150,7 @@ def prep_check_adata(
         var=var,
         uns=uns,
     )
-    # `obsm`/`obsp` are assigned rather than passed to the constructor, whose
-    # signature types their values as `Sequence[Any]` -- too narrow for the frames
-    # and sparse matrices anndata in fact stores there.
+    # assigned rather than passed: the constructor types these as `Sequence[Any]`
     for key, pairwise in old_obsp.items():
         adata.obsp[key] = pairwise
     for key, embedding in obsm_arrays.items():

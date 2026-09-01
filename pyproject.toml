@@ -23,18 +23,20 @@ authors = [
   { name = "Ricardo Omar Ramirez Flores" },
   { name = "Julio Saez-Rodriguez" },
 ]
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.12"
 classifiers = [
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Typing :: Typed",
 ]
 dependencies = [
   "anndata>=0.13",
+  "fast-array-utils",
   "mudata",
   "numba",
-  "pandas<3",         # pandas 3.0 breaks rank_aggregate consensus (None->'nan' string columns); revisit once resolved (#244)
+  "pandas",
   "plotnine>=0.10.1",
   "scanpy",
   "session-info2",
@@ -131,9 +133,9 @@ envs.docs.dependency-groups = [ "doc" ]
 envs.hatch-test.features = [ "extras" ]
 envs.hatch-test.matrix = [
   # Test the lowest and highest supported Python versions with normal deps
-  { deps = [ "stable" ], python = [ "3.12", "3.13" ] },
+  { deps = [ "stable" ], python = [ "3.12", "3.14" ] },
   # Test the newest supported Python version also with pre-release deps
-  { deps = [ "pre" ], python = [ "3.13" ] },
+  { deps = [ "pre" ], python = [ "3.14" ] },
 ]
 # If the matrix variable `deps` is set to "pre",
 # set the environment variable `UV_PRERELEASE` to "allow".
@@ -206,7 +208,6 @@ lint.pydocstyle.convention = "numpy"
 
 [tool.mypy]
 files = [ "src", "tests" ]
-python_version = "3.12"
 # `disallow_untyped_calls` (from `strict`) is about *our* code being annotated; it
 # should not fire for calls into dependencies that simply ship no annotations. These
 # are the same packages listed as `follow_untyped_imports` below -- reading them from

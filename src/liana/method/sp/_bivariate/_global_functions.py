@@ -189,7 +189,5 @@ def _lee_stat(x_mat: np.ndarray, y_mat: np.ndarray, weight: Weight) -> np.ndarra
     return np.asarray(((weight @ x_mat) * y_mat).sum(axis=0) / weight.sum())
 
 
-# The registered instances keep the module-level names; the raw statistics above are
-# what they wrap.
 _global_r = GlobalFunction(_morans_stat, "morans")
 _global_l = GlobalFunction(_lee_stat, "lee")

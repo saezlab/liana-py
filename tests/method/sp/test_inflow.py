@@ -4,9 +4,10 @@ import numpy as np
 import pandas as pd
 import pytest
 from anndata import AnnData
+from fast_array_utils.conv import to_dense
 from mudata import MuData
 from scipy.sparse import csr_matrix
-from tests._helpers import as_anndata, get_obs, get_x, to_dense
+from tests._helpers import as_anndata, get_obs, get_x
 
 from liana.datasets._sample_resource import sample_resource
 from liana.method import inflow

@@ -3,8 +3,9 @@ from itertools import product
 import numpy as np
 import pytest
 from anndata import AnnData
+from fast_array_utils.conv import to_dense
 from mudata import MuData
-from tests._helpers import as_anndata, get_layer, get_raw_x, get_x, to_dense
+from tests._helpers import as_anndata, get_layer, get_raw_x, get_x
 
 from liana._core._constants import DefaultValues as V
 from liana.datasets._sample_anndata import generate_anndata

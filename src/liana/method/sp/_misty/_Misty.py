@@ -6,6 +6,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 from anndata import AnnData
+from fast_array_utils.conv import to_dense
 from mudata import MuData
 from numpy.typing import NDArray
 from sklearn.linear_model import LinearRegression, RidgeCV
@@ -17,7 +18,7 @@ from liana._core._constants import DefaultValues as V
 from liana._core._constants import Keys as K
 from liana._core._docs import d
 from liana._core._pipe_utils._pre import _choose_mtx_rep
-from liana._core._types import MatrixLike, _to_matrix, get_obs, get_x, to_dense
+from liana._core._types import MatrixLike, _to_matrix, get_obs, get_x
 from liana.method.sp._misty._single_view_models import SingleViewModel
 
 

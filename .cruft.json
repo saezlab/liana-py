@@ -1,7 +1,7 @@
 {
   "template": "https://github.com/scverse/cookiecutter-scverse",
   "commit": "eb4523fde2e18bcfc121ff2cd722c9037ff8b910",
-  "checkout": null,
+  "checkout": "main",
   "context": {
     "cookiecutter": {
       "project_name": "liana",

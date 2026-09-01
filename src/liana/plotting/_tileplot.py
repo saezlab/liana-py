@@ -98,8 +98,7 @@ def tileplot(
     liana_res = _filter_by(liana_res, filter_fn)
     liana_res = _get_top_n(liana_res, top_n, orderby, orderby_ascending, orderby_absolute)
 
-    # Checked here rather than via `_check_var` below, which runs after `fill`/`label`
-    # are first used to pick out the relevant columns.
+    # checked here because `_check_var` below runs after `fill`/`label` are used
     if fill is None:
         raise ValueError("`fill` must be provided!")
     if label is None:

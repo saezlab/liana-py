@@ -271,8 +271,7 @@ def liana_pipe(
                 )
             if _consensus_opts is False:  # Return by method results as they are
                 return lrs
-            # local import: `_rank_aggregate` imports this module, so a module-level
-            # import here would close a circular import
+            # local import: `_rank_aggregate` imports this module
             from liana.method.sc._rank_aggregate import AggregateClass
 
             if not isinstance(_score, AggregateClass):

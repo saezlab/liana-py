@@ -2,6 +2,12 @@
 
 These are the only tests that reach the network, and they cache what they
 download under ``tests/.cache``.
+
+CI runs the suite with ``pytest -n auto``, which gives every xdist worker its own
+session and so its own copy of these session-scoped fixtures. The cache directory
+is shared between them, so each download goes to a path private to the process and
+is then moved into place with :func:`os.replace`, which is atomic: a worker either
+sees the finished file or none at all, never a partial one.
 """
 
 from __future__ import annotations
@@ -9,6 +15,7 @@ from __future__ import annotations
 import contextlib
 import os
 import pathlib
+import shutil
 import sqlite3
 
 import pytest
@@ -50,14 +57,20 @@ def metalinks_db(download_cache: pathlib.Path) -> str:
 
     path = download_cache / "metalinksdb.db"
     if path.exists() and not _readable_sqlite(path):
-        path.unlink()
+        path.unlink(missing_ok=True)
 
-    cwd = os.getcwd()
-    os.chdir(download_cache)
-    try:
-        return _download_metalinksdb(verbose=False)
-    finally:
-        os.chdir(cwd)
+    if not path.exists():
+        staging = download_cache / f".part-{os.getpid()}-metalinksdb"
+        staging.mkdir(parents=True, exist_ok=True)
+        cwd = os.getcwd()
+        os.chdir(staging)
+        try:
+            os.replace(_download_metalinksdb(verbose=False), path)
+        finally:
+            os.chdir(cwd)
+            shutil.rmtree(staging, ignore_errors=True)
+
+    return str(path)
 
 
 @pytest.fixture(scope="session")
@@ -68,8 +81,7 @@ def hcop_file(download_cache: pathlib.Path) -> str:
     path = download_cache / "human_mouse_hcop_fifteen_column.txt.gz"
 
     if not path.exists():
-        part = path.with_name(".part-" + path.name)
-        part.unlink(missing_ok=True)
+        part = path.with_name(f".part-{os.getpid()}-{path.name}")
         try:
             get_hcop_orthologs(target_organism="mouse", filename=str(part), min_evidence=0)
             os.replace(part, path)

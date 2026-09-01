@@ -16,7 +16,7 @@ from liana._core._constants import DefaultValues as V
 from liana._core._constants import DeMethod
 from liana._core._constants import Keys as K
 from liana._core._docs import d
-from liana._core._types import get_obs_frame
+from liana._core._types import get_obs
 from liana.method.sc._liana_pipe import MdataKwargs, SpatialKwargs, liana_pipe
 
 type ScoreValues = NDArray[np.floating] | Series
@@ -87,9 +87,7 @@ class MethodMeta:
     # weak references, so a method instance is not kept alive by this registry
     instances: list[weakref.ref[MethodMeta]] = []
 
-    # Concrete methods are callable; the two subclasses below (`Method` and
-    # `AggregateClass`) each define `__call__` with their own parameters, which is
-    # what `by_sample` invokes.
+    # `Method` and `AggregateClass` each define `__call__`; `by_sample` invokes it
     __call__: Callable[..., DataFrame | dict[str, DataFrame] | None]
 
     def __init__(
@@ -174,7 +172,7 @@ class MethodMeta:
         else the DataFrame is returned.
 
         """
-        obs = get_obs_frame(adata)
+        obs = get_obs(adata)
         if sample_key not in obs:
             raise ValueError(f"{sample_key} was not found in `adata.obs`.")
 

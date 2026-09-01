@@ -70,9 +70,7 @@ def interpolate_adata(
     )
     copy_aligned(ad, obsm=reference.obsm, obsp=reference.obsp, varm=target.varm)
 
-    # Left shape-agnostic on purpose: `griddata` is documented (and stubbed) for 1-D
-    # `values`, but passes them to `LinearNDInterpolator`, which takes `(npoints, ...)`
-    # -- one column per variable, as here.
+    # `griddata` is stubbed for 1-D `values` but forwards `(npoints, ...)` to `LinearNDInterpolator`
     values: NDArray[np.floating] = _choose_mtx_rep(
         adata=target, use_raw=use_raw, layer=layer, verbose=verbose
     ).toarray()

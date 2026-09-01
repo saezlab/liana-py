@@ -65,8 +65,7 @@ def _get_means_perms(
 
     """
     X = get_x(adata)
-    # Gate on the value, not its concrete numpy type: an `isinstance(..., np.float32)`
-    # check silently skipped normalisation for a plain `float`.
+    # gating on `isinstance(..., np.float32)` silently skipped a plain `float`
     if norm_factor is not None:
         # Divide out-of-place (not `/=`) so we don't mutate the caller's matrix -- `adata.X`
         # may share its buffer with `adata.raw.X`. Cast back to the original dtype because

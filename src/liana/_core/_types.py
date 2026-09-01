@@ -11,31 +11,24 @@ the union around or silencing it.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
-from anndata import AnnData
+from fast_array_utils.types import CSBase
 from numpy.typing import NDArray
-from scipy.sparse import csc_array, csc_matrix, csr_array, csr_matrix, sparray, spmatrix
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
 
+    from anndata import AnnData
     from mudata import MuData
 
-type SparseMatrix = csr_matrix | csc_matrix | csr_array | csc_array
-"""The compressed-sparse types anndata stores and scipy can convert between.
 
-Spelled out rather than using scipy's abstract `spmatrix`/`sparray` bases, because
-the concrete classes are what both `scipy.sparse`'s own constructors and anndata's
-`obsm` setter accept.
-"""
-
-type MatrixLike = NDArray[np.number] | SparseMatrix
+type MatrixLike = NDArray[np.number] | CSBase
 """An expression matrix, dense or sparse -- the only shapes liana operates on."""
 
-type ObsmValue = pd.DataFrame | NDArray[np.generic] | SparseMatrix
+type ObsmValue = pd.DataFrame | NDArray[np.generic] | CSBase
 """A value :attr:`~anndata.AnnData.obsm` can hold.
 
 anndata\'s public `AxisStorable` is wider than this (it also covers `uns`, so it
@@ -48,7 +41,7 @@ def _to_matrix(x: object, *, what: str) -> MatrixLike:
     """Narrow ``x`` to a :data:`MatrixLike`, or explain why it is not one."""
     if x is None:
         raise ValueError(f"`{what}` is empty; liana needs an expression matrix.")
-    if not isinstance(x, np.ndarray | csr_matrix | csc_matrix | csr_array | csc_array):
+    if not isinstance(x, np.ndarray | CSBase):
         raise TypeError(
             f"`{what}` must be an in-memory dense or sparse matrix, got {type(x).__name__}. "
             "Backed and lazily-loaded matrices are not supported; load it into memory first."
@@ -99,15 +92,6 @@ def copy_aligned(
         target.varm[key] = value
 
 
-def to_dense(x: MatrixLike) -> NDArray[np.number]:
-    """Densify ``x`` if it is sparse.
-
-    `np.asarray` must not be used for this: on a sparse matrix it produces a 0-d
-    object array rather than the dense contents.
-    """
-    return x.toarray() if isinstance(x, spmatrix | sparray) else x
-
-
 def get_raw_x(adata: AnnData) -> MatrixLike:
     """Return ``adata.raw.X``, narrowed to an in-memory matrix."""
     if adata.raw is None:
@@ -125,22 +109,12 @@ def get_coordinates(adata: AnnData, spatial_key: str) -> NDArray[np.float64]:
     if spatial_key not in adata.obsm:
         raise KeyError(f"`adata.obsm['{spatial_key}']` not found; is the data spatial?")
     entry = adata.obsm[spatial_key]
-    if isinstance(entry, spmatrix | sparray):
+    if isinstance(entry, CSBase):
         raise TypeError(f"`adata.obsm['{spatial_key}']` must be dense coordinates, got {type(entry).__name__}.")
     coordinates = np.asarray(entry, dtype=np.float64)
     if coordinates.ndim != 2:
         raise ValueError(f"`adata.obsm['{spatial_key}']` must be 2-dimensional, got {coordinates.ndim} dimension(s).")
     return coordinates
-
-
-def get_obs_frame(data: AnnData | MuData) -> pd.DataFrame:
-    """``.obs`` of an AnnData or MuData, as a DataFrame."""
-    return get_obs(data) if isinstance(data, AnnData) else data.obs
-
-
-def get_var_frame(data: AnnData | MuData) -> pd.DataFrame:
-    """``.var`` of an AnnData or MuData, as a DataFrame."""
-    return get_var(data) if isinstance(data, AnnData) else data.var
 
 
 def get_obsm_frame(adata: AnnData, key: str) -> pd.DataFrame:
@@ -153,23 +127,21 @@ def get_obsm_frame(adata: AnnData, key: str) -> pd.DataFrame:
     return entry
 
 
-def get_obs(adata: AnnData) -> pd.DataFrame:
-    """Return :attr:`~anndata.AnnData.obs`, narrowed to a :class:`~pandas.DataFrame`."""
-    obs = adata.obs
-    if not isinstance(obs, pd.DataFrame):
+def _annotation(data: AnnData | MuData, axis: Literal["obs", "var"]) -> pd.DataFrame:
+    frame = getattr(data, axis)
+    if not isinstance(frame, pd.DataFrame):
         raise TypeError(
-            f"`adata.obs` must be a pandas DataFrame, got {type(obs).__name__}. "
+            f"`.{axis}` must be a pandas DataFrame, got {type(frame).__name__}. "
             "Lazily-backed (xarray) annotations are not supported."
         )
-    return obs
+    return frame
 
 
-def get_var(adata: AnnData) -> pd.DataFrame:
-    """Return :attr:`~anndata.AnnData.var`, narrowed to a :class:`~pandas.DataFrame`."""
-    var = adata.var
-    if not isinstance(var, pd.DataFrame):
-        raise TypeError(
-            f"`adata.var` must be a pandas DataFrame, got {type(var).__name__}. "
-            "Lazily-backed (xarray) annotations are not supported."
-        )
-    return var
+def get_obs(data: AnnData | MuData) -> pd.DataFrame:
+    """Return ``.obs``, narrowed to a :class:`~pandas.DataFrame`."""
+    return _annotation(data, "obs")
+
+
+def get_var(data: AnnData | MuData) -> pd.DataFrame:
+    """Return ``.var``, narrowed to a :class:`~pandas.DataFrame`."""
+    return _annotation(data, "var")

@@ -52,8 +52,7 @@ def _add_complexes_to_var(
     return combined
 
 
-# Wider than `MatrixLike`: `_norm_max` passes the result of `csr / ndarray`, which
-# scipy returns as a coo matrix.
+# `_norm_max` passes `csr / ndarray`, which scipy returns as a coo matrix
 type _ZScoreInput = np.ndarray | csr_matrix | coo_matrix
 
 
