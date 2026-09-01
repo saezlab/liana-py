@@ -87,8 +87,7 @@ def invalid(value: object) -> Any:
 def get_csr(adata: AnnData) -> csr_matrix:
     """``adata.X``, checked to be the CSR matrix liana's pipeline produces.
 
-    Tests that read ``.data`` (the stored values) need the sparse form, not just
-    "a matrix".
+    Tests that read ``.data`` (the stored values) need the sparse form, not just "a matrix".
     """
     X = get_x(adata)
     assert isinstance(X, csr_matrix)

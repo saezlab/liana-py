@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from anndata import AnnData
+from fast_array_utils.conv import to_dense
 from tests._helpers import as_frame, get_csr, get_layer_csr, get_x
 
 from liana._core._pipe_utils._pre import assert_covered, prep_check_adata
@@ -10,8 +11,10 @@ def test_prep_check_adata(pbmc68k: AnnData) -> None:
     temp = prep_check_adata(adata=pbmc68k, groupby="bulk_labels", min_cells=0, use_raw=True, layer=None)
     np.testing.assert_almost_equal(np.sum(get_csr(temp).data), 319044.22, decimal=1)
 
-    desired = np.array([2.177, 2.177, 2.544, 2.544, 1.591, 1.591, 1.591, 1.591, 1.591, 1.591])
-    np.testing.assert_almost_equal(get_csr(temp).data[0:10], desired, decimal=3)
+    # By name and dense: a CSR is free to store its columns in any order within a row, so `.data` alone says nothing about which gene a value belongs to.
+    desired = np.array([[0.0, 1.591, 2.544, 0.0, 0.0, 2.177], [0.0, 0.0, 2.496, 0.0, 0.0, 0.0]])
+    corner = temp[temp.obs_names[:2], temp.var_names[:6]]
+    np.testing.assert_almost_equal(to_dense(get_x(corner)), desired, decimal=3)
 
     # test filtering
     filt = prep_check_adata(adata=pbmc68k, groupby="bulk_labels", min_cells=20, use_raw=True)
