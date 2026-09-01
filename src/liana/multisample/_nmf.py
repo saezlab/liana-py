@@ -7,22 +7,24 @@ from anndata import AnnData
 from sklearn.decomposition import NMF
 from tqdm import tqdm
 
-from liana._core._docs import d
 from liana._core._common import _check_if_installed, _logg
+from liana._core._docs import d
 from liana._core._pipe_utils._pre import _choose_mtx_rep
+from liana._core._types import MatrixLike
 
 
 @d.dedent
-def nmf(adata: AnnData = None,
-        df: pd.DataFrame = None,
-        n_components: int | None = None,
-        k_range: range = range(1, 11),
-        use_raw: bool = False,
-        layer: str | None = None,
-        inplace: bool = True,
-        verbose: bool = False,
-        **kwargs
-        ) -> tuple[np.ndarray, np.ndarray, pd.DataFrame | None, int] | None:
+def nmf(
+    adata: AnnData | None = None,
+    df: pd.DataFrame | None = None,
+    n_components: int | None = None,
+    k_range: range = range(1, 11),
+    use_raw: bool = False,
+    layer: str | None = None,
+    inplace: bool = True,
+    verbose: bool = False,
+    **kwargs: object,
+) -> tuple[np.ndarray, np.ndarray, pd.DataFrame | None, int | None] | None:
     """
     Fits NMF to an AnnData object.
 
@@ -62,9 +64,7 @@ def nmf(adata: AnnData = None,
 
     >>> import liana as li
     >>> adata = li.ds.generate_toy_spatial()
-    >>> lrdata = li.mt.bivariate(adata, resource_name='consensus',
-    ...                          local_name='cosine', global_name=None,
-    ...                          n_perms=None)
+    >>> lrdata = li.mt.bivariate(adata, resource_name="consensus", local_name="cosine", global_name=None, n_perms=None)
     >>> li.ms.nmf(lrdata, n_components=3, random_state=0)
 
     Leaving `n_components` as `None` instead estimates the rank with
@@ -74,15 +74,15 @@ def nmf(adata: AnnData = None,
     :func:`liana.ms.get_variable_loadings`.
 
     """
+    X: MatrixLike
     if adata is not None:
-        if isinstance(adata, AnnData):
-            X = _choose_mtx_rep(adata, layer=layer, use_raw=use_raw)
-        else :
-            raise ValueError('Provide an AnnData object.')
+        if not isinstance(adata, AnnData):
+            raise ValueError("Provide an AnnData object.")
+        X = _choose_mtx_rep(adata, layer=layer, use_raw=use_raw)
     elif df is not None:
-        X = df.values
+        X = df.to_numpy()
     else:
-        raise ValueError('Provide either an AnnData object or a DataFrame.')
+        raise ValueError("Provide either an AnnData object or a DataFrame.")
 
     if n_components is None:
         errors, n_components = estimate_elbow(X, k_range=k_range, verbose=verbose, **kwargs)
@@ -94,17 +94,22 @@ def nmf(adata: AnnData = None,
     W = nmf.fit_transform(X)
     H = nmf.components_.T
 
-    inplace = inplace and (adata is not None)
-    if inplace:
-        adata.obsm['NMF_W'] = W
-        adata.varm['NMF_H'] = H
-        adata.uns['nmf_errors'] = errors
-        adata.uns['nmf_rank'] = n_components
+    if inplace and adata is not None:
+        adata.obsm["NMF_W"] = W
+        adata.varm["NMF_H"] = H
+        adata.uns["nmf_errors"] = errors
+        adata.uns["nmf_rank"] = n_components
+        return None
 
-    return None if inplace else (W, H, errors, n_components)
+    return W, H, errors, n_components
 
 
-def estimate_elbow(X, k_range, verbose=False, **kwargs):
+def estimate_elbow(
+    X: MatrixLike,
+    k_range: range,
+    verbose: bool = False,
+    **kwargs: object,
+) -> tuple[pd.DataFrame, int | None]:
     """
     Estimate the rank of an NMF factorization from the elbow of its error curve.
 
@@ -134,10 +139,8 @@ def estimate_elbow(X, k_range, verbose=False, **kwargs):
     >>> import numpy as np
     >>> import liana as li
     >>> W = np.repeat(np.eye(2), 6, axis=0)
-    >>> H = np.array([[3., 2., 1., 0., 0., 0.],
-    ...               [0., 0., 0., 1., 2., 3.]])
-    >>> errors, rank = li.ms.estimate_elbow(W @ H, k_range=range(1, 6),
-    ...                                        random_state=0, max_iter=500)
+    >>> H = np.array([[3.0, 2.0, 1.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0, 2.0, 3.0]])
+    >>> errors, rank = li.ms.estimate_elbow(W @ H, k_range=range(1, 6), random_state=0, max_iter=500)
 
     `rank` is the knee of the error curve -- 2 here, since the error collapses as soon
     as `k` reaches the true rank and cannot improve after.
@@ -147,50 +150,45 @@ def estimate_elbow(X, k_range, verbose=False, **kwargs):
     lowest value.
 
     """
-    kn = _check_if_installed('kneed')
-    errors = []
-    for k in tqdm(k_range, disable=not verbose):
-        error = _calculate_error(X, k, **kwargs)
-        errors.append(error)
+    kn = _check_if_installed("kneed")
+    error_values = [_calculate_error(X, k, **kwargs) for k in tqdm(k_range, disable=not verbose)]
 
-    kneedle = kn.KneeLocator(x=k_range,
-                             y=errors,
-                             direction='decreasing',
-                             curve='convex',
-                             interp_method='interp1d',
-                             S=1
-                             )
+    kneedle = kn.KneeLocator(
+        x=k_range, y=error_values, direction="decreasing", curve="convex", interp_method="interp1d", S=1
+    )
     rank = kneedle.knee
 
-    _logg(f'Estimated rank: {rank}', verbose=verbose)
+    _logg(f"Estimated rank: {rank}", verbose=verbose)
 
-    errors = pd.DataFrame(errors,
-                          index=list(k_range),
-                          columns=['error']). \
-                              reset_index().rename(columns={'index': 'k'})
+    errors = (
+        pd.DataFrame(error_values, index=list(k_range), columns=["error"]).reset_index().rename(columns={"index": "k"})
+    )
 
     return errors, rank
 
 
-def _calculate_error(X, n_components, **kwargs):
+def _calculate_error(X: MatrixLike, n_components: int, **kwargs: object) -> float:
     nmf = NMF(n_components=n_components, **kwargs)
     W = nmf.fit_transform(X)
     H = nmf.components_
 
     Xhat = np.dot(W, H)
-    error = np.mean(np.abs(X - Xhat))
-
-    return error
+    return float(np.mean(np.abs(X - Xhat)))
 
 
-def _plot_elbow(errors, n_components, x='k', y='error'):
+def _plot_elbow(
+    errors: pd.DataFrame,
+    n_components: int | None,
+    x: str = "k",
+    y: str = "error",
+) -> None:
     p = (
-        p9.ggplot(errors, p9.aes(x=x, y=y)) +
-        p9.geom_line() +
-        p9.geom_point() +
-        p9.theme_bw() +
-        p9.scale_x_continuous(breaks=errors[x].values) +
-        p9.labs(x='Component number (k)', y='Reconstruction error') +
-        p9.geom_vline(xintercept=n_components, linetype='dashed', color='red')
+        p9.ggplot(errors, p9.aes(x=x, y=y))
+        + p9.geom_line()
+        + p9.geom_point()
+        + p9.theme_bw()
+        + p9.scale_x_continuous(breaks=errors[x].to_list())
+        + p9.labs(x="Component number (k)", y="Reconstruction error")
+        + p9.geom_vline(xintercept=n_components, linetype="dashed", color="red")
     )
     p.draw()

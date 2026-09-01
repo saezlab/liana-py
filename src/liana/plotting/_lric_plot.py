@@ -1,20 +1,23 @@
+from __future__ import annotations
+
+from collections.abc import Iterable
+
 import numpy as np
 import pandas as pd
 import plotnine as p9
 from anndata import AnnData
-from matplotlib.figure import Figure
 
 from liana._core._common import _get_liana_res
 from liana._core._constants import DefaultValues as V
 from liana._core._docs import d
-from liana.method.sp._lric_helpers import _log2_floor, _mean_curve, get_lric_divergence
+from liana.method.sp._lric_helpers import CurveTransform, _log2_floor, _mean_curve, get_lric_divergence
 
 _ID_COLS = ("source", "target", "ligand_complex", "receptor_complex", "interaction")
 
 
-def _preview(values, n=10):
-    values = list(dict.fromkeys(map(str, values)))
-    return ", ".join(values[:n]) + (f", ... ({len(values)} total)" if len(values) > n else "")
+def _preview(values: Iterable[object], n: int = 10) -> str:
+    unique = list(dict.fromkeys(map(str, values)))
+    return ", ".join(unique[:n]) + (f", ... ({len(unique)} total)" if len(unique) > n else "")
 
 
 @d.dedent
@@ -28,7 +31,7 @@ def lric_lineplot(
     max_dist: float | None = None,
     figure_size: tuple[float, float] = (6, 4),
     return_fig: bool = V.return_fig,
-) -> Figure:
+) -> p9.ggplot | None:
     """
     Plot the g(r) profile of a single interaction from ``lric`` / ``cross_pcf``.
 
@@ -88,27 +91,16 @@ def lric_lineplot(
     if "ligand_complex" in ids:
         title = f"{title}: {row['interaction']}" if title else str(row["interaction"])
 
-    curves = (
-        {"g": "g (full)", "g_pcf": "g_pcf", "g_expr": "g_expr"}
-        if "g_pcf" in res.columns
-        else {"g": "g(r)"}
-    )
+    curves = {"g": "g (full)", "g_pcf": "g_pcf", "g_expr": "g_expr"} if "g_pcf" in res.columns else {"g": "g(r)"}
     res = res.sort_values("radius")
     if max_dist is not None:
         in_window = res[res["radius"] < max_dist]
         if in_window.empty:
-            raise ValueError(
-                f"No radii below `max_dist={max_dist}`; the grid is "
-                f"{_preview(res['radius'].unique())}."
-            )
+            raise ValueError(f"No radii below `max_dist={max_dist}`; the grid is {_preview(res['radius'].unique())}.")
         res = in_window
     df = pd.concat(
         [
-            pd.DataFrame(
-                {"radius": res["radius"].to_numpy(float),
-                 "g": res[col].to_numpy(float),
-                 "curve": label}
-            )
+            pd.DataFrame({"radius": res["radius"].to_numpy(float), "g": res[col].to_numpy(float), "curve": label})
             for col, label in curves.items()
         ],
         ignore_index=True,
@@ -131,6 +123,7 @@ def lric_lineplot(
         return p
 
     p.draw()
+    return None
 
 
 @d.dedent
@@ -138,14 +131,14 @@ def lric_divergence_plot(
     adata: AnnData | None = None,
     uns_key: str = "lric",
     liana_res: pd.DataFrame | None = None,
-    feature_a: dict | None = None,
-    feature_b: dict | None = None,
+    feature_a: dict[str, object] | None = None,
+    feature_b: dict[str, object] | None = None,
     max_dist: float | None = None,
-    transform_fn=_log2_floor,
+    transform_fn: CurveTransform = _log2_floor,
     min_bins: int = 3,
     figure_size: tuple[float, float] = (6, 4),
     return_fig: bool = V.return_fig,
-) -> Figure:
+) -> p9.ggplot | None:
     """
     Plot two ``transform_fn(g(r))`` curves and the area between them.
 
@@ -173,7 +166,7 @@ def lric_divergence_plot(
         Compare and draw only radii ``r < max_dist``; ``None`` uses all radii.
     transform_fn
         Applied to ``g`` before comparing; defaults to log2 with ``g`` floored
-        at ``0.05``. Pass :func:`numpy.log2` to drop non-finite bins instead.
+        at ``0.05``. Pass :obj:`numpy.log2` to drop non-finite bins instead.
     min_bins
         Minimum shared finite radius bins required; fewer raises a ``ValueError``.
     %(figure_size)s
@@ -187,50 +180,56 @@ def lric_divergence_plot(
     --------
     >>> import liana as li
     >>> adata = li.ds.generate_toy_spatial()
-    >>> li.mt.cross_pcf(adata, groupby='bulk_labels', key_added='cross_pcf')
+    >>> li.mt.cross_pcf(adata, groupby="bulk_labels", key_added="cross_pcf")
     >>> p = li.pl.lric_divergence_plot(
-    ...     adata, 'cross_pcf',
-    ...     feature_a=dict(source='CD14+ Monocyte', target='CD34+'),
-    ...     feature_b=dict(source='CD14+ Monocyte', target='CD19+ B'),
+    ...     adata,
+    ...     "cross_pcf",
+    ...     feature_a=dict(source="CD14+ Monocyte", target="CD34+"),
+    ...     feature_b=dict(source="CD14+ Monocyte", target="CD19+ B"),
     ... )
     """
     res = _get_liana_res(adata, liana_res, uns_key)
+    if not feature_a or not feature_b:
+        raise ValueError("`feature_a` and `feature_b` selections must be provided!")
     div = get_lric_divergence(
-        liana_res=res, feature_a=feature_a, feature_b=feature_b,
-        max_dist=max_dist, transform_fn=transform_fn, min_bins=min_bins,
+        liana_res=res,
+        feature_a=feature_a,
+        feature_b=feature_b,
+        max_dist=max_dist,
+        transform_fn=transform_fn,
+        min_bins=min_bins,
     )
 
     ids = [c for c in _ID_COLS if c in res.columns]
     curves = pd.concat(
-        {div["label_a"]: _mean_curve(res, feature_a, ids, transform_fn),
-         div["label_b"]: _mean_curve(res, feature_b, ids, transform_fn)},
+        [_mean_curve(res, feature_a, ids, transform_fn), _mean_curve(res, feature_b, ids, transform_fn)],
         axis=1,
+        keys=[div["label_a"], div["label_b"]],
     )
     curves = curves[np.isfinite(curves).all(axis=1)]
     if max_dist is not None:
         curves = curves[curves.index < max_dist]
 
-    ribbon = pd.DataFrame({
-        "radius": curves.index,
-        "ymin": curves.min(axis=1),
-        "ymax": curves.max(axis=1),
-    })
-    df = curves.rename_axis("radius").reset_index().melt(
-        id_vars="radius", var_name="curve", value_name="g"
+    ribbon = pd.DataFrame(
+        {
+            "radius": curves.index,
+            "ymin": curves.min(axis=1),
+            "ymax": curves.max(axis=1),
+        }
     )
+    df = curves.rename_axis("radius").reset_index().melt(id_vars="radius", var_name="curve", value_name="g")
 
     ylab = "log2 g(r)" if transform_fn in (_log2_floor, np.log2) else "transform(g(r))"
     p = (
         p9.ggplot(df, p9.aes("radius", "g", color="curve"))
-        + p9.geom_ribbon(p9.aes(x="radius", ymin="ymin", ymax="ymax"),
-                         data=ribbon, fill="grey", alpha=0.35, inherit_aes=False)
+        + p9.geom_ribbon(
+            p9.aes(x="radius", ymin="ymin", ymax="ymax"), data=ribbon, fill="grey", alpha=0.35, inherit_aes=False
+        )
         + p9.geom_hline(yintercept=0, linetype="dashed", color="grey")
         + p9.geom_vline(xintercept=div["r_star"], linetype="dotted", color="black")
         + p9.geom_line()
         + p9.geom_point(size=1.2)
-        + p9.labs(x="Radius (r)", y=ylab,
-                  title=f"divergence={div['divergence']:.3g}  r*={div['r_star']:g}",
-                  color="")
+        + p9.labs(x="Radius (r)", y=ylab, title=f"divergence={div['divergence']:.3g}  r*={div['r_star']:g}", color="")
         + p9.theme_bw()
         + p9.theme(figure_size=figure_size)
     )
@@ -239,3 +238,4 @@ def lric_divergence_plot(
         return p
 
     p.draw()
+    return None

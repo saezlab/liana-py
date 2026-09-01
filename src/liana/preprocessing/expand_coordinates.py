@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 from anndata import AnnData
 
+from liana._core._types import get_coordinates, get_obs
+
 
 def expand_coordinates(
     adata: AnnData,
@@ -46,19 +48,19 @@ def expand_coordinates(
     >>> import liana as li
     >>> adata = li.ds.generate_toy_spatial()
     >>> rng = np.random.default_rng(0)
-    >>> adata.obs['sample'] = rng.choice(['A', 'B', 'C', 'D'], size=adata.n_obs)
-    >>> expanded = li.pp.expand_coordinates(adata, sample_key='sample')
+    >>> adata.obs["sample"] = rng.choice(["A", "B", "C", "D"], size=adata.n_obs)
+    >>> expanded = li.pp.expand_coordinates(adata, sample_key="sample")
 
     """
-    if sample_key not in adata.obs:
+    if sample_key not in get_obs(adata):
         raise ValueError(f"`sample_key` '{sample_key}' was not found in `adata.obs`.")
     if spatial_key not in adata.obsm:
         raise ValueError(f"`spatial_key` '{spatial_key}' was not found in `adata.obsm`.")
 
     adata = adata.copy()
-    original = np.asarray(adata.obsm[spatial_key], dtype=float)
+    original = get_coordinates(adata, spatial_key)
 
-    samples = adata.obs[sample_key]
+    samples = get_obs(adata)[sample_key]
     if isinstance(samples.dtype, pd.CategoricalDtype):
         categories = list(samples.cat.categories)
     else:

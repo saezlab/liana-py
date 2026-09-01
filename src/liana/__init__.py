@@ -1,21 +1,22 @@
-__version__ = '2.0.0'
+__version__ = "2.0.0"
 
 import sys
 
 from scanpy._utils import annotate_doc_types
 
+from liana import datasets as ds
+
 # method first: it initializes shared state other packages import during load
 from liana import method as mt
-from liana import datasets as ds
 from liana import multisample as ms
 from liana import plotting as pl
 from liana import preprocessing as pp
 from liana import resource as rs
 
-__all__ = ['ds', 'ms', 'mt', 'pl', 'pp', 'rs']
+__all__ = ["ds", "ms", "mt", "pl", "pp", "rs"]
 
 # register short aliases as importable modules (`import liana.mt`)
-sys.modules.update({f'{__name__}.{m}': globals()[m] for m in __all__})
-annotate_doc_types(sys.modules[__name__], 'liana')
+sys.modules.update({f"{__name__}.{m}": globals()[m] for m in __all__})
+annotate_doc_types(sys.modules[__name__], "liana")
 
 del sys, annotate_doc_types

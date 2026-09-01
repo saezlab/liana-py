@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import warnings as warnings
-from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
@@ -9,27 +8,29 @@ from anndata import AnnData
 from mudata import MuData
 from tqdm import tqdm
 
+from liana._core._common import _check_if_installed, _logg
 from liana._core._constants import DefaultValues as V
 from liana._core._constants import Keys as K
 from liana._core._constants import PrimaryColumns as P
 from liana._core._docs import d
-from liana._core._common import _check_if_installed, _logg
 from liana._core._pipe_utils import _check_groupby
+from liana._core._types import ScoreTransform, get_obs, get_var
 
 
 @d.dedent
-def adata_to_views(adata: AnnData,
-                   groupby: str,
-                   sample_key: str,
-                   obs_keys: list[str] = None,
-                   view_sep: str = ':',
-                   keep_stats: bool = False,
-                   verbose: bool = False,
-                   psbulk_kwargs: dict = None,
-                   filter_samples_kwargs: dict = None,
-                   filter_by_expr_kwargs: dict = None,
-                   filter_by_prop_kwargs: dict = None,
-                   ) -> MuData:
+def adata_to_views(
+    adata: AnnData,
+    groupby: str,
+    sample_key: str,
+    obs_keys: list[str] | None = None,
+    view_sep: str = ":",
+    keep_stats: bool = False,
+    verbose: bool = False,
+    psbulk_kwargs: dict[str, object] | None = None,
+    filter_samples_kwargs: dict[str, object] | None = None,
+    filter_by_expr_kwargs: dict[str, object] | None = None,
+    filter_by_prop_kwargs: dict[str, object] | None = None,
+) -> MuData:
     """
     Converts an AnnData object to a MuData object with views that represent an aggregate for each entity in `adata.obs[groupby]`.
 
@@ -65,11 +66,13 @@ def adata_to_views(adata: AnnData,
 
     >>> import liana as li
     >>> adata = li.ds.generate_toy_adata()
-    >>> mdata = li.ms.adata_to_views(adata,
-    ...                              groupby='bulk_labels',
-    ...                              sample_key='sample',
-    ...                              obs_keys=['case'],
-    ...                              psbulk_kwargs={'raw': True, 'skip_checks': True})
+    >>> mdata = li.ms.adata_to_views(
+    ...     adata,
+    ...     groupby="bulk_labels",
+    ...     sample_key="sample",
+    ...     obs_keys=["case"],
+    ...     psbulk_kwargs={"raw": True, "skip_checks": True},
+    ... )
 
     Only the views that survive the expression filters are kept, each variable is
     prefixed with its view, and `obs_keys` are joined onto the sample-level `.obs`.
@@ -100,21 +103,12 @@ def adata_to_views(adata: AnnData,
         # filter AnnData to view
         temp = adata[adata.obs[groupby] == view].copy()
 
-        padata = dc.pp.pseudobulk(
-            temp,
-            sample_col=sample_key,
-            groups_col=None,
-            **psbulk_kwargs
-        )
+        padata = dc.pp.pseudobulk(temp, sample_col=sample_key, groups_col=None, **psbulk_kwargs)
         # assign view to var_names
         padata.var_names = view + view_sep + padata.var_names
 
         if filter_samples_kwargs:
-            dc.pp.filter_samples(
-                padata,
-                inplace=True,
-                **filter_samples_kwargs
-            )
+            dc.pp.filter_samples(padata, inplace=True, **filter_samples_kwargs)
 
         # only filter genes for views that pass QC
         if 0 in padata.shape:
@@ -122,25 +116,17 @@ def adata_to_views(adata: AnnData,
 
         # edgeR filtering
         if filter_by_expr_kwargs:
-            dc.pp.filter_by_expr(
-                padata,
-                inplace=True,
-                **filter_by_expr_kwargs
-            )
+            dc.pp.filter_by_expr(padata, inplace=True, **filter_by_expr_kwargs)
 
         # filter genes by proportion of cells that have counts
         if filter_by_prop_kwargs:
-            dc.pp.filter_by_prop(
-                padata,
-                inplace=True,
-                **filter_by_prop_kwargs
-            )
+            dc.pp.filter_by_prop(padata, inplace=True, **filter_by_prop_kwargs)
 
         # only append views that pass QC
         if 0 not in padata.shape:
             # keep psbulk stats
             if keep_stats:
-                df = padata.obs.filter(items=['psbulk_n_cells', 'psbulk_counts'], axis=1)
+                df = padata.obs.filter(items=["psbulk_n_cells", "psbulk_counts"], axis=1)
                 df.columns = [view + view_sep + col for col in df.columns]
                 stats.append(df)
 
@@ -155,34 +141,36 @@ def adata_to_views(adata: AnnData,
 
     # combine psbulk stats across views and add to mdata
     if keep_stats:
-        mdata.uns['psbulk_stats'] = pd.concat(stats, axis=1)
+        mdata.uns["psbulk_stats"] = pd.concat(stats, axis=1)
 
     return mdata
 
+
 @d.dedent
-def lrs_to_views(adata: AnnData,
-                 score_key: str | None = None,
-                 inverse_fn: Callable = V.inverse_fn,
-                 obs_keys: list | None = None,
-                 lr_prop: float = 0.5,
-                 lr_fill: float = np.nan,
-                 lrs_per_view: int = 20,
-                 lrs_per_sample: int = 10,
-                 samples_per_view: int = 3,
-                 min_variance: int = 0,
-                 min_var_nbatches: int = 1,
-                 batch_key: str = None,
-                 lr_sep: str = V.lr_sep,
-                 cell_sep: str = '&',
-                 var_sep: str = ':',
-                 uns_key: str = K.uns_key,
-                 sample_key: str = 'sample',
-                 source_key: str = P.source,
-                 target_key: str = P.target,
-                 ligand_key: str = P.ligand_complex,
-                 receptor_key: str = P.receptor_complex,
-                 verbose: bool = V.verbose
-                 ) -> MuData:
+def lrs_to_views(
+    adata: AnnData,
+    score_key: str | None = None,
+    inverse_fn: ScoreTransform = V.inverse_fn,
+    obs_keys: list[str] | None = None,
+    lr_prop: float = 0.5,
+    lr_fill: float = np.nan,
+    lrs_per_view: int = 20,
+    lrs_per_sample: int = 10,
+    samples_per_view: int = 3,
+    min_variance: int = 0,
+    min_var_nbatches: int = 1,
+    batch_key: str | None = None,
+    lr_sep: str = V.lr_sep,
+    cell_sep: str = "&",
+    var_sep: str = ":",
+    uns_key: str = K.uns_key,
+    sample_key: str = "sample",
+    source_key: str = P.source,
+    target_key: str = P.target,
+    ligand_key: str = P.ligand_complex,
+    receptor_key: str = P.receptor_complex,
+    verbose: bool = V.verbose,
+) -> MuData:
     """
     Converts a LIANA result to a MuData object with views that represent an aggregate for each entity in `adata.obs[groupby]`.
 
@@ -241,15 +229,17 @@ def lrs_to_views(adata: AnnData,
 
     >>> import liana as li
     >>> adata = li.ds.generate_toy_adata()
-    >>> adata.uns['liana_res'] = li.ds.sample_lrs(by_sample=True)
-    >>> mdata = li.ms.lrs_to_views(adata,
-    ...                            score_key='specificity_rank',
-    ...                            obs_keys=['case'],
-    ...                            lr_prop=0.1,
-    ...                            lrs_per_sample=0,
-    ...                            lrs_per_view=5,
-    ...                            samples_per_view=0,
-    ...                            min_variance=-1)
+    >>> adata.uns["liana_res"] = li.ds.sample_lrs(by_sample=True)
+    >>> mdata = li.ms.lrs_to_views(
+    ...     adata,
+    ...     score_key="specificity_rank",
+    ...     obs_keys=["case"],
+    ...     lr_prop=0.1,
+    ...     lrs_per_sample=0,
+    ...     lrs_per_view=5,
+    ...     samples_per_view=0,
+    ...     min_variance=-1,
+    ... )
 
     Each source-target cell type pair becomes a view named `'source&target'`, of
     interactions by sample. The thresholds are relaxed below their defaults here
@@ -258,11 +248,13 @@ def lrs_to_views(adata: AnnData,
 
     """
     if (sample_key not in adata.obs.columns) or (sample_key not in adata.uns[uns_key].columns):
-        raise ValueError(f'`{sample_key}` not found in `adata.obs` or `adata.uns[uns_key]`!' +
-                         'Please ensure that the sample key is present in both objects.')
+        raise ValueError(
+            f"`{sample_key}` not found in `adata.obs` or `adata.uns[uns_key]`!"
+            + "Please ensure that the sample key is present in both objects."
+        )
 
     if uns_key not in adata.uns_keys():
-        raise ValueError(f'`{uns_key}` not found in `adata.uns`! Please run `li.mt.rank_aggregate.by_sample` first.')
+        raise ValueError(f"`{uns_key}` not found in `adata.uns`! Please run `li.mt.rank_aggregate.by_sample` first.")
 
     liana_res = adata.uns[uns_key].copy()
 
@@ -271,20 +263,20 @@ def lrs_to_views(adata: AnnData,
 
     if isinstance(obs_keys, list):
         if any(key not in adata.obs for key in obs_keys):
-            raise ValueError(f'`{obs_keys}` not found in `adata.obs`!')
+            raise ValueError(f"`{obs_keys}` not found in `adata.obs`!")
     elif obs_keys is not None:
-        raise ValueError('`obs_keys` must be a list or `None`!')
+        raise ValueError("`obs_keys` must be a list or `None`!")
 
-    keys = np.array([sample_key, source_key, target_key, ligand_key, receptor_key])
-    missing_keys = keys[[ key not in liana_res.columns for key in keys]]
+    entity_keys = [sample_key, source_key, target_key, ligand_key, receptor_key]
+    missing_keys = [key for key in entity_keys if key not in liana_res.columns]
 
-    if any(missing_keys):
-        raise ValueError(f'`{missing_keys}` not found in `adata.uns[{uns_key}]`! Please check your input.')
+    if missing_keys:
+        raise ValueError(f"`{missing_keys}` not found in `adata.uns[{uns_key}]`! Please check your input.")
 
     # concat columns (needed for MOFA)
-    liana_res['interaction'] = liana_res[ligand_key] + lr_sep + liana_res[receptor_key]
-    liana_res['ct_pair'] = liana_res[source_key] + cell_sep + liana_res[target_key]
-    keys = [sample_key, 'ct_pair', 'interaction', score_key]
+    liana_res["interaction"] = liana_res[ligand_key] + lr_sep + liana_res[receptor_key]
+    liana_res["ct_pair"] = liana_res[source_key] + cell_sep + liana_res[target_key]
+    keys = [sample_key, "ct_pair", "interaction", score_key]
     if batch_key is not None:
         keys.append(batch_key)
     liana_res = liana_res[keys]
@@ -293,54 +285,55 @@ def lrs_to_views(adata: AnnData,
     # local import: liana.method imports this package during its init, so a
     # module-level import here would close a circular import
     from liana.method import process_scores
-    liana_res = process_scores(liana_res=liana_res,
-                                score_key=score_key,
-                                inverse_fn=inverse_fn)
+
+    liana_res = process_scores(liana_res=liana_res, score_key=score_key, inverse_fn=inverse_fn)
 
     # count samples per interaction
-    count_pairs = (liana_res.
-                   groupby(['interaction', 'ct_pair']).
-                   count()[[sample_key]].
-                   rename(columns={sample_key: 'count'}).
-                   reset_index()
-                   )
+    count_pairs = (
+        liana_res.groupby(["interaction", "ct_pair"])
+        .count()[[sample_key]]
+        .rename(columns={sample_key: "count"})
+        .reset_index()
+    )
 
     sample_n = liana_res[sample_key].nunique()
 
     # Keep only lrs above a certain proportion of samples
-    count_pairs = count_pairs[count_pairs['count'] >= sample_n * lr_prop]
-    liana_res = liana_res.merge(count_pairs.drop(columns='count') , how='inner')
+    count_pairs = count_pairs[count_pairs["count"] >= sample_n * lr_prop]
+    liana_res = liana_res.merge(count_pairs.drop(columns="count"), how="inner")
 
     # Keep only samples above a certain number of LRs
-    count_lrs = (liana_res[[sample_key, 'ct_pair', 'interaction']].
-                 groupby([sample_key, 'ct_pair']).
-                 count().
-                 rename(columns={'interaction': 'count'}).
-                 reset_index()
-                 )
-    count_lrs = count_lrs[count_lrs['count'] >= lrs_per_sample]
-    liana_res = liana_res.merge(count_lrs.drop(columns='count') , how='inner')
+    count_lrs = (
+        liana_res[[sample_key, "ct_pair", "interaction"]]
+        .groupby([sample_key, "ct_pair"])
+        .count()
+        .rename(columns={"interaction": "count"})
+        .reset_index()
+    )
+    count_lrs = count_lrs[count_lrs["count"] >= lrs_per_sample]
+    liana_res = liana_res.merge(count_lrs.drop(columns="count"), how="inner")
 
     # convert to anndata views
     lr_adatas = {}
-    views = tqdm(liana_res['ct_pair'].unique(), disable=not verbose)
+    views = tqdm(liana_res["ct_pair"].unique(), disable=not verbose)
     for view in views:
-        lrs_per_ct = liana_res[liana_res['ct_pair']==view]
-        index = 'interaction' if batch_key is None else ['interaction', batch_key]
+        lrs_per_ct = liana_res[liana_res["ct_pair"] == view]
+        index = "interaction" if batch_key is None else ["interaction", batch_key]
         # check variance
-        ints_to_keep = (lrs_per_ct.groupby(index).apply(lambda x: np.nanvar(x[score_key])) > min_variance).groupby('interaction').sum() >= min_var_nbatches
+        ints_to_keep = (lrs_per_ct.groupby(index).apply(lambda x: np.nanvar(x[score_key])) > min_variance).groupby(
+            "interaction"
+        ).sum() >= min_var_nbatches
         ints_to_keep = ints_to_keep[ints_to_keep].index
 
-        lrs_wide = lrs_per_ct[lrs_per_ct['interaction'].isin(ints_to_keep)].\
-            pivot(index='interaction',
-                  columns=sample_key,
-                  values=score_key)
+        lrs_wide = lrs_per_ct[lrs_per_ct["interaction"].isin(ints_to_keep)].pivot(
+            index="interaction", columns=sample_key, values=score_key
+        )
         lrs_wide.index = view + var_sep + lrs_wide.index
         lrs_wide = lrs_wide.replace(np.nan, lr_fill)
 
-        if lrs_wide.shape[0] >= lrs_per_view: # check if enough LRs
+        if lrs_wide.shape[0] >= lrs_per_view:  # check if enough LRs
             temp = _dataframe_to_anndata(lrs_wide)
-            if (temp.shape[0] >= samples_per_view): # check if enough samples
+            if temp.shape[0] >= samples_per_view:  # check if enough samples
                 lr_adatas[view] = temp
     # to mdata
     mdata = MuData(lr_adatas)
@@ -350,14 +343,16 @@ def lrs_to_views(adata: AnnData,
 
     return mdata
 
+
 @d.dedent
-def lrdata_to_mudata(lrdata: AnnData,
-                     xy_sep: str = V.lr_sep,
-                     min_cells: int | None = V.min_cells,
-                     min_features: int | None = 10,
-                     obs_keys: list[str] | None = None,
-                     verbose: bool = V.verbose,
-                     ) -> MuData:
+def lrdata_to_mudata(
+    lrdata: AnnData,
+    xy_sep: str = V.lr_sep,
+    min_cells: int | None = V.min_cells,
+    min_features: int | None = 10,
+    obs_keys: list[str] | None = None,
+    verbose: bool = V.verbose,
+) -> MuData:
     """
     Convert an inflow score AnnData object to a MuData object, where each modality corresponds to a unique sender cell type.
 
@@ -395,8 +390,7 @@ def lrdata_to_mudata(lrdata: AnnData,
 
     >>> import liana as li
     >>> adata = li.ds.generate_toy_spatial()
-    >>> lrdata = li.mt.inflow(adata, groupby='bulk_labels',
-    ...                       resource_name='consensus')
+    >>> lrdata = li.mt.inflow(adata, groupby="bulk_labels", resource_name="consensus")
     >>> mdata = li.ms.lrdata_to_mudata(lrdata)
 
     The sender in each `'sender^ligand^receptor'` name becomes one modality, so that
@@ -417,13 +411,7 @@ def lrdata_to_mudata(lrdata: AnnData,
             f"Ensure `var_names` follow the 'TYPE{xy_sep}...' convention."
         )
 
-    modalities = (
-        lrdata.var_names
-        .str.split(xy_sep, expand=True)
-        .get_level_values(0)
-        .unique()
-        .tolist()
-    )
+    modalities = lrdata.var_names.str.split(xy_sep, expand=True).get_level_values(0).unique().tolist()
 
     if not modalities:
         raise ValueError(
@@ -447,13 +435,14 @@ def lrdata_to_mudata(lrdata: AnnData,
             sc.pp.filter_genes(adata_mod, min_cells=min_cells)
 
         if 0 in adata_mod.shape:
-            _logg(f"Skipping '{modality}': no features remain after filtering.", level='info', verbose=verbose)
+            _logg(f"Skipping '{modality}': no features remain after filtering.", level="info", verbose=verbose)
             continue
 
         if min_features is not None and adata_mod.shape[1] < min_features:
             _logg(
                 f"Skipping '{modality}': {adata_mod.shape[1]} features < min_features={min_features}.",
-                level='info', verbose=verbose
+                level="info",
+                verbose=verbose,
             )
             continue
 
@@ -461,8 +450,7 @@ def lrdata_to_mudata(lrdata: AnnData,
 
     if not adata_dict:
         raise ValueError(
-            "No modalities passed the filtering criteria. "
-            "Consider relaxing `min_cells` or `min_features`."
+            "No modalities passed the filtering criteria. Consider relaxing `min_cells` or `min_features`."
         )
 
     mdata = MuData(adata_dict)
@@ -472,43 +460,66 @@ def lrdata_to_mudata(lrdata: AnnData,
 
     return mdata
 
-def _propagate_obs(lrdata: AnnData, mdata: MuData, obs_keys: list[str]) -> None:
-    mdata.obs = lrdata.obs.reindex(mdata.obs_names)[obs_keys].copy()
 
-def _dataframe_to_anndata(df):
+def _propagate_obs(lrdata: AnnData, mdata: MuData, obs_keys: list[str]) -> None:
+    mdata.obs = get_obs(lrdata).reindex(mdata.obs_names)[obs_keys].copy()
+
+
+def _dataframe_to_anndata(df: pd.DataFrame) -> AnnData:
     obs = pd.DataFrame(index=df.columns)
     var = pd.DataFrame(index=df.index)
-    X = np.asarray(df.values, dtype=np.float32).T
+    X = np.asarray(df.to_numpy(), dtype=np.float32).T
 
     return AnnData(X=X, obs=obs, var=var)
 
-def _remove_mod_var(mdata, markers, view_sep, var_column):
-    for current_mod in mdata.mod.keys():
+
+def _remove_mod_var(
+    mdata: MuData,
+    markers: dict[str, list[str]],
+    view_sep: str,
+    var_column: str | None,
+) -> None:
+    # `MuData.mod` is annotated as a read-only Mapping, but the views are replaced
+    # in place below, so check the concrete type the attribute actually holds.
+    mods = mdata.mod
+    if not isinstance(mods, dict):
+        raise TypeError(f"`mdata.mod` must be a dict, got {type(mods).__name__}.")
+
+    for current_mod in list(mods):
         # markers in markers dict for each modality except for current_mod
         negative_markers = [marker for mod in markers.keys() if mod != current_mod for marker in markers[mod]]
 
         if current_mod not in list(markers.keys()):
-            warnings.warn(f'no markers in dict for view: {current_mod}', Warning, stacklevel=2)
+            warnings.warn(f"no markers in dict for view: {current_mod}", Warning, stacklevel=2)
         else:
-            #keep negative_markers not in markers[current_mod] and add view_sep
-            negative_markers = [current_mod + view_sep + marker for marker in negative_markers if marker not in markers[current_mod]]
+            # keep negative_markers not in markers[current_mod] and add view_sep
+            negative_markers = [
+                current_mod + view_sep + marker for marker in negative_markers if marker not in markers[current_mod]
+            ]
 
+        modality = mods[current_mod]
+        if not isinstance(modality, AnnData):
+            raise TypeError(f"`{current_mod}` must be an AnnData view, got {type(modality).__name__}.")
+
+        is_negative = modality.var_names.isin(negative_markers)
         if var_column is None:
             # remove negative_markers from current_mod
-            mdata.mod[current_mod] = mdata.mod[current_mod][:, ~mdata.mod[current_mod].var_names.isin(negative_markers)]
+            mods[current_mod] = modality[:, ~is_negative]
         else:
             # set negative_markers to False in current_mod
-            mdata.mod[current_mod].var.loc[mdata.mod[current_mod].var_names.isin(negative_markers), var_column] = False
+            get_var(modality).loc[is_negative, var_column] = False
 
     mdata.update()
 
+
 @d.dedent
-def filter_view_markers(mdata: MuData,
-                        markers: dict[str, list[str]],
-                        view_sep: str = ':',
-                        var_column: str | None = 'highly_variable',
-                        inplace: bool = False
-                        ) -> MuData | None:
+def filter_view_markers(
+    mdata: MuData,
+    markers: dict[str, list[str]],
+    view_sep: str = ":",
+    var_column: str | None = "highly_variable",
+    inplace: bool = False,
+) -> MuData | None:
     """
     Remove potential cell type marker genes found in the background of other views.
 
@@ -543,20 +554,24 @@ def filter_view_markers(mdata: MuData,
     >>> from anndata import AnnData
     >>> from mudata import MuData
     >>> import liana as li
-    >>> views = {v: AnnData(X=np.ones((3, 3)),
-    ...                     obs=pd.DataFrame(index=['s1', 's2', 's3']),
-    ...                     var=pd.DataFrame(index=[f'{v}:g1', f'{v}:g2', f'{v}:g3']))
-    ...          for v in ['A', 'B']}
+    >>> views = {
+    ...     v: AnnData(
+    ...         X=np.ones((3, 3)),
+    ...         obs=pd.DataFrame(index=["s1", "s2", "s3"]),
+    ...         var=pd.DataFrame(index=[f"{v}:g1", f"{v}:g2", f"{v}:g3"]),
+    ...     )
+    ...     for v in ["A", "B"]
+    ... }
     >>> mdata = MuData(views)
-    >>> markers = {'A': ['g1'], 'B': ['g2']}
+    >>> markers = {"A": ["g1"], "B": ["g2"]}
 
     With `var_column=None` the offending genes are removed outright -- each view
     keeps its own marker and the unmarked `g3`:
 
     >>> filtered = li.ms.filter_view_markers(mdata, markers, var_column=None)
-    >>> filtered.mod['A'].var_names.tolist()
+    >>> filtered.mod["A"].var_names.tolist()
     ['A:g1', 'A:g3']
-    >>> filtered.mod['B'].var_names.tolist()
+    >>> filtered.mod["B"].var_names.tolist()
     ['B:g2', 'B:g3']
 
     Pass `var_column='highly_variable'` instead to only flag them, and
@@ -565,16 +580,16 @@ def filter_view_markers(mdata: MuData,
     """
     # check if markers is a dict
     if not isinstance(markers, dict):
-        raise TypeError('markers is not a dict')
+        raise TypeError("markers is not a dict")
 
     # check that all keys in markers are lists
     if not all(isinstance(markers[mod], list) for mod in markers.keys()):
-        raise TypeError('not all values in markers are lists')
+        raise TypeError("not all values in markers are lists")
 
     # check that var_column is in var for all modalities
     if var_column is not None:
         if not all(var_column in mdata.mod[mod].var.columns for mod in mdata.mod.keys()):
-            raise ValueError(f'{var_column} is not in the columns of .var for all modalities')
+            raise ValueError(f"{var_column} is not in the columns of .var for all modalities")
 
     if inplace:
         _remove_mod_var(mdata, markers, view_sep, var_column)
@@ -585,17 +600,18 @@ def filter_view_markers(mdata: MuData,
         return cdata
 
 
-def _process_meta(adata, mdata, sample_key, obs_keys):
+def _process_meta(
+    adata: AnnData,
+    mdata: MuData,
+    sample_key: str,
+    obs_keys: list[str] | None,
+) -> None:
     if obs_keys is not None:
-        metadata = adata.obs[[sample_key, *obs_keys]].drop_duplicates()
-        sample_n = adata.obs[sample_key].nunique()
+        obs = get_obs(adata)
+        metadata = obs[[sample_key, *obs_keys]].drop_duplicates()
+        sample_n = obs[sample_key].nunique()
         if metadata.shape[0] != sample_n:
-            raise ValueError('`obs_keys` must be unique per sample in `adata.obs`')
+            raise ValueError("`obs_keys` must be unique per sample in `adata.obs`")
 
         mdata.obs.index.name = None
-        mdata.obs = (mdata.obs.
-                     reset_index().
-                     rename(columns={"index":sample_key}).
-                     merge(metadata).
-                     set_index(sample_key)
-                     )
+        mdata.obs = mdata.obs.reset_index().rename(columns={"index": sample_key}).merge(metadata).set_index(sample_key)

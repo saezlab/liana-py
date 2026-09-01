@@ -15,6 +15,8 @@ from liana._core._constants import Keys as K
 from liana._core._docs import d
 from liana._core._pipe_utils import assert_covered
 from liana._core._pipe_utils._common import _get_props
+from liana._core._pipe_utils._pre import _choose_mtx_rep
+from liana._core._types import MatrixLike, copy_aligned, get_obs
 from liana.method.sp._utils import (
     _add_complexes_to_var,
     _check_instance,
@@ -24,6 +26,13 @@ from liana.method.sp._utils import (
     _rename_means,
 )
 from liana.resource.select_resource import _handle_resource
+
+type MatrixTransform = Callable[..., MatrixLike]
+"""A user-supplied rescaling of the ligand/receptor matrices.
+
+Spelled with `...` parameters because the extra arguments are forwarded from
+`x_transform_kwargs`/`y_transform_kwargs` and differ per transform.
+"""
 
 
 class SpatialInflow:
@@ -35,19 +44,19 @@ class SpatialInflow:
         adata: AnnData | MuData,
         groupby: str | None = None,
         obsm_key: str | None = None,
-        resource_name: str = None,
+        resource_name: str | None = None,
         resource: pd.DataFrame | None = V.resource,
-        interactions: list = V.interactions,
+        interactions: list[tuple[str, str]] | None = V.interactions,
         nz_prop: float = 0.001,
         connectivity_key: str = K.connectivity_key,
         complex_sep: str | None = V.complex_sep,
-        x_transform: Callable | None = None,
-        y_transform: Callable | None = None,
-        use_raw: bool | None=V.use_raw,
-        layer: str | None=V.layer,
+        x_transform: MatrixTransform | None = None,
+        y_transform: MatrixTransform | None = None,
+        use_raw: bool = V.use_raw,
+        layer: str | None = V.layer,
         xy_sep: str = V.lr_sep,
         verbose: bool = V.verbose,
-        **kwargs
+        **kwargs: object,
     ) -> AnnData:
         """
         A method for trivariate (source cell type, ligand, receptor) local spatial metrics.
@@ -138,9 +147,7 @@ class SpatialInflow:
 
         >>> import liana as li
         >>> adata = li.ds.generate_toy_spatial()
-        >>> lrdata = li.mt.inflow(adata,
-        ...                       groupby='bulk_labels',
-        ...                       resource_name='consensus')
+        >>> lrdata = li.mt.inflow(adata, groupby="bulk_labels", resource_name="consensus")
 
         The result is cells by `'source^ligand^receptor'` triplets, e.g.
         `'CD4+/CD25 T Reg^HLA-DRA^CD4'`. Cell-type proportions per spot can be given
@@ -149,55 +156,47 @@ class SpatialInflow:
 
         """
         # Process MuData or AnnData - check instance and process accordingly
-        is_mudata = _check_instance(adata)
+        _check_instance(adata)  # raises for anything other than AnnData/MuData
 
         # Extract transform kwargs - works the same for both AnnData and MuData
-        x_transform_kwargs = kwargs.pop('x_transform_kwargs', {})
-        y_transform_kwargs = kwargs.pop('y_transform_kwargs', {})
+        x_transform_kwargs = _pop_kwargs(kwargs, "x_transform_kwargs")
+        y_transform_kwargs = _pop_kwargs(kwargs, "y_transform_kwargs")
 
-        if is_mudata:
+        if isinstance(adata, MuData):
             # For MuData: convert to AnnData, transformations after l * s, not in _process_mudata
-            kwargs.setdefault('x_transform', None)
-            kwargs.setdefault('y_transform', None)
+            kwargs.setdefault("x_transform", None)
+            kwargs.setdefault("y_transform", None)
             adata, x_name, y_name = _process_mudata(
-                adata, complex_sep, verbose,
+                adata,
+                complex_sep,
+                verbose,
                 # NOTE: transformation after l * s
-                **kwargs
+                **kwargs,
             )
         else:
             # For AnnData: standard processing
             adata, x_name, y_name = _process_anndata(
-                adata, complex_sep, verbose,
-                use_raw=use_raw,
-                layer=layer,
-                **kwargs
+                adata, complex_sep, verbose, use_raw=use_raw, layer=layer, **kwargs
             )
 
         # NOTE: There are some repetitions with bivariate scores
         # one could define a shared class to process adata, and split the two thereafter
-        resource = _handle_resource(interactions=interactions,
-                                    resource=resource,
-                                    resource_name=resource_name,
-                                    x_name=x_name,
-                                    y_name=y_name,
-                                    verbose=verbose
-                                    )
+        resource = _handle_resource(
+            interactions=interactions,
+            resource=resource,
+            resource_name=resource_name,
+            x_name=x_name,
+            y_name=y_name,
+            verbose=verbose,
+        )
 
         if complex_sep is not None:
             adata = _add_complexes_to_var(
-                adata,
-                np.union1d(
-                    resource[x_name].astype(str),
-                    resource[y_name].astype(str)
-                ),
-                complex_sep=complex_sep
+                adata, np.union1d(resource[x_name].astype(str), resource[y_name].astype(str)), complex_sep=complex_sep
             )
 
         # Filter the resource to keep only rows where both ligand & receptor are in adata.var_names
-        resource = resource[
-            (resource[x_name].isin(adata.var_names)) &
-            (resource[y_name].isin(adata.var_names))
-        ]
+        resource = resource[(resource[x_name].isin(adata.var_names)) & (resource[y_name].isin(adata.var_names))]
 
         # Make sure all LR features appear in adata.var
         entities = np.union1d(resource[x_name].unique(), resource[y_name].unique())
@@ -224,47 +223,40 @@ class SpatialInflow:
             ct = csr_matrix(ct_matrix.values)
         else:
             # Existing one-hot encoding logic
-            celltypes = pd.get_dummies(adata.obs[groupby])
+            celltypes = pd.get_dummies(get_obs(adata)[groupby])
             ct_labels = celltypes.columns
             ct = csr_matrix(celltypes.astype(int).values)
 
         # Compute global stats (proportions) for all features in adata
-        xy_stats = pd.DataFrame(
-            {
-                'props': _get_props(adata.X)
-            },
-            index=adata.var_names
-        ).reset_index().rename(columns={'index': 'gene'})
+        xy_stats = (
+            pd.DataFrame({"props": _get_props(_choose_mtx_rep(adata))}, index=adata.var_names)
+            .reset_index()
+            .rename(columns={"index": "gene"})
+        )
 
-        xy_stats.rename(columns={xy_stats.columns[0]: 'gene'}, inplace=True)
+        xy_stats.rename(columns={xy_stats.columns[0]: "gene"}, inplace=True)
 
         # Merge these stats into the resource
         # NOTE: add to .var?
-        xy_stats = resource.merge(_rename_means(xy_stats, entity=x_name)) \
-                           .merge(_rename_means(xy_stats, entity=y_name))
+        xy_stats = resource.merge(_rename_means(xy_stats, entity=x_name)).merge(_rename_means(xy_stats, entity=y_name))
 
         # Filter by non-zero proportion
-        xy_stats = xy_stats[
-            (xy_stats[f'{x_name}_props'] >= nz_prop) &
-            (xy_stats[f'{y_name}_props'] >= nz_prop)
-        ]
+        xy_stats = xy_stats[(xy_stats[f"{x_name}_props"] >= nz_prop) & (xy_stats[f"{y_name}_props"] >= nz_prop)]
         if xy_stats.empty:
             raise ValueError("No features passed the non-zero proportion filter.")
 
         # Create 'interaction' column
-        xy_stats['interaction'] = (
-            xy_stats[x_name] + xy_sep + xy_stats[y_name]
-        )
+        xy_stats["interaction"] = xy_stats[x_name] + xy_sep + xy_stats[y_name]
 
         # Extract ligand and receptor expression data
-        x_mat = adata[:, xy_stats[x_name]].X
-        y_mat = adata[:, xy_stats[y_name]].X
+        x_mat = _choose_mtx_rep(adata[:, xy_stats[x_name]])
+        y_mat = _choose_mtx_rep(adata[:, xy_stats[y_name]])
 
         # Grab the spatial connectivity matrix using utility function
         w = _handle_connectivity(adata=adata, connectivity_key=connectivity_key)
 
-        k = ct.shape[1]           # number of cell types
-        m = x_mat.shape[1]       # number of LR pairs
+        k = ct.shape[1]  # number of cell types
+        m = x_mat.shape[1]  # number of LR pairs
 
         # Initialize empty list to hold each (cell x ligand) matrix per celltype
         ls_list = []
@@ -281,14 +273,10 @@ class SpatialInflow:
             ls_list.append(ls_i)
 
         # Horizontally stack to simulate (n_cells, n_celltypes * n_ligands)
-        ls = hstack(ls_list)  # shape: (n_cells, k * m)
+        stacked = csr_matrix(hstack(ls_list))  # shape: (n_cells, k * m)
 
         # Min-max transform the ligand * celltype data & apply spatial weighting
-        if not isinstance(ls, csr_matrix):
-            ls = csr_matrix(ls)
-
-        # Transform ligand matrix
-        ls = self._transform(ls, x_transform, **x_transform_kwargs)
+        ls = self._transform(stacked, x_transform, **x_transform_kwargs)
 
         wls = w.dot(ls)
 
@@ -304,40 +292,31 @@ class SpatialInflow:
         # Transform receptor matrix
         r = self._transform(y_mat, y_transform, **y_transform_kwargs)
 
-        # Ensure r is sparse and repeat across cell types
-        if not isinstance(r, csr_matrix):
-            r = csr_matrix(r)
+        # repeat across cell types
         ri = hstack([r] * k)  # replicate across k cell types - changed
 
         # Sparse elementwise multiplication
         xy_mat = wls.multiply(ri)  # both are sparse
 
-
         # Create .var index: each column is "cell_type ^ interaction_name"
         var = pd.DataFrame(
-            index=(
-                np.repeat(ct_labels.astype(str), m) +
-                xy_sep +
-                np.tile(xy_stats['interaction'].astype(str), k)
-            )
+            index=(np.repeat(ct_labels.astype(str), m) + xy_sep + np.tile(xy_stats["interaction"].astype(str), k))
         )
 
         # Construct the output AnnData
         lrdata = sc.AnnData(
             X=csr_matrix(xy_mat),
             var=var,
-            obs=adata.obs,
-            uns=adata.uns,
-            obsm=adata.obsm,
-            varm=adata.varm,
-            obsp=adata.obsp
+            obs=get_obs(adata),
+            uns=dict(adata.uns),
         )
+        copy_aligned(lrdata, obsm=adata.obsm, obsp=adata.obsp, varm=adata.varm)
 
         # Drop non-variable features
-        _, var = mean_variance_axis(lrdata.X, axis=0)
-        lrdata = lrdata[:, var > 0]
+        _, variances = mean_variance_axis(_choose_mtx_rep(lrdata), axis=0)
+        lrdata = lrdata[:, variances > 0]
 
-        X = lrdata.X.astype(float)
+        X = _choose_mtx_rep(lrdata).astype(float)
         mean = np.asarray(X.mean(axis=0)).ravel()
         mean_sq = np.asarray(X.power(2).mean(axis=0)).ravel()
         var = mean_sq - mean**2
@@ -348,15 +327,29 @@ class SpatialInflow:
         lrdata.var["variance"] = var
         lrdata.var["std"] = std
         lrdata.var["cv"] = cv
-        lrdata.var["nonzero_fraction"] = (lrdata.X.astype(bool).sum(axis=0) / lrdata.n_obs).A1
-
+        nonzero = _choose_mtx_rep(lrdata).astype(bool).sum(axis=0)
+        lrdata.var["nonzero_fraction"] = np.asarray(nonzero).ravel() / lrdata.n_obs
 
         return lrdata
 
-    def _transform(self, mat, transform=None, **kwargs):
-        if transform is not None:
-            return transform(mat, **kwargs)
-        return mat
+    def _transform(
+        self,
+        mat: csr_matrix,
+        transform: MatrixTransform | None = None,
+        **kwargs: object,
+    ) -> csr_matrix:
+        if transform is None:
+            return mat
+        transformed = transform(mat, **kwargs)
+        return transformed if isinstance(transformed, csr_matrix) else csr_matrix(transformed)
+
+
+def _pop_kwargs(kwargs: dict[str, object], key: str) -> dict[str, object]:
+    """Take a nested keyword-argument mapping out of ``kwargs``."""
+    nested = kwargs.pop(key, {})
+    if not isinstance(nested, dict):
+        raise TypeError(f"`{key}` must be a dict, got {type(nested).__name__}.")
+    return nested
 
 
 inflow = SpatialInflow()

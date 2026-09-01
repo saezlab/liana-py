@@ -1,22 +1,28 @@
+from typing import Literal
+
+import numpy as np
 from anndata import AnnData
+from numpy.typing import NDArray
 from scipy.interpolate import griddata
 from scipy.sparse import csr_matrix
 
 from liana._core._constants import DefaultValues as V
 from liana._core._docs import d
 from liana._core._pipe_utils._pre import _choose_mtx_rep
+from liana._core._types import copy_aligned, get_obs, get_var
 
 
 @d.dedent
-def interpolate_adata(target: AnnData,
-                      reference: AnnData,
-                      spatial_key: str,
-                      layer: str = V.layer,
-                      use_raw: bool = V.use_raw,
-                      method: str = 'linear',
-                      fill_value: float = 0,
-                      verbose: bool = V.verbose
-                      ) -> AnnData:
+def interpolate_adata(
+    target: AnnData,
+    reference: AnnData,
+    spatial_key: str,
+    layer: str | None = V.layer,
+    use_raw: bool = V.use_raw,
+    method: Literal["linear", "nearest", "cubic"] = "linear",
+    fill_value: float = 0,
+    verbose: bool = V.verbose,
+) -> AnnData:
     """
     Interpolates spatial data from a target AnnData object to a reference AnnData object based on spatial coordinates.
 
@@ -50,32 +56,35 @@ def interpolate_adata(target: AnnData,
     >>> import liana as li
     >>> target = li.ds.generate_toy_spatial()
     >>> reference = target[::2].copy()
-    >>> interpolated = li.pp.interpolate_adata(target=target,
-    ...                                        reference=reference,
-    ...                                        spatial_key='spatial')
+    >>> interpolated = li.pp.interpolate_adata(target=target, reference=reference, spatial_key="spatial")
 
     """
     target_coords = target.obsm[spatial_key]
     reference_coords = reference.obsm[spatial_key]
 
-    ad = AnnData(X=None,
-                 uns=reference.uns,
-                 obs=reference.obs,
-                 obsm=reference.obsm,
-                 obsp=reference.obsp,
-                 var=target.var,
-                 varm=target.varm
-                 )
+    ad = AnnData(
+        X=None,
+        uns=dict(reference.uns),
+        obs=get_obs(reference),
+        var=get_var(target),
+    )
+    copy_aligned(ad, obsm=reference.obsm, obsp=reference.obsp, varm=target.varm)
 
-    values = _choose_mtx_rep(adata=target, use_raw=use_raw, layer=layer, verbose=verbose).toarray()
+    # Left shape-agnostic on purpose: `griddata` is documented (and stubbed) for 1-D
+    # `values`, but passes them to `LinearNDInterpolator`, which takes `(npoints, ...)`
+    # -- one column per variable, as here.
+    values: NDArray[np.floating] = _choose_mtx_rep(
+        adata=target, use_raw=use_raw, layer=layer, verbose=verbose
+    ).toarray()
 
     ad.X = csr_matrix(
-        griddata(points=target_coords,
-                 xi=reference_coords,
-                 values=values,
-                 method=method,
-                 fill_value=fill_value
-                 )
+        griddata(
+            points=np.asarray(target_coords),
+            xi=np.asarray(reference_coords),
+            values=values,
+            method=method,
+            fill_value=fill_value,
         )
+    )
 
     return ad

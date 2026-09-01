@@ -1,9 +1,10 @@
 import pytest
+from anndata import AnnData
 
 from liana.plotting import annulus_plot
 
 
-def test_annulus_plot(toy_spatial):
+def test_annulus_plot(toy_spatial: AnnData) -> None:
     annulus_plot(
         toy_spatial,
         spatial_key="spatial",

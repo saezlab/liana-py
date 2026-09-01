@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+from typing import Literal
+
 import anndata as an
 from mudata import MuData
 from pandas import DataFrame
 
 from liana._core._constants import DefaultValues as V
+from liana._core._constants import DeMethod
 from liana._core._constants import Keys as K
 from liana._core._docs import d
-from liana.method.sc._liana_pipe import liana_pipe
+from liana.method.sc._liana_pipe import MdataKwargs, SpatialKwargs, liana_pipe
 from liana.method.sc._Method import Method, MethodMeta
 
 
@@ -39,38 +42,39 @@ class AggregateClass(MethodMeta):
 
     """
 
-    def __init__(self, _SCORE: Method, methods: list[Method]):
-        super().__init__(method_name=_SCORE.method_name,
-                         complex_cols=[],
-                         add_cols=[],
-                         fun=_SCORE.fun,
-                         magnitude=_SCORE.magnitude,
-                         magnitude_ascending=True,
-                         specificity=_SCORE.specificity,
-                         specificity_ascending=True,
-                         permute=_SCORE.permute,
-                         reference=_SCORE.reference  # type: ignore[arg-type]
-                         )
+    def __init__(self, _SCORE: MethodMeta, methods: list[Method]) -> None:
+        super().__init__(
+            method_name=_SCORE.method_name,
+            complex_cols=[],
+            add_cols=[],
+            fun=_SCORE.fun,
+            magnitude=_SCORE.magnitude,
+            magnitude_ascending=True,
+            specificity=_SCORE.specificity,
+            specificity_ascending=True,
+            permute=_SCORE.permute,
+            reference=_SCORE.reference,
+        )
         self._SCORE = _SCORE
         self.methods = methods
 
         # Define sc to aggregate
-        self.specificity_specs = {method.method_name: (
-            method.specificity, method.specificity_ascending) for method in methods
-            if method.specificity is not None}
-        self.magnitude_specs = {method.method_name: (
-            method.magnitude, method.magnitude_ascending) for method in methods
-            if method.magnitude is not None}
+        self.specificity_specs: dict[str, tuple[str, bool | None]] = {
+            method.method_name: (method.specificity, method.specificity_ascending)
+            for method in methods
+            if method.specificity is not None
+        }
+        self.magnitude_specs = {
+            method.method_name: (method.magnitude, method.magnitude_ascending)
+            for method in methods
+            if method.magnitude is not None
+        }
 
         # Define additional columns needed depending on the methods to be run
-        self.add_cols = list(
-            {x for li in [method.add_cols for method in methods] for x in li}
-        )
-        self.complex_cols = list(
-            {x for li in [method.complex_cols for method in methods] for x in li}
-        )
+        self.add_cols = list({x for li in [method.add_cols for method in methods] for x in li})
+        self.complex_cols = list({x for li in [method.complex_cols for method in methods] for x in li})
 
-    def describe(self):
+    def describe(self) -> None:
         """Briefly describes the method"""
         print(
             f"{self.method_name} returns `{self.magnitude}`, `{self.specificity}`. "
@@ -79,32 +83,33 @@ class AggregateClass(MethodMeta):
         )
 
     @d.dedent
-    def __call__(self,
-                 adata: an.AnnData | MuData,
-                 groupby: str,
-                 resource_name: str = V.resource_name,
-                 expr_prop: float = V.expr_prop,
-                 min_cells: int = V.min_cells,
-                 groupby_pairs: DataFrame | None = V.groupby_pairs,
-                 base: float = V.logbase,
-                 aggregate_method: str = 'rra',
-                 consensus_opts: list | None = None,
-                 return_all_lrs: bool = V.return_all_lrs,
-                 key_added: str = K.uns_key,
-                 use_raw: bool | None = V.use_raw,
-                 layer: str | None = V.layer,
-                 de_method: str = V.de_method,
-                 n_perms: int = V.n_perms,
-                 seed: int = V.seed,
-                 n_jobs: int = 1,
-                 resource: DataFrame | None = V.resource,
-                 interactions: list | None = V.interactions,
-                 mdata_kwargs: dict | None = None,
-                 spatial_key: str | None = None,
-                 spatial_kwargs: dict | None = None,
-                 inplace: bool = V.inplace,
-                 verbose: bool | None = V.verbose,
-                 ) -> DataFrame | None:
+    def __call__(
+        self,
+        adata: an.AnnData | MuData,
+        groupby: str,
+        resource_name: str = V.resource_name,
+        expr_prop: float = V.expr_prop,
+        min_cells: int = V.min_cells,
+        groupby_pairs: DataFrame | None = V.groupby_pairs,
+        base: float = V.logbase,
+        aggregate_method: Literal["rra", "mean"] = "rra",
+        consensus_opts: list[str] | Literal[False] | None = None,
+        return_all_lrs: bool = V.return_all_lrs,
+        key_added: str = K.uns_key,
+        use_raw: bool = V.use_raw,
+        layer: str | None = V.layer,
+        de_method: DeMethod = V.de_method,
+        n_perms: int | None = V.n_perms,
+        seed: int = V.seed,
+        n_jobs: int = 1,
+        resource: DataFrame | None = V.resource,
+        interactions: list[tuple[str, str]] | None = V.interactions,
+        mdata_kwargs: MdataKwargs | None = None,
+        spatial_key: str = "spatial",
+        spatial_kwargs: SpatialKwargs | None = None,
+        inplace: bool = V.inplace,
+        verbose: bool = V.verbose,
+    ) -> DataFrame | dict[str, DataFrame] | None:
         """
         Get an aggregate of ligand-receptor scores from multiple methods.
 
@@ -156,59 +161,61 @@ class AggregateClass(MethodMeta):
 
         >>> import liana as li
         >>> adata = li.ds.generate_toy_adata()
-        >>> li.mt.rank_aggregate(adata, groupby='bulk_labels', n_perms=None)
+        >>> li.mt.rank_aggregate(adata, groupby="bulk_labels", n_perms=None)
 
         The frame carries `magnitude_rank` and `specificity_rank` alongside each
         aggregated method's own scores -- ``li.mt.rank_aggregate.describe()`` says what
-        the ranks mean, and :class:`liana.method.AggregateClass` which methods go into
+        the ranks mean, and ``liana.mt.rank_aggregate`` which methods go into
         them.
 
         """
         if mdata_kwargs is None:
             mdata_kwargs = {}
-        liana_res = liana_pipe(adata=adata,
-                               groupby=groupby,
-                               resource_name=resource_name,
-                               resource=resource,
-                               groupby_pairs = groupby_pairs,
-                               interactions=interactions,
-                               expr_prop=expr_prop,
-                               min_cells=min_cells,
-                               base=base,
-                               return_all_lrs=return_all_lrs,
-                               de_method=de_method,
-                               verbose=verbose,
-                               _score=self,
-                               use_raw=use_raw,
-                               layer=layer,
-                               n_perms=n_perms,
-                               seed=seed,
-                               n_jobs=n_jobs,
-                               _methods=self.methods,
-                               _aggregate_method=aggregate_method,
-                               _consensus_opts=consensus_opts,
-                               spatial_key=spatial_key,
-                               spatial_kwargs=spatial_kwargs,
-                               mdata_kwargs=mdata_kwargs
-                               )
+        liana_res = liana_pipe(
+            adata=adata,
+            groupby=groupby,
+            resource_name=resource_name,
+            resource=resource,
+            groupby_pairs=groupby_pairs,
+            interactions=interactions,
+            expr_prop=expr_prop,
+            min_cells=min_cells,
+            base=base,
+            return_all_lrs=return_all_lrs,
+            de_method=de_method,
+            verbose=verbose,
+            _score=self,
+            use_raw=use_raw,
+            layer=layer,
+            n_perms=n_perms,
+            seed=seed,
+            n_jobs=n_jobs,
+            _methods=self.methods,
+            _aggregate_method=aggregate_method,
+            _consensus_opts=consensus_opts,
+            spatial_key=spatial_key,
+            spatial_kwargs=spatial_kwargs,
+            mdata_kwargs=mdata_kwargs,
+        )
 
         if inplace:
             adata.uns[key_added] = liana_res
         return None if inplace else liana_res
 
-_rank_aggregate_meta = \
-    MethodMeta(method_name="Rank_Aggregate",
-               complex_cols=[],
-               add_cols=[],
-               fun=None,  # change to _robust_rank
-               magnitude='magnitude_rank',
-               magnitude_ascending=True,
-               specificity='specificity_rank',
-               specificity_ascending=True,
-               permute=False,
-               reference='Dimitrov, D., Türei, D., Garrido-Rodriguez, M., Burmedi, P.L., '
-                         'Nagai, J.S., Boys, C., Ramirez Flores, R.O., Kim, H., Szalai, B., '
-                         'Costa, I.G. and Valdeolivas, A., 2022. Comparison of methods and '
-                         'resources for cell-cell communication inference from single-cell '
-                         'RNA-Seq data. Nature Communications, 13(1), pp.1-13. '
-               )
+
+_rank_aggregate_meta = MethodMeta(
+    method_name="Rank_Aggregate",
+    complex_cols=[],
+    add_cols=[],
+    fun=None,  # change to _robust_rank
+    magnitude="magnitude_rank",
+    magnitude_ascending=True,
+    specificity="specificity_rank",
+    specificity_ascending=True,
+    permute=False,
+    reference="Dimitrov, D., Türei, D., Garrido-Rodriguez, M., Burmedi, P.L., "
+    "Nagai, J.S., Boys, C., Ramirez Flores, R.O., Kim, H., Szalai, B., "
+    "Costa, I.G. and Valdeolivas, A., 2022. Comparison of methods and "
+    "resources for cell-cell communication inference from single-cell "
+    "RNA-Seq data. Nature Communications, 13(1), pp.1-13. ",
+)

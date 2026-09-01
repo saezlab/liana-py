@@ -1,14 +1,25 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pandas as pd
 
-from liana._core._constants import DefaultValues as V
 from liana._core._common import _check_if_installed, _logg
+from liana._core._constants import DefaultValues as V
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+
+    from corneto import Graph
 
 
-def build_prior_network(ppis: pd.DataFrame | list[tuple[str, float, str]],
-                        input_nodes: dict[str, float],
-                        output_nodes: dict[str, float],
-                        lr_sep: str | None = None,
-                        verbose: bool = V.verbose):
+def build_prior_network(
+    ppis: pd.DataFrame | Sequence[tuple[str, float, str]],
+    input_nodes: Mapping[str, float],
+    output_nodes: Mapping[str, float],
+    lr_sep: str | None = None,
+    verbose: bool = V.verbose,
+) -> Graph:
     """
     Build Prior Network from PPIs and input/output nodes.
 
@@ -41,21 +52,24 @@ def build_prior_network(ppis: pd.DataFrame | list[tuple[str, float, str]],
     that `'HLA-DRA^CD4'` matches the receptor `'CD4'`:
 
     >>> import liana as li
-    >>> ppis = [('CD4', 1, 'LCK'), ('LCK', 1, 'JUN'), ('LCK', -1, 'FOS')]
-    >>> prior = li.rs.build_prior_network(ppis,
-    ...                                   input_nodes={'HLA-DRA^CD4': 1.0},
-    ...                                   output_nodes={'JUN': 1.0, 'FOS': -1.0},
-    ...                                   lr_sep='^')
+    >>> ppis = [("CD4", 1, "LCK"), ("LCK", 1, "JUN"), ("LCK", -1, "FOS")]
+    >>> prior = li.rs.build_prior_network(
+    ...     ppis, input_nodes={"HLA-DRA^CD4": 1.0}, output_nodes={"JUN": 1.0, "FOS": -1.0}, lr_sep="^"
+    ... )
 
     The network is pruned to what lies on a path from an input to an output. Hand
     the result to :func:`liana.mt.find_causalnet`.
 
     """
-    cn = _check_if_installed("corneto")
+    _check_if_installed("corneto")  # raises a helpful ImportError if the extra is missing
+    from corneto import Graph
 
     if lr_sep is not None:
         if any(lr_sep in k for k in input_nodes.keys()):
-            _logg(f"Input nodes are in the format Ligand{lr_sep}Receptor. Extracting only the receptor...", verbose=verbose)
+            _logg(
+                f"Input nodes are in the format Ligand{lr_sep}Receptor. Extracting only the receptor...",
+                verbose=verbose,
+            )
             # Print only at most the first 3 entries
             for k, v in list(input_nodes.items())[:3]:
                 _logg(f" - {k} -> {v}", verbose=verbose)
@@ -64,13 +78,11 @@ def build_prior_network(ppis: pd.DataFrame | list[tuple[str, float, str]],
             input_nodes = {k.split(lr_sep)[-1]: v for k, v in input_nodes.items()}
 
     _logg("Importing network...", verbose=verbose)
-    if isinstance(ppis, list):
-        G = cn.Graph.from_sif_tuples(ppis)
-    elif isinstance(ppis, pd.DataFrame):
+    if isinstance(ppis, pd.DataFrame):
         ppis = [(r.source, r.mor, r.target) for (_, r) in ppis.iterrows() if r.source != r.target]
-        G = cn.Graph.from_sif_tuples(ppis)
-    else:
-        raise ValueError("PPIs must be a list of tuples or a pandas DataFrame.")
+    # corneto ships no annotations, so its constructors return `Any`; state the type
+    # once here, at the boundary, and the rest of the function stays checked.
+    G: Graph = Graph.from_sif_tuples(ppis)
     _logg("done.", verbose=verbose)
 
     incl_inputs = set(G.vertices).intersection(set(input_nodes))
@@ -81,7 +93,7 @@ def build_prior_network(ppis: pd.DataFrame | list[tuple[str, float, str]],
     _logg(f" - Provided outputs included in the network: {len(incl_outputs)}/{len(output_nodes)}", verbose=verbose)
 
     _logg("Performing reachability analysis...", verbose=verbose)
-    Gp = G.prune(list(incl_inputs), list(incl_outputs))
+    Gp: Graph = G.prune(list(incl_inputs), list(incl_outputs))
     _logg("done.", verbose=verbose)
     pruned_size = (Gp.num_vertices, Gp.num_edges)
     incl_inputs_pruned = set(Gp.vertices).intersection(incl_inputs)

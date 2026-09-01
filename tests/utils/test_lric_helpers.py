@@ -1,13 +1,26 @@
+from typing import TypedDict
+
 import numpy as np
 import pandas as pd
 import pytest
+from anndata import AnnData
+from tests._helpers import get_obs
 
-from liana.method.sp._LRIC import cross_pcf, lric
 from liana.datasets import generate_toy_spatial
 from liana.datasets._sample_resource import sample_resource
 from liana.method import get_lric_auc, get_lric_divergence
+from liana.method.sp._LRIC import cross_pcf, lric
 
-_KWARGS = {"max_radius": 100, "radius_step": 20, "verbose": False}
+
+class _RadiusKwargs(TypedDict):
+    """The radius-grid arguments the `cross_pcf`/`lric` calls here share."""
+
+    max_radius: float
+    radius_step: float
+    verbose: bool
+
+
+_KWARGS = _RadiusKwargs(max_radius=100, radius_step=20, verbose=False)
 
 _ID_COLS = {
     "cross_pcf": ["source", "target", "interaction"],
@@ -17,9 +30,9 @@ _ID_COLS = {
 
 
 @pytest.fixture(scope="module")
-def adata():
+def adata() -> AnnData:
     ad = generate_toy_spatial()
-    ad.obs["cell_type"] = ad.obs["bulk_labels"]
+    get_obs(ad)["cell_type"] = get_obs(ad)["bulk_labels"]
     res = sample_resource(ad, n_lrs=5, seed=42)
     cross_pcf(ad, groupby="cell_type", key_added="cross_pcf", **_KWARGS)
     lric(ad, resource=res, key_added="lric_ag", **_KWARGS)
@@ -28,7 +41,7 @@ def adata():
 
 
 @pytest.mark.parametrize("uns_key", ["cross_pcf", "lric_ag", "lric_ct"])
-def test_get_lric_auc(adata, uns_key):
+def test_get_lric_auc(adata: AnnData, uns_key: str) -> None:
     df = get_lric_auc(adata, uns_key, max_dist=60, min_bins=2)
     # id columns match liana's convention, so the result feeds `li.pl.dotplot` directly
     assert list(df.columns) == [*_ID_COLS[uns_key], "score", "peak_radius"]
@@ -40,7 +53,7 @@ def test_get_lric_auc(adata, uns_key):
     assert set(df["peak_radius"]) <= {r for r in radii if r < 60}
 
 
-def test_get_lric_auc_liana_res(adata):
+def test_get_lric_auc_liana_res(adata: AnnData) -> None:
     """`liana_res=` is equivalent to reading the same frame off `.uns`."""
     df = get_lric_auc(liana_res=adata.uns["lric_ag"], max_dist=60, min_bins=2)
     assert df.equals(get_lric_auc(adata, "lric_ag", max_dist=60, min_bins=2))
@@ -49,18 +62,20 @@ def test_get_lric_auc_liana_res(adata):
         get_lric_auc()
 
 
-def test_min_bins_gates_out_everything(adata):
+def test_min_bins_gates_out_everything(adata: AnnData) -> None:
     # more bins required than exist in the window -> empty, but well-formed
     df = get_lric_auc(adata, "cross_pcf", max_dist=25, min_bins=99)
     assert list(df.columns) == [*_ID_COLS["cross_pcf"], "score", "peak_radius"]
     assert df.empty
 
 
-def test_get_lric_divergence(adata):
+def test_get_lric_divergence(adata: AnnData) -> None:
     two = adata.uns["cross_pcf"]["interaction"].unique()[:2]
     div = get_lric_divergence(
-        adata, "cross_pcf",
-        feature_a={"interaction": two[0]}, feature_b={"interaction": two[1]},
+        adata,
+        "cross_pcf",
+        feature_a={"interaction": two[0]},
+        feature_b={"interaction": two[1]},
         min_bins=2,
     )
     assert div["divergence"] > 0
@@ -69,15 +84,17 @@ def test_get_lric_divergence(adata):
 
     # a curve against itself is exactly zero divergence
     self_div = get_lric_divergence(
-        adata, "cross_pcf",
-        feature_a={"interaction": two[0]}, feature_b={"interaction": two[0]},
+        adata,
+        "cross_pcf",
+        feature_a={"interaction": two[0]},
+        feature_b={"interaction": two[0]},
         min_bins=2,
     )
     assert self_div["divergence"] == 0.0
     assert self_div["direction"] == "equal"
 
 
-def test_get_lric_divergence_across_conditions(adata):
+def test_get_lric_divergence_across_conditions(adata: AnnData) -> None:
     # concatenated results with a `condition` column: pin it in the selections
     # to compare the same interaction across conditions
     base = adata.uns["lric_ag"]
@@ -100,13 +117,14 @@ def test_get_lric_divergence_across_conditions(adata):
     # without pinning `condition`, the two replicates average into one curve
     avg = get_lric_divergence(
         liana_res=res,
-        feature_a={"interaction": lr}, feature_b={"interaction": lr},
+        feature_a={"interaction": lr},
+        feature_b={"interaction": lr},
         min_bins=2,
     )
     assert avg["divergence"] == 0.0
 
 
-def test_floored_default_keeps_zero_g_bins(adata):
+def test_floored_default_keeps_zero_g_bins(adata: AnnData) -> None:
     # the default transform floors g at 0.05, so a g=0 bin stays finite;
     # strict np.log2 drops it (-inf) and the interaction falls below min_bins
     res = adata.uns["lric_ag"].copy()
@@ -120,24 +138,29 @@ def test_floored_default_keeps_zero_g_bins(adata):
     assert lr not in set(strict["interaction"])
 
 
-def test_get_lric_divergence_errors(adata):
+def test_get_lric_divergence_errors(adata: AnnData) -> None:
     with pytest.raises(ValueError, match="must be provided"):
         get_lric_divergence(adata, "cross_pcf", feature_a={"interaction": "x"})
     # ambiguous selection: many pairs share a source
     src = adata.uns["cross_pcf"]["source"].unique()[0]
     with pytest.raises(ValueError, match="more than one interaction"):
         get_lric_divergence(
-            adata, "cross_pcf",
-            feature_a={"source": src}, feature_b={"source": src},
+            adata,
+            "cross_pcf",
+            feature_a={"source": src},
+            feature_b={"source": src},
         )
     with pytest.raises(ValueError, match="No rows match"):
         get_lric_divergence(
-            adata, "cross_pcf",
-            feature_a={"interaction": "nope^nope"}, feature_b={"interaction": "nope^nope"},
+            adata,
+            "cross_pcf",
+            feature_a={"interaction": "nope^nope"},
+            feature_b={"interaction": "nope^nope"},
         )
     with pytest.raises(ValueError, match="shared finite bins"):
         get_lric_divergence(
-            adata, "cross_pcf",
+            adata,
+            "cross_pcf",
             feature_a={"interaction": adata.uns["cross_pcf"]["interaction"].unique()[0]},
             feature_b={"interaction": adata.uns["cross_pcf"]["interaction"].unique()[1]},
             min_bins=99,

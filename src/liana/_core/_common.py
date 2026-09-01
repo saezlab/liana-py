@@ -1,12 +1,21 @@
+from __future__ import annotations
+
 import logging
-from types import ModuleType
+from typing import TYPE_CHECKING
+
+from pandas import DataFrame
 
 from liana._core._constants import Keys as K
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+if TYPE_CHECKING:
+    from types import ModuleType
+
+    from anndata import AnnData
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 
-def _logg(message: str, level: str | None = 'info', verbose: bool = False):
+def _logg(message: str, level: str | None = "info", verbose: bool = False) -> None:
     """
     Log a message with a specified logging level.
 
@@ -28,9 +37,7 @@ def _logg(message: str, level: str | None = 'info', verbose: bool = False):
             logging.info(message)
 
 
-def _check_if_installed(package_name: str,
-                        custom_error_message: str = None
-                        ) -> ModuleType:
+def _check_if_installed(package_name: str, custom_error_message: str | None = None) -> ModuleType:
     """
     Checks whether a package is installed in the current environment.
 
@@ -59,16 +66,23 @@ def _check_if_installed(package_name: str,
             raise ImportError(custom_error_message) from None
         else:
             raise ImportError(
-                    f'{package_name} is not installed. Please install it with: \
-                    pip install {package_name}'
-                ) from None
+                f"{package_name} is not installed. Please install it with: \
+                    pip install {package_name}"
+            ) from None
 
 
-def _get_liana_res(adata, liana_res, uns_key=K.uns_key):
+def _get_liana_res(
+    adata: AnnData | None,
+    liana_res: DataFrame | None,
+    uns_key: str = K.uns_key,
+) -> DataFrame:
     if adata is not None:
         assert uns_key in adata.uns.keys()
         _logg(f"Using `adata.uns['{uns_key}']`")
-        return adata.uns[uns_key].copy()
+        res = adata.uns[uns_key]
+        if not isinstance(res, DataFrame):
+            raise TypeError(f"`adata.uns['{uns_key}']` must be a DataFrame, got {type(res).__name__}.")
+        return res.copy()
     if liana_res is not None:
         return liana_res.copy()
-    raise ValueError('`liana_res` or AnnData with `uns_key` must be provided!')
+    raise ValueError("`liana_res` or AnnData with `uns_key` must be provided!")

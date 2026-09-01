@@ -1,82 +1,108 @@
-from numpy import exp, finfo, log10
+from __future__ import annotations
+
+from typing import Final, Literal
+
+from numpy import exp, finfo, floating, log10
+from numpy.typing import NDArray
+from pandas import Series
+
+type DeMethod = Literal["logreg", "t-test", "wilcoxon", "t-test_overestim_var"]
+"""The differential-expression tests :func:`scanpy.tl.rank_genes_groups` supports."""
 
 
 class DefaultValues:
     """Default Values"""
 
-    logbase = exp(1)
-    min_cells = 5
-    expr_prop = 0.1
-    n_perms = 1000
-    seed = 1337
-    de_method = 't-test'
-    resource_name = 'consensus'
-    resource = None
-    interactions = None
-    layer = None
-    use_raw = False
-    verbose = False
-    return_all_lrs = False
-    supp_columns = None
-    inplace = True
-    groupby_pairs = None
+    logbase: Final = exp(1)
+    min_cells: Final = 5
+    expr_prop: Final = 0.1
+    n_perms: Final = 1000
+    seed: Final = 1337
+    de_method: Final[DeMethod] = "t-test"
+    resource_name: Final = "consensus"
+    resource: Final[None] = None
+    interactions: Final[None] = None
+    layer: Final[None] = None
+    use_raw: Final = False
+    verbose: Final = False
+    return_all_lrs: Final = False
+    supp_columns: Final[None] = None
+    inplace: Final = True
+    groupby_pairs: Final[None] = None
 
-    return_fig = True
-    cmap = 'viridis'
+    return_fig: Final = True
+    cmap: Final = "viridis"
 
-    lr_sep = '^'
-    complex_sep = "_"
+    lr_sep: Final = "^"
+    complex_sep: Final = "_"
 
-    def inverse_fn(x):
+    @staticmethod
+    def inverse_fn[T: (Series, NDArray[floating])](x: T) -> T:
+        """Turn a "lower is stronger" score into a "higher is stronger" one.
+
+        Called both with a DataFrame column (:func:`liana.method.process_scores`,
+        the plotting modules) and with a bare array, and returns whichever it was
+        given.
+        """
+        if isinstance(x, Series):
+            # Built explicitly rather than `-log10(x + eps)`: numpy's ufunc overloads
+            # return `Any` for a Series, which would leak an untyped value into every
+            # caller. Index and name are preserved, so assigning the result back into
+            # a frame behaves identically.
+            return Series(-log10(x.to_numpy() + finfo(float).eps), index=x.index, name=x.name)
         return -log10(x + finfo(float).eps)
+
 
 class Keys:
     """Keys related to AnnData"""
 
-    uns_key = 'liana_res'
-    spatial_key = 'spatial'
-    connectivity_key = f'{spatial_key}_connectivities'
-    target_metrics = 'target_metrics'
-    interactions = 'interactions'
+    uns_key: Final = "liana_res"
+    spatial_key: Final = "spatial"
+    connectivity_key: Final = f"{spatial_key}_connectivities"
+    target_metrics: Final = "target_metrics"
+    interactions: Final = "interactions"
+
 
 class PrimaryColumns:
-    source = 'source'
-    target = 'target'
-    ligand = 'ligand'
-    receptor = 'receptor'
-    ligand_complex = 'ligand_complex'
-    receptor_complex = 'receptor_complex'
-    primary = [source, target, ligand_complex, receptor_complex]
-    complete = primary + [ligand, receptor]
+    source: Final = "source"
+    target: Final = "target"
+    ligand: Final = "ligand"
+    receptor: Final = "receptor"
+    ligand_complex: Final = "ligand_complex"
+    receptor_complex: Final = "receptor_complex"
+    primary: Final[list[str]] = [source, target, ligand_complex, receptor_complex]
+    complete: Final[list[str]] = primary + [ligand, receptor]
+
 
 class CommonColumns:
-    ligand_means = 'ligand_means'
-    receptor_means = 'receptor_means'
-    ligand_props = 'ligand_props'
-    receptor_props = 'receptor_props'
-    ligand_pvals = 'ligand_pvals'
-    receptor_pvals = 'receptor_pvals'
+    ligand_means: Final = "ligand_means"
+    receptor_means: Final = "receptor_means"
+    ligand_props: Final = "ligand_props"
+    receptor_props: Final = "receptor_props"
+    ligand_pvals: Final = "ligand_pvals"
+    receptor_pvals: Final = "receptor_pvals"
+
 
 class MethodColumns:
-    ligand_means_sums = 'ligand_means_sums'
-    receptor_means_sums = 'receptor_means_sums'
-    ligand_zscores = 'ligand_zscores'
-    receptor_zscores = 'receptor_zscores'
-    ligand_logfc = 'ligand_logfc'
-    receptor_logfc = 'receptor_logfc'
-    ligand_trimean = 'ligand_trimean'
-    receptor_trimean = 'receptor_trimean'
-    mat_mean = 'mat_mean'
-    mat_max = 'mat_max'
-    ligand_cdf = 'ligand_cdf'
-    receptor_cdf = 'receptor_cdf'
+    ligand_means_sums: Final = "ligand_means_sums"
+    receptor_means_sums: Final = "receptor_means_sums"
+    ligand_zscores: Final = "ligand_zscores"
+    receptor_zscores: Final = "receptor_zscores"
+    ligand_logfc: Final = "ligand_logfc"
+    receptor_logfc: Final = "receptor_logfc"
+    ligand_trimean: Final = "ligand_trimean"
+    receptor_trimean: Final = "receptor_trimean"
+    mat_mean: Final = "mat_mean"
+    mat_max: Final = "mat_max"
+    ligand_cdf: Final = "ligand_cdf"
+    receptor_cdf: Final = "receptor_cdf"
 
     @classmethod
-    def get_all_values(cls):
-        return [value for name, value in cls.__dict__.items()
-                if not name.startswith('__') and isinstance(value, str)]
+    def get_all_values(cls) -> list[str]:
+        return [value for name, value in cls.__dict__.items() if not name.startswith("__") and isinstance(value, str)]
+
 
 class InternalValues:
-    lrs_to_keep = 'lrs_to_keep'
-    prop_min = 'prop_min'
-    label = '@label'
+    lrs_to_keep: Final = "lrs_to_keep"
+    prop_min: Final = "prop_min"
+    label: Final = "@label"

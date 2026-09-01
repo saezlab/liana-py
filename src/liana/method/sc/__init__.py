@@ -7,3 +7,15 @@ from ._natmi import natmi
 from ._rank_aggregate import _rank_aggregate_meta
 from ._scseqcomm import scseqcomm
 from ._singlecellsignalr import singlecellsignalr
+
+__all__ = [
+    "_rank_aggregate_meta",
+    "cellchat",
+    "cellphonedb",
+    "connectome",
+    "geometric_mean",
+    "logfc",
+    "natmi",
+    "scseqcomm",
+    "singlecellsignalr",
+]

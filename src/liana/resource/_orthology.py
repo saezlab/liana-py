@@ -10,8 +10,13 @@ from liana._core._common import _logg
 _HCOP_BASE = "https://storage.googleapis.com/public-download-files/hcop"
 
 
-def _replace_subunits(lst, my_dict, one_to_many):
-    result = []
+def _replace_subunits(
+    lst: list[str],
+    my_dict: dict[str, str | list[str]],
+    one_to_many: int,
+) -> list[list[str] | float]:
+    # NaN marks a subunit with no (or too many) orthologs; the caller drops those rows.
+    result: list[list[str] | float] = []
     for x in lst:
         if x in my_dict:
             value = my_dict[x]
@@ -28,7 +33,12 @@ def _replace_subunits(lst, my_dict, one_to_many):
     return result
 
 
-def _generate_orthologs(data, column, map_dict, one_to_many):
+def _generate_orthologs(
+    data: pd.DataFrame,
+    column: str,
+    map_dict: dict[str, str | list[str]],
+    one_to_many: int,
+) -> pd.DataFrame:
     df = data[[column]].drop_duplicates().set_index(column)
 
     df["subunits"] = df.index.str.split("_")
@@ -41,9 +51,7 @@ def _generate_orthologs(data, column, map_dict, one_to_many):
     )
     df = df["subunits"].explode().reset_index()
 
-    grouped = (
-        df.groupby(column).filter(lambda x: x["subunits"].notna().all()).groupby(column)
-    )
+    grouped = df.groupby(column).filter(lambda x: x["subunits"].notna().all()).groupby(column)
 
     # Generate all possible subunit combinations within each group
     complexes = []
@@ -68,7 +76,7 @@ def translate_column(
     column: str,
     replace: bool = True,
     one_to_many: int = 1,
-    ) -> pd.DataFrame:
+) -> pd.DataFrame:
     """
     Generate orthologs for a given column in a DataFrame.
 
@@ -86,8 +94,8 @@ def translate_column(
     one_to_many
         Maximum number of orthologs allowed per gene. Default is 1.
 
-    Details
-    -------
+    Notes
+    -----
     This function generates orthologs for a given column in a DataFrame.
     It handles complex names by splitting them into subunits and generating all possible combinations of orthologs.
     It assumes that subunits are separated by an underscore ("_").
@@ -104,15 +112,16 @@ def translate_column(
     Examples
     --------
     `map_df` maps human symbols (`source`) to the target organism (`target`).
-    :func:`liana.resource.get_hcop_orthologs` builds one; it is written out here to
+    :func:`liana.rs.get_hcop_orthologs` builds one; it is written out here to
     keep the example offline:
 
     >>> import pandas as pd
     >>> import liana as li
-    >>> resource = li.rs.select_resource('consensus').head(3)
-    >>> map_df = pd.DataFrame({'source': ['LGALS9', 'PTPRC', 'MET', 'CD44'],
-    ...                        'target': ['Lgals9', 'Ptprc', 'Met', 'Cd44']})
-    >>> li.rs.translate_column(resource, map_df, column='ligand')
+    >>> resource = li.rs.select_resource("consensus").head(3)
+    >>> map_df = pd.DataFrame(
+    ...     {"source": ["LGALS9", "PTPRC", "MET", "CD44"], "target": ["Lgals9", "Ptprc", "Met", "Cd44"]}
+    ... )
+    >>> li.rs.translate_column(resource, map_df, column="ligand")
        ligand receptor
     0  Lgals9    PTPRC
     1  Lgals9      MET
@@ -120,33 +129,30 @@ def translate_column(
 
     With `replace=False` the translation is added as an `orthology_ligand` column
     instead of overwriting `ligand`. Use
-    :func:`liana.resource.translate_resource` to do both sides at once.
+    :func:`liana.rs.translate_resource` to do both sides at once.
 
     """
     if not isinstance(one_to_many, int):
         raise ValueError("`one_to_many` should be a positive integer!")
-    if ['source', 'target'] != map_df.columns.tolist():
+    if ["source", "target"] != map_df.columns.tolist():
         raise ValueError("The `map_df` DataFrame must have two columns named 'source' and 'target'!")
 
     # get orthologs
     map_df = map_df.set_index("source")
-    map_dict = map_df.groupby(level=0)["target"].apply(list).to_dict()
+    map_dict: dict[str, str | list[str]] = {
+        str(source): list(targets) for source, targets in map_df.groupby(level=0)["target"]
+    }
     map_data = _generate_orthologs(resource, column, map_dict, one_to_many)
 
     # join orthologs
-    resource = resource.merge(map_data,
-                              left_on=column,
-                              right_index=True,
-                              how="left")
+    resource = resource.merge(map_data, left_on=column, right_index=True, how="left")
 
     # replace orthologs
     if replace:
         resource[column] = resource["orthology_target"]
     else:
         resource[f"orthology_{column}"] = resource.apply(
-            lambda x: x["orthology_target"]
-            if not pd.isnull(x["orthology_target"])
-            else x[column],
+            lambda x: x["orthology_target"] if not pd.isnull(x["orthology_target"]) else x[column],
             axis=1,
         )
     resource = resource.drop(columns=["orthology_target"])
@@ -157,11 +163,12 @@ def translate_column(
 
 # function that loops over columns and applies translate_column
 def translate_resource(
-        resource: pd.DataFrame,
-        map_df: pd.DataFrame,
-        columns: list[str] = None,
-        **kwargs
-        ) -> pd.DataFrame:
+    resource: pd.DataFrame,
+    map_df: pd.DataFrame,
+    columns: list[str] | None = None,
+    replace: bool = True,
+    one_to_many: int = 1,
+) -> pd.DataFrame:
     """
     Generate orthologs for multiple columns in a DataFrame.
 
@@ -183,14 +190,15 @@ def translate_resource(
     Examples
     --------
     Translates the `'ligand'` and `'receptor'` columns in one go. In practice
-    `map_df` comes from :func:`liana.resource.get_hcop_orthologs`; interactions
+    `map_df` comes from :func:`liana.rs.get_hcop_orthologs`; interactions
     whose partners have no ortholog are dropped:
 
     >>> import pandas as pd
     >>> import liana as li
-    >>> resource = li.rs.select_resource('consensus').head(3)
-    >>> map_df = pd.DataFrame({'source': ['LGALS9', 'PTPRC', 'MET', 'CD44'],
-    ...                        'target': ['Lgals9', 'Ptprc', 'Met', 'Cd44']})
+    >>> resource = li.rs.select_resource("consensus").head(3)
+    >>> map_df = pd.DataFrame(
+    ...     {"source": ["LGALS9", "PTPRC", "MET", "CD44"], "target": ["Lgals9", "Ptprc", "Met", "Cd44"]}
+    ... )
     >>> li.rs.translate_resource(resource, map_df)
        ligand receptor
     0  Lgals9    Ptprc
@@ -199,20 +207,21 @@ def translate_resource(
 
     """
     if columns is None:
-        columns = ['ligand', 'receptor']
+        columns = ["ligand", "receptor"]
 
     for column in columns:
-        resource = translate_column(resource, map_df, column, **kwargs)
+        resource = translate_column(resource, map_df, column, replace=replace, one_to_many=one_to_many)
 
     return resource
 
 
-def get_hcop_orthologs(target_organism="mouse",
-                       url=None,
-                       filename=None,
-                       min_evidence=3,
-                       columns=None
-                       ):
+def get_hcop_orthologs(
+    target_organism: str = "mouse",
+    url: str | None = None,
+    filename: str | None = None,
+    min_evidence: int = 3,
+    columns: list[str] | None = None,
+) -> pd.DataFrame:
     """
     Download the HCOP orthology file and filter it by minimum evidence.
 
@@ -241,8 +250,8 @@ def get_hcop_orthologs(target_organism="mouse",
     mapping
         DataFrame with the HCOP mapping.
 
-    Details
-    -------
+    Notes
+    -----
     HCOP is a composite database combining data from various orthology resources.
     It provides a comprehensive set of human orthologs across many species.
 
@@ -256,13 +265,13 @@ def get_hcop_orthologs(target_organism="mouse",
     --------
     This function downloads from HCOP, so it is not run here. A typical call
     keeps only the two symbol columns needed by
-    :func:`liana.resource.translate_resource`::
+    :func:`liana.rs.translate_resource`::
 
         map_df = get_hcop_orthologs(
-            target_organism='mouse',
-            columns=['human_symbol', 'mouse_symbol'],
+            target_organism="mouse",
+            columns=["human_symbol", "mouse_symbol"],
             min_evidence=3,
-        ).rename(columns={'human_symbol': 'source', 'mouse_symbol': 'target'})
+        ).rename(columns={"human_symbol": "source", "mouse_symbol": "target"})
 
     """
     if url is None:
@@ -276,8 +285,8 @@ def get_hcop_orthologs(target_organism="mouse",
         _logg(f"File {filename} already exists. Skipping download.", level="info")
 
     mapping = pd.read_csv(filename, sep="\t")
-    mapping['evidence'] = mapping['support'].apply(lambda x: len(x.split(",")))
-    mapping = mapping[mapping['evidence'] >= min_evidence]
+    mapping["evidence"] = mapping["support"].apply(lambda x: len(x.split(",")))
+    mapping = mapping[mapping["evidence"] >= min_evidence]
 
     if columns is not None:
         mapping = mapping[columns]

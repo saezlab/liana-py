@@ -2,13 +2,16 @@
 
 # This file only contains a selection of the most common options. For a full
 # list see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+# https://www.sphinx-doc.org/page/usage/configuration.html
 
 # -- Path setup --------------------------------------------------------------
+import shutil
 import sys
 from datetime import datetime
 from importlib.metadata import metadata
 from pathlib import Path
+
+from sphinxcontrib import katex
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE / "extensions"))
@@ -32,6 +35,10 @@ release = info["Version"]
 bibtex_bibfiles = ["references.bib"]
 templates_path = ["_templates"]
 nitpicky = True  # Warn about broken links
+# The notebooks under `docs/tutorials` come from the liana-tutorials submodule and
+# are not editable from here; these three subtypes only fire inside them. Everything
+# else is built with `-W`.
+suppress_warnings = ["myst.xref_missing", "image.not_readable", "myst.directive_unknown"]
 needs_sphinx = "4.0"
 
 html_context = {
@@ -55,9 +62,9 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
     "sphinxcontrib.bibtex",
+    "sphinxcontrib.katex",
     "sphinx_autodoc_typehints",
-    "sphinx_tabs.tabs",
-    "sphinx.ext.mathjax",
+    "sphinx_design",
     "IPython.sphinxext.ipython_console_highlighting",
     "sphinxext.opengraph",
     *[p.stem for p in (HERE / "extensions").glob("*.py")],
@@ -92,6 +99,7 @@ nb_output_stderr = "remove"
 nb_execution_mode = "off"
 nb_merge_streams = True
 typehints_defaults = "braces"
+always_use_bars_union = True  # use `|` instead of `Union` in types even when building with Python ≤3.14
 
 source_suffix = {
     ".rst": "restructuredtext",
@@ -107,6 +115,8 @@ intersphinx_mapping = {
     "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
     "mudata": ("https://mudata.readthedocs.io/stable/", None),
     "sklearn": ("https://scikit-learn.org/stable/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
     "plotnine": ("https://plotnine.org/", None),
     # add more as needed
 }
@@ -114,7 +124,13 @@ intersphinx_mapping = {
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "**.ipynb_checkpoints"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "**.ipynb_checkpoints",
+    "tutorials/README.md",  # the submodule's own readme, not a docs page
+]
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -139,17 +155,29 @@ html_theme_options = {
 }
 
 pygments_style = "default"
+katex_prerender = shutil.which(katex.NODEJS_BINARY) is not None
 
 nitpick_ignore = [
     ("py:class", "callable"),
+    # Internal keyword-argument shapes; documented on the functions that take them
+    ("py:class", "liana.method.sc._liana_pipe.SpatialKwargs"),
+    ("py:class", "liana.method.sc._liana_pipe.MdataKwargs"),
+    # Optional dependencies, absent from the docs build unless `extras` is installed
+    ("py:class", "corneto._core.Graph"),
+    ("py:class", "corneto.backend._base.ProblemDef"),
+    ("py:class", "cell2cell.tensor.tensor.InteractionTensor"),
     ("py:class", "optional"),
     ("py:class", "array-like"),
     ("py:class", "csr_matrix"),
     ("py:class", "tuples"),
+    # inherited from MuData/AnnData, whose own docstrings these come from
+    ("py:class", "MuData"),
+    ("py:class", "zarr.abc.store.Store"),
     ("py:class", "corneto.Graph"),
     # Base classes for *defining* methods, deliberately not in the public API
     ("py:class", "liana.method.sc._Method.Method"),
     ("py:attr", "n_obs"),
+    ("py:attr", "n_vars"),
     ("py:attr", "n_var"),
     ("py:attr", "obs"),
     ("py:attr", "obsm"),

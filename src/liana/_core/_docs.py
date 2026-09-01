@@ -1,6 +1,60 @@
 from __future__ import annotations
 
-from docrep import DocstringProcessor
+import inspect
+import re
+from collections.abc import Callable
+
+# `%(name)s`, the placeholder syntax every docstring in this package is written in.
+_PLACEHOLDER = re.compile(r"%\((\w+)\)s")
+
+
+class DocstringProcessor:
+    """Substitutes ``%(name)s`` placeholders into the docstrings it decorates.
+
+    This replaces `docrep.DocstringProcessor`, which is unmaintained and ships no
+    type information -- an untyped decorator makes every function it decorates
+    untyped in turn, which `mypy --strict` rejects. `scanpy` carries an equivalent
+    helper of its own (`scanpy._utils._doc_params`) for the same reason.
+
+    The placeholder syntax is kept as docrep spelled it, so the docstrings
+    themselves are unchanged.
+
+    Examples
+    --------
+    >>> d = DocstringProcessor(greeting="hello")
+    >>> @d.dedent
+    ... def f():
+    ...     '''Says %(greeting)s.'''
+    >>> f.__doc__
+    'Says hello.'
+
+    """
+
+    def __init__(self, **params: str) -> None:
+        self.params = params
+
+    def dedent[T: Callable[..., object] | type](self, obj: T, /) -> T:
+        """Dedent ``obj``'s docstring and substitute the registered parameters.
+
+        Raises
+        ------
+        KeyError
+            If the docstring references a placeholder that was never registered.
+            (docrep only warned, which let typos survive into the rendered docs.)
+
+        """
+        if obj.__doc__ is None:
+            return obj
+
+        def replace(match: re.Match[str]) -> str:
+            name = match.group(1)
+            if name not in self.params:
+                raise KeyError(f"{obj.__qualname__}: unknown docstring placeholder %({name})s")
+            return self.params[name]
+
+        obj.__doc__ = _PLACEHOLDER.sub(replace, inspect.cleandoc(obj.__doc__))
+        return obj
+
 
 # Common docstrings
 _adata = """\
@@ -392,7 +446,7 @@ d = DocstringProcessor(
     orderby=_orderby,
     orderby_ascending=_orderby_ascending,
     orderby_absolute=_orderby_absolute,
-    filter_fn =_filter_fn,
+    filter_fn=_filter_fn,
     aggregate_fn=_aggregate_fn,
     ligand_complex=_ligand_complex,
     receptor_complex=_receptor_complex,
@@ -412,5 +466,4 @@ d = DocstringProcessor(
     annulus_steps=_annulus_steps,
     extend_first_annulus=_extend_first_annulus,
     cell_types=_cell_types,
-
 )

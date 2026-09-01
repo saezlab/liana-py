@@ -7,57 +7,66 @@ from anndata import AnnData
 from liana._core._pipe_utils import prep_check_adata
 from liana._core._pipe_utils._common import _get_props
 from liana._core._pipe_utils._pre import _choose_mtx_rep
+from liana._core._types import ObsmValue, copy_aligned, get_coordinates, get_obs
 from liana.method.sp._misty._Misty import MistyData
 from liana.method.sp._utils import _add_complexes_to_var
+from liana.preprocessing.spatial_neighbors import _Kernel, spatial_neighbors
 from liana.resource import select_resource
-from liana.preprocessing.spatial_neighbors import spatial_neighbors
 
 
-def _make_view(adata, nz_threshold=0.1, add_obs=False, use_raw=False,
-               layer=None, connecitivity=None, spatial_key=None, verbose=False):
+def _make_view(
+    adata: AnnData,
+    nz_threshold: float = 0.1,
+    add_obs: bool = False,
+    use_raw: bool = False,
+    layer: str | None = None,
+    connecitivity: ObsmValue | None = None,
+    spatial_key: str | None = None,
+    verbose: bool = False,
+) -> AnnData:
 
     X = _choose_mtx_rep(adata=adata, use_raw=use_raw, layer=layer, verbose=verbose)
 
-    obsm = {}
-    obsp = {}
+    obsm: dict[str, ObsmValue] = {}
+    obsp: dict[str, ObsmValue] = {}
     if spatial_key is not None:
         if spatial_key not in adata.obsm.keys():
             raise ValueError(f"spatial_key {spatial_key} not found in `obsm`")
-        obsm[spatial_key] = adata.obsm[spatial_key]
+        obsm[spatial_key] = get_coordinates(adata, spatial_key)
 
         if connecitivity is not None:
-            obsp = {}
             obsp[f"{spatial_key}_connectivities"] = connecitivity
 
-    obs = adata.obs if add_obs else pd.DataFrame(index=adata.obs.index)
+    source_obs = get_obs(adata)
+    obs = source_obs if add_obs else pd.DataFrame(index=source_obs.index)
 
-    adata = AnnData(X=X.astype(np.float32, copy=False), obs=obs, var=pd.DataFrame(index=adata.var_names),
-                    obsp=obsp, obsm=obsm)
-    var_msk = _get_props(adata.X) >= nz_threshold
-    adata = adata[:, var_msk]
+    view = AnnData(X=X.astype(np.float32, copy=False), obs=obs, var=pd.DataFrame(index=adata.var_names))
+    copy_aligned(view, obsm=obsm, obsp=obsp)
+    var_msk = _get_props(_choose_mtx_rep(view)) >= nz_threshold
 
-    return adata
+    return view[:, var_msk]
 
 
-def genericMistyData(intra: AnnData,
-                     intra_use_raw: bool = False,
-                     intra_layer: str = None,
-                     extra: AnnData = None,
-                     extra_use_raw: bool = False,
-                     extra_layer: str = None,
-                     nz_threshold: float = 0.1,
-                     add_para: bool = True,
-                     spatial_key: str = 'spatial',
-                     set_diag: bool = False,
-                     kernel: str = 'misty_rbf',
-                     bandwidth: float = 100,
-                     zoi: float = 0,
-                     cutoff: float = 0.1,
-                     add_juxta: bool = True,
-                     n_neighs: int = 6,
-                     max_neighs: int = 18,
-                     verbose: bool = False
-                     ) -> MistyData:
+def genericMistyData(
+    intra: AnnData,
+    intra_use_raw: bool = False,
+    intra_layer: str | None = None,
+    extra: AnnData | None = None,
+    extra_use_raw: bool = False,
+    extra_layer: str | None = None,
+    nz_threshold: float = 0.1,
+    add_para: bool = True,
+    spatial_key: str = "spatial",
+    set_diag: bool = False,
+    kernel: _Kernel = "misty_rbf",
+    bandwidth: float = 100,
+    zoi: float = 0,
+    cutoff: float = 0.1,
+    add_juxta: bool = True,
+    n_neighs: int = 6,
+    max_neighs: int = 18,
+    verbose: bool = False,
+) -> MistyData:
     """
     Construct a MistyData object from an AnnData object with views as presented in the manuscript.
 
@@ -114,8 +123,7 @@ def genericMistyData(intra: AnnData,
 
     >>> import liana as li
     >>> adata = li.ds.generate_toy_spatial()
-    >>> misty = li.mt.genericMistyData(intra=adata, bandwidth=200,
-    ...                                set_diag=True)
+    >>> misty = li.mt.genericMistyData(intra=adata, bandwidth=200, set_diag=True)
 
     Pass a second object as `extra` to predict the intra view from a different
     modality (e.g. cell-type composition, or pathway activities). Then call the
@@ -124,71 +132,88 @@ def genericMistyData(intra: AnnData,
     """
     # init views
     views = {}
-    intra = _make_view(adata=intra, nz_threshold=nz_threshold, add_obs=True,
-                       use_raw=intra_use_raw, layer=intra_layer,
-                       spatial_key=spatial_key, verbose=verbose)
-    views['intra'] = intra
+    intra = _make_view(
+        adata=intra,
+        nz_threshold=nz_threshold,
+        add_obs=True,
+        use_raw=intra_use_raw,
+        layer=intra_layer,
+        spatial_key=spatial_key,
+        verbose=verbose,
+    )
+    views["intra"] = intra
 
     if extra is None:
         extra = intra
 
     if add_juxta:
-        neighbors = spatial_neighbors(extra,
-                                      bandwidth=bandwidth*5,
-                                      spatial_key=spatial_key,
-                                      max_neighbours=n_neighs,
-                                      set_diag=set_diag,
-                                      inplace=False)
+        neighbors = spatial_neighbors(
+            extra,
+            bandwidth=bandwidth * 5,
+            spatial_key=spatial_key,
+            max_neighbours=n_neighs,
+            set_diag=set_diag,
+            inplace=False,
+        )
 
-        views['juxta'] = _make_view(adata=extra, nz_threshold=nz_threshold,
-                                    use_raw=extra_use_raw, layer=extra_layer,
-                                    spatial_key=spatial_key, connecitivity=neighbors,
-                                    verbose=verbose)
+        views["juxta"] = _make_view(
+            adata=extra,
+            nz_threshold=nz_threshold,
+            use_raw=extra_use_raw,
+            layer=extra_layer,
+            spatial_key=spatial_key,
+            connecitivity=neighbors,
+            verbose=verbose,
+        )
 
     if add_para:
-        weights = spatial_neighbors(adata=extra,
-                                    spatial_key=spatial_key,
-                                    bandwidth=bandwidth,
-                                    kernel=kernel,
-                                    set_diag=set_diag,
-                                    max_neighbours=max_neighs,
-                                    inplace=False,
-                                    cutoff=cutoff,
-                                    zoi=zoi
-                                    )
-        views['para'] = _make_view(adata=extra, nz_threshold=nz_threshold,
-                                   use_raw=extra_use_raw, layer=extra_layer,
-                                   spatial_key=spatial_key, connecitivity=weights,
-                                   verbose=verbose)
+        weights = spatial_neighbors(
+            adata=extra,
+            spatial_key=spatial_key,
+            bandwidth=bandwidth,
+            kernel=kernel,
+            set_diag=set_diag,
+            max_neighbours=max_neighs,
+            inplace=False,
+            cutoff=cutoff,
+            zoi=zoi,
+        )
+        views["para"] = _make_view(
+            adata=extra,
+            nz_threshold=nz_threshold,
+            use_raw=extra_use_raw,
+            layer=extra_layer,
+            spatial_key=spatial_key,
+            connecitivity=weights,
+            verbose=verbose,
+        )
 
-    return MistyData(views, intra.obs, spatial_key)
+    return MistyData(views, get_obs(intra), spatial_key)
 
 
 def _check_if_squidpy() -> ModuleType:
     try:
         import squidpy as sq
     except ImportError:
-        raise ImportError(
-            'squidpy is not installed. Please install it with: '
-            'pip install squidpy'
-        ) from None
+        raise ImportError("squidpy is not installed. Please install it with: pip install squidpy") from None
     return sq
 
 
-def lrMistyData(adata: AnnData,
-                resource_name: str = 'consensus',
-                resource: pd.DataFrame = None,
-                nz_threshold: float = 0.1,
-                use_raw: bool = False,
-                layer: str = None,
-                spatial_key: str = 'spatial',
-                kernel: str = 'misty_rbf',
-                bandwidth: float = 100,
-                set_diag: bool = False,
-                cutoff: float = 0.1,
-                zoi: float = 0,
-                verbose: bool = False
-                ) -> MistyData:
+def lrMistyData(
+    adata: AnnData,
+    resource_name: str = "consensus",
+    resource: pd.DataFrame | None = None,
+    nz_threshold: float = 0.1,
+    use_raw: bool = False,
+    layer: str | None = None,
+    spatial_key: str = "spatial",
+    kernel: _Kernel = "misty_rbf",
+    bandwidth: float = 100,
+    set_diag: bool = False,
+    cutoff: float = 0.1,
+    zoi: float = 0,
+    verbose: bool = False,
+) -> MistyData:
     """
     Generate a MistyData object from an AnnData object in ligand-receptor format.
 
@@ -238,43 +263,47 @@ def lrMistyData(adata: AnnData,
 
     Fitting this asks, per receptor, which neighbouring ligands predict it -- call
     the object with ``bypass_intra=True`` so that the receptors are not predicted
-    from each other. See :func:`liana.method.MistyData.__call__`.
+    from each other. See :func:`liana.mt.MistyData.__call__`.
 
     """
     # TODO: reduce redundancies in documentation
     if resource is None:
         resource = select_resource(resource_name)
 
-    adata = prep_check_adata(adata=adata,
-                             use_raw=use_raw,
-                             layer=layer,
-                             verbose=verbose,
-                             groupby=None,
-                             min_cells=None,
-                             obsm = {spatial_key: adata.obsm[spatial_key]}
-                             )
+    adata = prep_check_adata(
+        adata=adata,
+        use_raw=use_raw,
+        layer=layer,
+        verbose=verbose,
+        groupby=None,
+        min_cells=None,
+        obsm={spatial_key: adata.obsm[spatial_key]},
+    )
 
-    adata = _add_complexes_to_var(adata,
-                                  np.union1d(resource['receptor'].astype(str),
-                                             resource['ligand'].astype(str)
-                                             )
-                                  )
+    adata = _add_complexes_to_var(adata, np.union1d(resource["receptor"].astype(str), resource["ligand"].astype(str)))
 
     # filter_resource after adding complexes to var
-    resource = resource[(np.isin(resource.ligand, adata.var_names)) &
-                        (np.isin(resource.receptor, adata.var_names))]
+    resource = resource[(np.isin(resource.ligand, adata.var_names)) & (np.isin(resource.receptor, adata.var_names))]
 
     views = {}
-    views['intra'] =  _make_view(adata=adata[:, resource['receptor'].unique()],
-                        nz_threshold=0, add_obs=True)
+    views["intra"] = _make_view(adata=adata[:, resource["receptor"].unique()], nz_threshold=0, add_obs=True)
 
-    connectivity = spatial_neighbors(adata=adata, spatial_key=spatial_key,
-                                     bandwidth=bandwidth, kernel=kernel,
-                                     set_diag=set_diag, cutoff=cutoff,
-                                     zoi=zoi, inplace=False)
+    connectivity = spatial_neighbors(
+        adata=adata,
+        spatial_key=spatial_key,
+        bandwidth=bandwidth,
+        kernel=kernel,
+        set_diag=set_diag,
+        cutoff=cutoff,
+        zoi=zoi,
+        inplace=False,
+    )
 
-    views['extra'] = _make_view(adata=adata[:,resource['ligand'].unique()],
-                                spatial_key=spatial_key, nz_threshold=nz_threshold,
-                                connecitivity=connectivity)
+    views["extra"] = _make_view(
+        adata=adata[:, resource["ligand"].unique()],
+        spatial_key=spatial_key,
+        nz_threshold=nz_threshold,
+        connecitivity=connectivity,
+    )
 
-    return MistyData(data=views, obs=views['intra'].obs, spatial_key=spatial_key)
+    return MistyData(data=views, obs=get_obs(views["intra"]), spatial_key=spatial_key)
