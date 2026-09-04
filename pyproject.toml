@@ -38,7 +38,7 @@ dependencies = [
   "numba",
   "pandas",
   "plotnine>=0.10.1",
-  "scanpy",
+  "scanpy>=1.12",      # 1.12 guards `annotate_doc_types` against non-weakref-able TypeAliasType
   "session-info2",
   "tqdm>=4",
 ]
@@ -133,8 +133,8 @@ envs.docs.scripts.open = "python -m webbrowser -t docs/_build/html/index.html"
 envs.docs.dependency-groups = [ "doc" ]
 envs.hatch-test.features = [ "extras" ]
 envs.hatch-test.matrix = [
-  # Test the lowest and highest supported Python versions with normal deps
-  { deps = [ "stable" ], python = [ "3.12", "3.14" ] },
+  # Test every supported Python version with normal deps
+  { deps = [ "stable" ], python = [ "3.12", "3.13", "3.14" ] },
   # Test the newest supported Python version also with pre-release deps
   { deps = [ "pre" ], python = [ "3.14" ] },
 ]
