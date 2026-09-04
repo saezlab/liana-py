@@ -4,12 +4,10 @@ from ._connectome import connectome
 from ._geometric_mean import geometric_mean
 from ._logfc import logfc
 from ._natmi import natmi
-from ._rank_aggregate import _rank_aggregate_meta
 from ._scseqcomm import scseqcomm
 from ._singlecellsignalr import singlecellsignalr
 
 __all__ = [
-    "_rank_aggregate_meta",
     "cellchat",
     "cellphonedb",
     "connectome",

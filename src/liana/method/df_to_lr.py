@@ -9,9 +9,9 @@ from liana._core._constants import DefaultValues as V
 from liana._core._constants import InternalValues as I
 from liana._core._constants import PrimaryColumns as P
 from liana._core._docs import d
-from liana._core._pipe_utils import _check_groupby, assert_covered, filter_resource, prep_check_adata
+from liana._core._pipe_utils import assert_covered, filter_resource, prep_check_adata
 from liana._core._pipe_utils._common import _get_groupby_subset, _get_props, _join_stats
-from liana._core._pipe_utils._pre import _choose_mtx_rep
+from liana._core._pipe_utils._pre import _check_groupby, _choose_mtx_rep
 from liana._core._types import get_obs
 from liana.resource._reassemble_complexes import _explode_complexes, _filter_reassemble_complexes
 from liana.resource.select_resource import _handle_resource

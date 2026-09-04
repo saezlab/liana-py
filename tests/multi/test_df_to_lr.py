@@ -2,7 +2,7 @@ import pytest
 from anndata import AnnData
 from pandas import DataFrame
 
-from liana.datasets import _sample_dea
+from liana.datasets._sample_dea import _sample_dea
 from liana.method import df_to_lr
 
 groupby = "bulk_labels"

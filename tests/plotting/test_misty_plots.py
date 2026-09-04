@@ -6,7 +6,7 @@ from tests._helpers import get_obs
 from tests._helpers import plot_data as _frame
 
 import liana.plotting as pl
-from liana.datasets import _sample_interactions, _sample_target_metrics
+from liana.datasets._sample_misty import _sample_interactions, _sample_target_metrics
 from liana.method.sp import MistyData
 
 

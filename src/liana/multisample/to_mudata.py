@@ -13,7 +13,7 @@ from liana._core._constants import DefaultValues as V
 from liana._core._constants import Keys as K
 from liana._core._constants import PrimaryColumns as P
 from liana._core._docs import d
-from liana._core._pipe_utils import _check_groupby
+from liana._core._pipe_utils._pre import _check_groupby
 from liana._core._types import ScoreTransform, get_obs, get_var
 
 
