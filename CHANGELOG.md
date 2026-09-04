@@ -22,13 +22,22 @@
 - **Breaking: `use_raw` now defaults to `False` (was `True`) everywhere.** Methods read `adata.X` by default instead of `adata.raw.X`, aligning with the scverse ecosystem (scanpy auto/`None`, squidpy/decoupler `False`), where log-normalised expression is expected in `.X`. Pass `use_raw=True` explicitly to keep reading `.raw`. Relatedly, `li.ds.generate_toy_adata`/`generate_toy_spatial` now ship log-normalised expression in `.X` (matching `generate_toy_mdata`), so the default path works on valid data.
 - **Internal: shared machinery consolidated into a private `liana._core` package.** `liana._common`, `_constants` and `_docs` moved under `liana._core`, and the pipeline internals (`_pipe_utils`: `_pre`, `_aggregate`, `_get_mean_perms`, …) moved out of `liana.method` into `liana._core`. The public subpackages now depend on `_core` rather than reaching into one another, removing cross-imports between `method`/`multisample`/`plotting`/`preprocessing`/`resource`. No user-facing symbols changed.
 - Resolved #218
+- **Breaking: spatial proximity weighting in the single-cell methods is opt-in** (#255). `spatial_key` now defaults to `None` for all `li.mt` methods and `rank_aggregate` (the methods previously weighted silently whenever `obsm["spatial"]` existed; `rank_aggregate` never did). Passing a key that is not in `adata.obsm` raises `KeyError` instead of silently skipping the weighting.
+- **Typed codebase (#255).** Synced with the scverse cookiecutter template; `mypy` runs in pre-commit and CI; `.toarray()`/`.A` replaced by `fast-array-utils`. Output is unchanged. Two `_expm1_base` test expectations were corrected: the old tests passed `(base, X)` in swapped order.
+- `docrep` replaced by a small in-house docstring processor; an unknown placeholder now raises at import instead of warning.
+
+### Fixed
+
+- `li.rs.get_metalinks(source="...")` filtered per character of the string; it now filters on the whole value (#255).
+- `return_all_lrs=True` works under pandas 3 (chained `fillna(inplace=True)` was a no-op under Copy-on-Write); the `pandas<3` pin from #244 is lifted.
 
 ### Packaging
+
+- **Requires Python ≥ 3.12, anndata ≥ 0.13, scanpy ≥ 1.12** (#255). scanpy < 1.12 cannot import liana's PEP 695 type aliases.
 
 - **Tutorial CI dependency recipes.** `docs/notebooks` are now runnable from declared extras rather than ad-hoc `pip install` lines, with a committed `uv.lock` for reproducibility. Two install targets cover all 14 notebooks: `uv sync --extra tutorials` (12 CPU notebooks) and `uv sync --extra tutorials-gpu` (the two heavy ones, `inflow_mofaflex` + `liana_c2c`). `tutorials` layers `liana[extras]` with the notebook-only viz/runtime packages (`matplotlib`, `seaborn`, `adjustText`, `marsilea`, `pycrosstalker`); `tutorials-gpu` adds `tensorly`, `mofaflex` and `torch`. Naming follows pertpy/scvi-tools conventions.
 - **`squidpy` added to `[extras]`** — it backs `li.mt.MistyData` and `li.pp.spatial_neighbors` (lazy-imported) and was the one optional-feature dependency the extra never declared.
 - **`torch` is routed to the CPU wheel index** via `[tool.uv.sources]`, keeping tutorial CI off the ~2.5 GB CUDA build; swap the index url for cu124 when GPU CI lands. **`mofaflex` is pinned to git `@main`** there — `inflow_mofaflex.ipynb` needs the unreleased 0.2.0 terms/priors API, which PyPI 0.1.2 does not provide; the override is uv-only, so published metadata stays PyPI-clean.
-- **Minimum Python is now 3.11** (`requires-python = ">=3.11,<3.14"`); the 3.10 classifier and hatch-test matrix entry were dropped.
 
 ### Documentation
 

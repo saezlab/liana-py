@@ -142,9 +142,7 @@ def test_pipeline_with_spatial_key(pbmc68k: AnnData) -> None:
     pbmc68k.obsm["spatial"] = np.random.randn(pbmc68k.shape[0], 2) * 100
 
     # Run cellphonedb without spatial weighting
-    cellphonedb(
-        pbmc68k, groupby="bulk_labels", use_raw=True, n_perms=2, key_added="no_spatial", spatial_key="nonexistent"
-    )
+    cellphonedb(pbmc68k, groupby="bulk_labels", use_raw=True, n_perms=2, key_added="no_spatial", spatial_key=None)
 
     # Run cellphonedb with spatial weighting
     cellphonedb(

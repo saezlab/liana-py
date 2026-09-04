@@ -105,7 +105,7 @@ class AggregateClass(MethodMeta):
         resource: DataFrame | None = V.resource,
         interactions: list[tuple[str, str]] | None = V.interactions,
         mdata_kwargs: MdataKwargs | None = None,
-        spatial_key: str = "spatial",
+        spatial_key: str | None = None,
         spatial_kwargs: SpatialKwargs | None = None,
         inplace: bool = V.inplace,
         verbose: bool = V.verbose,

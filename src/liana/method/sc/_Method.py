@@ -260,7 +260,7 @@ class Method(MethodMeta):
         n_jobs: int = 1,
         resource: DataFrame | None = V.resource,
         interactions: list[tuple[str, str]] | None = V.interactions,
-        spatial_key: str = "spatial",
+        spatial_key: str | None = None,
         spatial_kwargs: SpatialKwargs | None = None,
         mdata_kwargs: MdataKwargs | None = None,
         inplace: bool = V.inplace,

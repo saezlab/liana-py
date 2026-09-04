@@ -231,3 +231,15 @@ def test_wrong_resource(toy_adata: AnnData) -> None:
     with raises(ValueError):
         resource = DataFrame({"ligand": ["A", "B"], "receptor": ["C", "D"]})
         natmi(toy_adata, resource=resource, groupby="bulk_labels", n_perms=4)
+
+
+def test_spatial_key_opt_in(toy_spatial: AnnData) -> None:
+    unweighted = cellphonedb(toy_spatial, groupby="bulk_labels", n_perms=None, use_raw=True, inplace=False)
+    weighted = cellphonedb(
+        toy_spatial, groupby="bulk_labels", n_perms=None, use_raw=True, inplace=False, spatial_key="spatial"
+    )
+    assert unweighted is not None and weighted is not None
+    assert "proximity" not in unweighted.columns
+    assert not isclose(unweighted["lr_means"].sum(), weighted["lr_means"].sum())
+    with pytest.raises(KeyError, match="not found in `adata.obsm`"):
+        cellphonedb(toy_spatial, groupby="bulk_labels", n_perms=None, use_raw=True, spatial_key="missing")

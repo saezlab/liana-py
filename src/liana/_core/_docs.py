@@ -212,7 +212,7 @@ inverse_fn
 # Spatial specific docstrings
 _spatial_key = """\
 spatial_key
-    Key in `adata.obsm` that contains the spatial coordinates. Default is `'spatial'`."""
+    Key in `adata.obsm` that contains the spatial coordinates."""
 
 _connectivity_key = """\
 connectivity_key

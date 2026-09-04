@@ -79,7 +79,7 @@ def liana_pipe(
     layer: str | None,
     supp_columns: list[str] | None = None,
     return_all_lrs: bool = False,
-    spatial_key: str = "spatial",
+    spatial_key: str | None = None,
     spatial_kwargs: SpatialKwargs | None = None,
     _score: MethodMeta | None = None,
     _methods: Sequence[MethodMeta] | None = None,
@@ -225,8 +225,10 @@ def liana_pipe(
         on = [x for x in P.complete if x != P.target]
         lr_res = _sum_means(lr_res, what=C.receptor_means, on=on)
 
-    # Calculate spatial proximity if available and add to lr_res
-    if spatial_key in adata.obsm:
+    # Weight by spatial proximity when requested
+    if spatial_key is not None:
+        if spatial_key not in adata.obsm:
+            raise KeyError(f"`spatial_key` {spatial_key!r} not found in `adata.obsm`.")
         if spatial_kwargs is None:
             spatial_kwargs = SpatialKwargs()
 
