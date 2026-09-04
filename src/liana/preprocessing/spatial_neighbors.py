@@ -1,8 +1,11 @@
+from __future__ import annotations
+
+from typing import Literal
 
 import numpy as np
 import pandas as pd
 from anndata import AnnData
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 from scipy.stats import trim_mean
 from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import normalize
@@ -11,53 +14,69 @@ from tqdm import tqdm
 from liana._core._constants import DefaultValues as V
 from liana._core._constants import Keys as K
 from liana._core._docs import d
+from liana._core._types import get_coordinates, get_obs
+
+type _Kernel = Literal["gaussian", "exponential", "linear", "misty_rbf"]
+type _Bandwidth = float | np.floating
 
 
-def _gaussian(distance_mtx, bandwidth):
-    return np.exp(-(distance_mtx ** 2.0) / (2.0 * bandwidth ** 2.0))
+def _gaussian(distance_mtx: NDArray[np.floating], bandwidth: _Bandwidth) -> NDArray[np.floating]:
+    return np.exp(-(distance_mtx**2.0) / (2.0 * bandwidth**2.0))
 
-def _misty_rbf(distance_mtx, bandwidth):
-    return np.exp(-(distance_mtx ** 2.0) / (bandwidth ** 2.0))
 
-def _exponential(distance_mtx, bandwidth):
+def _misty_rbf(distance_mtx: NDArray[np.floating], bandwidth: _Bandwidth) -> NDArray[np.floating]:
+    return np.exp(-(distance_mtx**2.0) / (bandwidth**2.0))
+
+
+def _exponential(distance_mtx: NDArray[np.floating], bandwidth: _Bandwidth) -> NDArray[np.floating]:
     return np.exp(-distance_mtx / bandwidth)
 
-def _linear(distance_mtx, bandwidth):
-    connectivity = 1 - distance_mtx / bandwidth
-    return np.clip(connectivity, a_min=0, a_max=np.inf)
+
+def _linear(distance_mtx: NDArray[np.floating], bandwidth: _Bandwidth) -> NDArray[np.floating]:
+    connectivity: NDArray[np.floating] = 1 - distance_mtx / bandwidth
+    # `np.clip(..., a_min=0, a_max=inf)`, spelled so the result stays typed.
+    connectivity[connectivity < 0] = 0
+    return connectivity
 
 
-def _kernel_function(distance_mtx, bandwidth, kernel):
-    families = ['gaussian', 'exponential', 'linear', 'misty_rbf']
+def _kernel_function(
+    distance_mtx: NDArray[np.floating],
+    bandwidth: _Bandwidth,
+    kernel: _Kernel,
+) -> NDArray[np.floating]:
+    families = ["gaussian", "exponential", "linear", "misty_rbf"]
     if kernel not in families:
         raise AssertionError(f"{kernel} must be a member of {families}")
 
-    if kernel == 'gaussian':
+    if kernel == "gaussian":
         return _gaussian(distance_mtx, bandwidth)
-    elif kernel == 'misty_rbf':
+    if kernel == "misty_rbf":
         return _misty_rbf(distance_mtx, bandwidth)
-    elif kernel == 'exponential':
+    if kernel == "exponential":
         return _exponential(distance_mtx, bandwidth)
-    elif kernel == 'linear':
-        return _linear(distance_mtx, bandwidth)
-    else:
-        raise ValueError("Please specify a valid family to generate connectivity weights")
+    return _linear(distance_mtx, bandwidth)
+
+
+def _kernel_scalar(distance: _Bandwidth, bandwidth: _Bandwidth, kernel: _Kernel) -> float:
+    """:func:`_kernel_function` applied to a single aggregated distance."""
+    return float(_kernel_function(np.atleast_1d(np.float64(distance)), bandwidth, kernel)[0])
 
 
 @d.dedent
-def spatial_neighbors(adata: AnnData,
-                      bandwidth: float = None,
-                      cutoff: float = 0.1,
-                      max_neighbours: int = 100,
-                      kernel: str = 'gaussian',
-                      set_diag: bool = False,
-                      zoi: float = 0,
-                      standardize: bool = False,
-                      reference: ArrayLike = None,
-                      spatial_key: str = K.spatial_key,
-                      key_added: str = K.spatial_key,
-                      inplace: bool = V.inplace
-                      ) -> np.ndarray | None:
+def spatial_neighbors(
+    adata: AnnData,
+    bandwidth: float | None = None,
+    cutoff: float | None = 0.1,
+    max_neighbours: int = 100,
+    kernel: _Kernel = "gaussian",
+    set_diag: bool = False,
+    zoi: float = 0,
+    standardize: bool = False,
+    reference: ArrayLike | None = None,
+    spatial_key: str = K.spatial_key,
+    key_added: str = K.spatial_key,
+    inplace: bool = V.inplace,
+) -> np.ndarray | None:
     """
     Generate spatial connectivity weights using Euclidean distance.
 
@@ -130,40 +149,38 @@ def spatial_neighbors(adata: AnnData,
     """
     if cutoff is None:
         raise ValueError("`cutoff` must be provided!")
-    assert spatial_key in adata.obsm
-    families = ['gaussian', 'exponential', 'linear', 'misty_rbf']
+    families = ["gaussian", "exponential", "linear", "misty_rbf"]
     if kernel not in families:
         raise AssertionError(f"{kernel} must be a member of {families}")
     if bandwidth is None:
         raise ValueError("Please specify a bandwidth")
 
-    coordinates = adata.obsm[spatial_key]
+    coordinates = get_coordinates(adata, spatial_key)
 
-    if reference is None:
-        _reference = coordinates
-    else:
-        _reference = reference
+    _reference: ArrayLike = coordinates if reference is None else reference
 
-    tree = NearestNeighbors(n_neighbors=max_neighbours + 1, # +1 to exclude self
-                            algorithm='ball_tree',
-                            metric='euclidean').fit(_reference)
-    dist = tree.kneighbors_graph(coordinates, mode='distance')
+    tree = NearestNeighbors(
+        n_neighbors=max_neighbours + 1,  # +1 to exclude self
+        algorithm="ball_tree",
+        metric="euclidean",
+    ).fit(_reference)
+    dist = tree.kneighbors_graph(coordinates, mode="distance")
 
     # prevent float overflow
-    bandwidth = np.array(bandwidth, dtype=np.float64)
+    bandwidth_f = np.float64(bandwidth)
 
     # define zone of indifference
     dist.data[dist.data < zoi] = np.inf
 
     # NOTE: dist gets converted to a connectivity (proximity) matrix
-    dist.data = _kernel_function(dist.data, bandwidth, kernel)
+    dist.data = _kernel_function(dist.data, bandwidth_f, kernel)
 
     if not set_diag:
         dist.setdiag(0)
     if cutoff is not None:
         dist.data = dist.data * (dist.data > cutoff)
     if standardize:
-        dist = normalize(dist, axis=1, norm='l1')
+        dist = normalize(dist, axis=1, norm="l1")
 
     spot_n = dist.shape[0]
     if reference is None:
@@ -173,9 +190,9 @@ def spatial_neighbors(adata: AnnData,
 
     if inplace:
         if reference is not None:
-            adata.obsm[f'{key_added}_connectivities'] = dist
+            adata.obsm[f"{key_added}_connectivities"] = dist
         else:
-            adata.obsp[f'{key_added}_connectivities'] = dist
+            adata.obsp[f"{key_added}_connectivities"] = dist
 
     return None if inplace else dist
 
@@ -184,14 +201,14 @@ def spatial_neighbors(adata: AnnData,
 def spatial_pair_proximity(
     adata: AnnData,
     groupby: str,
-    spatial_key='spatial',
-    bandwidth=250,
-    contact_bandwidth=None,
-    min_cells_in_proximity=10,
-    trim_fraction=0.1,
-    kernel='gaussian',
-    verbose=V.verbose
-):
+    spatial_key: str = "spatial",
+    bandwidth: float = 250,
+    contact_bandwidth: float | None = None,
+    min_cells_in_proximity: int = 10,
+    trim_fraction: float = 0.1,
+    kernel: _Kernel = "gaussian",
+    verbose: bool = V.verbose,
+) -> pd.DataFrame:
     """
     Computes aggregated spatial statistics and proximity scores between cell types.
 
@@ -242,12 +259,12 @@ def spatial_pair_proximity(
 
     >>> import liana as li
     >>> adata = li.ds.generate_toy_spatial()
-    >>> proximity = li.pp.spatial_pair_proximity(adata, groupby='bulk_labels')
+    >>> proximity = li.pp.spatial_pair_proximity(adata, groupby="bulk_labels")
 
     One row per ordered pair of groups, scored from 1 for groups sitting on top of
     each other down towards 0 for groups that never meet:
 
-    >>> proximity[['source', 'target', 'proximity']].head(3).round(3)
+    >>> proximity[["source", "target", "proximity"]].head(3).round(3)
                source          target  proximity
     0  CD14+ Monocyte  CD14+ Monocyte      0.663
     1  CD14+ Monocyte         CD19+ B      0.628
@@ -255,8 +272,8 @@ def spatial_pair_proximity(
 
     """
     # groupby_labels use categories if categorical
-    groupby_labels = np.asarray(adata.obs[groupby])
-    coordinates = np.asarray(adata.obsm[spatial_key], dtype=float)
+    groupby_labels = np.asarray(get_obs(adata)[groupby])
+    coordinates = get_coordinates(adata, spatial_key)
 
     unique_types = np.unique(groupby_labels)
     stats_list = []
@@ -274,7 +291,7 @@ def spatial_pair_proximity(
             continue
 
         # Handle self-interaction (exclude cell itself as neighbor)
-        is_self = (type_a == type_b)
+        is_self = type_a == type_b
         k_neighbors = 2 if is_self else 1
 
         if is_self and len(idx_b) < 2:
@@ -298,22 +315,22 @@ def spatial_pair_proximity(
         is_interacting = count_long >= min_cells_in_proximity
 
         # 3. Proximity score (kernel applied to mean_distance)
-        prox_score = _kernel_function(avg_dist, bandwidth=bandwidth, kernel=kernel)
+        prox_score = _kernel_scalar(avg_dist, bandwidth=bandwidth, kernel=kernel)
 
         # Build result dict
-        result_dict = {
+        result_dict: dict[str, str | float | int] = {
             "source": type_a,
             "target": type_b,
             "mean_distance": avg_dist,
             "interacting": int(is_interacting),
-            "proximity": prox_score
+            "proximity": prox_score,
         }
 
         # 4. Optional contact proximity
         if contact_bandwidth is not None:
             count_short = np.sum(raw_dists <= contact_bandwidth)
             is_physically_interacting = count_short >= min_cells_in_proximity
-            contact_prox_score = _kernel_function(avg_dist, bandwidth=contact_bandwidth, kernel=kernel)
+            contact_prox_score = _kernel_scalar(avg_dist, bandwidth=contact_bandwidth, kernel=kernel)
 
             result_dict["contact_interacting"] = int(is_physically_interacting)
             result_dict["contact_proximity"] = contact_prox_score

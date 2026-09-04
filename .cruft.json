@@ -1,0 +1,54 @@
+{
+  "template": "https://github.com/scverse/cookiecutter-scverse",
+  "commit": "eb4523fde2e18bcfc121ff2cd722c9037ff8b910",
+  "checkout": "main",
+  "context": {
+    "cookiecutter": {
+      "project_name": "liana",
+      "package_name": "liana",
+      "project_description": "LIANA+: a one-stop-shop framework for cell-cell communication",
+      "author_full_name": "Daniel Dimitrov",
+      "author_email": "daniel.dimitrov@embl.de",
+      "github_user": "scverse",
+      "github_repo": "liana-py",
+      "license": "BSD 3-Clause License",
+      "ide_integration": false,
+      "issue_categorization": "labels",
+      "_copy_without_render": [
+        ".github/workflows/build.yaml",
+        ".github/workflows/test.yaml",
+        "docs/_templates/autosummary/**.rst"
+      ],
+      "_exclude_on_template_update": [
+        "CHANGELOG.md",
+        "LICENSE",
+        "README.md",
+        "docs/api.md",
+        "docs/index.md",
+        "docs/notebooks/example.ipynb",
+        "docs/references.bib",
+        "docs/references.md",
+        "src/**",
+        "tests/**"
+      ],
+      "_render_devdocs": false,
+      "_jinja2_env_vars": {
+        "lstrip_blocks": true,
+        "trim_blocks": true
+      },
+      "_template": "https://github.com/scverse/cookiecutter-scverse"
+    }
+  },
+  "directory": "",
+  "skip": [
+    ".git",
+    "tests",
+    "src/**/__init__.py",
+    "src/**/basic.py",
+    "docs/api.md",
+    "docs/changelog.md",
+    "docs/references.bib",
+    "docs/references.md",
+    "docs/notebooks/example.ipynb"
+  ]
+}

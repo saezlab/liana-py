@@ -5,6 +5,7 @@ from pandas import DataFrame
 
 from liana._core._constants import DefaultValues as V
 from liana._core._docs import d
+from liana._core._types import ScoreTransform
 from liana.method.df_to_lr import df_to_lr
 from liana.method.fun._causalnet import find_causalnet
 from liana.method.fun._estimate_metalinks import estimate_metalinks
@@ -37,7 +38,7 @@ from liana.method.sp._lric_helpers import get_lric_auc, get_lric_divergence
 
 # callable consensus instance
 _methods = [cellphonedb, connectome, logfc, natmi, singlecellsignalr]
-rank_aggregate = AggregateClass(aggregate_meta, methods=_methods)  # type: ignore[arg-type]
+rank_aggregate = AggregateClass(aggregate_meta, methods=_methods)
 
 
 def show_methods() -> DataFrame:
@@ -60,7 +61,8 @@ def show_methods() -> DataFrame:
     """
     return _show_methods(_methods + [rank_aggregate, geometric_mean, scseqcomm, cellchat])
 
-def get_method_scores() -> dict:
+
+def get_method_scores() -> dict[str, bool | None]:
     """
     Shows the scoring methods available.
 
@@ -78,21 +80,22 @@ def get_method_scores() -> dict:
     >>> scores = li.mt.get_method_scores()
 
     """
-    instances = np.array(_MethodMeta.instances)
-    relevant = np.array([(isinstance(instance, _Method)) | (isinstance(instance, AggregateClass)) for instance in instances])
-    instances = instances[relevant]
+    alive = [ref() for ref in _MethodMeta.instances]
+    instances = [instance for instance in alive if isinstance(instance, _Method | AggregateClass)]
 
-    specificity_scores = {method.specificity: method.specificity_ascending for method in instances if method.specificity is not None}
-    magnitude_scores = {method.magnitude : method.magnitude_ascending for method in instances if method.magnitude is not None}
+    specificity_scores = {
+        method.specificity: method.specificity_ascending for method in instances if method.specificity is not None
+    }
+    magnitude_scores = {
+        method.magnitude: method.magnitude_ascending for method in instances if method.magnitude is not None
+    }
 
     scores = {**specificity_scores, **magnitude_scores}
     return scores
 
+
 @d.dedent
-def process_scores(liana_res: DataFrame,
-                   score_key: str,
-                   inverse_fn: Callable = V.inverse_fn
-                   ) -> DataFrame:
+def process_scores(liana_res: DataFrame, score_key: str, inverse_fn: ScoreTransform = V.inverse_fn) -> DataFrame:
     """
     Processes and outputs a given score.
 
@@ -114,9 +117,8 @@ def process_scores(liana_res: DataFrame,
 
     >>> import liana as li
     >>> adata = li.ds.generate_toy_adata()
-    >>> li.mt.rank_aggregate(adata, groupby='bulk_labels', n_perms=None)
-    >>> res = li.mt.process_scores(adata.uns['liana_res'],
-    ...                            score_key='magnitude_rank')
+    >>> li.mt.rank_aggregate(adata, groupby="bulk_labels", n_perms=None)
+    >>> res = li.mt.process_scores(adata.uns["liana_res"], score_key="magnitude_rank")
 
     """
     df = liana_res.copy()
@@ -127,10 +129,39 @@ def process_scores(liana_res: DataFrame,
 
     # reverse if ascending order
     ascending_order = scores[score_key]
-    if(ascending_order):
+    if ascending_order:
         df[score_key] = inverse_fn(df[score_key])
 
     return df
 
+
+__all__ = [
+    "MistyData",
+    "bivariate",
+    "cellchat",
+    "cellphonedb",
+    "compute_global_specificity",
+    "connectome",
+    "cross_pcf",
+    "df_to_lr",
+    "estimate_metalinks",
+    "find_causalnet",
+    "genericMistyData",
+    "geometric_mean",
+    "get_lric_auc",
+    "get_lric_divergence",
+    "get_method_scores",
+    "inflow",
+    "logfc",
+    "lrMistyData",
+    "lric",
+    "natmi",
+    "process_scores",
+    "rank_aggregate",
+    "scseqcomm",
+    "show_methods",
+    "singlecellsignalr",
+]
+
 # Remove these
-del Callable, DataFrame, V, d
+del Callable, DataFrame, ScoreTransform, V, d

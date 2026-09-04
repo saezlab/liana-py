@@ -8,17 +8,12 @@ on:
   schedule:
     - cron: "0 5 1,15 * *"
 
-permissions:
-  contents: read
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-defaults:
-  run:
-    # to fail on error in multiline statements (-e), in pipes (-o pipefail), and on unset variables (-u).
-    shell: bash -euo pipefail {0}
+permissions:
+  contents: read
 
 jobs:
   # Get the test environment from hatch as defined in pyproject.toml.
@@ -27,16 +22,18 @@ jobs:
   # Check [[tool.hatch.envs.hatch-test.matrix]] in pyproject.toml and https://hatch.pypa.io/latest/environment/ for
   # more details.
   get-environments:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     outputs:
       envs: ${{ steps.get-envs.outputs.envs }}
     steps:
-      - uses: actions/checkout@v4
+      - &clone
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           filter: blob:none
           fetch-depth: 0
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+          persist-credentials: false
+      - &setup-uv
+        uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
       - name: Get test environments
         id: get-envs
         run: |
@@ -54,10 +51,9 @@ jobs:
   # Run tests through hatch. Spawns a separate runner for each environment defined in the hatch matrix obtained above.
   test:
     needs: get-environments
-
     permissions:
-      id-token: write # for codecov OIDC
-      contents: read
+       id-token: write  # for codecov OIDC
+       contents: read
 
     strategy:
       fail-fast: false
@@ -67,50 +63,43 @@ jobs:
 
     name: ${{ matrix.env.label }}
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ contains(matrix.env.name, 'pre') }}  # make "all-green" pass even if pre-release job fails
+    env:
+      UV_PYTHON: ${{ matrix.env.python }}
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          filter: blob:none
-          fetch-depth: 0
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          python-version: ${{ matrix.env.python }}
-          cache-dependency-glob: pyproject.toml
+      - *clone
+      - *setup-uv
       - name: create hatch environment
         run: uvx hatch env create ${{ matrix.env.name }}
+      - name: list all all installed package versions
+        run: uvx hatch run ${{ matrix.env.name }}:uv pip list
       - name: run tests using hatch
         env:
           MPLBACKEND: agg
           PLATFORM: ${{ matrix.os }}
           DISPLAY: :42
-        run: uvx hatch run ${{ matrix.env.name }}:run-cov
+        run: uvx hatch run ${{ matrix.env.name }}:run-cov -v --color=yes -n auto
       - name: generate coverage report
-        run: uvx hatch run ${{ matrix.env.name }}:coverage xml
+        run: |
+          # See https://coverage.readthedocs.io/page/config.html#run-patch
+          test -f .coverage || uvx hatch run ${{ matrix.env.name }}:cov-combine
+          uvx hatch run ${{ matrix.env.name }}:cov-report   # report visibly
+          uvx hatch run ${{ matrix.env.name }}:coverage xml # create report for upload
       - name: Upload coverage
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           fail_ci_if_error: true
           use_oidc: true
 
-  # Run the `>>>` examples in the `src/` docstrings. Not part of the matrix above:
-  # the examples assert on library output, which does not vary by Python version,
-  # so one interpreter is enough to catch an example that has gone stale.
-  doctest:
-    name: Docstring examples
+  lint:
+    name: Pre-commit checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          filter: blob:none
-          fetch-depth: 0
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-      - name: run docstring examples
-        env:
-          MPLBACKEND: agg
-        run: uvx hatch run doctest:run
+      - *clone
+      - *setup-uv
+      - run: uv tool install hatch
+      - run: uvx prek run --all-files --show-diff-on-failure --color=always
 
   # Check that all tests defined above pass. This makes it easy to set a single "required" test in branch
   # protection instead of having to update it frequently. See https://github.com/re-actors/alls-green#why.
@@ -120,9 +109,9 @@ jobs:
     needs:
       - get-environments
       - test
-      - doctest
+      - lint
     runs-on: ubuntu-latest
     steps:
-        - uses: re-actors/alls-green@release/v1
+        - uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe # v1.2.2
           with:
             jobs: ${{ toJSON(needs) }}

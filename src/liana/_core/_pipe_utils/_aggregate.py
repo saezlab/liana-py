@@ -1,16 +1,25 @@
+from __future__ import annotations
+
 from functools import reduce
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
 from scipy.stats import beta, rankdata
 
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
 
-def _aggregate(lrs: dict,
-               consensus,
-               aggregate_method: str = 'rra',
-               _consensus_opts: list = None,
-               _key_cols: list = None
-               ) -> pd.DataFrame:
+    from liana.method.sc._rank_aggregate import AggregateClass
+
+
+def _aggregate(
+    lrs: dict[str, pd.DataFrame],
+    consensus: AggregateClass,
+    aggregate_method: Literal["rra", "mean"] = "rra",
+    _consensus_opts: list[str] | None = None,
+    _key_cols: list[str] | None = None,
+) -> pd.DataFrame:
     """
     Function to aggregate the results of all methods into a single DataFrame.
 
@@ -36,34 +45,34 @@ def _aggregate(lrs: dict,
     """
     # join the sc to the whole universe between the methods
     if _key_cols is None:
-        _key_cols = ['source', 'target', 'ligand_complex', 'receptor_complex']
+        _key_cols = ["source", "target", "ligand_complex", "receptor_complex"]
     if _consensus_opts is None:
-        _consensus_opts = ['Magnitude', 'Specificity']
+        _consensus_opts = ["Magnitude", "Specificity"]
 
-    lrs = [lrs[method].drop_duplicates(keep='first') for method in lrs]  # type: ignore[assignment]
+    frames = [lrs[method].drop_duplicates(keep="first") for method in lrs]
     # reduce to a df with the shared keys + all relevant sc
     lr_res = reduce(
-        lambda left, right:
-        pd.merge(left, right, how='outer', on=_key_cols,
-                 suffixes=('', '_duplicated')), lrs
+        lambda left, right: pd.merge(left, right, how="outer", on=_key_cols, suffixes=("", "_duplicated")), frames
     )
     # drop duplicated columns
-    lr_res = lr_res.loc[:, ~lr_res.columns.str.endswith('_duplicated')]
+    lr_res = lr_res.loc[:, ~lr_res.columns.str.endswith("_duplicated")]
 
-    order_col = ''
-    if 'Specificity' in _consensus_opts:
+    order_col = ""
+    if "Specificity" in _consensus_opts:
+        if consensus.specificity is None:
+            raise ValueError("Cannot aggregate specificity ranks: `consensus.specificity` is unset.")
         _res = lr_res.copy()
-        lr_res[consensus.specificity] = _rank_aggregate(_res,
-                                                        consensus.specificity_specs,
-                                                        aggregate_method=aggregate_method
-                                                        )
+        lr_res[consensus.specificity] = _rank_aggregate(
+            _res, consensus.specificity_specs, aggregate_method=aggregate_method
+        )
         order_col = consensus.specificity
-    if 'Magnitude' in _consensus_opts:
+    if "Magnitude" in _consensus_opts:
+        if consensus.magnitude is None:
+            raise ValueError("Cannot aggregate magnitude ranks: `consensus.magnitude` is unset.")
         _res = lr_res.copy()
-        lr_res[consensus.magnitude] = _rank_aggregate(_res,
-                                                      consensus.magnitude_specs,
-                                                      aggregate_method=aggregate_method
-                                                      )
+        lr_res[consensus.magnitude] = _rank_aggregate(
+            _res, consensus.magnitude_specs, aggregate_method=aggregate_method
+        )
         order_col = consensus.magnitude
 
     lr_res = lr_res.sort_values(order_col)
@@ -71,7 +80,11 @@ def _aggregate(lrs: dict,
     return lr_res
 
 
-def _rank_aggregate(lr_res, specs, aggregate_method) -> np.array:
+def _rank_aggregate(
+    lr_res: pd.DataFrame,
+    specs: dict[str, tuple[str, bool | None]],
+    aggregate_method: Literal["rra", "mean"],
+) -> NDArray[np.floating]:
     """
     Aggregate method ranks
 
@@ -89,7 +102,7 @@ def _rank_aggregate(lr_res, specs, aggregate_method) -> np.array:
     An array of values /w length of lr_res.shape[0]
 
     """
-    assert aggregate_method in ['rra', 'mean']
+    assert aggregate_method in ["rra", "mean"]
 
     # Convert specs columns to ranks
     for spec in specs:
@@ -97,21 +110,20 @@ def _rank_aggregate(lr_res, specs, aggregate_method) -> np.array:
         ascending = specs[spec][1]
 
         if ascending:
-            lr_res.loc[:, score_name] = rankdata(lr_res.loc[:, score_name], method='average')
+            lr_res.loc[:, score_name] = rankdata(lr_res.loc[:, score_name], method="average")
         else:
-            lr_res.loc[:, score_name] = rankdata(lr_res.loc[:, score_name] * -1, method='average')
+            lr_res.loc[:, score_name] = rankdata(lr_res.loc[:, score_name] * -1, method="average")
 
     # get only the relevant ranks as a mat (joins order the keys)
     scores = list({specs[s][0] for s in specs})
     rmat = lr_res[scores].values
 
-    if aggregate_method == 'rra':
+    if aggregate_method == "rra":
         return _robust_rank_aggregate(rmat)
-    elif aggregate_method == 'mean':
-        return np.mean(rmat, axis=1) / rmat.shape[0]
+    return np.mean(rmat, axis=1) / rmat.shape[0]
 
 
-def _corr_beta_pvals(p, k) -> np.array:
+def _corr_beta_pvals(p: NDArray[np.floating], k: int) -> NDArray[np.floating]:
     """
     Correct beta p-values
 
@@ -131,7 +143,11 @@ def _corr_beta_pvals(p, k) -> np.array:
     return p
 
 
-def _rho_scores(rmat, dist_a, dist_b):
+def _rho_scores(
+    rmat: NDArray[np.floating],
+    dist_a: NDArray[np.integer],
+    dist_b: NDArray[np.integer],
+) -> NDArray[np.floating]:
     """
     Calculate Beta Distribution Rho Scores
 
@@ -162,7 +178,7 @@ def _rho_scores(rmat, dist_a, dist_b):
     return rho
 
 
-def _robust_rank_aggregate(rmat) -> np.array:
+def _robust_rank_aggregate(rmat: NDArray[np.floating]) -> NDArray[np.floating]:
     """
     Calculate Robust Rank Aggregate as in Kolde et al., 2012
 

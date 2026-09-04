@@ -1,47 +1,62 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 import scanpy as sc
+from anndata import AnnData
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
 from liana._core._constants import Keys as K
 from liana._core._docs import d
+from liana._core._types import RowFilter, get_obs
 from liana.plotting._common import _filter_by, _get_top_n, _invert_scores, _prep_liana_res
+
+if TYPE_CHECKING:
+    from numpy.typing import ArrayLike, NDArray
 
 
 def _pivot_liana_res(
-        liana_res: pd.DataFrame,
-        source_key: str = 'source',
-        target_key: str = 'target',
-        score_key: str = 'lr_means',
-        mode: Literal['counts', 'mean'] = 'counts') -> pd.DataFrame:
-    if mode == 'counts':
-        pivot_table = liana_res.pivot_table(index=source_key, columns=target_key, aggfunc='size', fill_value=0)
-    elif mode == 'mean':
+    liana_res: pd.DataFrame,
+    source_key: str = "source",
+    target_key: str = "target",
+    score_key: str | None = "lr_means",
+    mode: Literal["counts", "mean"] = "counts",
+) -> pd.DataFrame:
+    if mode == "counts":
+        pivot_table = liana_res.pivot_table(index=source_key, columns=target_key, aggfunc="size", fill_value=0)
+    elif mode == "mean":
+        if score_key is None:
+            raise ValueError("`score_key` must be provided when `mode='mean'`.")
         if score_key is None:
             raise ValueError("`score_key` must be provided!")
-        pivot_table = liana_res.pivot_table(index=source_key, columns=target_key, values=score_key, aggfunc='mean', fill_value=0)
+        pivot_table = liana_res.pivot_table(
+            index=source_key, columns=target_key, values=score_key, aggfunc="mean", fill_value=0
+        )
 
     return pivot_table
 
 
-def _scale_list(arr, min_val=1, max_val=5):
-    arr = np.array(arr)
-    arr_min = np.min(arr)
-    arr_max = np.max(arr)
+def _scale_list(arr: ArrayLike, min_val: float = 1, max_val: float = 5) -> NDArray[np.floating]:
+    values = np.asarray(arr, dtype=float)
+    arr_min = np.min(values)
+    arr_max = np.max(values)
 
-    scaled_arr = (arr - arr_min) / (arr_max - arr_min) * (max_val - min_val) + min_val
+    scaled: NDArray[np.floating] = (values - arr_min) / (arr_max - arr_min) * (max_val - min_val) + min_val
+    return scaled
 
-    return scaled_arr
 
-def _set_adata_color(adata, label, color_dict=None, hex=True):
-    adata.obs[label] = adata.obs[label].astype("category")
+def _set_adata_color(
+    adata: AnnData,
+    label: str,
+    color_dict: dict[str, str] | None = None,
+    hex: bool = True,
+) -> AnnData:
+    obs = get_obs(adata)
+    obs[label] = obs[label].astype("category")
     if color_dict:
         if not hex:
             from matplotlib.colors import to_hex
@@ -51,39 +66,36 @@ def _set_adata_color(adata, label, color_dict=None, hex=True):
         _dt = _get_adata_colors(adata, label)
         _dt.update(color_dict)
         color_dict = _dt
-        adata.uns[f"{label}_colors"] = [
-            color_dict[x] for x in adata.obs[label].cat.categories
-        ]
+        adata.uns[f"{label}_colors"] = [color_dict[x] for x in obs[label].cat.categories]
     else:
         if f"{label}_colors" not in adata.uns:
             # Handle both old (_set_default...) and new (set_default...) scanpy API
-            _set_colors = getattr(
-                sc.pl._utils,
-                '_set_default_colors_for_categorical_obs',
-                getattr(sc.pl._utils, 'set_default_colors_for_categorical_obs', None)
-            )
-            _set_colors(adata, label)
+            for candidate in ("_set_default_colors_for_categorical_obs", "set_default_colors_for_categorical_obs"):
+                _set_colors = getattr(sc.pl._utils, candidate, None)
+                if _set_colors is not None:
+                    _set_colors(adata, label)
+                    break
+            else:
+                raise AttributeError(
+                    "scanpy provides neither `_set_default_colors_for_categorical_obs` "
+                    "nor `set_default_colors_for_categorical_obs`."
+                )
 
     return adata
 
 
-def _get_adata_colors(adata, label):
+def _get_adata_colors(adata: AnnData, label: str) -> dict[str, str]:
     if f"{label}_colors" not in adata.uns:
         _set_adata_color(adata, label)
-    return dict(
-        zip(
-            adata.obs[label].cat.categories,
-            adata.uns[f"{label}_colors"],
-            strict=False
-        )
-    )
+    return dict(zip(get_obs(adata)[label].cat.categories, adata.uns[f"{label}_colors"], strict=False))
+
 
 def get_mask_df(
-        pivot_table: pd.DataFrame,
-        source_cell_type: list[str] | str | None = None,
-        target_cell_type: list[str] | str | None = None,
-        mode: Literal['and', 'or'] = 'or'
-        ) -> pd.DataFrame:
+    pivot_table: pd.DataFrame,
+    source_cell_type: list[str] | str | None = None,
+    target_cell_type: list[str] | str | None = None,
+    mode: Literal["and", "or"] = "or",
+) -> pd.DataFrame:
     """
     Applies masking to a given table based on given source and/or target cell types and mode.
 
@@ -113,48 +125,49 @@ def get_mask_df(
 
     mask_df = pd.DataFrame(np.zeros_like(pivot_table), index=pivot_table.index, columns=pivot_table.columns, dtype=bool)
 
-    if mode == 'or':
+    if mode == "or":
         if source_cell_type is not None:
             mask_df.loc[source_cell_type] = True
         if target_cell_type is not None:
             mask_df.loc[:, target_cell_type] = True
-    elif mode == 'and':
+    elif mode == "and":
         if source_cell_type is not None and target_cell_type is not None:
             mask_df.loc[source_cell_type, target_cell_type] = True
 
     return pivot_table[mask_df].fillna(0)
 
+
 @d.dedent
 def circle_plot(
-        adata: sc.AnnData,
-        uns_key: str | None = K.uns_key,
-        liana_res: pd.DataFrame | None = None,
-        groupby: str = None,
-        source_key: str = 'source',
-        target_key: str = 'target',
-        score_key: str = None,
-        inverse_score: bool = False,
-        top_n: int = None,
-        orderby: str | None = None,
-        orderby_ascending: bool | None = None,
-        orderby_absolute: bool = False,
-        filter_fn: Callable = None,
-        source_labels: list[str] | str | None = None,
-        target_labels: list[str] | str | None = None,
-        ligand_complex: list[str] | str | None = None,
-        receptor_complex: list[str] | str | None = None,
-        pivot_mode: Literal['counts', 'mean'] = 'counts',
-        mask_mode: Literal['and', 'or'] = 'or',
-        figure_size: tuple[float, float] = (5, 5),
-        edge_alpha: float = .5,
-        edge_arrow_size: int = 10,
-        edge_width_scale: tuple[float, float] = (1, 5),
-        node_alpha: float = 1,
-        node_size_scale: tuple[float, float] = (100, 400),
-        node_label_offset: tuple[float, float] = (0.1, -0.2),
-        node_label_size: int = 8,
-        node_label_alpha: float = .7,
-        ) -> Axes:
+    adata: sc.AnnData,
+    uns_key: str = K.uns_key,
+    liana_res: pd.DataFrame | None = None,
+    groupby: str | None = None,
+    source_key: str = "source",
+    target_key: str = "target",
+    score_key: str | None = None,
+    inverse_score: bool = False,
+    top_n: int | None = None,
+    orderby: str | None = None,
+    orderby_ascending: bool | None = None,
+    orderby_absolute: bool = False,
+    filter_fn: RowFilter | None = None,
+    source_labels: list[str] | str | None = None,
+    target_labels: list[str] | str | None = None,
+    ligand_complex: list[str] | str | None = None,
+    receptor_complex: list[str] | str | None = None,
+    pivot_mode: Literal["counts", "mean"] = "counts",
+    mask_mode: Literal["and", "or"] = "or",
+    figure_size: tuple[float, float] = (5, 5),
+    edge_alpha: float = 0.5,
+    edge_arrow_size: int = 10,
+    edge_width_scale: tuple[float, float] = (1, 5),
+    node_alpha: float = 1,
+    node_size_scale: tuple[float, float] = (100, 400),
+    node_label_offset: tuple[float, float] = (0.1, -0.2),
+    node_label_size: int = 8,
+    node_label_alpha: float = 0.7,
+) -> Axes:
     """
     Visualize the cell-cell communication network using a circular plot.
 
@@ -223,15 +236,15 @@ def circle_plot(
 
     >>> import liana as li
     >>> adata = li.ds.generate_toy_adata()
-    >>> li.mt.rank_aggregate(adata, groupby='bulk_labels', n_perms=None)
-    >>> ax = li.pl.circle_plot(adata, groupby='bulk_labels')
+    >>> li.mt.rank_aggregate(adata, groupby="bulk_labels", n_perms=None)
+    >>> ax = li.pl.circle_plot(adata, groupby="bulk_labels")
 
     With `pivot_mode='mean'` and a `score_key` the edges are weighted by that
     score's mean instead of by the number of interactions.
 
     """
     if groupby is None:
-        raise ValueError('`groupby` must be provided!')
+        raise ValueError("`groupby` must be provided!")
 
     liana_res = _prep_liana_res(
         adata=adata,
@@ -240,13 +253,14 @@ def circle_plot(
         target_labels=None,
         ligand_complex=ligand_complex,
         receptor_complex=receptor_complex,
-        uns_key=uns_key)
+        uns_key=uns_key,
+    )
 
-    if pivot_mode == 'counts':
+    if pivot_mode == "counts":
         if filter_fn is not None:
             mask = liana_res.apply(filter_fn, axis=1).astype(bool)
             liana_res = liana_res[mask]
-    elif pivot_mode == 'mean':
+    elif pivot_mode == "mean":
         liana_res = _filter_by(liana_res, filter_fn)
     else:
         raise ValueError("`pivot_mode` must be 'counts' or 'mean'!")
@@ -256,30 +270,25 @@ def circle_plot(
         liana_res[score_key] = _invert_scores(liana_res[score_key])
 
     pivot_table = _pivot_liana_res(
-        liana_res,
-        source_key=source_key,
-        target_key=target_key,
-        score_key=score_key,
-        mode=pivot_mode)
+        liana_res, source_key=source_key, target_key=target_key, score_key=score_key, mode=pivot_mode
+    )
 
     groupby_colors = _get_adata_colors(adata, label=groupby)
 
     # Mask pivot table
     _pivot_table = get_mask_df(
-        pivot_table,
-        source_cell_type=source_labels,
-        target_cell_type=target_labels,
-        mode=mask_mode)
+        pivot_table, source_cell_type=source_labels, target_cell_type=target_labels, mode=mask_mode
+    )
 
-    G = nx.convert_matrix.from_pandas_adjacency(_pivot_table, create_using=nx.DiGraph())
+    G = nx.from_pandas_adjacency(_pivot_table, create_using=nx.DiGraph)
     pos = nx.circular_layout(G)
 
     edge_color = [groupby_colors[cell[0]] for cell in G.edges]
-    edge_width = np.asarray([G.edges[e]['weight'] for e in G.edges()])
+    edge_width = np.asarray([G.edges[e]["weight"] for e in G.edges()])
     edge_width = _scale_list(edge_width, max_val=edge_width_scale[1], min_val=edge_width_scale[0])
 
     node_color = [groupby_colors[cell] for cell in G.nodes]
-    node_size = pivot_table.sum(axis=1).values
+    node_size = pivot_table.sum(axis=1).to_numpy()
     node_size = _scale_list(node_size, max_val=node_size_scale[1], min_val=node_size_scale[0])
 
     fig, ax = plt.subplots(figsize=figure_size)
@@ -290,29 +299,22 @@ def circle_plot(
         pos,
         alpha=edge_alpha,
         arrowsize=edge_arrow_size,
-        arrowstyle='-|>',
+        arrowstyle="-|>",
         width=edge_width,
         edge_color=edge_color,
         connectionstyle="arc3,rad=-0.3",
-        ax=ax
-        )
+        ax=ax,
+    )
 
-    nx.draw_networkx_nodes(
-        G,
-        pos,
-        node_color=node_color,
-        node_size=node_size,
-        alpha=node_alpha,
-        ax=ax
-        )
+    nx.draw_networkx_nodes(G, pos, node_color=node_color, node_size=node_size, alpha=node_alpha, ax=ax)
     label_options = {"ec": "k", "fc": "white", "alpha": node_label_alpha}
     _ = nx.draw_networkx_labels(
         G,
         {k: v + np.array(node_label_offset) for k, v in pos.items()},
         font_size=node_label_size,
         bbox=label_options,
-        ax=ax
-        )
+        ax=ax,
+    )
 
     ax.set_frame_on(False)
     xlim = ax.get_xlim()
@@ -320,6 +322,6 @@ def circle_plot(
     coeff = 1.2
     ax.set_xlim((xlim[0] * coeff, xlim[1] * coeff))
     ax.set_ylim((ylim[0] * coeff, ylim[1]))
-    ax.set_aspect('equal')
+    ax.set_aspect("equal")
 
     return ax

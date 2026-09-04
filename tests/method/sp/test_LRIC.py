@@ -1,3 +1,5 @@
+from typing import TypedDict
+
 import anndata as ad
 import numpy as np
 import pandas as pd
@@ -7,7 +9,10 @@ from pytest import raises
 from scipy.sparse import csr_matrix
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import pdist, squareform
+from tests._helpers import as_frame, get_obs, invalid
 
+from liana.datasets import generate_toy_spatial
+from liana.datasets._sample_resource import sample_resource
 from liana.method.sp._LRIC import (
     _default_min_cells,
     _edge_group_bounds,
@@ -21,27 +26,41 @@ from liana.method.sp._LRIC import (
     cross_pcf,
     lric,
 )
-from liana.datasets import generate_toy_spatial
-from liana.datasets._sample_resource import sample_resource
 
-_KWARGS = {"max_radius": 100, "radius_step": 20, "verbose": False}
+
+class _RadiusKwargs(TypedDict):
+    """The radius-grid arguments the `cross_pcf`/`lric` calls here share."""
+
+    max_radius: float
+    radius_step: float
+    verbose: bool
+
+
+_KWARGS = _RadiusKwargs(max_radius=100, radius_step=20, verbose=False)
 
 _CROSS_PCF_COLS = ["source", "target", "interaction", "radius", "g"]
 _LRIC_AG_COLS = ["ligand_complex", "receptor_complex", "interaction", "radius", "g"]
 _LRIC_CT_COLS = [
-    "source", "target", "ligand_complex", "receptor_complex",
-    "interaction", "radius", "g", "g_expr", "g_pcf",
+    "source",
+    "target",
+    "ligand_complex",
+    "receptor_complex",
+    "interaction",
+    "radius",
+    "g",
+    "g_expr",
+    "g_pcf",
 ]
 
 
-def _curve(df, col="g", **sel):
+def _curve(df: pd.DataFrame, col: str = "g", **sel: str) -> np.ndarray:
     """The `col` values of the rows matching `sel`, ordered by radius."""
     for k, v in sel.items():
         df = df[df[k] == v]
     return df.sort_values("radius")[col].to_numpy()
 
 
-def _cell_types(df):
+def _cell_types(df: pd.DataFrame) -> list[str]:
     """The retained cell types, in the order the method sorted them."""
     return list(df["source"].cat.categories)
 
@@ -51,25 +70,25 @@ def _cell_types(df):
 
 
 @pytest.fixture(scope="module")
-def adata():
+def adata() -> AnnData:
     """Toy spatial data with `cell_type` labels.
 
     Shared, so tests must only read from it. Anything that writes -- i.e. any
     call with `inplace=True` -- takes `adata_copy` instead.
     """
     adata = generate_toy_spatial()
-    adata.obs["cell_type"] = adata.obs["bulk_labels"]
+    get_obs(adata)["cell_type"] = get_obs(adata)["bulk_labels"]
     return adata
 
 
 @pytest.fixture(scope="module")
-def resource(adata):
+def resource(adata: AnnData) -> pd.DataFrame:
     """Five ligand-receptor pairs, all drawn from `adata`'s own genes."""
     return sample_resource(adata, n_lrs=5, seed=42)
 
 
 @pytest.fixture
-def adata_copy(adata):
+def adata_copy(adata: AnnData) -> AnnData:
     """A throwaway copy, for the tests that write to `.uns` with `inplace=True`.
 
     The module-scoped `adata` is shared, so mutating it would leak state into
@@ -79,43 +98,47 @@ def adata_copy(adata):
 
 
 @pytest.fixture(scope="module")
-def cross_pcf_result(adata):
-    return cross_pcf(adata, groupby="cell_type", inplace=False, **_KWARGS)
+def cross_pcf_result(adata: AnnData) -> pd.DataFrame:
+    return as_frame(cross_pcf(adata, groupby="cell_type", inplace=False, **_KWARGS))
 
 
 @pytest.fixture(scope="module")
-def cross_pcf_pair(adata):
-    return cross_pcf(
-        adata, groupby="cell_type",
-        cell_types=["CD14+ Monocyte", "CD19+ B"],
-        inplace=False, **_KWARGS,
+def cross_pcf_pair(adata: AnnData) -> pd.DataFrame:
+    return as_frame(
+        cross_pcf(
+            adata,
+            groupby="cell_type",
+            cell_types=["CD14+ Monocyte", "CD19+ B"],
+            inplace=False,
+            **_KWARGS,
+        )
     )
 
 
 @pytest.fixture(scope="module")
-def lric_agnostic(adata, resource):
+def lric_agnostic(adata: AnnData, resource: pd.DataFrame) -> pd.DataFrame:
     """Default agnostic LRIC, computed once and shared as the reference the
     lr_sep / expr_prop / transform_fn variants are each compared against."""
-    return lric(adata, resource=resource, inplace=False, **_KWARGS)
+    return as_frame(lric(adata, resource=resource, inplace=False, **_KWARGS))
 
 
 @pytest.fixture(scope="module")
-def lric_pairwise(adata, resource):
+def lric_pairwise(adata: AnnData, resource: pd.DataFrame) -> pd.DataFrame:
     """Default pairwise LRIC (all directed cell-type pairs), computed once and
     shared as the reference for the decomposition and min_cells variants."""
-    return lric(adata, resource=resource, groupby="cell_type", inplace=False, **_KWARGS)
+    return as_frame(lric(adata, resource=resource, groupby="cell_type", inplace=False, **_KWARGS))
 
 
 # ── helpers: pure math / small synthetic inputs ────────────────────────────
 
 
-def test_linear_transform():
+def test_linear_transform() -> None:
     np.testing.assert_almost_equal(_linear_transform(np.array([[2.0, 4.0], [2.0, 4.0]])), np.ones((2, 2)))
     assert (_linear_transform(np.array([[0.0, 1.0], [1.0, 1.0]])) >= 0).all()
     assert (_linear_transform(np.zeros((3, 2))) == 0).all()
 
 
-def test_to_dense():
+def test_to_dense() -> None:
     data = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
     out = _to_dense(csr_matrix(data))
     assert isinstance(out, np.ndarray)
@@ -123,7 +146,7 @@ def test_to_dense():
     assert _to_dense(data.astype(np.float64)).dtype == np.float32
 
 
-def test_make_radii():
+def test_make_radii() -> None:
     # annulus_steps=1 (default): disjoint annuli one radius_step wide; the default
     # extend_first_annulus=True merges the [0, radius_step) band into the first bin
     ri, ro = _make_radii(max_radius=100, radius_step=20)
@@ -140,13 +163,13 @@ def test_make_radii():
     np.testing.assert_almost_equal(ro2, [60, 80, 100, 120, 140])
 
 
-def test_annulus_steps_validation(adata):
+def test_annulus_steps_validation(adata: AnnData) -> None:
     for bad in (0, 1.5):
         with raises(ValueError, match="annulus_steps"):
-            cross_pcf(adata, groupby="cell_type", annulus_steps=bad, inplace=False, verbose=False)
+            cross_pcf(adata, groupby="cell_type", annulus_steps=invalid(bad), inplace=False, verbose=False)
 
 
-def test_index_resource():
+def test_index_resource() -> None:
     a = ad.AnnData(np.ones((5, 4)))
     a.var_names = ["GeneA", "GeneB", "GeneC", "GeneD"]
     lr_pairs, _, _, names = _index_resource(
@@ -156,9 +179,7 @@ def test_index_resource():
 
     a2 = ad.AnnData(np.ones((3, 4)))
     a2.var_names = ["L1", "L2", "R1", "R2"]
-    _, _, _, names2 = _index_resource(
-        a2, pd.DataFrame({"ligand": ["L1", "L2"], "receptor": ["R1", "R2"]}), "^"
-    )
+    _, _, _, names2 = _index_resource(a2, pd.DataFrame({"ligand": ["L1", "L2"], "receptor": ["R1", "R2"]}), "^")
     assert all("^" in n for n in names2)
 
     a3 = ad.AnnData(np.ones((3, 2)))
@@ -167,30 +188,29 @@ def test_index_resource():
     assert lr_pairs3.size == 0
 
     # custom separator
-    _, _, _, names_custom = _index_resource(
-        a2, pd.DataFrame({"ligand": ["L1", "L2"], "receptor": ["R1", "R2"]}), "|"
-    )
+    _, _, _, names_custom = _index_resource(a2, pd.DataFrame({"ligand": ["L1", "L2"], "receptor": ["R1", "R2"]}), "|")
     assert all("|" in n and "^" not in n for n in names_custom)
 
 
-def test_pair_weights_transform_sees_unique_genes():
+def test_pair_weights_transform_sees_unique_genes() -> None:
     # transform is applied to the unique-gene matrix, then gathered to per-pair columns
     a = ad.AnnData(np.arange(12, dtype=np.float32).reshape(3, 4))
     a.var_names = ["g0", "g1", "g2", "g3"]
     idx = np.array([0, 0, 1])  # 3 pairs drawn from 2 unique genes (g0 shared)
 
     seen = {}
-    def tf(x):
+
+    def tf(x: np.ndarray) -> np.ndarray:
         seen["n_cols"] = x.shape[1]
         return x
 
     out = _pair_weights(a, ["g0", "g1"], idx, tf)
-    assert seen["n_cols"] == 2          # transform saw the 2 unique genes, not 3 gathered cols
-    assert out.shape == (3, 3)          # gathered to one column per pair
+    assert seen["n_cols"] == 2  # transform saw the 2 unique genes, not 3 gathered cols
+    assert out.shape == (3, 3)  # gathered to one column per pair
     np.testing.assert_array_equal(out[:, 0], out[:, 1])  # shared gene duplicated post-transform
 
 
-def test_default_min_cells():
+def test_default_min_cells() -> None:
     a = ad.AnnData(np.ones((1000, 2)))
     # an explicit int passes through untouched
     assert _default_min_cells(a, 7, verbose=False) == 7
@@ -198,27 +218,27 @@ def test_default_min_cells():
     assert _default_min_cells(a, None, verbose=False) == 11
 
 
-def test_support_edge_list():
+def test_support_edge_list() -> None:
     coords = np.array([[0.0, 0.0], [10.0, 0.0], [20.0, 0.0]])
     tree = cKDTree(coords)
     radii_inner = np.array([0.0, 15.0])
     radii_outer = np.array([15.0, 25.0])
     I, J, bin_idx = _support_edge_list(tree, radii_inner, radii_outer)
     assert (I != J).all()  # self-pairs excluded
-    pairs = set(zip(I.tolist(), J.tolist()))
+    pairs = set(zip(I.tolist(), J.tolist(), strict=True))
     assert pairs == {(0, 1), (1, 0), (1, 2), (2, 1), (0, 2), (2, 0)}
-    bin_of = dict(zip(zip(I.tolist(), J.tolist()), bin_idx.tolist()))
+    bin_of = dict(zip(zip(I.tolist(), J.tolist(), strict=True), bin_idx.tolist(), strict=True))
     assert bin_of[(0, 1)] == 0 and bin_of[(1, 2)] == 0
     assert bin_of[(0, 2)] == 1
 
 
-def test_edge_group_bounds():
+def test_edge_group_bounds() -> None:
     group_key_sorted = np.array([0, 0, 1, 1, 1, 3])
     bounds = _edge_group_bounds(group_key_sorted, n_groups=4)
     np.testing.assert_array_equal(bounds, [0, 2, 5, 5, 6])
 
 
-def test_type_mean_weights():
+def test_type_mean_weights() -> None:
     W = np.array([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0]])
     obs_types = np.array(["A", "A", "B", "B"])
     m = _type_mean_weights(W, obs_types, ["A", "B"])
@@ -228,7 +248,7 @@ def test_type_mean_weights():
 # ── CrossPCF ──────────────────────────────────────────────────────────────────
 
 
-def test_cross_pcf(cross_pcf_result):
+def test_cross_pcf(cross_pcf_result: pd.DataFrame) -> None:
     result = cross_pcf_result
     assert list(result.columns) == _CROSS_PCF_COLS
     np.testing.assert_almost_equal(np.unique(result["radius"]), [0, 40, 60, 80, 100])
@@ -238,17 +258,15 @@ def test_cross_pcf(cross_pcf_result):
     assert np.all(np.isnan(result["g"]) | (result["g"] >= 0))
 
 
-def test_cross_pcf_pair_values(cross_pcf_pair):
+def test_cross_pcf_pair_values(cross_pcf_pair: pd.DataFrame) -> None:
     result = cross_pcf_pair
     assert _cell_types(result) == ["CD14+ Monocyte", "CD19+ B"]
     assert len(result) == 5  # the single unordered pair, once
-    np.testing.assert_almost_equal(
-        _curve(result, source="CD14+ Monocyte", target="CD19+ B").sum(), 5.541360, decimal=3
-    )
+    np.testing.assert_almost_equal(_curve(result, source="CD14+ Monocyte", target="CD19+ B").sum(), 5.541360, decimal=3)
 
 
 @pytest.mark.parametrize("annulus_steps", [1, 2])
-def test_cross_pcf_matches_brute_force(adata, annulus_steps):
+def test_cross_pcf_matches_brute_force(adata: AnnData, annulus_steps: int) -> None:
     """Every `g` against an O(n^2) reference that shares no code with the method.
 
     The other tests pin `g` to liana's own code paths, so a wrong null (say `N**2`
@@ -257,79 +275,105 @@ def test_cross_pcf_matches_brute_force(adata, annulus_steps):
     ``[inner, radius_step * (b + 1 + annulus_steps))``, the first reaching back to 0.
     """
     step = _KWARGS["radius_step"]
-    result = cross_pcf(adata, groupby="cell_type", annulus_steps=annulus_steps,
-                       inplace=False, **_KWARGS)
+    result = as_frame(cross_pcf(adata, groupby="cell_type", annulus_steps=annulus_steps, inplace=False, **_KWARGS))
     dist = squareform(pdist(np.asarray(adata.obsm["spatial"], dtype=float)))
     np.fill_diagonal(dist, np.inf)  # ordered pairs, self excluded
-    types = adata.obs["cell_type"].to_numpy()
+    types = get_obs(adata)["cell_type"].to_numpy()
     n_cells = len(types)
-    outer = {r: step * (b + 1 + annulus_steps)
-             for b, r in enumerate(np.sort(result["radius"].unique()))}
+    outer = {r: step * (b + 1 + annulus_steps) for b, r in enumerate(np.sort(result["radius"].unique()))}
 
-    for source, target, radius, g in zip(result["source"], result["target"],
-                                         result["radius"], result["g"]):
+    for source, target, radius, g in zip(
+        result["source"], result["target"], result["radius"], result["g"], strict=True
+    ):
         in_annulus = (dist >= radius) & (dist < outer[radius])
         is_source, is_target = types == source, types == target
-        expected = (is_source.sum() * is_target.sum() * in_annulus.sum()
-                    / (n_cells * (n_cells - 1)))
+        expected = is_source.sum() * is_target.sum() * in_annulus.sum() / (n_cells * (n_cells - 1))
         observed = in_annulus[np.ix_(is_source, is_target)].sum()
         np.testing.assert_allclose(g, observed / expected, rtol=1e-5, atol=1e-6)
 
 
-def test_cross_pcf_groupby_pairs(adata):
+def test_cross_pcf_groupby_pairs(adata: AnnData) -> None:
     a, b, c = "CD14+ Monocyte", "CD19+ B", "CD56+ NK"
     # two of the three unordered pairs over three cell types, so that folding the
     # referenced types into the population cannot do the filtering on its own;
     # both are requested reversed, as g(r) is symmetric in source/target
-    result = cross_pcf(
-        adata, groupby="cell_type", min_cells=5, inplace=False,
-        groupby_pairs=pd.DataFrame({"source": [b, c], "target": [a, a]}), **_KWARGS,
+    result = as_frame(
+        cross_pcf(
+            adata,
+            groupby="cell_type",
+            min_cells=5,
+            inplace=False,
+            groupby_pairs=pd.DataFrame({"source": [b, c], "target": [a, a]}),
+            **_KWARGS,
+        )
     )
     assert _directed_pairs(result) == {(a, b), (a, c)}
     assert set(_cell_types(result)) == {a, b, c}
 
     # same population, so the filter only drops rows -- it must not move the null
-    unfiltered = cross_pcf(
-        adata, groupby="cell_type", cell_types=[a, b, c], min_cells=5, inplace=False, **_KWARGS,
+    unfiltered = as_frame(
+        cross_pcf(
+            adata,
+            groupby="cell_type",
+            cell_types=[a, b, c],
+            min_cells=5,
+            inplace=False,
+            **_KWARGS,
+        )
     )
     assert _directed_pairs(unfiltered) == {(a, b), (a, c), (b, c)}
     keep = ~((unfiltered["source"] == b) & (unfiltered["target"] == c))
     np.testing.assert_array_almost_equal(result["g"], unfiltered.loc[keep, "g"], decimal=6)
 
 
-def test_cross_pcf_groupby_pairs_unknown_type_warns(adata, caplog):
+def test_cross_pcf_groupby_pairs_unknown_type_warns(adata: AnnData, caplog: pytest.LogCaptureFixture) -> None:
     # a typo'd cell type used to yield an empty frame and no explanation
-    result = cross_pcf(
-        adata, groupby="cell_type", inplace=False,
-        groupby_pairs=pd.DataFrame({"source": ["CD19+ Bee"], "target": ["CD34+"]}), **_KWARGS,
+    result = as_frame(
+        cross_pcf(
+            adata,
+            groupby="cell_type",
+            inplace=False,
+            groupby_pairs=pd.DataFrame({"source": ["CD19+ Bee"], "target": ["CD34+"]}),
+            **_KWARGS,
+        )
     )
     assert result.empty
     assert "not in the data" in caplog.text and "CD19+ Bee" in caplog.text
 
 
-def test_cross_pcf_inplace(adata_copy):
+def test_cross_pcf_inplace(adata_copy: AnnData) -> None:
     cross_pcf(adata_copy, groupby="cell_type", key_added="cross_pcf_test", inplace=True, **_KWARGS)
     assert "cross_pcf_test" in adata_copy.uns
     assert list(adata_copy.uns["cross_pcf_test"].columns) == _CROSS_PCF_COLS
 
 
-def test_cross_pcf_min_cells(adata):
+def test_cross_pcf_min_cells(adata: AnnData) -> None:
     # min_cells=None derives an abundance-relative threshold from slide composition
-    default = cross_pcf(adata, groupby="cell_type", min_cells=None, inplace=False, **_KWARGS)
+    default = as_frame(cross_pcf(adata, groupby="cell_type", min_cells=None, inplace=False, **_KWARGS))
     # a high explicit min_cells drops most/all cell types
-    strict = cross_pcf(adata, groupby="cell_type", min_cells=200, inplace=False, **_KWARGS)
+    strict = as_frame(cross_pcf(adata, groupby="cell_type", min_cells=200, inplace=False, **_KWARGS))
     assert len(_cell_types(strict)) < len(_cell_types(default))
 
 
-def test_extend_first_annulus_integration(adata):
-    cp_t = cross_pcf(
-        adata, groupby="cell_type",
-        cell_types=["CD14+ Monocyte", "CD19+ B"], inplace=False, **_KWARGS,
+def test_extend_first_annulus_integration(adata: AnnData) -> None:
+    cp_t = as_frame(
+        cross_pcf(
+            adata,
+            groupby="cell_type",
+            cell_types=["CD14+ Monocyte", "CD19+ B"],
+            inplace=False,
+            **_KWARGS,
+        )
     )
-    cp_f = cross_pcf(
-        adata, groupby="cell_type",
-        cell_types=["CD14+ Monocyte", "CD19+ B"],
-        extend_first_annulus=False, inplace=False, **_KWARGS,
+    cp_f = as_frame(
+        cross_pcf(
+            adata,
+            groupby="cell_type",
+            cell_types=["CD14+ Monocyte", "CD19+ B"],
+            extend_first_annulus=False,
+            inplace=False,
+            **_KWARGS,
+        )
     )
     np.testing.assert_almost_equal(np.unique(cp_f["radius"]), [20, 40, 60, 80, 100])
     # merging only changes the first bin; bins beyond the first are identical
@@ -339,12 +383,16 @@ def test_extend_first_annulus_integration(adata):
 # ── LRIC — agnostic mode ──────────────────────────────────────────────────────
 
 
-def test_lric_agnostic(lric_agnostic):
+def test_lric_agnostic(lric_agnostic: pd.DataFrame) -> None:
     assert list(lric_agnostic.columns) == _LRIC_AG_COLS
     assert len(lric_agnostic) == 5 * 5  # 5 LR pairs x 5 radius bins
     assert np.all(lric_agnostic["g"] >= 0)
     assert lric_agnostic["interaction"].drop_duplicates().tolist() == [
-        "C1QB^PPA1", "DHRS4L2^GNG7", "NDUFA11^SUPT4H1", "SFPQ^C20orf27", "PGAM1^WBP11"
+        "C1QB^PPA1",
+        "DHRS4L2^GNG7",
+        "NDUFA11^SUPT4H1",
+        "SFPQ^C20orf27",
+        "PGAM1^WBP11",
     ]
     # the complexes are the split of `interaction`, matching liana's sc results
     assert lric_agnostic["ligand_complex"].astype(str).tolist() == [
@@ -352,7 +400,7 @@ def test_lric_agnostic(lric_agnostic):
     ]
 
 
-def test_lric_agnostic_reduces_to_cross_pcf(adata):
+def test_lric_agnostic_reduces_to_cross_pcf(adata: AnnData) -> None:
     """Docstring claim: agnostic LRIC reduces exactly to CrossPCF's directed
     curve when ligand/receptor weights are one-hot cell-type indicators.
 
@@ -362,20 +410,27 @@ def test_lric_agnostic_reduces_to_cross_pcf(adata):
     sender_type, receiver_type = "CD14+ Monocyte", "CD19+ B"
     ind = pd.DataFrame(
         {
-            "ind_send": (adata.obs["cell_type"] == sender_type).astype(float).values,
-            "ind_recv": (adata.obs["cell_type"] == receiver_type).astype(float).values,
+            "ind_send": (get_obs(adata)["cell_type"] == sender_type).astype(float).to_numpy(),
+            "ind_recv": (get_obs(adata)["cell_type"] == receiver_type).astype(float).to_numpy(),
         },
         index=adata.obs_names,
     )
-    indicator_adata = AnnData(ind.values, obs=adata.obs, var=pd.DataFrame(index=ind.columns))
+    indicator_adata = AnnData(ind.to_numpy(), obs=get_obs(adata), var=pd.DataFrame(index=ind.columns))
     indicator_adata.obsm["spatial"] = adata.obsm["spatial"]
 
     ind_resource = pd.DataFrame({"ligand": ["ind_send"], "receptor": ["ind_recv"]})
-    agnostic = lric(
-        indicator_adata, resource=ind_resource, transform_fn=lambda x: x,
-        complex_sep=None, use_raw=False, inplace=False, **_KWARGS,
+    agnostic = as_frame(
+        lric(
+            indicator_adata,
+            resource=ind_resource,
+            transform_fn=lambda x: x,
+            complex_sep=None,
+            use_raw=False,
+            inplace=False,
+            **_KWARGS,
+        )
     )
-    cp = cross_pcf(adata, groupby="cell_type", min_cells=1, inplace=False, **_KWARGS)
+    cp = as_frame(cross_pcf(adata, groupby="cell_type", min_cells=1, inplace=False, **_KWARGS))
 
     np.testing.assert_array_almost_equal(
         _curve(agnostic, interaction="ind_send^ind_recv"),
@@ -384,28 +439,28 @@ def test_lric_agnostic_reduces_to_cross_pcf(adata):
     )
 
 
-def test_lric_agnostic_expr_prop(adata, resource, lric_agnostic):
+def test_lric_agnostic_expr_prop(adata: AnnData, resource: pd.DataFrame, lric_agnostic: pd.DataFrame) -> None:
     n = adata.n_obs
     base = lric_agnostic
 
-    result = lric(adata, resource=resource, expr_prop=1.1, inplace=False, **_KWARGS)
+    result = as_frame(lric(adata, resource=resource, expr_prop=1.1, inplace=False, **_KWARGS))
     assert result["g"].isna().all(), "all pairs NaN when threshold exceeds any possible proportion"
 
-    result0 = lric(adata, resource=resource, expr_prop=0, inplace=False, **_KWARGS)
+    result0 = as_frame(lric(adata, resource=resource, expr_prop=0, inplace=False, **_KWARGS))
     np.testing.assert_array_equal(result0["g"], base["g"])  # default = no-op
 
     # partial threshold (equivalent to the old min_expressing=100 out of `n` cells):
     # masking is per-pair and leaves kept pairs untouched
-    partial = lric(adata, resource=resource, expr_prop=100 / n, inplace=False, **_KWARGS)
+    partial = as_frame(lric(adata, resource=resource, expr_prop=100 / n, inplace=False, **_KWARGS))
     masked = partial.groupby("interaction", observed=True)["g"].apply(lambda s: s.isna().all())
     assert masked.any() and not masked.all(), "expected a mix of masked and kept pairs"
     keep = ~partial["interaction"].isin(masked.index[masked])
     np.testing.assert_array_equal(partial["g"][keep], base["g"][keep])
 
 
-def test_lric_lr_sep(adata, resource, lric_agnostic):
+def test_lric_lr_sep(adata: AnnData, resource: pd.DataFrame, lric_agnostic: pd.DataFrame) -> None:
     default = lric_agnostic
-    custom = lric(adata, resource=resource, lr_sep="|", inplace=False, **_KWARGS)
+    custom = as_frame(lric(adata, resource=resource, lr_sep="|", inplace=False, **_KWARGS))
 
     assert all("^" in n for n in default["interaction"].astype(str))
     assert all("|" in n and "^" not in n for n in custom["interaction"].astype(str))
@@ -414,27 +469,27 @@ def test_lric_lr_sep(adata, resource, lric_agnostic):
     np.testing.assert_array_equal(custom["ligand_complex"], default["ligand_complex"])
 
 
-def test_lric_agnostic_transform_fn(adata, resource, lric_agnostic):
+def test_lric_agnostic_transform_fn(adata: AnnData, resource: pd.DataFrame, lric_agnostic: pd.DataFrame) -> None:
     base = lric_agnostic["g"].to_numpy()
 
     # a genuinely nonlinear transform changes the result
-    nonlinear = lric(adata, resource=resource, transform_fn=np.sqrt, inplace=False, **_KWARGS)["g"]
+    nonlinear = as_frame(lric(adata, resource=resource, transform_fn=np.sqrt, inplace=False, **_KWARGS))["g"]
     assert not np.allclose(nonlinear, base, equal_nan=True)
 
     # a pure per-gene rescaling (identity, skipping the default mean-normalisation)
     # cancels exactly in the closed-form ratio, so the result is scale-invariant
-    identity = lric(adata, resource=resource, transform_fn=lambda x: x, inplace=False, **_KWARGS)["g"]
+    identity = as_frame(lric(adata, resource=resource, transform_fn=lambda x: x, inplace=False, **_KWARGS))["g"]
     np.testing.assert_array_almost_equal(identity, base, decimal=4)
 
 
-def test_lric_agnostic_inplace(adata_copy, resource):
+def test_lric_agnostic_inplace(adata_copy: AnnData, resource: pd.DataFrame) -> None:
     lric(adata_copy, resource=resource, key_added="lric_test", inplace=True, **_KWARGS)
     assert "lric_test" in adata_copy.uns
     assert list(adata_copy.uns["lric_test"].columns) == _LRIC_AG_COLS
 
 
 # ── LRIC — pairwise mode ──────────────────────────────────────────────────────
-def test_lric_pairwise(lric_pairwise):
+def test_lric_pairwise(lric_pairwise: pd.DataFrame) -> None:
     result = lric_pairwise
     assert list(result.columns) == _LRIC_CT_COLS
     n_ct = len(_cell_types(result))
@@ -447,26 +502,28 @@ def test_lric_pairwise(lric_pairwise):
     assert (labels == result["interaction"].astype(str)).all()
 
 
-def test_lric_pairwise_g_pcf_matches_cross_pcf(adata, resource):
+def test_lric_pairwise_g_pcf_matches_cross_pcf(adata: AnnData, resource: pd.DataFrame) -> None:
     """`g_pcf` is architecture-alone and should equal CrossPCF exactly for the
     same directed pair (no dependence on ligand/receptor expression weights)."""
     source, target = "CD14+ Monocyte", "CD19+ B"
-    lric_pw = lric(
-        adata, resource=resource, groupby="cell_type",
-        cell_types=[source, target], inplace=False, **_KWARGS,
+    lric_pw = as_frame(
+        lric(
+            adata,
+            resource=resource,
+            groupby="cell_type",
+            cell_types=[source, target],
+            inplace=False,
+            **_KWARGS,
+        )
     )
-    cp = cross_pcf(
-        adata, groupby="cell_type", cell_types=[source, target], inplace=False, **_KWARGS
-    )
+    cp = as_frame(cross_pcf(adata, groupby="cell_type", cell_types=[source, target], inplace=False, **_KWARGS))
     # g_pcf is shared across LR pairs -> one value per radius bin
-    g_pcf = lric_pw[(lric_pw["source"] == source) & (lric_pw["target"] == target)]
-    g_pcf = g_pcf.drop_duplicates("radius").sort_values("radius")["g_pcf"].to_numpy()
-    np.testing.assert_array_almost_equal(
-        g_pcf, _curve(cp, source=source, target=target), decimal=6
-    )
+    pw = lric_pw[(lric_pw["source"] == source) & (lric_pw["target"] == target)]
+    g_pcf = pw.drop_duplicates("radius").sort_values("radius")["g_pcf"].to_numpy()
+    np.testing.assert_array_almost_equal(g_pcf, _curve(cp, source=source, target=target), decimal=6)
 
 
-def test_lric_pairwise_results_equals_g_pcf_times_g_expr(lric_pairwise):
+def test_lric_pairwise_results_equals_g_pcf_times_g_expr(lric_pairwise: pd.DataFrame) -> None:
     result = lric_pairwise
     mat, g_pcf, g_expr = (result[c].to_numpy() for c in ("g", "g_pcf", "g_expr"))
     removable_singularity = np.isnan(g_expr) & ~np.isnan(mat)
@@ -477,31 +534,46 @@ def test_lric_pairwise_results_equals_g_pcf_times_g_expr(lric_pairwise):
     np.testing.assert_allclose(mat[keep], (g_pcf * g_expr)[keep], rtol=1e-5, atol=1e-6)
 
 
-def test_lric_pairwise_cell_types_and_min_cells(adata, resource, lric_pairwise):
-    result_sub = lric(
-        adata, resource=resource, groupby="cell_type",
-        cell_types=["CD14+ Monocyte", "CD19+ B", "CD56+ NK"],
-        min_cells=5, inplace=False, **_KWARGS,
+def test_lric_pairwise_cell_types_and_min_cells(
+    adata: AnnData, resource: pd.DataFrame, lric_pairwise: pd.DataFrame
+) -> None:
+    result_sub = as_frame(
+        lric(
+            adata,
+            resource=resource,
+            groupby="cell_type",
+            cell_types=["CD14+ Monocyte", "CD19+ B", "CD56+ NK"],
+            min_cells=5,
+            inplace=False,
+            **_KWARGS,
+        )
     )
     assert set(_cell_types(result_sub)) == {"CD14+ Monocyte", "CD19+ B", "CD56+ NK"}
 
     # lric_pairwise omits min_cells, so it is the min_cells=None (default-threshold) baseline
     default = lric_pairwise
-    strict = lric(adata, resource=resource, groupby="cell_type", min_cells=200, inplace=False, **_KWARGS)
+    strict = as_frame(lric(adata, resource=resource, groupby="cell_type", min_cells=200, inplace=False, **_KWARGS))
     assert len(_cell_types(strict)) < len(_cell_types(default))
 
 
-def _directed_pairs(df):
+def _directed_pairs(df: pd.DataFrame) -> set[tuple[str, str]]:
     return set(map(tuple, df[["source", "target"]].astype(str).drop_duplicates().to_numpy()))
 
 
-def test_lric_pairwise_groupby_pairs(adata, resource):
+def test_lric_pairwise_groupby_pairs(adata: AnnData, resource: pd.DataFrame) -> None:
     sender, receiver = "CD14+ Monocyte", "CD19+ B"
     groupby_pairs = pd.DataFrame({"source": [sender], "target": [receiver]})
 
-    result = lric(
-        adata, resource=resource, groupby="cell_type",
-        groupby_pairs=groupby_pairs, min_cells=5, inplace=False, **_KWARGS,
+    result = as_frame(
+        lric(
+            adata,
+            resource=resource,
+            groupby="cell_type",
+            groupby_pairs=groupby_pairs,
+            min_cells=5,
+            inplace=False,
+            **_KWARGS,
+        )
     )
     # only the requested directed pair is computed, not the reverse
     assert _directed_pairs(result) == {(sender, receiver)}
@@ -512,9 +584,16 @@ def test_lric_pairwise_groupby_pairs(adata, resource):
 
     # same population scope (same normalisation baseline) via explicit `cell_types`,
     # but without `groupby_pairs`, computes both directed pairs among the two types
-    both_dirs = lric(
-        adata, resource=resource, groupby="cell_type",
-        cell_types=[sender, receiver], min_cells=5, inplace=False, **_KWARGS,
+    both_dirs = as_frame(
+        lric(
+            adata,
+            resource=resource,
+            groupby="cell_type",
+            cell_types=[sender, receiver],
+            min_cells=5,
+            inplace=False,
+            **_KWARGS,
+        )
     )
     assert _directed_pairs(both_dirs) == {(sender, receiver), (receiver, sender)}
     np.testing.assert_array_almost_equal(
@@ -524,32 +603,54 @@ def test_lric_pairwise_groupby_pairs(adata, resource):
     )
 
 
-def test_lric_pairwise_inplace(adata_copy, resource):
+def test_lric_pairwise_inplace(adata_copy: AnnData, resource: pd.DataFrame) -> None:
     lric(
-        adata_copy, resource=resource, groupby="cell_type", min_cells=5,
-        key_added="lric_pairwise_test", inplace=True, **_KWARGS,
+        adata_copy,
+        resource=resource,
+        groupby="cell_type",
+        min_cells=5,
+        key_added="lric_pairwise_test",
+        inplace=True,
+        **_KWARGS,
     )
     assert "lric_pairwise_test" in adata_copy.uns
     assert list(adata_copy.uns["lric_pairwise_test"].columns) == _LRIC_CT_COLS
 
 
-def test_lric_pairwise_expr_prop(adata, resource):
+def test_lric_pairwise_expr_prop(adata: AnnData, resource: pd.DataFrame) -> None:
     cell_types = ["CD14+ Monocyte", "CD19+ B"]
-    result = lric(
-        adata, resource=resource, groupby="cell_type",
-        cell_types=cell_types, min_cells=5, expr_prop=1.1, inplace=False, **_KWARGS,
+    result = as_frame(
+        lric(
+            adata,
+            resource=resource,
+            groupby="cell_type",
+            cell_types=cell_types,
+            min_cells=5,
+            expr_prop=1.1,
+            inplace=False,
+            **_KWARGS,
+        )
     )
     # masked rows are kept, as NaN
     assert len(result) == 2 * 5 * 5
     assert result["g"].isna().all(), "all pairs should be NaN when expr_prop exceeds any possible proportion"
 
-    result_partial = lric(
-        adata, resource=resource, groupby="cell_type",
-        cell_types=cell_types, min_cells=5, expr_prop=0.01, inplace=False, **_KWARGS,
+    result_partial = as_frame(
+        lric(
+            adata,
+            resource=resource,
+            groupby="cell_type",
+            cell_types=cell_types,
+            min_cells=5,
+            expr_prop=0.01,
+            inplace=False,
+            **_KWARGS,
+        )
     )
     assert len(result_partial) == 2 * 5 * 5
 
-def _constant_expression_adata(coords, cell_types=None):
+
+def _constant_expression_adata(coords: np.ndarray, cell_types: list[str] | None = None) -> AnnData:
     """An AnnData whose every cell expresses the single L and R at exactly 1.
 
     With position-independent weights the expression term of `g(r)` is
@@ -557,27 +658,40 @@ def _constant_expression_adata(coords, cell_types=None):
     the denominator are then counting the very same pairs. Any deviation is a
     binning inconsistency between the two sides.
     """
-    a = AnnData(
-        np.ones((len(coords), 2), dtype=np.float32), var=pd.DataFrame(index=["L", "R"])
-    )
+    a = AnnData(np.ones((len(coords), 2), dtype=np.float32), var=pd.DataFrame(index=["L", "R"]))
     a.obsm["spatial"] = np.asarray(coords, dtype=float)
     if cell_types is not None:
-        a.obs["ct"] = pd.Categorical(cell_types)
+        get_obs(a)["ct"] = pd.Categorical(cell_types)
     return a
 
 
 _CONST_RESOURCE = pd.DataFrame({"ligand": ["L"], "receptor": ["R"]})
-_CONST_KWARGS = {
-    "resource": _CONST_RESOURCE, "max_radius": 100, "radius_step": 20,
-    "use_raw": False, "verbose": False, "inplace": False,
-}
+
+
+class _ConstKwargs(TypedDict):
+    """The fixed arguments the constant-density checks below share."""
+
+    resource: pd.DataFrame
+    max_radius: float
+    radius_step: float
+    use_raw: bool
+    verbose: bool
+    inplace: bool
+
+
+_CONST_KWARGS = _ConstKwargs(
+    resource=_CONST_RESOURCE,
+    max_radius=100,
+    radius_step=20,
+    use_raw=False,
+    verbose=False,
+    inplace=False,
+)
 _RNG = np.random.default_rng(0)
 _CONT_COORDS = _RNG.uniform(0, 500, (400, 2))
 # a 20-unit lattice, i.e. Visium-like: whole distance shells land exactly on bin
 # edges, which used to swing `g` between ~0.67 and ~1.25
-_GRID_COORDS = np.stack(
-    np.meshgrid(np.arange(20) * 20.0, np.arange(20) * 20.0), axis=-1
-).reshape(-1, 2)
+_GRID_COORDS = np.stack(np.meshgrid(np.arange(20) * 20.0, np.arange(20) * 20.0), axis=-1).reshape(-1, 2)
 # coincident cells: distance-0 pairs between *distinct* cells, which used to
 # enter the numerator but not the denominator and so inflated the contact bin
 _DUP_COORDS = np.repeat(_RNG.uniform(0, 500, (200, 2)), 2, axis=0)
@@ -586,27 +700,30 @@ _DUP_COORDS = np.repeat(_RNG.uniform(0, 500, (200, 2)), 2, axis=0)
 @pytest.mark.parametrize(
     ("coords", "annulus_steps", "extend_first"),
     [
-        (_CONT_COORDS, 1, True),   # continuous coordinates, disjoint annuli
-        (_CONT_COORDS, 2, True),   # overlapping annuli used to bias `g` by ~1/k
+        (_CONT_COORDS, 1, True),  # continuous coordinates, disjoint annuli
+        (_CONT_COORDS, 2, True),  # overlapping annuli used to bias `g` by ~1/k
         (_CONT_COORDS, 1, False),  # unmerged first annulus (the other `_roll_tiles` window)
-        (_GRID_COORDS, 1, True),   # gridded coordinates: distances exactly on bin edges
+        (_GRID_COORDS, 1, True),  # gridded coordinates: distances exactly on bin edges
         (_GRID_COORDS, 2, True),
-        (_DUP_COORDS, 1, True),    # duplicated coordinates (distance-0 distinct pairs)
+        (_DUP_COORDS, 1, True),  # duplicated coordinates (distance-0 distinct pairs)
     ],
-    ids=["continuous-k1", "continuous-k2", "continuous-k1-nomerge",
-         "grid-k1", "grid-k2", "duplicated-k1"],
+    ids=["continuous-k1", "continuous-k2", "continuous-k1-nomerge", "grid-k1", "grid-k2", "duplicated-k1"],
 )
-def test_lric_agnostic_constant_expression_is_one(coords, annulus_steps, extend_first):
-    result = lric(
-        _constant_expression_adata(coords), annulus_steps=annulus_steps,
-        extend_first_annulus=extend_first, **_CONST_KWARGS
+def test_lric_agnostic_constant_expression_is_one(coords: np.ndarray, annulus_steps: int, extend_first: bool) -> None:
+    result = as_frame(
+        lric(
+            _constant_expression_adata(coords),
+            annulus_steps=annulus_steps,
+            extend_first_annulus=extend_first,
+            **_CONST_KWARGS,
+        )
     )["g"].to_numpy()
     keep = ~np.isnan(result)
     assert keep.any()
     np.testing.assert_allclose(result[keep], 1.0, atol=1e-9)
 
 
-def test_lric_pairwise_constant_expression_is_one():
+def test_lric_pairwise_constant_expression_is_one() -> None:
     """Pairwise counterpart: with constant weights the expression term `g_expr` is
     exactly 1 and `results` collapses onto the pure-architecture `g_pcf`.
 
@@ -616,9 +733,7 @@ def test_lric_pairwise_constant_expression_is_one():
     """
     cell_types = np.array(["A", "B"] * (len(_GRID_COORDS) // 2))
     _RNG.shuffle(cell_types)
-    result = lric(
-        _constant_expression_adata(_GRID_COORDS, cell_types), groupby="ct", **_CONST_KWARGS
-    )
+    result = as_frame(lric(_constant_expression_adata(_GRID_COORDS, list(cell_types)), groupby="ct", **_CONST_KWARGS))
     assert _directed_pairs(result) == {("A", "B"), ("B", "A")}
     mat, g_pcf, g_expr = (result[c].to_numpy() for c in ("g", "g_pcf", "g_expr"))
     keep = ~np.isnan(mat)
@@ -627,7 +742,8 @@ def test_lric_pairwise_constant_expression_is_one():
     np.testing.assert_allclose(mat[keep], g_pcf[keep], rtol=1e-5)
     np.testing.assert_allclose(g_pcf[keep], 1.0, atol=0.1)
 
-def test_lric_no_lr_pairs_raises(adata):
+
+def test_lric_no_lr_pairs_raises(adata: AnnData) -> None:
     # a resource with none of its genes in `adata.var_names` is caught by the
     # shared `assert_covered` check (same as `_inflow`/`_spatial_bivariate`),
     # before the LRIC-specific "no LR pairs" check is ever reached.
@@ -636,4 +752,3 @@ def test_lric_no_lr_pairs_raises(adata):
         lric(adata, resource=bad, inplace=False, verbose=False)
     with raises(ValueError, match="Please check if appropriate organism/ID type"):
         lric(adata, resource=bad, groupby="cell_type", inplace=False, verbose=False)
-

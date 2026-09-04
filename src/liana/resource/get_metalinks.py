@@ -22,7 +22,7 @@ def _download_metalinksdb(verbose: bool = True) -> str:
     # GitHub Releases URL (CI-friendly, no WAF issues)
     METALINKS_URL = "https://github.com/scverse/liana-py/releases/download/metalinksdb/metalinksdb.db"
 
-    db_file_name = 'metalinksdb.db'
+    db_file_name = "metalinksdb.db"
     db_path = os.path.join(os.getcwd(), db_file_name)
 
     if os.path.exists(db_path):
@@ -37,7 +37,7 @@ def _download_metalinksdb(verbose: bool = True) -> str:
         response = requests.get(METALINKS_URL, stream=True, allow_redirects=True)
         response.raise_for_status()
 
-        with open(db_path, 'wb') as f:
+        with open(db_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
 
@@ -57,23 +57,29 @@ def _download_metalinksdb(verbose: bool = True) -> str:
     return db_path
 
 
-def _format_clauses(input_data, column_name, table_ref, where_clauses):
+def _format_clauses(
+    input_data: list[str] | None,
+    column_name: str,
+    table_ref: str,
+    where_clauses: list[str],
+) -> None:
     if input_data:
         formatted_str = ", ".join([f"'{i}'" for i in input_data])
         where_clauses.append(f"{table_ref}.{column_name} IN ({formatted_str})")
 
 
-def get_metalinks(db_path: str | None = None,
-                  types: list[str] | None = None,
-                  cell_location: list[str] | None = None,
-                  tissue_location: list[str] | None = None,
-                  biospecimen_location: list[str] | None = None,
-                  disease: list[str] | None = None,
-                  pathway: list[str] | None = None,
-                  hmdb_ids: list[str] | None = None,
-                  uniprot_ids: list[str] | None = None,
-                  source: list[str] | None = None
-                  ) -> pd.DataFrame:
+def get_metalinks(
+    db_path: str | None = None,
+    types: str | list[str] | None = None,
+    cell_location: str | list[str] | None = None,
+    tissue_location: str | list[str] | None = None,
+    biospecimen_location: str | list[str] | None = None,
+    disease: str | list[str] | None = None,
+    pathway: str | list[str] | None = None,
+    hmdb_ids: str | list[str] | None = None,
+    uniprot_ids: str | list[str] | None = None,
+    source: str | list[str] | None = None,
+) -> pd.DataFrame:
     """
     Fetches edges of metabolite-proteins with specified annotations, applying filters if they are not None.
 
@@ -114,8 +120,8 @@ def get_metalinks(db_path: str | None = None,
     with::
 
         resource = get_metalinks(
-            types=['lr'],
-            biospecimen_location='Blood',
+            types=["lr"],
+            biospecimen_location="Blood",
         )
 
     """
@@ -138,7 +144,7 @@ def get_metalinks(db_path: str | None = None,
     LEFT JOIN proteins p ON e.uniprot = p.uniprot
     """
 
-    def _to_list(x):
+    def _to_list(x: str | list[str] | None) -> list[str] | None:
         if isinstance(x, str):
             return [x]
         return x
@@ -151,13 +157,14 @@ def get_metalinks(db_path: str | None = None,
     hmdb_ids = _to_list(hmdb_ids)
     uniprot_ids = _to_list(uniprot_ids)
     types = _to_list(types)
+    source = _to_list(source)
 
     annotations_filters = {
-        'cell_location': cell_location,
-        'tissue_location': tissue_location,
-        'biospecimen_location': biospecimen_location,
-        'disease': disease,
-        'pathway': pathway
+        "cell_location": cell_location,
+        "tissue_location": tissue_location,
+        "biospecimen_location": biospecimen_location,
+        "disease": disease,
+        "pathway": pathway,
     }
 
     join_clauses = []
@@ -188,10 +195,7 @@ def get_metalinks(db_path: str | None = None,
     return df
 
 
-def get_metalinks_values(table_name: str,
-                         column_name: str,
-                         db_path: str | None = None
-                         ) -> list[str]:
+def get_metalinks_values(table_name: str, column_name: str, db_path: str | None = None) -> list[str]:
     """
     Fetches distinct values from a specified column in a specified table.
 
@@ -212,10 +216,9 @@ def get_metalinks_values(table_name: str,
     --------
     This function downloads MetalinksDB on first use, so it is not run here. Use
     it to discover the values accepted by the filters of
-    :func:`liana.resource.get_metalinks`::
+    :func:`liana.rs.get_metalinks`::
 
-        get_metalinks_values(table_name='tissue_location',
-                             column_name='tissue_location')
+        get_metalinks_values(table_name="tissue_location", column_name="tissue_location")
 
     """
     if db_path is None:
@@ -231,9 +234,7 @@ def get_metalinks_values(table_name: str,
     return [value[0] for value in distinct_values]
 
 
-def describe_metalinks(db_path: str | None = None,
-                       return_output: bool = False
-                       ) -> str | None:
+def describe_metalinks(db_path: str | None = None, return_output: bool = False) -> str | None:
     """
     Prints the schema information and foreign key details for all tables in the specified SQLite database.
 
@@ -250,9 +251,8 @@ def describe_metalinks(db_path: str | None = None,
 
     Examples
     --------
-    This function downloads MetalinksDB on first use, so it is not run here. It
-    prints the tables and columns that :func:`liana.resource.get_metalinks` and
-    :func:`liana.resource.get_metalinks_values` query::
+    This function downloads MetalinksDB on first use, so it is not run here.
+    It prints the tables and columns that :func:`liana.rs.get_metalinks` and :func:`liana.rs.get_metalinks_values` query::
 
         describe_metalinks()
 

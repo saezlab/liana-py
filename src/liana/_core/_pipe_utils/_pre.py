@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import scanpy as sc
@@ -10,15 +10,24 @@ from pandas import DataFrame, Index
 from scipy.sparse import csr_matrix, isspmatrix_csr
 
 from liana._core._common import _logg
+from liana._core._types import _to_matrix, get_obs
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from numpy.typing import ArrayLike, NDArray
+
+    from liana._core._types import ObsmValue
 
 
 def assert_covered(
-        subset: Iterable[Any],
-        superset: Iterable[Any],
-        subset_name: str = "resource",
-        superset_name: str = "var_names",
-        prop_missing_allowed: float = 0.98,
-        verbose: bool = False):
+    subset: ArrayLike,
+    superset: ArrayLike,
+    subset_name: str = "resource",
+    superset_name: str = "var_names",
+    prop_missing_allowed: float = 0.98,
+    verbose: bool = False,
+) -> None:
     """
     Assert if elements are covered at a decent proportion
 
@@ -43,14 +52,14 @@ def assert_covered(
         When the the number of missing elements in subset (with respect to superset) is over the threshold
 
     """
-    subset = np.asarray(subset)
-    is_missing = ~np.isin(subset, superset)
-    if subset.size == 0:  # type: ignore[attr-defined]
-        prop_missing = 1.
-        x_missing = 'values in interactions argument'
+    subset_arr = np.asarray(subset)
+    is_missing = ~np.isin(subset_arr, superset)
+    if subset_arr.size == 0:
+        prop_missing = 1.0
+        x_missing = "values in interactions argument"
     else:
-        prop_missing = np.sum(is_missing) / len(subset)  # type: ignore[arg-type]
-        x_missing = ", ".join(list(subset[is_missing]))  # type: ignore[index]
+        prop_missing = float(np.sum(is_missing) / subset_arr.size)
+        x_missing = ", ".join(str(entity) for entity in subset_arr[is_missing])
     if prop_missing > prop_missing_allowed:
         msg = (
             f"Please check if appropriate organism/ID type was provided! "
@@ -60,19 +69,24 @@ def assert_covered(
         )
         raise ValueError(msg + f" [{x_missing}] missing from {superset_name}")
 
-    _logg(f"{prop_missing:.2f} of entities in the resource are missing from the data.", verbose=verbose & (prop_missing > 0))
+    _logg(
+        f"{prop_missing:.2f} of entities in the resource are missing from the data.",
+        verbose=verbose & (prop_missing > 0),
+    )
 
 
-def prep_check_adata(adata: AnnData,
-                     groupby: str | None,
-                     min_cells: int | None,
-                     groupby_subset: np.array | None = None,
-                     use_raw: bool | None = False,
-                     layer: str | None = None,
-                     obsm: dict[str, DataFrame] = None,
-                     uns: dict[str, Any] = None,
-                     complex_sep: str = '_',
-                     verbose: bool | None = False) -> AnnData:
+def prep_check_adata(
+    adata: AnnData,
+    groupby: str | None,
+    min_cells: int | None,
+    groupby_subset: ArrayLike | None = None,
+    use_raw: bool = False,
+    layer: str | None = None,
+    obsm: Mapping[str, ObsmValue | AnnData] | None = None,
+    uns: dict[str, Any] | None = None,
+    complex_sep: str | None = "_",
+    verbose: bool = False,
+) -> AnnData:
     """
     Check if the anndata object is in the correct format and preprocess
 
@@ -112,81 +126,91 @@ def prep_check_adata(adata: AnnData,
     Anndata object to be used downstream
 
     """
-    X = _choose_mtx_rep(adata=adata, use_raw=use_raw,
-                        layer=layer, verbose=verbose)
+    X = _choose_mtx_rep(adata=adata, use_raw=use_raw, layer=layer, verbose=verbose)
+    old_obsp = dict(adata.obsp)
 
-    if use_raw & (layer is None):
+    if use_raw and layer is None:
+        if adata.raw is None:
+            raise ValueError("`.raw` is not initialized!")
         var = DataFrame(index=adata.raw.var_names)
     else:
         var = DataFrame(index=adata.var_names)
 
-    if obsm is not None:
-        # discard any instances of AnnData if in obsm
-        obsm = {k: v for k, v in obsm.items() if not isinstance(v, AnnData)}
+    # discard any instances of AnnData if in obsm
+    obsm_arrays: dict[str, ObsmValue] = {}
+    for key, value in (obsm or {}).items():
+        if not isinstance(value, AnnData):
+            obsm_arrays[key] = value
 
-    adata = sc.AnnData(X=X.astype(np.float32, copy=True),
-                       obs=adata.obs.copy(),
-                       var=var,
-                       obsp=adata.obsp.copy(),
-                       uns=uns,
-                       obsm=obsm
-                       )
+    # kept as a local because `adata.X` re-widens to everything anndata can store
+    X = X.astype(np.float32, copy=True)
+    adata = sc.AnnData(
+        X=X,
+        obs=get_obs(adata).copy(),
+        var=var,
+        uns=uns,
+    )
+    # assigned rather than passed: the constructor types these as `Sequence[Any]`
+    for key, pairwise in old_obsp.items():
+        adata.obsp[key] = pairwise
+    for key, embedding in obsm_arrays.items():
+        adata.obsm[key] = embedding
     adata.var_names_make_unique()
 
     # Check for empty features
-    msk_features = np.sum(adata.X, axis=0).A1 == 0
-    n_empty_features = np.sum(msk_features)
+    msk_features = np.asarray(X.sum(axis=0)).ravel() == 0
+    n_empty_features = int(np.sum(msk_features))
     if n_empty_features > 0:
-        _logg(f"{n_empty_features} features of mat are empty, they will be removed.", level='warn', verbose=verbose)
+        _logg(f"{n_empty_features} features of mat are empty, they will be removed.", level="warn", verbose=verbose)
         adata = adata[:, ~msk_features]
+        X = X[:, ~msk_features]
 
     # Check for empty samples
-    msk_samples = adata.X.sum(axis=1).A1 == 0
-    n_empty_samples = np.sum(msk_samples)
+    msk_samples = np.asarray(X.sum(axis=1)).ravel() == 0
+    n_empty_samples = int(np.sum(msk_samples))
     if n_empty_samples > 0:
-        _logg(f"{n_empty_samples} samples of mat are empty, they will be removed.", level='warn', verbose=verbose)
+        _logg(f"{n_empty_samples} samples of mat are empty, they will be removed.", level="warn", verbose=verbose)
 
     # Check if log-norm
-    _sum = np.sum(adata.X.data[0:100])
+    _sum = np.sum(X.data[0:100])
     if _sum == np.floor(_sum):
-        _logg("Make sure that normalized counts are passed!", level='warn', verbose=verbose)
+        _logg("Make sure that normalized counts are passed!", level="warn", verbose=verbose)
 
     # Check for non-finite values
-    if np.any(~np.isfinite(adata.X.data)):
+    if np.any(~np.isfinite(X.data)):
         raise ValueError("mat contains non finite values (nan or inf), please set them to 0 or remove them.")
 
     if groupby is not None:
         _check_groupby(adata, groupby, verbose)
 
         if groupby_subset is not None:
-            adata = adata[adata.obs[groupby].isin(groupby_subset), :]
+            adata = adata[get_obs(adata)[groupby].isin(np.asarray(groupby_subset)), :]
 
-        adata.obs['@label'] = adata.obs[groupby]
+        obs = get_obs(adata)
+        obs["@label"] = obs[groupby]
 
         # Remove any cell types below X number of cells per cell type
-        count_cells = adata.obs.groupby(groupby)[groupby].size().reset_index(name='count').copy()
-        count_cells['keep'] = count_cells['count'] >= min_cells
+        count_cells = obs.groupby(groupby)[groupby].size().reset_index(name="count").copy()
+        count_cells["keep"] = count_cells["count"] >= min_cells
 
         if not all(count_cells.keep):
             lowly_abundant_idents = list(count_cells[~count_cells.keep][groupby])
             # remove lowly abundant identities
-            msk = ~np.isin(adata.obs[[groupby]], lowly_abundant_idents)
+            msk = ~np.isin(obs[[groupby]], lowly_abundant_idents)
             adata = adata[msk]
-            _logg("The following cell identities were excluded: {}".format(", ".join(lowly_abundant_idents)),
-                 level='warn', verbose=verbose)
+            _logg(
+                "The following cell identities were excluded: {}".format(", ".join(lowly_abundant_idents)),
+                level="warn",
+                verbose=verbose,
+            )
 
-    check_vars(adata.var_names,
-               complex_sep=complex_sep,
-               verbose=verbose)
+    check_vars(adata.var_names, complex_sep=complex_sep, verbose=verbose)
     # Re-order adata vars alphabetically
     adata = adata[:, np.sort(adata.var_names)]
     return adata
 
 
-def check_vars(var_names: Iterable[str],
-               complex_sep: str,
-               verbose: bool = False
-               ) -> list[str]:
+def check_vars(var_names: Iterable[str], complex_sep: str | None, verbose: bool = False) -> list[str]:
     """
     Raise a warning if `complex_sep` is part of any variable name.
 
@@ -210,13 +234,16 @@ def check_vars(var_names: Iterable[str],
     # XXX: Achieves the same but faster:
     # var_issues = [] if complex_sep is None else [i for i in var_names if complex_sep in i]
 
-    _logg(f"{var_issues} contain `{complex_sep}`. Consider replacing those!",
-         verbose=verbose & (len(var_issues) > 0), level='warn')
+    _logg(
+        f"{var_issues} contain `{complex_sep}`. Consider replacing those!",
+        verbose=verbose & (len(var_issues) > 0),
+        level="warn",
+    )
 
     return var_issues
 
 
-def filter_resource(resource: DataFrame, var_names: Index) -> DataFrame:
+def filter_resource(resource: DataFrame, var_names: Index | NDArray[Any]) -> DataFrame:
     """
     Filter interactions for which vars are not present.
 
@@ -238,29 +265,23 @@ def filter_resource(resource: DataFrame, var_names: Index) -> DataFrame:
 
     """
     # Remove those without any subunit
-    resource = resource[(np.isin(resource.ligand, var_names)) &
-                        (np.isin(resource.receptor, var_names))]
+    resource = resource[(np.isin(resource.ligand, var_names)) & (np.isin(resource.receptor, var_names))]
 
     # Only keep interactions /w complexes for which all subunits are present
-    missing_comps = resource[resource.interaction.str.contains('_')].copy()
-    missing_comps['all_units'] = \
-        missing_comps['ligand_complex'] + '_' + missing_comps[
-            'receptor_complex']
+    missing_comps = resource[resource.interaction.str.contains("_")].copy()
+    missing_comps["all_units"] = missing_comps["ligand_complex"] + "_" + missing_comps["receptor_complex"]
 
     # Get those not with all subunits
-    missing_comps = missing_comps[np.logical_not(
-        [all(x in var_names for x in entity.split('_'))
-         for entity in missing_comps.all_units]
-    )]
+    missing_comps = missing_comps[
+        np.logical_not([all(x in var_names for x in entity.split("_")) for entity in missing_comps.all_units])
+    ]
     # Filter them
     return resource[~resource.interaction.isin(missing_comps.interaction)]
 
 
-def _choose_mtx_rep(adata: AnnData,
-                    use_raw: bool = False,
-                    layer: str | None = None,
-                    verbose: bool = False
-                    ) -> csr_matrix:
+def _choose_mtx_rep(
+    adata: AnnData, use_raw: bool = False, layer: str | None = None, verbose: bool = False
+) -> csr_matrix:
     """
     Choose matrix (adapted from scanpy)
 
@@ -277,31 +298,31 @@ def _choose_mtx_rep(adata: AnnData,
     -------
         The matrix to be used by liana-py.
     """
-    is_layer = layer is not None
-    if is_layer & use_raw:
+    if layer is not None and use_raw:
         raise ValueError("Cannot specify `layer` and have `use_raw=True`.")
-    if is_layer:
+    if layer is not None:
         _logg(f"Using the `{layer}` layer!", verbose=verbose)
-        X = adata.layers[layer]
+        chosen = _to_matrix(adata.layers[layer], what=f"adata.layers[{layer!r}]")
     elif use_raw:
         if adata.raw is None:
             raise ValueError("`.raw` is not initialized!")
         _logg("Using `.raw`!", verbose=verbose)
-        X = adata.raw.X
+        chosen = _to_matrix(adata.raw.X, what="adata.raw.X")
     else:
         _logg("Using `.X`!", verbose=verbose)
-        X = adata.X
+        chosen = _to_matrix(adata.X, what="adata.X")
 
     # convert to sparse csr matrix
-    if not isspmatrix_csr(X):
-        _logg("Converting to sparse csr matrix!", verbose=verbose)
-        X = csr_matrix(X)
+    if isspmatrix_csr(chosen):
+        return chosen
+    _logg("Converting to sparse csr matrix!", verbose=verbose)
+    return csr_matrix(chosen)
 
-    return X
 
-def _check_groupby(adata, groupby, verbose):
-    if groupby not in adata.obs.columns:
+def _check_groupby(adata: AnnData, groupby: str, verbose: bool) -> None:
+    obs = get_obs(adata)
+    if groupby not in obs.columns:
         raise AssertionError(f"`{groupby}` not found in `adata.obs.columns`.")
-    if not adata.obs[groupby].dtype.name == 'category':
-        _logg(f"Converting `{groupby}` to categorical!", level='warn', verbose=verbose)
-        adata.obs[groupby] = adata.obs[groupby].astype('category')
+    if not obs[groupby].dtype.name == "category":
+        _logg(f"Converting `{groupby}` to categorical!", level="warn", verbose=verbose)
+        obs[groupby] = obs[groupby].astype("category")

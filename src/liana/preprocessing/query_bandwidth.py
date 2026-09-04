@@ -1,17 +1,17 @@
 import numpy as np
-from matplotlib.figure import Figure
 from pandas import DataFrame
 from plotnine import aes, geom_line, geom_point, ggplot, theme, theme_bw, xlab, ylab
 from sklearn.neighbors import BallTree
 
 
-def query_bandwidth(coordinates: np.ndarray,
-                    start: int = 0,
-                    end: int = 500,
-                    interval_n: int = 50,
-                    reference: np.ndarray = None,
-                    figure_size: tuple[float, float] = (6, 4)
-                    ) -> tuple[Figure, DataFrame]:
+def query_bandwidth(
+    coordinates: np.ndarray,
+    start: int = 0,
+    end: int = 500,
+    interval_n: int = 50,
+    reference: np.ndarray | None = None,
+    figure_size: tuple[float, float] = (6, 4),
+) -> tuple[ggplot, DataFrame]:
     """
     Query the bandwidth (maximum distance) at which the average number of neighbors is maximized.
 
@@ -47,10 +47,10 @@ def query_bandwidth(coordinates: np.ndarray,
 
     >>> import liana as li
     >>> adata = li.ds.generate_toy_spatial()
-    >>> fig, df = li.pp.query_bandwidth(adata.obsm['spatial'], start=0, end=1000)
+    >>> fig, df = li.pp.query_bandwidth(adata.obsm["spatial"], start=0, end=1000)
 
     """
-    tree = BallTree(coordinates, metric='euclidean')
+    tree = BallTree(coordinates, metric="euclidean")
     df = DataFrame()
     interval = np.linspace(start, end, interval_n)
 
@@ -61,26 +61,23 @@ def query_bandwidth(coordinates: np.ndarray,
 
     for n in range(interval_n):
         max_distance = interval[n]
-        df.loc[n, 'bandwith'] = max_distance
+        df.loc[n, "bandwith"] = max_distance
 
         # query the neighbors within the specified distance
-        num_neighbors = tree.query_radius(
-            _reference,
-            r=max_distance,
-            count_only=True
-            )
+        num_neighbors = tree.query_radius(_reference, r=max_distance, count_only=True)
 
         # calculate the average number of neighbors
         avg_nn = np.ceil(np.median(num_neighbors))
-        df.loc[n, 'neighbours'] = avg_nn - 1
+        df.loc[n, "neighbours"] = avg_nn - 1
 
-    p = (ggplot(df, aes(x='bandwith', y='neighbours')) +
-         geom_line() +
-         geom_point() +
-         theme_bw(base_size=16) +
-         xlab("Bandwidth") +
-         ylab("Number of Neighbors") +
-         theme(figure_size=figure_size)
-         )
+    p = (
+        ggplot(df, aes(x="bandwith", y="neighbours"))
+        + geom_line()
+        + geom_point()
+        + theme_bw(base_size=16)
+        + xlab("Bandwidth")
+        + ylab("Number of Neighbors")
+        + theme(figure_size=figure_size)
+    )
 
     return p, df

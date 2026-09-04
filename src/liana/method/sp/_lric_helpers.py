@@ -5,6 +5,7 @@ from collections.abc import Callable
 import numpy as np
 import pandas as pd
 from anndata import AnnData
+from numpy.typing import NDArray
 
 from liana._core._common import _get_liana_res, _logg
 from liana._core._docs import d
@@ -12,9 +13,15 @@ from liana._core._docs import d
 _ID_COLS = ("source", "target", "ligand_complex", "receptor_complex", "interaction")
 
 
-def _log2_floor(g):
+type CurveTransform = Callable[[NDArray[np.floating]], NDArray[np.floating]]
+"""Rescales a ``g(r)`` curve before curves are compared (default: :func:`_log2_floor`)."""
+
+
+def _log2_floor(g: NDArray[np.floating]) -> NDArray[np.floating]:
     """log2 of g floored at 0.05, so empty/depleted bins stay finite (~-4.3)."""
-    return np.log2(np.maximum(g, 0.05))
+    # `np.asarray` only to keep it typed: numpy's ufunc stubs widen to `Any`
+    # It is a no-op on an array.
+    return np.asarray(np.log2(np.maximum(g, 0.05)))
 
 
 @d.dedent
@@ -23,7 +30,7 @@ def get_lric_auc(
     uns_key: str = "lric",
     liana_res: pd.DataFrame | None = None,
     max_dist: float | None = None,
-    transform_fn: Callable[[np.ndarray], np.ndarray] = _log2_floor,
+    transform_fn: CurveTransform = _log2_floor,
     min_bins: int = 3,
 ) -> pd.DataFrame:
     """
@@ -46,7 +53,7 @@ def get_lric_auc(
     transform_fn
         Applied to ``g`` before integrating; defaults to log2 with ``g``
         floored at ``0.05``, so empty/depleted bins stay finite and count as
-        strong depletion. Pass :func:`numpy.log2` for the strict behaviour
+        strong depletion. Pass :obj:`numpy.log2` for the strict behaviour
         where non-finite values (e.g. ``log2(0) = -inf``) are dropped from
         the integral.
     min_bins
@@ -65,13 +72,12 @@ def get_lric_auc(
 
     Examples
     --------
-    Rank the interactions of a spatial result by how co-enriched they are across
-    radius -- here the cell-type-agnostic LRIC of :func:`liana.mt.lric`:
+    Rank the interactions of a spatial result by how co-enriched they are across radius -- here the cell-type-agnostic LRIC of :func:`liana.mt.lric.__call__`:
 
     >>> import liana as li
     >>> adata = li.ds.generate_toy_spatial()
-    >>> li.mt.lric(adata, resource_name='consensus', key_added='lric')
-    >>> scores = li.mt.get_lric_auc(adata, uns_key='lric')
+    >>> li.mt.lric(adata, resource_name="consensus", key_added="lric")
+    >>> scores = li.mt.get_lric_auc(adata, uns_key="lric")
     """
     res = _get_liana_res(adata, liana_res, uns_key)
 
@@ -81,8 +87,10 @@ def get_lric_auc(
 
     # (n_groups, n_radii) wide matrix -- the radius grid is shared by every group
     radii = np.unique(res["radius"].to_numpy(dtype=float))
-    gid, keys = pd.MultiIndex.from_frame(res[ids]).factorize()
-    keys = keys.set_names(ids)  # `factorize` drops the level names
+    gid, uniques = pd.MultiIndex.from_frame(res[ids]).factorize()
+    if not isinstance(uniques, pd.MultiIndex):  # `factorize` of a MultiIndex yields one
+        raise TypeError(f"expected a MultiIndex, got {type(uniques).__name__}")
+    keys = uniques.set_names(ids)  # `factorize` drops the level names
     rid = np.searchsorted(radii, res["radius"].to_numpy(dtype=float))
     Y = np.full((len(keys), radii.size), np.nan)
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -103,13 +111,17 @@ def get_lric_auc(
     if not ok.any():
         in_window = radii.size if max_dist is None else int((radii < max_dist).sum())
         if in_window < min_bins:
-            msg = (f"only {in_window} radius bin(s) lie within max_dist={max_dist}, below "
-                   f"min_bins={min_bins} — set min_bins<={in_window}, raise max_dist, "
-                   "or recompute with a finer radius_step")
+            msg = (
+                f"only {in_window} radius bin(s) lie within max_dist={max_dist}, below "
+                f"min_bins={min_bins} — set min_bins<={in_window}, raise max_dist, "
+                "or recompute with a finer radius_step"
+            )
         else:
-            msg = (f"every interaction has <{min_bins} finite g(r) bins in-window "
-                   "(expr_prop masking / sparse geometry) — lower min_bins or expr_prop")
-        _logg(msg, level='warn', verbose=True)
+            msg = (
+                f"every interaction has <{min_bins} finite g(r) bins in-window "
+                "(expr_prop masking / sparse geometry) — lower min_bins or expr_prop"
+            )
+        _logg(msg, level="warn", verbose=True)
     out = keys[ok].to_frame(index=False)
     out["score"] = area[ok] / span[ok]
     out["peak_radius"] = radii[np.where(keep, np.abs(Y), -np.inf).argmax(axis=1)][ok]
@@ -121,10 +133,10 @@ def get_lric_divergence(
     adata: AnnData | None = None,
     uns_key: str = "lric",
     liana_res: pd.DataFrame | None = None,
-    feature_a: dict | None = None,
-    feature_b: dict | None = None,
+    feature_a: dict[str, object] | None = None,
+    feature_b: dict[str, object] | None = None,
     max_dist: float | None = None,
-    transform_fn: Callable[[np.ndarray], np.ndarray] = _log2_floor,
+    transform_fn: CurveTransform = _log2_floor,
     min_bins: int = 3,
 ) -> pd.Series:
     """
@@ -160,7 +172,7 @@ def get_lric_divergence(
     transform_fn
         Applied to ``g`` before comparing; defaults to log2 with ``g``
         floored at ``0.05``, so empty/depleted bins stay finite. Pass
-        :func:`numpy.log2` for the strict behaviour where radii with a
+        :obj:`numpy.log2` for the strict behaviour where radii with a
         non-finite transformed curve are dropped from the comparison.
     min_bins
         Minimum shared finite radius bins required; fewer raises a ``ValueError``.
@@ -175,11 +187,12 @@ def get_lric_divergence(
     --------
     >>> import liana as li
     >>> adata = li.ds.generate_toy_spatial()
-    >>> li.mt.cross_pcf(adata, groupby='bulk_labels', key_added='cross_pcf')
+    >>> li.mt.cross_pcf(adata, groupby="bulk_labels", key_added="cross_pcf")
     >>> div = li.mt.get_lric_divergence(
-    ...     adata, 'cross_pcf',
-    ...     feature_a=dict(source='CD14+ Monocyte', target='CD34+'),
-    ...     feature_b=dict(source='CD14+ Monocyte', target='CD19+ B'),
+    ...     adata,
+    ...     "cross_pcf",
+    ...     feature_a=dict(source="CD14+ Monocyte", target="CD34+"),
+    ...     feature_b=dict(source="CD14+ Monocyte", target="CD19+ B"),
     ... )
     """
     res = _get_liana_res(adata, liana_res, uns_key)
@@ -198,20 +211,27 @@ def get_lric_divergence(
 
     x, dv = delta.index.to_numpy(), delta.to_numpy()
     j = np.argmax(np.abs(dv))
-    return pd.Series({
-        "label_a": " | ".join(map(str, feature_a.values())),
-        "label_b": " | ".join(map(str, feature_b.values())),
-        "divergence": np.trapezoid(np.abs(dv), x) / (x[-1] - x[0]),
-        "r_star": x[j],
-        "delta_star": dv[j],
-        "direction": "A > B" if dv[j] > 0 else "B > A" if dv[j] < 0 else "equal",
-        "feature_a": feature_a,
-        "feature_b": feature_b,
-        "max_dist": max_dist,
-    })
+    return pd.Series(
+        {
+            "label_a": " | ".join(map(str, feature_a.values())),
+            "label_b": " | ".join(map(str, feature_b.values())),
+            "divergence": np.trapezoid(np.abs(dv), x) / (x[-1] - x[0]),
+            "r_star": x[j],
+            "delta_star": dv[j],
+            "direction": "A > B" if dv[j] > 0 else "B > A" if dv[j] < 0 else "equal",
+            "feature_a": feature_a,
+            "feature_b": feature_b,
+            "max_dist": max_dist,
+        }
+    )
 
 
-def _mean_curve(res, sel, ids, transform_fn):
+def _mean_curve(
+    res: pd.DataFrame,
+    sel: dict[str, object],
+    ids: list[str],
+    transform_fn: CurveTransform,
+) -> pd.Series:
     """One `transform_fn(g)` curve indexed by radius; replicate rows average."""
     mask = np.ones(len(res), dtype=bool)
     for col, value in sel.items():

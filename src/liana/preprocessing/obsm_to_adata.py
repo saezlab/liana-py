@@ -1,20 +1,27 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pandas as pd
 from anndata import AnnData
 
 from liana._core._docs import d
+from liana._core._types import ObsmValue, copy_aligned, get_obs
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 @d.dedent
-def obsm_to_adata(adata: AnnData,
-                  obsm_key: str,
-                  df: pd.DataFrame | None = None,
-                  _uns: dict[str, pd.DataFrame] | None = None,
-                  _obsm: dict[str, pd.DataFrame] | None = None,
-                  _var: pd.DataFrame | None = None,
-                  ) -> AnnData:
+def obsm_to_adata(
+    adata: AnnData,
+    obsm_key: str,
+    df: pd.DataFrame | None = None,
+    _uns: dict[str, pd.DataFrame] | None = None,
+    _obsm: dict[str, pd.DataFrame] | None = None,
+    _var: pd.DataFrame | None = None,
+) -> AnnData:
     """
     Extracts a dataframe from adata.obsm and returns a new AnnData object with the values stored in X.
 
@@ -45,30 +52,21 @@ def obsm_to_adata(adata: AnnData,
 
     >>> import liana as li
     >>> adata = li.ds.generate_toy_adata()
-    >>> pca = li.pp.obsm_to_adata(adata, 'X_pca')
+    >>> pca = li.pp.obsm_to_adata(adata, "X_pca")
 
     """
     if df is None:
-        df = pd.DataFrame(adata.obsm[obsm_key])
+        entry = adata.obsm[obsm_key]
+        # Keep the frame's own columns when there are any -- they become `var_names`.
+        df = pd.DataFrame(entry) if isinstance(entry, pd.DataFrame) else pd.DataFrame(np.asarray(entry))
 
-    obs = adata.obs
-
-    if _uns is None:
-        uns = adata.uns
-    else:
-        uns = _uns
-
-    if _obsm is None:
-        obsm = adata.obsm
-    else:
-        obsm = _obsm
-
-    obsp = adata.obsp
-    if _var is None:
-        var = pd.DataFrame(index = df.columns)
-    else:
-        var = _var
+    obs = get_obs(adata)
+    uns = dict(adata.uns) if _uns is None else _uns
+    obsm: Mapping[str, ObsmValue] = adata.obsm if _obsm is None else _obsm
+    var = pd.DataFrame(index=df.columns) if _var is None else _var
 
     X = np.array(df, dtype=np.float32)
 
-    return AnnData(X=X, obs=obs, var=var, uns=uns, obsm=obsm, obsp=obsp)
+    adata_out = AnnData(X=X, obs=obs, var=var, uns=uns)
+    copy_aligned(adata_out, obsm=obsm, obsp=adata.obsp)
+    return adata_out

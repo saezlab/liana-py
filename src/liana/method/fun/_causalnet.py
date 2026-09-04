@@ -1,33 +1,40 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pandas as pd
 
 from liana._core._common import _check_if_installed, _logg
 
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
-def _get_scores(d):
-    return (
-       [v for v in d.values() if v < 0],
-       [v for v in d.values() if v > 0]
-    )
+    from corneto import Graph
+    from corneto.backend._base import ProblemDef
+
+
+def _get_scores(d: Mapping[str, float]) -> tuple[list[float], list[float]]:
+    return ([v for v in d.values() if v < 0], [v for v in d.values() if v > 0])
 
 
 def find_causalnet(
-        prior_graph,
-        input_node_scores: dict[str, float],
-        output_node_scores: dict[str, float],
-        node_weights: dict[str, float] = None,
-        node_cutoff: float = 0.1,
-        min_penalty: float = 0.01,
-        max_penalty: float = 1.0,
-        missing_penalty: float = 10,
-        edge_penalty: float = 0.01,
-        solver: str | None = None,
-        seed: int = 1337,
-        max_runs: int = 1,
-        stable_runs: int = 5,
-        verbose: bool = True,
-        **kwargs
-        ):
+    prior_graph: Graph,
+    input_node_scores: Mapping[str, float],
+    output_node_scores: Mapping[str, float],
+    node_weights: Mapping[str, float] | None = None,
+    node_cutoff: float = 0.1,
+    min_penalty: float = 0.01,
+    max_penalty: float = 1.0,
+    missing_penalty: float = 10,
+    edge_penalty: float = 0.01,
+    solver: str | None = None,
+    seed: int = 1337,
+    max_runs: int = 1,
+    stable_runs: int = 5,
+    verbose: bool = True,
+    **kwargs: object,
+) -> tuple[pd.DataFrame | None, ProblemDef]:
     """
     Find the causal network that best explains the input/output node scores.
 
@@ -87,15 +94,11 @@ def find_causalnet(
     to the solver bundled with SciPy:
 
     >>> import liana as li
-    >>> ppis = [('CD4', 1, 'LCK'), ('LCK', 1, 'JUN'), ('LCK', -1, 'FOS')]
-    >>> prior = li.rs.build_prior_network(ppis,
-    ...                                   input_nodes={'CD4': 1.0},
-    ...                                   output_nodes={'JUN': 1.0, 'FOS': -1.0})
-    >>> df, problem = li.mt.find_causalnet(prior,
-    ...                                    input_node_scores={'CD4': 1.0},
-    ...                                    output_node_scores={'JUN': 1.0,
-    ...                                                        'FOS': -1.0},
-    ...                                    verbose=False)
+    >>> ppis = [("CD4", 1, "LCK"), ("LCK", 1, "JUN"), ("LCK", -1, "FOS")]
+    >>> prior = li.rs.build_prior_network(ppis, input_nodes={"CD4": 1.0}, output_nodes={"JUN": 1.0, "FOS": -1.0})
+    >>> df, problem = li.mt.find_causalnet(
+    ...     prior, input_node_scores={"CD4": 1.0}, output_node_scores={"JUN": 1.0, "FOS": -1.0}, verbose=False
+    ... )
 
     """
     cn = _check_if_installed("corneto")
@@ -118,16 +121,15 @@ def find_causalnet(
     _logg(f" - abs total (inputs + outputs): {total}", verbose=verbose)
 
     if node_weights is None:
-        node_penalties = {}
+        node_penalties: dict[str, float] = {}
     else:
-        node_penalties = _weights_to_penalties(node_weights,
-                                               cutoff=node_cutoff,
-                                               max_penalty=max_penalty,
-                                               min_penalty=min_penalty)
+        node_penalties = _weights_to_penalties(
+            node_weights, cutoff=node_cutoff, max_penalty=max_penalty, min_penalty=min_penalty
+        )
 
-    run_count = 0 # total runs
-    stable_count = 0 # stable solutions in a row
-    df_all = None # df with all solutions
+    run_count = 0  # total runs
+    stable_count = 0  # stable solutions in a row
+    df_all = None  # df with all solutions
 
     while run_count < max_runs:
         current_seed = seed + run_count
@@ -137,8 +139,12 @@ def find_causalnet(
         # assign 0 penalties to input/output nodes, missing_penalty to missing nodes
         # add a small amount of noise to the penalties to ensure reproducible solutions
         rng = np.random.default_rng(seed=current_seed)
-        c_node_penalties = {k: node_penalties.get(k, missing_penalty) + rng.uniform(min_penalty/20, min_penalty/10)
-                            if k not in measured_nodes else 0.0 for k in prior_graph.vertices}
+        c_node_penalties = {
+            k: node_penalties.get(k, missing_penalty) + rng.uniform(min_penalty / 20, min_penalty / 10)
+            if k not in measured_nodes
+            else 0.0
+            for k in prior_graph.vertices
+        }
 
         _logg("Building CORNETO problem...", verbose=verbose)
         P, G = cn.methods.carnival._extended_carnival_problem(
@@ -146,19 +152,16 @@ def find_causalnet(
             input_node_scores,
             output_node_scores,
             node_penalties=c_node_penalties,
-            edge_penalty=edge_penalty
+            edge_penalty=edge_penalty,
         )
 
         # E is the variable with 1 if edge activates or inhibits, 0 otherwise
-        E = P.symbols['reaction_sends_activation_c0'] + P.symbols['reaction_sends_inhibition_c0']
+        E = P.symbols["reaction_sends_activation_c0"] + P.symbols["reaction_sends_inhibition_c0"]
         W = rng.uniform(edge_penalty / 20, edge_penalty / 10, size=E.shape)
         P.add_objectives(W.T @ E)
 
         _logg(f"Solving with {solver}...", verbose=verbose)
-        P.solve(
-            solver=solver,
-            verbosity=int(verbose),
-            **kwargs)
+        P.solve(solver=solver, verbosity=int(verbose), **kwargs)
 
         obj_names = ["Loss (unfitted inputs/output)", "Edge penalty error", "Node penalty error"]
         _logg("Solution summary:", verbose=verbose)
@@ -191,10 +194,12 @@ def find_causalnet(
     return df_all, P
 
 
-def _weights_to_penalties(props,
-                          cutoff,
-                          min_penalty,
-                          max_penalty):
+def _weights_to_penalties(
+    props: Mapping[str, float],
+    cutoff: float,
+    min_penalty: float,
+    max_penalty: float,
+) -> dict[str, float]:
     if any(p < 0 or p > 1 for p in props.values()):
         raise ValueError("Node weights were not between 0 and 1. Consider minmax or another normalization.")
 

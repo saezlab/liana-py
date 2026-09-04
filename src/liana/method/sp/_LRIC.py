@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Sequence
 from functools import partial
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 import numpy as np
 import pandas as pd
 from anndata import AnnData
-from scipy import sparse
+from numpy.typing import ArrayLike, NDArray
+from scipy.sparse import sparray, spmatrix
 from scipy.spatial import cKDTree
 from tqdm import tqdm
 
@@ -18,13 +19,18 @@ from liana._core._constants import PrimaryColumns as P
 from liana._core._docs import d
 from liana._core._pipe_utils import assert_covered, prep_check_adata
 from liana._core._pipe_utils._common import _get_groupby_subset
+from liana._core._types import MatrixLike, get_obs, get_x
 from liana.method.sp._utils import _add_complexes_to_var
 from liana.resource.select_resource import _handle_resource
+
+type Transform = Callable[[np.ndarray], np.ndarray]
+"""Rescales an expression matrix before ligand/receptor weights are formed."""
 
 _EDGE_BLOCK_ELEMS = 1 << 22
 _MIN_CELLS_FRAC = 0.01
 
 # ── helpers ───────────────────────────────────────────────────────────
+
 
 def _default_min_cells(adata: AnnData, min_cells: int | None, verbose: bool) -> int:
     """Default ``min_cells`` to an abundance-relative threshold.
@@ -44,16 +50,18 @@ def _default_min_cells(adata: AnnData, min_cells: int | None, verbose: bool) -> 
     )
     return default
 
+
 def _linear_transform(expr: np.ndarray) -> np.ndarray:
     """Mean-normalise to a mean of 1"""
     mean = expr.mean(axis=0, keepdims=True)
     smean = np.where(mean > 0, mean, 1.0)
     return expr / smean
 
-def _to_dense(X) -> np.ndarray:
-    if sparse.issparse(X):
-        X = X.toarray()
-    return np.asarray(X, dtype=np.float32)
+
+def _to_dense(X: MatrixLike) -> np.ndarray:
+    dense = X.toarray() if isinstance(X, spmatrix | sparray) else X
+    return np.asarray(dense, dtype=np.float32)
+
 
 def _pair_weights(
     adata: AnnData,
@@ -67,7 +75,8 @@ def _pair_weights(
     returns ``(n_cells, n_pairs)``. ``use_raw``/``layer`` are already resolved
     into ``.X`` by ``prep_check_adata``.
     """
-    return transform(_to_dense(adata[:, gene_names].X))[:, idx]
+    return transform(_to_dense(get_x(adata[:, gene_names])))[:, idx]
+
 
 def _index_resource(
     adata: AnnData,
@@ -87,25 +96,24 @@ def _index_resource(
     var_set = set(map(str, adata.var_names))
     unique_ligands = [g for g in dict.fromkeys(resource["ligand"]) if g in var_set]
     unique_receptors = [g for g in dict.fromkeys(resource["receptor"]) if g in var_set]
-    resource_f = resource[
-        resource["ligand"].isin(unique_ligands) & resource["receptor"].isin(unique_receptors)
-    ].copy()
+    resource_f = resource[resource["ligand"].isin(unique_ligands) & resource["receptor"].isin(unique_receptors)].copy()
     lig_to_idx = {g: i for i, g in enumerate(unique_ligands)}
     rec_to_idx = {g: i for i, g in enumerate(unique_receptors)}
-    lr_pairs = np.column_stack([
-        resource_f["ligand"].map(lig_to_idx).values,
-        resource_f["receptor"].map(rec_to_idx).values,
-    ]).astype(int)
-    pair_names = (
-        resource_f["ligand"].astype(str) + lr_sep + resource_f["receptor"].astype(str)
-    ).tolist()
+    lr_pairs = np.column_stack(
+        [
+            resource_f["ligand"].map(lig_to_idx).to_numpy(),
+            resource_f["receptor"].map(rec_to_idx).to_numpy(),
+        ]
+    ).astype(int)
+    pair_names = (resource_f["ligand"].astype(str) + lr_sep + resource_f["receptor"].astype(str)).tolist()
     return lr_pairs, unique_ligands, unique_receptors, pair_names
+
 
 def _lr_weights(
     adata: AnnData,
     resource: pd.DataFrame,
     lr_sep: str,
-    transform_fn: Callable | None,
+    transform_fn: Transform | None,
 ) -> tuple[np.ndarray, np.ndarray, list[str], list[str], list[str]]:
     """Per-pair ligand/receptor weight matrices, plus one label per LR pair.
 
@@ -122,26 +130,34 @@ def _lr_weights(
     receptors = [unique_receptors[j] for j in lr_pairs[:, 1]]
     return WL, WR, ligands, receptors, pair_names
 
+
 def _type_index(adata: AnnData, groupby: str) -> tuple[np.ndarray, list[str], np.ndarray, np.ndarray]:
     """Cell-type labels, their sorted levels, per-cell codes and per-type counts."""
-    obs_types = adata.obs[groupby].astype(str).values
+    obs_types = get_obs(adata)[groupby].astype(str).to_numpy()
     levels = sorted(np.unique(obs_types).tolist())
     codes = pd.Categorical(obs_types, categories=levels).codes.astype(np.int64)
     return obs_types, levels, codes, np.bincount(codes, minlength=len(levels))
 
+
 def _fold_groupby_pairs(
-    groupby_pairs: pd.DataFrame | None, cell_types: Iterable[str] | None
-) -> Iterable[str] | None:
+    groupby_pairs: pd.DataFrame | None, cell_types: Sequence[str] | None
+) -> NDArray[Any] | Sequence[str] | None:
     """Add the cell types referenced by ``groupby_pairs`` to ``cell_types``."""
     subset = _get_groupby_subset(groupby_pairs)
     if subset is None:
         return cell_types
     return subset if cell_types is None else np.union1d(list(cell_types), subset)
 
-def _check_annulus_steps(annulus_steps: int) -> int:
-    if not isinstance(annulus_steps, (int, np.integer)) or annulus_steps < 1:
+
+def _check_annulus_steps(annulus_steps: object) -> int:
+    """Validate an ``annulus_steps`` argument coming from an untyped caller.
+
+    Takes `object` rather than `int` precisely because the `isinstance` check is the point: a float would otherwise truncate silently.
+    """
+    if not isinstance(annulus_steps, int | np.integer) or annulus_steps < 1:
         raise ValueError(f"`annulus_steps` must be an integer >= 1, got {annulus_steps!r}.")
     return int(annulus_steps)
+
 
 def _make_radii(
     max_radius: float, radius_step: float, annulus_steps: int = 1, extend_first_annulus: bool = True
@@ -153,27 +169,24 @@ def _make_radii(
         radii_inner[0] = 0.0  # merge the [0, radius_step) contact band into the first annulus
     return radii_inner, radii_outer
 
-def _fine_tiles(
-    n_bins: int, radius_step: float, annulus_steps: int
-) -> tuple[np.ndarray, np.ndarray]:
-    """Disjoint ``radius_step``-wide tiles from 0 out to the last annulus' outer edge.
-    """
+
+def _fine_tiles(n_bins: int, radius_step: float, annulus_steps: int) -> tuple[np.ndarray, np.ndarray]:
+    """Disjoint ``radius_step``-wide tiles from 0 out to the last annulus' outer edge."""
     fine_inner = np.arange(n_bins + annulus_steps, dtype=float) * radius_step
     return fine_inner, fine_inner + radius_step
 
+
 def _roll_tiles(fine: np.ndarray, n_bins: int, k: int, extend_first: bool) -> np.ndarray:
-    """Sum ``k`` consecutive fine tiles per output annulus.
-    """
+    """Sum ``k`` consecutive fine tiles per output annulus."""
     C = np.concatenate([np.zeros((1, *fine.shape[1:])), np.cumsum(fine, axis=0)], axis=0)
     los = np.arange(n_bins) + 1
     his = los + k
     if extend_first:
         los[0] = 0
-    return C[his] - C[los]
+    return np.asarray(C[his] - C[los])
 
-def _expr_prop_mask(
-    mat: np.ndarray, prop_snd: np.ndarray, prop_rcv: np.ndarray, expr_prop: float
-) -> np.ndarray:
+
+def _expr_prop_mask(mat: np.ndarray, prop_snd: np.ndarray, prop_rcv: np.ndarray, expr_prop: float) -> np.ndarray:
     """NaN out pairs whose sender or receiver expressing-cell proportion is below the threshold."""
     if expr_prop <= 0:
         return mat
@@ -183,22 +196,25 @@ def _expr_prop_mask(
         mat[:, filt] = np.nan
     return mat
 
+
 def _support_edge_list(
     tree: cKDTree, radii_inner: np.ndarray, radii_outer: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Global (i, j, bin) edge list for all ordered pairs within ``radii_outer[-1]``,
-    self-pairs excluded, binned on the half-open ``[inner, outer)`` convention.
-    Each pair is assigned to exactly one bin, so the bins must be disjoint tiles
-    for the counts to be complete."""
+    """Global (i, j, bin) edge list for all ordered pairs within ``radii_outer[-1]``.
+
+    Self-pairs are excluded, and pairs are binned on the half-open ``[inner, outer)`` convention.
+    Each pair is assigned to exactly one bin, so the bins must be disjoint tiles for the counts to be complete.
+    """
     n_bins = len(radii_inner)
     spdm = tree.sparse_distance_matrix(tree, max_distance=float(radii_outer[-1]), output_type="coo_matrix")
     I, J, D = spdm.row, spdm.col, spdm.data.astype(np.float32)
-    m = I != J #remove self-pairs
+    m = I != J  # remove self-pairs
     I, J, D = I[m], J[m], D[m]
-    bin_idx = np.searchsorted(radii_outer, D, side="right") #map distances to bins
+    bin_idx = np.searchsorted(radii_outer, D, side="right")  # map distances to bins
     clipped = np.minimum(bin_idx, n_bins - 1)
     valid = (bin_idx < n_bins) & (D >= radii_inner[clipped])
     return I[valid], J[valid], bin_idx[valid]
+
 
 class _Support(NamedTuple):
     """The annuli, the single edge list they are read off, and the tissue-wide pair counts."""
@@ -211,6 +227,7 @@ class _Support(NamedTuple):
     n_fine: int
     T: np.ndarray  # (n_bins,) ordered pairs per annulus, any cell type
     roll: Callable[[np.ndarray], np.ndarray]  # fine tiles -> output annuli
+
 
 def _build_support(
     adata: AnnData,
@@ -231,24 +248,27 @@ def _build_support(
     T = roll(np.bincount(bin_idx, minlength=n_fine).astype(np.float64))
     return _Support(len(coords), radii_inner, I, J, bin_idx, n_fine, T, roll)
 
+
 def _expected_pairs(n_S: int, n_R: int, N: int, T: np.ndarray) -> np.ndarray:
     """Ordered sender->receiver pairs expected per annulus under random labelling."""
     return n_S * n_R / (N * (N - 1)) * T
 
+
 def _edge_group_bounds(group_key_sorted: np.ndarray, n_groups: int) -> np.ndarray:
     """Start offsets of every group in a group-key-sorted edge list.
+
     ``bounds[g]:bounds[g + 1]`` is the (possibly empty) contiguous slice of edges
     belonging to group ``g``; ``bounds`` has length ``n_groups + 1``.
     """
     return np.searchsorted(group_key_sorted, np.arange(n_groups + 1), side="left")
 
-def _group_edges(
-    sup: _Support, group_key: np.ndarray, n_groups: int
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+
+def _group_edges(sup: _Support, group_key: np.ndarray, n_groups: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Sort the edge list by ``group_key``, so each group is a contiguous slice."""
     order = np.argsort(group_key, kind="stable")
     bounds = _edge_group_bounds(group_key[order], n_groups)
     return sup.I[order], sup.J[order], bounds
+
 
 def _select_pairs(
     pairs: list[tuple[int, int]],
@@ -268,19 +288,20 @@ def _select_pairs(
     if absent:
         _logg(
             f"`groupby_pairs` names cell types that are not in the data: {sorted(absent)}.",
-            level="warn", verbose=True,
+            level="warn",
+            verbose=True,
         )
     kept = [
-        (s, r) for s, r in pairs
-        if (levels[s], levels[r]) in requested
-        or (symmetric and (levels[r], levels[s]) in requested)
+        (s, r)
+        for s, r in pairs
+        if (levels[s], levels[r]) in requested or (symmetric and (levels[r], levels[s]) in requested)
     ]
     if not kept:
-        _logg("`groupby_pairs` matched no cell-type pair; the result is empty.",
-              level="warn", verbose=True)
+        _logg("`groupby_pairs` matched no cell-type pair; the result is empty.", level="warn", verbose=True)
     return kept
 
-#weighted ligand–receptor sums for grouped edge segments
+
+# weighted ligand–receptor sums for grouped edge segments
 # g -> group, one radius bin for a fixed sender→receiver cell-type pair.
 # p -> ligand–receptor pair.
 # i→j is a directed spatial edge.
@@ -295,7 +316,8 @@ def _segment_weighted_sums(
     """``out[g, p] = sum_{(i, j) in group g} WL[i, p] * WR[j, p]``, shape ``(n_groups, n_pairs)``.
 
     Edges must already be sorted by group key (with ``bounds`` from
-    :func:`_edge_group_bounds`) so that each group occupies a contiguous slice."""
+    :func:`_edge_group_bounds`) so that each group occupies a contiguous slice.
+    """
     n_groups = len(bounds) - 1
     n_pairs = WL.shape[1]
     out = np.zeros((n_groups, n_pairs), dtype=np.float64)
@@ -314,10 +336,11 @@ def _segment_weighted_sums(
                 acc += (WLc[I_sorted[e0:e1]] * WRc[J_sorted[e0:e1]]).sum(axis=0, dtype=np.float64)
     return out
 
+
 def _melt_curves(
     radii: np.ndarray,
-    ids: dict[str, list],
-    categories: dict[str, list] | None = None,
+    ids: dict[str, ArrayLike],
+    categories: dict[str, Sequence[Any]] | None = None,
     **values: np.ndarray,
 ) -> pd.DataFrame:
     """Long ("liana_res") frame: one row per curve x radius bin.
@@ -337,9 +360,7 @@ def _melt_curves(
     return df
 
 
-def _type_mean_weights(
-    W: np.ndarray, obs_types: np.ndarray, cell_types_list: list[str]
-) -> np.ndarray:
+def _type_mean_weights(W: np.ndarray, obs_types: np.ndarray, cell_types_list: list[str]) -> np.ndarray:
     """Per-type mean weight, shape ``(n_types, n_pairs)``.
 
     These are the ``w̄L^S`` / ``w̄R^R`` of the conditional null -- the quantity
@@ -354,8 +375,8 @@ def _type_mean_weights(
 
 # ── CrossPCF ───────────────────────────────────────────
 
-class CrossPCF:
 
+class CrossPCF:
     """Cross pair-correlation function (cross-PCF) between cell types.
 
     The cross-PCF, ``g(r)``, measures whether sender-type and receiver-type cells
@@ -372,9 +393,7 @@ class CrossPCF:
     that cell-type labels are spatially independent given the observed point
     pattern.
 
-    Unlike the classical cross-PCF (Bull et al., 2024, doi:10.1101/2024.12.06.627195),
-    which normalises against complete spatial randomness (CSR), this implementation uses 
-    a closed-form random-labelling null.
+    Unlike the classical cross-PCF (Bull et al., 2024, doi:10.1101/2024.12.06.627195), which normalises against complete spatial randomness (CSR), this implementation uses a closed-form random-labelling null.
     By conditioning on the observed tissue support, it naturally accounts for
     non-convex tissue boundaries, holes, and fragmentation without estimating an
     effective tissue area.
@@ -386,7 +405,7 @@ class CrossPCF:
         adata: AnnData,
         groupby: str,
         spatial_key: str = K.spatial_key,
-        cell_types: Iterable[str] | None = None,
+        cell_types: Sequence[str] | None = None,
         min_cells: int | None = None,
         max_radius: float = 200,
         radius_step: float = 20,
@@ -441,7 +460,7 @@ class CrossPCF:
         is emitted once, with ``source`` before ``target`` in sorted cell-type
         order. Self-pairs are excluded.
 
-        ``CrossPCF`` and :class:`LRIC` share the same binning: half-open
+        ``CrossPCF`` and ``LRIC`` share the same binning: half-open
         ``[inner, outer)`` tiles read off a single edge list, with distance-0
         pairs between distinct cells counted in the contact band. Pairwise
         ``LRIC``'s ``g_pcf`` therefore equals ``cross_pcf`` exactly.
@@ -450,22 +469,22 @@ class CrossPCF:
         --------
         >>> import liana as li
         >>> adata = li.ds.generate_toy_spatial()
-        >>> adata.obs['cell_type'] = adata.obs['bulk_labels']
-        >>> li.mt.cross_pcf(adata, groupby='cell_type', key_added='cross_pcf')
-        >>> list(adata.uns['cross_pcf'].columns)
+        >>> adata.obs["cell_type"] = adata.obs["bulk_labels"]
+        >>> li.mt.cross_pcf(adata, groupby="cell_type", key_added="cross_pcf")
+        >>> list(adata.uns["cross_pcf"].columns)
         ['source', 'target', 'interaction', 'radius', 'g']
 
         Rank the pairs with :func:`liana.mt.get_lric_auc` and draw one
         with :func:`liana.pl.lric_lineplot`.
         """
         annulus_steps = _check_annulus_steps(annulus_steps)
-        cell_types = _fold_groupby_pairs(groupby_pairs, cell_types)
+        selected_types = _fold_groupby_pairs(groupby_pairs, cell_types)
         _adata_orig = adata
         adata = prep_check_adata(
             adata=adata,
             groupby=groupby,
             min_cells=_default_min_cells(adata, min_cells, verbose),
-            groupby_subset=cell_types,
+            groupby_subset=selected_types,
             use_raw=False,
             layer=None,
             obsm={spatial_key: adata.obsm[spatial_key]},
@@ -486,21 +505,16 @@ class CrossPCF:
         # same shared edge list on disjoint fine tiles as LRIC, so numerator and
         # denominator bin every pair identically; a single `bincount` on the
         # composite (sender, receiver, tile) key gives all directed pairs at once
-        sup = _build_support(
-            adata, spatial_key, max_radius, radius_step, annulus_steps, extend_first_annulus
-        )
+        sup = _build_support(adata, spatial_key, max_radius, radius_step, annulus_steps, extend_first_annulus)
         key = (type_code[sup.I] * n_types + type_code[sup.J]) * sup.n_fine + sup.bin_idx
         O = sup.roll(  # (n_bins, n_types * n_types)
-            np.bincount(key, minlength=n_types * n_types * sup.n_fine)
-            .reshape(-1, sup.n_fine).T.astype(np.float64)
+            np.bincount(key, minlength=n_types * n_types * sup.n_fine).reshape(-1, sup.n_fine).T.astype(np.float64)
         )
 
         G = np.empty((len(sup.radii), len(pairs)), dtype=np.float32)
         for k, (si, ri) in enumerate(pairs):
             with np.errstate(divide="ignore", invalid="ignore"):
-                g = O[:, si * n_types + ri] / _expected_pairs(
-                    counts[si], counts[ri], sup.N, sup.T
-                )
+                g = O[:, si * n_types + ri] / _expected_pairs(counts[si], counts[ri], sup.N, sup.T)
                 g[sup.T == 0] = np.nan
             G[:, k] = g
 
@@ -520,9 +534,11 @@ class CrossPCF:
             return None
         return res
 
+
 cross_pcf = CrossPCF()
 
 # ── LRIC ───────────────────────────────────────────────
+
 
 class LRIC:
     """
@@ -558,14 +574,14 @@ class LRIC:
         adata: AnnData,
         resource: pd.DataFrame | None = V.resource,
         resource_name: str | None = None,
-        interactions: list | None = V.interactions,
+        interactions: list[tuple[str, str]] | None = V.interactions,
         groupby: str | None = None,
         spatial_key: str = K.spatial_key,
         max_radius: float = 200,
         radius_step: float = 20,
         annulus_steps: int = 1,
         extend_first_annulus: bool = True,
-        cell_types: Iterable[str] | None = None,
+        cell_types: Sequence[str] | None = None,
         min_cells: int | None = None,
         groupby_pairs: pd.DataFrame | None = V.groupby_pairs,
         expr_prop: float = 0.0,
@@ -638,7 +654,7 @@ class LRIC:
         %(lr_sep)s
         transform_fn
             Expression transform applied to ligand and receptor matrices,
-            defaulting to mean-normalisation to 1 (:func:`_linear_transform`).
+            defaulting to mean-normalisation to 1 (``_linear_transform``).
         %(use_raw)s
         %(layer)s
         pair_chunk
@@ -672,16 +688,15 @@ class LRIC:
 
         >>> import liana as li
         >>> adata = li.ds.generate_toy_spatial()
-        >>> li.mt.lric(adata, resource_name='consensus', key_added='lric')
-        >>> list(adata.uns['lric'].columns)
+        >>> li.mt.lric(adata, resource_name="consensus", key_added="lric")
+        >>> list(adata.uns["lric"].columns)
         ['ligand_complex', 'receptor_complex', 'interaction', 'radius', 'g']
 
         The cell-type pairwise variant additionally decomposes each interaction
         into architecture (``g_pcf``) and expression (``g_expr``) components:
 
-        >>> adata.obs['cell_type'] = adata.obs['bulk_labels']
-        >>> li.mt.lric(adata, resource_name='consensus', groupby='cell_type',
-        ...            key_added='lric_ct')
+        >>> adata.obs["cell_type"] = adata.obs["bulk_labels"]
+        >>> li.mt.lric(adata, resource_name="consensus", groupby="cell_type", key_added="lric_ct")
 
         Rank the interactions with :func:`liana.mt.get_lric_auc` -- its output
         feeds straight into :func:`liana.pl.dotplot` -- and draw a single
@@ -698,18 +713,14 @@ class LRIC:
         )
 
         if groupby is not None:
-            cell_types = _fold_groupby_pairs(groupby_pairs, cell_types)
+            selected_types = _fold_groupby_pairs(groupby_pairs, cell_types)
 
         _adata_orig = adata
         adata = prep_check_adata(
             adata=adata,
             groupby=groupby,
-            min_cells=(
-                _default_min_cells(adata, min_cells, verbose)
-                if groupby is not None
-                else None
-            ),
-            groupby_subset=cell_types if groupby is not None else None,
+            min_cells=(_default_min_cells(adata, min_cells, verbose) if groupby is not None else None),
+            groupby_subset=selected_types if groupby is not None else None,
             use_raw=use_raw,
             layer=layer,
             obsm={spatial_key: adata.obsm[spatial_key]},
@@ -722,13 +733,9 @@ class LRIC:
             if any(complex_sep in e for e in entities):
                 adata = _add_complexes_to_var(adata, entities, complex_sep=complex_sep)
 
-        assert_covered(
-            np.union1d(resource["ligand"], resource["receptor"]), adata.var_names, verbose=verbose
-        )
+        assert_covered(np.union1d(resource["ligand"], resource["receptor"]), adata.var_names, verbose=verbose)
 
-        sup = _build_support(
-            adata, spatial_key, max_radius, radius_step, annulus_steps, extend_first_annulus
-        )
+        sup = _build_support(adata, spatial_key, max_radius, radius_step, annulus_steps, extend_first_annulus)
         if groupby is None:
             res = self._agnostic(
                 adata=adata,
@@ -766,7 +773,7 @@ class LRIC:
         sup: _Support,
         expr_prop: float,
         lr_sep: str,
-        transform_fn: Callable | None,
+        transform_fn: Transform | None,
         pair_chunk: int,
         verbose: bool,
     ) -> pd.DataFrame:
@@ -803,9 +810,7 @@ class LRIC:
         lric = g.astype(np.float32)
 
         if expr_prop > 0:
-            lric = _expr_prop_mask(
-                lric, (WL > 0).sum(axis=0) / sup.N, (WR > 0).sum(axis=0) / sup.N, expr_prop
-            )
+            lric = _expr_prop_mask(lric, (WL > 0).sum(axis=0) / sup.N, (WR > 0).sum(axis=0) / sup.N, expr_prop)
         return _melt_curves(
             sup.radii,
             {
@@ -825,7 +830,7 @@ class LRIC:
         groupby_pairs: pd.DataFrame | None,
         expr_prop: float,
         lr_sep: str,
-        transform_fn: Callable | None,
+        transform_fn: Transform | None,
         pair_chunk: int,
         verbose: bool,
     ) -> pd.DataFrame:
@@ -853,8 +858,7 @@ class LRIC:
         pairs = [(s, r) for s in range(n_types) for r in range(n_types) if s != r]
         pairs = _select_pairs(pairs, levels, groupby_pairs, symmetric=False)
         _logg(
-            f"Running LRIC (conditional within-type null) for {n_types} "
-            f"cell types ({len(pairs)} directed pairs).",
+            f"Running LRIC (conditional within-type null) for {n_types} cell types ({len(pairs)} directed pairs).",
             verbose=verbose,
         )
 
@@ -907,7 +911,7 @@ class LRIC:
 
             pair_prod = mL[si] * mR[ri]
             exp_T = _expected_pairs(n_S, n_R, sup.N, sup.T)
-            expected = exp_T[:, None] * pair_prod[None, :]         # null weighted pair-sum
+            expected = exp_T[:, None] * pair_prod[None, :]  # null weighted pair-sum
 
             with np.errstate(divide="ignore", invalid="ignore"):
                 g_full = Num_SR / expected
@@ -917,9 +921,10 @@ class LRIC:
                 g_expr = Num_SR / (T_SR[:, None] * pair_prod[None, :])
                 g_expr[(T_SR[:, None] * pair_prod[None, :]) == 0] = np.nan
 
-            mat = g_full.astype(np.float32)      # architecture x expression coupling
-            mat_e = g_expr.astype(np.float32)    # expression coupling ALONE, given where the cells sit
-            if expr_prop > 0:
+            mat = g_full.astype(np.float32)  # architecture x expression coupling
+            mat_e = g_expr.astype(np.float32)  # expression coupling ALONE, given where the cells sit
+            # set exactly when `expr_prop > 0`
+            if pexp_L is not None and pexp_R is not None:
                 mat = _expr_prop_mask(mat, pexp_L[si], pexp_R[ri], expr_prop)
                 mat_e = _expr_prop_mask(mat_e, pexp_L[si], pexp_R[ri], expr_prop)
 
@@ -938,7 +943,10 @@ class LRIC:
                 "interaction": np.tile(pair_names, len(pairs)),
             },
             categories={P.source: levels, P.target: levels},
-            g=G, g_expr=E, g_pcf=PC,
+            g=G,
+            g_expr=E,
+            g_pcf=PC,
         )
+
 
 lric = LRIC()
