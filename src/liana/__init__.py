@@ -1,5 +1,3 @@
-__version__ = "2.0.0"
-
 import sys
 
 from scanpy._utils import annotate_doc_types

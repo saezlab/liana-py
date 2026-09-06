@@ -138,9 +138,6 @@ def liana_pipe(
         _complex_cols = [C.ligand_means, C.receptor_means]
         _add_cols = M.get_all_values()
 
-    if n_perms is None:
-        _consensus_opts = ["Magnitude"]
-
     if supp_columns is None:
         supp_columns = []
     _add_cols = _add_cols + [P.ligand, P.receptor, C.ligand_props, C.receptor_props] + supp_columns
@@ -284,6 +281,7 @@ def liana_pipe(
                 aggregate_method=_aggregate_method,
                 _key_cols=_key_cols,
                 _consensus_opts=_consensus_opts,
+                verbose=verbose,
             )
         else:  # Run the specific method in mind
             lr_res = _run_method(

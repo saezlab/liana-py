@@ -1,10 +1,9 @@
 [build-system]
 build-backend = "hatchling.build"
-requires = [ "hatchling" ]
+requires = [ "hatch-vcs", "hatchling" ]
 
 [project]
 name = "liana"
-version = "2.0.0"
 description = "LIANA+: a one-stop-shop framework for cell-cell communication"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -31,10 +30,11 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
   "Typing :: Typed",
 ]
+dynamic = [ "version" ]
 dependencies = [
   "anndata>=0.13",
   "fast-array-utils",
-  "mudata",
+  "mudata>=0.4",      # <0.4 cannot write h5mu with anndata>=0.13 (None layer key)
   "numba",
   "pandas",
   "plotnine>=0.10.1",
@@ -51,7 +51,7 @@ optional-dependencies.extras = [
   "kneed>=0.7",
   "mofapy2>=0.7",
   "mofax",
-  "muon",
+  "muon>=0.1.9",       # <0.1.9 cannot import with mudata>=0.4
   "omnipath>=1.0.6",
   "pydeseq2>=0.3.5",
   "pyscipopt>=5.2.1",
@@ -84,10 +84,10 @@ optional-dependencies.tutorials-gpu = [
 urls.Documentation = "https://liana.readthedocs.io/"
 urls.Homepage = "https://github.com/scverse/liana-py"
 urls.Source = "https://github.com/scverse/liana-py"
+scripts.liana-install-skills = "liana._skills.install:main"
 
 [dependency-groups]
 dev = [
-  "bumpversion>=0.6",
   "highspy>=1.9",
   "prek",
   "twine>=4.0.2",
@@ -124,6 +124,7 @@ typecheck = [
 ]
 
 [tool.hatch]
+version.source = "vcs"
 envs.default.installer = "uv"
 envs.default.dependency-groups = [ "dev" ]
 envs.docs.features = [ "extras" ]

@@ -2,6 +2,7 @@ import pathlib
 from itertools import product
 from unittest import TestCase
 
+import pytest
 from anndata import AnnData
 from mudata import MuData
 from pandas import read_csv
@@ -80,7 +81,17 @@ def test_aggregate_by_sample(toy_adata: AnnData) -> None:
 
 def test_aggregate_no_perms(toy_adata: AnnData) -> None:
     rank_aggregate(toy_adata, groupby="bulk_labels", return_all_lrs=True, key_added="all_res", n_perms=None)
-    assert toy_adata.uns["all_res"].shape == (4200, 11)
+    res = toy_adata.uns["all_res"]
+    assert res.shape == (4200, 12)
+    assert res["specificity_rank"].notna().all()  # aggregated over the non-permutation methods only
+
+
+def test_aggregate_single_method_warns(toy_adata: AnnData, caplog: pytest.LogCaptureFixture) -> None:
+    from liana.method.sc._natmi import natmi
+    from liana.method.sc._rank_aggregate import _rank_aggregate_meta
+
+    AggregateClass(_rank_aggregate_meta, methods=[natmi])(toy_adata, groupby="bulk_labels", n_perms=None, verbose=True)
+    assert "Aggregating over 1 method(s) only: ['NATMI']" in caplog.text
 
 
 def test_aggregate_on_mdata(toy_mdata: MuData) -> None:
@@ -103,4 +114,4 @@ def test_aggregate_on_mdata(toy_mdata: MuData) -> None:
         verbose=True,
     )
 
-    assert toy_mdata.uns["liana_res"].shape == (132, 11)
+    assert toy_mdata.uns["liana_res"].shape == (144, 12)

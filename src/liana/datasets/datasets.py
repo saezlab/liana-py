@@ -38,7 +38,7 @@ def kang_2018() -> AnnData:
     tutorials.
 
     """
-    adata = sc.read("kang_counts_25k.h5ad", backup_url="https://figshare.com/ndownloader/files/34464122")
+    adata = sc.read("kang_counts_25k.h5ad", backup_url="https://ndownloader.figshare.com/files/34464122")
 
     # Store the counts for later use
     adata.layers["counts"] = get_x(adata).copy()
@@ -60,6 +60,6 @@ def kang_2018() -> AnnData:
         "Dendritic cells": "DCs",
         "Megakaryocytes": "Mega",
     }
-    obs["cell_abbr"] = obs["cell_type"].replace(abbreviations)
+    obs["cell_abbr"] = obs["cell_type"].cat.rename_categories(abbreviations)  # .replace breaks on pandas 3 categoricals
 
     return adata
