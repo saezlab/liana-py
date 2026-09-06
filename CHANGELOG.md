@@ -14,6 +14,8 @@
 
 ### Fixed
 
+- **`li.pl.annulus` returns its figure instead of calling `matplotlib.pyplot.show`.** Showing from inside a library takes the decision away from the caller, and under an interactive backend it blocks in the GUI event loop -- which hung the function indefinitely in any script, and hid only because a headless backend turns `show` into a no-op. It takes `return_fig` and returns a `Figure`, as the rest of `li.pl` does; a notebook still renders it, and a script decides for itself when to show.
+
 - **Argument validation no longer runs on `assert`.** Eight checks on user input were assertions, which `python -O` strips, letting bad input through silently; several carried no message. They raise `ValueError` or `KeyError` now, as do the six places that raised `AssertionError` for a bad argument -- `except ValueError` around a liana call catches those. `liana.ms.filter_view_markers` warns with `UserWarning` rather than bare `Warning`, so the warning can be filtered by category.
 
 ## Unreleased
