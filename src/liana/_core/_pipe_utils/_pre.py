@@ -296,7 +296,7 @@ def _choose_mtx_rep(
 
     Returns
     -------
-        The matrix to be used by liana-py.
+        The matrix to be used by LIANA+.
     """
     if layer is not None and use_raw:
         raise ValueError("Cannot specify `layer` and have `use_raw=True`.")
