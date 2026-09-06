@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Fixed
+
+- **`li.rs.get_metalinks` and `li.rs.get_hcop_orthologs` no longer download into the working directory.** Both wrote their file to `os.getcwd()`, so calling either from a checkout dropped an untracked artifact into the repo, changing directory silently re-downloaded, and two processes in one directory raced on the same path. Both go through :func:`pooch.retrieve` now, as the rest of scverse does, caching under :attr:`scanpy.settings.datasetdir` alongside what `li.ds` fetches; `_download_metalinksdb` takes a `cache_dir` for callers that want their own. MetaLinksDB is checked against a pinned `sha256`, so a truncated or corrupted copy is re-fetched rather than served from the cache forever -- the previous code only rejected a file of length zero. Neither call had passed a timeout, so a stalled server blocked indefinitely.
+
+- `li.rs.get_metalinks_values` opened two connections to the database and closed one.
+
+### Packaging
+
+- **`requests` dropped from `[extras]`.** Nothing imports it since the downloads moved to `pooch`, which brings it along in any case.
+
 ### Changed
 
 - **`matplotlib.pyplot.show` is banned in `src`.** The hang fixed in `li.pl.annulus` was invisible to CI, which runs headless and so turns `show` into a no-op -- the call only blocks where someone has a display. A lint rule catches the next one at the point it is written rather than at the point a user runs it.
