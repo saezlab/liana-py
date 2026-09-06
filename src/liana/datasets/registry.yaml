@@ -1,0 +1,77 @@
+# Datasets LIANA+ hosts itself, fetched via `scverse_misc.datasets.fetch`.
+#
+# Add a `sha256` for every file: it is what lets a truncated or corrupted
+# download be detected (and retried) instead of surfacing as a parse error.
+#
+# `fallback_urls` are the upstream locations the tutorials used before the
+# scverse bucket; they are used if the bucket is down or serves garbage.
+base_url: https://exampledata.scverse.org/liana
+
+datasets:
+
+  kang_2018:
+    type: anndata
+    files:
+      - name: kang.h5ad
+        s3_key: kang.h5ad
+        sha256: e6a5adac64dcdeb36eaba27db49b63e0c64bb0ed4a64c6705971506b41c39830
+        fallback_urls:
+          - https://figshare.com/ndownloader/files/34464122
+
+  kuppe_2022:
+    type: anndata
+    files:
+      - name: Visium_19_CK297.h5ad
+        s3_key: Visium_19_CK297.h5ad
+        sha256: 95b7f921f12bfcc92a7135854063ece4647ab75756a14a0021a9fb0b8bfe934c
+        fallback_urls:
+          - https://figshare.com/ndownloader/files/41501073?private_link=4744950f8768d5c8f68c
+
+  citeseq_pbmc5k:
+    type: mudata
+    modalities:
+      rna: citeseq_rna.h5ad
+      prot: citeseq_prot.h5ad
+    files:
+      - name: citeseq_rna.h5ad
+        s3_key: citeseq_rna.h5ad
+        sha256: aae188ddf1b1e57e5899c1be1ea742afa94680c2ffa6a0fa427a237664390c51
+        fallback_urls:
+          - https://figshare.com/ndownloader/files/47625193
+      - name: citeseq_prot.h5ad
+        s3_key: citeseq_prot.h5ad
+        sha256: 1091b062b4c4baf4c5ffdd3ad36eb6816d2d3eb1248c1f417fb7eff6ffa9cc81
+        fallback_urls:
+          - https://figshare.com/ndownloader/files/47625196
+
+  vicari_2024:
+    type: mudata
+    modalities:
+      rna: sma_rna.h5ad
+      msi: sma_msi.h5ad
+      ct: sma_deconv.h5ad
+    files:
+      - name: sma_rna.h5ad
+        s3_key: sma_rna.h5ad
+        sha256: 4fd66594dc1411b489a11f890c3e84332611ac6757e54420ec0a3012e9679b13
+        fallback_urls:
+          - https://figshare.com/ndownloader/files/44624974?private_link=4744950f8768d5c8f68c
+      - name: sma_msi.h5ad
+        s3_key: sma_msi.h5ad
+        sha256: 735d7bee1d82bdf829771457b8d350c8ada5a7832cb4571627272338fd92e124
+        fallback_urls:
+          - https://figshare.com/ndownloader/files/44624971?private_link=4744950f8768d5c8f68c
+      - name: sma_deconv.h5ad
+        s3_key: sma_deconv.h5ad
+        sha256: c9f760c7826061fe92b0dd69f90ef1d4958128bf31f20e8851ebdc1b98af0c96
+        fallback_urls:
+          - https://figshare.com/ndownloader/files/44624968?private_link=4744950f8768d5c8f68c
+
+  yao_2023:
+    type: anndata
+    files:
+      - name: WB_MERFISH_animal2_coronal.h5ad
+        s3_key: 93c3bb97-ea05-4ee0-a760-a1508cd04612.h5ad
+        sha256: fd02ea1a11444310ef537c42c5aa3b27b6a7fb2f314d9105207b6b5b64b27ec5
+        fallback_urls:
+          - https://datasets.cellxgene.cziscience.com/93c3bb97-ea05-4ee0-a760-a1508cd04612.h5ad

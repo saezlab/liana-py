@@ -190,6 +190,10 @@ Passed as `model=` when calling a `MistyData` object:
     :toctree: generated
 
     kang_2018
+    kuppe_2022
+    citeseq_pbmc5k
+    vicari_2024
+    yao_2023
     generate_toy_adata
     generate_toy_spatial
     generate_toy_mdata
