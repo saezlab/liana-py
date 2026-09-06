@@ -36,6 +36,12 @@ the return type is what callers rely on.
 type Aggregation = Literal["mean", "trimean"]
 """The location estimate a permutation-based method builds its null from."""
 
+_TIE_RTOL = 1e-6
+"""How close a permuted score has to be to the observed one to count as tied with it.
+
+An order of magnitude above the resolution of the `float32` the scores are stored in, and orders below any difference that carries signal.
+"""
+
 _MAX_PERM_INDEX_ELEMENTS = 1 << 24
 """Cap on how many row positions one block of permutations may hold, so that peak memory does not scale with ``n_perms``."""
 
@@ -408,7 +414,13 @@ def _calculate_pvals(
     lr_perm_means = _score_fn(perm_stats, axis=0)
     n_perms = perm_stats.shape[1]
 
-    return np.asarray(np.sum(np.greater_equal(lr_perm_means, lr_truth), axis=0) / n_perms)
+    # A permutation that leaves a cluster's membership unchanged -- the only possibility
+    # when a sample carries a single cluster -- has to score exactly as the observation
+    # does. The two sides are accumulated by different routines, so that tie survives only
+    # if it is compared within the tolerance of the single precision they are stored in.
+    exceeds = np.greater_equal(lr_perm_means, lr_truth) | np.isclose(lr_perm_means, lr_truth, rtol=_TIE_RTOL, atol=0.0)
+
+    return np.asarray(np.sum(exceeds, axis=0) / n_perms)
 
 
 def _apply_proximity_weights(
