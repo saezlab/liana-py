@@ -220,16 +220,7 @@ def check_vars(var_names: Iterable[str], complex_sep: str | None, verbose: bool 
         Separator or any substring to check for in the variable names
     %(verbose)s
     """
-    var_issues = []
-    if complex_sep is not None:
-        for name in var_names:
-            if complex_sep in name:
-                var_issues.append(name)
-    else:
-        pass
-
-    # XXX: Achieves the same but faster:
-    # var_issues = [] if complex_sep is None else [i for i in var_names if complex_sep in i]
+    var_issues = [] if complex_sep is None else [name for name in var_names if complex_sep in name]
 
     _logg(
         f"{var_issues} contain `{complex_sep}`. Consider replacing those!",

@@ -11,7 +11,7 @@ from liana._core._types import get_coordinates
 
 
 @d.dedent
-def annulus_plot(
+def annulus(
     adata: AnnData,
     spatial_key: str = K.spatial_key,
     radius_step: float = 20.0,
@@ -60,7 +60,7 @@ def annulus_plot(
 
     >>> import liana as li
     >>> adata = li.ds.generate_toy_spatial()
-    >>> li.pl.annulus_plot(adata, radius_step=200, n_rings=4)
+    >>> li.pl.annulus(adata, radius_step=200, n_rings=4)
     """
     if spatial_key not in adata.obsm:
         raise KeyError(f"'{spatial_key}' not found in adata.obsm.")

@@ -10,7 +10,7 @@ from liana._core._constants import DefaultValues as V
 from liana._core._constants import DeMethod
 from liana._core._constants import Keys as K
 from liana._core._docs import d
-from liana.method.sc._liana_pipe import MdataKwargs, SpatialKwargs, liana_pipe
+from liana.method.sc._liana_pipe import MdataKwargs, SpatialKwargs, liana_pipe_consensus
 from liana.method.sc._Method import Method, MethodMeta
 
 
@@ -166,7 +166,7 @@ class AggregateClass(MethodMeta):
         """
         if mdata_kwargs is None:
             mdata_kwargs = {}
-        liana_res = liana_pipe(
+        liana_res = liana_pipe_consensus(
             adata=adata,
             groupby=groupby,
             resource_name=resource_name,
@@ -179,15 +179,14 @@ class AggregateClass(MethodMeta):
             return_all_lrs=return_all_lrs,
             de_method=de_method,
             verbose=verbose,
-            _score=self,
+            consensus=self,
             use_raw=use_raw,
             layer=layer,
             n_perms=n_perms,
             seed=seed,
             n_jobs=n_jobs,
-            _methods=self.methods,
-            _aggregate_method=aggregate_method,
-            _consensus_opts=consensus_opts,
+            aggregate_method=aggregate_method,
+            consensus_opts=consensus_opts,
             spatial_key=spatial_key,
             spatial_kwargs=spatial_kwargs,
             mdata_kwargs=mdata_kwargs,
