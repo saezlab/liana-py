@@ -15,9 +15,6 @@ permissions:
   contents: read
 
 jobs:
-  # Execute every tutorial notebook in its own runner. The notebooks live in the docs/tutorials
-  # submodule, so the test suite does not cover them, and the docs build renders them with
-  # `nb_execution_mode = "off"`.
   tutorials:
     strategy:
       fail-fast: false
@@ -26,8 +23,7 @@ jobs:
           - basic_usage.ipynb
           - prior_knowledge.ipynb
           - targeted.ipynb
-          # pycrosstalker >=2 pins `anndata<0.13` and `pandas==2.2.2`, which liana cannot satisfy, and
-          # the 1.0.1 that resolves instead no longer ships the `from_liana` reader the notebook calls.
+          # pycrosstalker >=2 pins `anndata<0.13` and `pandas==2.2.2`, which liana cannot satisfy, and the 1.0.1 that resolves instead no longer ships the `from_liana` reader the notebook calls.
           # - liana_pyCrossTalkeR.ipynb
           - mofatalk.ipynb
           - mofacellular.ipynb
@@ -36,9 +32,8 @@ jobs:
           - misty.ipynb
           - sc_multi.ipynb
           - sma.ipynb
-          # The three notebooks below run on the ~1GB, ~4M cell MERFISH atlas (`li.ds.yao_2023`),
-          # which does not fit a standard runner within a sensible time budget. Re-enable them
-          # once they start from a subsampled slide.
+          # The three notebooks below run on the ~1GB, ~4M cell MERFISH atlas (`li.ds.yao_2023`), which does not fit a standard runner within a sensible time budget.
+          # Re-enable them once they start from a subsampled slide.
           # - inflow_score.ipynb
           # - inflow_mofaflex.ipynb
           # - LRIC_tutorial.ipynb
@@ -48,7 +43,6 @@ jobs:
     timeout-minutes: 30
     env:
       MPLBACKEND: agg
-      # nbconvert executes a notebook in the notebook's own directory, which is where `li.ds` caches.
       DATASET_DIR: docs/tutorials/notebooks/data
 
     steps:
@@ -69,7 +63,6 @@ jobs:
           key: ${{ runner.os }}-liana-datasets-${{ hashFiles('src/liana/datasets/registry.yaml') }}
           restore-keys: ${{ runner.os }}-liana-datasets-
       - name: Install graphviz
-        # `targeted.ipynb` renders corneto's causal network, which shells out to `dot`.
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y graphviz
       - name: Install the tutorial dependencies
         run: uv sync --extra tutorials-gpu

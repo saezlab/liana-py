@@ -56,7 +56,6 @@ def kang_2018() -> AnnData:
         "Dendritic cells": "DCs",
         "Megakaryocytes": "Mega",
     }
-    # `cell_type` is categorical, and replacing its categories one by one is an error in pandas >=3
     obs["cell_abbr"] = obs["cell_type"].astype(str).replace(abbreviations).astype("category")
 
     return adata

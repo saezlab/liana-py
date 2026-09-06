@@ -63,7 +63,7 @@ optional-dependencies.extras = [
 # = extras (liana features) + notebook-only viz/runtime packages not imported by src.
 optional-dependencies.tutorials = [
   "adjusttext",
-  "graphviz",      # targeted.ipynb renders the causal network with corneto's carnival visualiser
+  "graphviz",
   "liana[extras]",
   "marsilea",
   "matplotlib",
