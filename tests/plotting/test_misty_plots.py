@@ -189,6 +189,5 @@ def test_renamed_plots_still_resolve(deprecated: str, current: str) -> None:
     assert f"Use `liana.pl.{current}` instead" in alias.__deprecated__
     assert not hasattr(getattr(pl, current), "__deprecated__")
 
-    # the alias forwards, so the call fails on the real signature *after* it has warned
     with pytest.warns(FutureWarning, match=f"{deprecated} is deprecated"), suppress(TypeError, ValueError):
         alias()

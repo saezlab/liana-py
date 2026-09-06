@@ -205,9 +205,6 @@ lint.ignore = [
 lint.per-file-ignores."*/__init__.py" = [ "F401" ]
 lint.per-file-ignores."docs/*" = [ "I" ]
 lint.per-file-ignores."tests/*" = [ "D" ]
-# Showing from inside a library takes the decision away from the caller, and under an
-# interactive backend it blocks in the GUI event loop -- a hang CI never sees, because a
-# headless backend turns `show` into a no-op.
 lint.flake8-tidy-imports.banned-api."matplotlib.pyplot.show".msg = "return the figure instead; showing is the caller's decision"
 lint.pydocstyle.convention = "numpy"
 

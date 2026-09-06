@@ -396,10 +396,6 @@ def _calculate_pvals(
     lr_perm_means = _score_fn(perm_stats, axis=0)
     n_perms = perm_stats.shape[1]
 
-    # A permutation that leaves a cluster's membership unchanged -- the only possibility
-    # when a sample carries a single cluster -- has to score exactly as the observation
-    # does. The two sides are accumulated by different routines, so that tie survives only
-    # if it is compared within the tolerance of the single precision they are stored in.
     exceeds = np.greater_equal(lr_perm_means, lr_truth) | np.isclose(lr_perm_means, lr_truth, rtol=_TIE_RTOL, atol=0.0)
 
     return np.asarray(np.sum(exceeds, axis=0) / n_perms)

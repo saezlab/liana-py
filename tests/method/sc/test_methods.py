@@ -262,5 +262,4 @@ def test_spatial_key_weights_pvals(toy_spatial: AnnData) -> None:
     merged = unweighted.merge(weighted, on=keys, suffixes=("_unweighted", "_weighted"))
 
     assert not merged["cellphone_pvals_unweighted"].equals(merged["cellphone_pvals_weighted"])
-    # down-weighting the observed score alone can only make it harder to beat the null
     assert (merged["cellphone_pvals_weighted"] >= merged["cellphone_pvals_unweighted"]).all()
