@@ -10,7 +10,7 @@
 
 - **Permutation nulls are built by compiled kernels instead of `joblib`.** Both the mean and the trimean null read the CSR buffers directly, one pass over the non-zeros per permutation, and never materialise a permuted copy of the matrix; the trimean sorts each gene's stored entries rather than densifying the group. On 50k cells x 600 genes x 200 permutations, the mean null goes from 2.8 s to 0.45 s and CellChat's trimean null from 68 s to 4.5 s (8 threads). `n_jobs` previously made the permutations *slower* than serial, because a task per permutation re-pickled the sparse matrix each time. Results are unchanged for the trimean and now depend only on `seed`, never on `n_jobs`; the mean null sums in double precision where it previously inherited scipy's single-precision accumulation.
 
-- **`liana.pl` plot names follow one convention.** Plot functions are bare nouns, as in `scanpy.pl`, and carry the prefix of the method they belong to when they only apply to it. The old names still resolve with a `FutureWarning`:
+- **`liana.pl` plot names follow one convention.** Plot functions are bare nouns, as in `scanpy.pl`, and carry the prefix of the method they belong to when they only apply to it. The old names still resolve, via `scverse_misc.deprecated`, so a type checker flags them and calling one raises a `FutureWarning`:
 
   | Was | Now |
   |---|---|

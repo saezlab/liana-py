@@ -1,3 +1,5 @@
+from contextlib import suppress
+
 import pandas as pd
 import pytest
 from anndata import AnnData
@@ -182,10 +184,11 @@ def test_contributions_filter_on_categorical_target(target_metrics: DataFrame) -
     ],
 )
 def test_renamed_plots_still_resolve(deprecated: str, current: str) -> None:
-    with pytest.warns(FutureWarning, match=f"use `liana.pl.{current}` instead"):
-        assert getattr(pl, deprecated) is getattr(pl, current)
+    alias = getattr(pl, deprecated)
 
+    assert f"Use `liana.pl.{current}` instead" in alias.__deprecated__
+    assert not hasattr(getattr(pl, current), "__deprecated__")
 
-def test_unknown_plot_raises() -> None:
-    with pytest.raises(AttributeError, match="has no attribute 'not_a_plot'"):
-        _ = pl.not_a_plot
+    # the alias forwards, so the call fails on the real signature *after* it has warned
+    with pytest.warns(FutureWarning, match=f"{deprecated} is deprecated"), suppress(TypeError, ValueError):
+        alias()

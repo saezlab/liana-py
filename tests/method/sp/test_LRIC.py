@@ -757,7 +757,7 @@ def test_lric_no_lr_pairs_raises(adata: AnnData) -> None:
 def test_pair_chunk_is_deprecated(adata: AnnData, resource: pd.DataFrame) -> None:
     expected = as_frame(lric(adata, resource=resource, inplace=False, **_KWARGS))
 
-    with pytest.warns(FutureWarning, match="`pair_chunk` is deprecated"):
+    with pytest.warns(FutureWarning, match="argument pair_chunk is deprecated"):
         got = as_frame(lric(adata, resource=resource, inplace=False, pair_chunk=8, **_KWARGS))
 
     pd.testing.assert_frame_equal(got, expected)

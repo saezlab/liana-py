@@ -12,6 +12,7 @@ from anndata import AnnData
 from numpy.typing import ArrayLike, NDArray
 from scipy.sparse import sparray, spmatrix
 from scipy.spatial import cKDTree
+from scverse_misc import Deprecation
 from tqdm import tqdm
 
 from liana._core._common import _logg
@@ -29,6 +30,12 @@ if TYPE_CHECKING:
     prange = range
 else:
     prange = nb.prange
+
+_PAIR_CHUNK_DEPRECATION = Deprecation(
+    "2.1", "The weighted numerator no longer holds per-chunk temporaries, so there is nothing to tune."
+)
+"""Why `lric`'s `pair_chunk` no longer does anything."""
+
 
 type Transform = Callable[[np.ndarray], np.ndarray]
 """Rescales an expression matrix before ligand/receptor weights are formed."""
@@ -655,9 +662,9 @@ class LRIC:
         %(use_raw)s
         %(layer)s
         pair_chunk
-            Deprecated and ignored. The weighted numerator is now accumulated
-            without materialising per-chunk temporaries, so there is nothing to
-            tune.
+            Deprecated since 2.1 and ignored. The weighted numerator is now
+            accumulated without materialising per-chunk temporaries, so there is
+            nothing to tune.
         %(key_added)s
         %(inplace)s
         %(verbose)s
@@ -733,8 +740,11 @@ class LRIC:
         assert_covered(np.union1d(resource["ligand"], resource["receptor"]), adata.var_names, verbose=verbose)
 
         if pair_chunk is not None:
+            # `scverse_misc.deprecated_arg` would fit here, but it retypes the method as a
+            # plain callable, so every `lric(adata, ...)` call site loses its `self` binding
+            # under a type checker.
             warn(
-                "`pair_chunk` is deprecated and ignored; the weighted numerator no longer chunks.",
+                f"The argument pair_chunk is deprecated and will be removed in the future. {_PAIR_CHUNK_DEPRECATION}",
                 FutureWarning,
                 stacklevel=2,
             )

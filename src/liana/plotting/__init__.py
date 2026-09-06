@@ -1,4 +1,8 @@
-from typing import Any
+from collections.abc import Callable
+from functools import wraps
+from typing import Any, cast
+
+from scverse_misc import Deprecation, deprecated
 
 from ._annulus import annulus
 from ._circle_plot import circle
@@ -24,26 +28,32 @@ __all__ = [
     "tileplot",
 ]
 
-_RENAMED = {
-    "annulus_plot": "annulus",
-    "circle_plot": "circle",
-    "contributions": "misty_contributions",
-    "interactions": "misty_interactions",
-    "lric_divergence_plot": "lric_divergence",
-    "target_metrics": "misty_target_metrics",
-}
-"""The 2.0 names, mapped onto the ones that follow the module's convention.
+_RENAMED_IN = "2.1"
+"""The release that settled the plotting names.
 
 Plot functions are bare nouns, as in :mod:`scanpy.pl`, and carry the prefix of the method they belong to when they only apply to that method.
 """
 
 
-def __getattr__(name: str) -> Any:
-    if (renamed := _RENAMED.get(name)) is None:
-        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+def _renamed_to[F: Callable[..., Any]](current: F, old_name: str) -> F:
+    """Expose ``current`` under the ``old_name`` it went by before :data:`_RENAMED_IN`.
 
-    from warnings import warn
+    The alias carries the old name so that the warning names the function that was actually called, and it is a distinct object so that :func:`~warnings.deprecated` marks only the alias -- which also lets a type checker flag the old name without flagging the new one.
+    """
 
-    warn(f"`liana.pl.{name}` is deprecated; use `liana.pl.{renamed}` instead.", FutureWarning, stacklevel=2)
+    @wraps(current)
+    def alias(*args: Any, **kwargs: Any) -> Any:
+        return current(*args, **kwargs)
 
-    return globals()[renamed]
+    alias.__name__ = alias.__qualname__ = old_name
+    message = Deprecation(_RENAMED_IN, f"Use `liana.pl.{current.__name__}` instead.")
+
+    return cast("F", deprecated(message)(alias))
+
+
+annulus_plot = _renamed_to(annulus, "annulus_plot")
+circle_plot = _renamed_to(circle, "circle_plot")
+contributions = _renamed_to(misty_contributions, "contributions")
+interactions = _renamed_to(misty_interactions, "interactions")
+lric_divergence_plot = _renamed_to(lric_divergence, "lric_divergence_plot")
+target_metrics = _renamed_to(misty_target_metrics, "target_metrics")
