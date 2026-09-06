@@ -22,27 +22,3 @@ Re-run after changing a public signature, a default, or the routing table in SKI
 | 7 | "PBMC scRNA-seq, all genes. I already ran the standard LR analysis. Beyond protein ligands, can liana say anything about small-molecule or metabolite signalling? I only have RNA." | dissociated, RNA only | reads metabolites.md; `li.rs.get_metalinks` filtered to blood, `li.mt.estimate_metalinks`, then `rank_aggregate` with `mdata_kwargs` (`x_mod="metabolite"`, `y_mod="receptor"`, `zi_minmax` transforms); states the linear-enzyme and independence caveats; cites MetalinksDB (Farr 2024) | #215 #190 |
 | 8 | "CITE-seq MuData with rna and prot modalities, cell types in the rna modality's obs. Ligands from RNA, receptors from the measured protein." | dissociated, MuData | reads single-cell-lr.md Variants; lifts the label onto `mdata.obs`; `rank_aggregate(mdata, mdata_kwargs={x_mod: rna, y_mod: prot, zi_minmax transforms})`; maps antigen names to HGNC symbols and prefixes them (`AB:`) in both modality and resource; strips `_TotalSeqB` (complex separator) | #93 #143 |
 | 9 | "PBMC scRNA-seq, all genes. Give me as complete a picture as liana can of how these cell types communicate. Run what is appropriate and tell me what else could be done." | dissociated, RNA only | runs `rank_aggregate` and plots; without being asked, offers metabolite-mediated CCC via MetalinksDB as a next step (the "widen the question" line in SKILL.md); says what the data does not support (no samples, no coordinates) | #215 |
-
-Baseline notes (Sonnet, September 2026, no skill): scenarios 1, 5 and 6 were already handled
-correctly from source alone. Gaps the skill closes: scenario 4 reimplemented the proximity weighting
-by hand instead of `inflow` / `spatial_key`; scenario 2 went straight to one route without
-presenting the choice; scenario 3 skipped `set_diag=True`; no run cited the papers.
-
-Skill run (Sonnet, 2026-09-06, after trimming code blocks to non-default arguments and dropping
-per-file Cite sections): all six pass. Every run invoked the skill and read the routed reference,
-all five analysis scenarios ended with a `Cite:` line, scenario 4 used `inflow` +
-`compute_global_specificity` and flagged the unpublished status, scenario 3 used `set_diag=True`
-and `query_bandwidth`. Two adjustments came out of this round: scenario 1 only plotted once
-`li.pl.dotplot` appeared in single-cell-lr.md's call block, and scenario 5 only mentioned HCOP once
-SKILL.md's organism/ID fact named it; scenario 5 still reports the one cause it verified from the
-data rather than listing both, which is acceptable when the object can be inspected.
-
-Scenarios 7 and 8 (added 2026-09-06, Sonnet): both routed correctly on the first run. Scenario 7
-went to metabolites.md, ran `estimate_metalinks` then `rank_aggregate` with the `zi_minmax`
-transforms and listed the caveats, but cited MetalinksDB without its paper until the reference named
-it. Scenario 8 got the MuData call right from SKILL.md alone without opening single-cell-lr.md, built
-an antigen-to-symbol map and the `AB:` prefix, and surfaced a footgun now recorded in the Variants
-section: ADT names containing `_` are parsed as complex subunits. Note: these runs happened after the
-skill was installed to `~/.claude/skills/liana`, so "baseline" runs were no longer skill-free. Scenario 9 probes discoverability: with no mention of metabolites in the prompt, the run offered
-MetalinksDB-based metabolite CCC as the first "what else" item, and correctly ruled out multi-sample
-and spatial routes for this object.

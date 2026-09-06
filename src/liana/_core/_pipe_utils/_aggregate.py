@@ -66,17 +66,15 @@ def _aggregate(
     if "Specificity" in _consensus_opts:
         if consensus.specificity is None:
             raise ValueError("Cannot aggregate specificity ranks: `consensus.specificity` is unset.")
-        _res = lr_res.copy()
         lr_res[consensus.specificity] = _rank_aggregate(
-            _res, consensus.specificity_specs, aggregate_method=aggregate_method, verbose=verbose
+            lr_res, consensus.specificity_specs, aggregate_method=aggregate_method, verbose=verbose
         )
         order_col = consensus.specificity
     if "Magnitude" in _consensus_opts:
         if consensus.magnitude is None:
             raise ValueError("Cannot aggregate magnitude ranks: `consensus.magnitude` is unset.")
-        _res = lr_res.copy()
         lr_res[consensus.magnitude] = _rank_aggregate(
-            _res, consensus.magnitude_specs, aggregate_method=aggregate_method, verbose=verbose
+            lr_res, consensus.magnitude_specs, aggregate_method=aggregate_method, verbose=verbose
         )
         order_col = consensus.magnitude
 
@@ -114,26 +112,21 @@ def _rank_aggregate(
 
     # methods whose score was not computed (e.g. permutation p-values with `n_perms=None`) have no column
     specs = {method: spec for method, spec in specs.items() if spec[0] in lr_res.columns}
-    if len(specs) < 2:
-        _logg(f"Aggregating over {len(specs)} method(s) only: {sorted(specs)}.", level="warn", verbose=verbose)
+    # rank each unique score column once (Connectome and NATMI share `expr_prod`)
+    columns: dict[str, bool | None] = {}
+    for col, asc in specs.values():
+        if columns.setdefault(col, asc) != asc:
+            raise ValueError(f"Column `{col}` is ranked in opposite directions by different methods.")
+    if len(columns) < 2:
+        _logg(f"Aggregating over {len(columns)} score(s) only: {sorted(columns)}.", level="warn", verbose=verbose)
 
-    # Convert specs columns to ranks
-    for spec in specs:
-        score_name = specs[spec][0]
-        ascending = specs[spec][1]
-
-        if ascending:
-            lr_res.loc[:, score_name] = rankdata(lr_res.loc[:, score_name], method="average")
-        else:
-            lr_res.loc[:, score_name] = rankdata(lr_res.loc[:, score_name] * -1, method="average")
-
-    # get only the relevant ranks as a mat (joins order the keys)
-    scores = list({specs[s][0] for s in specs})
-    rmat = lr_res[scores].values
+    rmat: NDArray[np.floating] = np.column_stack(
+        [rankdata(lr_res[col] if asc else -lr_res[col], method="average") for col, asc in columns.items()]
+    )
 
     if aggregate_method == "rra":
         return _robust_rank_aggregate(rmat)
-    return np.mean(rmat, axis=1) / rmat.shape[0]
+    return np.asarray(np.mean(rmat, axis=1) / rmat.shape[0], dtype=np.float64)
 
 
 def _corr_beta_pvals(p: NDArray[np.floating], k: int) -> NDArray[np.floating]:

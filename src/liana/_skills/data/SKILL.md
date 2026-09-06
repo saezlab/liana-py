@@ -1,6 +1,6 @@
 ---
 name: liana
-description: Cell-cell communication (CCC) inference with the liana Python package (LIANA+, scverse). Use for any task involving liana or ligand-receptor (LR) analysis of AnnData/MuData objects. Triggers on steady-state LR scoring (rank_aggregate, CellPhoneDB, CellChat, NATMI, Connectome, SingleCellSignalR, logFC, scSeqComm); multi-sample or differential CCC (by_sample, MOFA+, Tensor-cell2cell, df_to_lr, pyCrossTalkeR); spatial CCC on Visium, Xenium, MERFISH, CosMx or slide-seq (spatial_neighbors, bivariate local/global metrics, Moran's R, Inflow, LRIC, cross-PCF, MISTy); multimodal CITE-seq or spatial metabolomics; metabolite-mediated CCC via MetalinksDB; LR resources and orthology for mouse or other organisms (consensus, mouseconsensus, OmniPath, HCOP); liana plots (dotplot, tileplot, circle_plot). Also use when the user says cell-cell interactions, crosstalk, signalling between cell types, sender and receiver, or niche signalling, with or without naming liana. Not for MOFA+, MISTy or Tensor-cell2cell used outside liana.
+description: Cell-cell communication (CCC) inference with the liana Python package (LIANA+, scverse). Use for any task involving liana or ligand-receptor (LR) analysis of AnnData/MuData objects. Triggers on steady-state LR scoring (rank_aggregate, CellPhoneDB, CellChat, NATMI, Connectome, SingleCellSignalR, logFC, scSeqComm); multi-sample or differential CCC (by_sample, MOFA+, Tensor-cell2cell, df_to_lr, pyCrossTalkeR); spatial CCC on Visium, Xenium, MERFISH, CosMx or slide-seq (spatial_neighbors, bivariate local/global metrics, Moran's R, Inflow, LRIC, cross-PCF, MISTy); multimodal CITE-seq or spatial metabolomics; metabolite-mediated CCC via MetalinksDB; LR resources and orthology for mouse or other organisms (consensus, mouseconsensus, OmniPath, HCOP); liana plots (dotplot, tileplot, circle_plot). Also use when the user says cell-cell interactions, crosstalk, signalling between cell types, sender and receiver, or niche signalling, even without naming liana. Not for MOFA+, MISTy or Tensor-cell2cell used outside liana.
 ---
 
 # liana (LIANA+)
@@ -31,15 +31,28 @@ decoupler as dc, numpy as np, pandas as pd`.
 
 ```python
 import anndata as ad, mudata as mu, numpy as np
+
 a = mu.read(path) if path.endswith(".h5mu") else ad.read_h5ad(path)
 print(type(a).__name__, a.shape, "mods:", list(getattr(a, "mod", {})))
 for c in a.obs.columns:
-    if a.obs[c].dtype.kind not in "biuf": u = a.obs[c].unique(); print(c, len(u), list(u[:6]))
+    if a.obs[c].dtype.kind not in "biuf":
+        u = a.obs[c].unique()
+        print(c, len(u), list(u[:6]))
 print("obsm:", list(a.obsm), "obsp:", list(a.obsp), "layers:", list(a.layers), "uns:", list(a.uns))
-d = lambda M: (M.toarray() if hasattr(M, "toarray") else np.asarray(M))
-X = d(a.X[:200]); print("X min/max:", X.min(), X.max(), "integer-like:", np.allclose(X, X.round()), "var sample:", list(a.var_names[:5]))
-if a.raw is not None: R = d(a.raw.X[:200]); print("raw min/max:", R.min(), R.max(), "(negative = scaled, do not use)")
-if "spatial" in a.obsm: print("coords min/max:", a.obsm["spatial"].min(0), a.obsm["spatial"].max(0), "uns spatial:", list(a.uns.get("spatial", {})))
+d = lambda M: M.toarray() if hasattr(M, "toarray") else np.asarray(M)
+X = d(a.X[:200])
+print("X min/max:", X.min(), X.max(), "integer-like:", np.allclose(X, X.round()), "var sample:", list(a.var_names[:5]))
+if a.raw is not None:
+    R = d(a.raw.X[:200])
+    print("raw min/max:", R.min(), R.max(), "(negative = scaled, do not use)")
+if "spatial" in a.obsm:
+    print(
+        "coords min/max:",
+        a.obsm["spatial"].min(0),
+        a.obsm["spatial"].max(0),
+        "uns spatial:",
+        list(a.uns.get("spatial", {})),
+    )
 ```
 
 ## Selection

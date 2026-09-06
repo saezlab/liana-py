@@ -35,6 +35,7 @@
 
 ### Fixed
 
+- **`rank_aggregate`'s `magnitude_rank` now ranks each score column once.** Connectome and NATMI share `expr_prod` as their magnitude score, and the consensus previously ranked it once per method, so the second pass ranked the ranks and reversed its contribution. `magnitude_rank` now agrees with the individual magnitude scores it aggregates; `specificity_rank` and all per-method scores are unchanged.
 - `li.rs.get_metalinks(source="...")` filtered per character of the string; it now filters on the whole value (#255).
 - `return_all_lrs=True` works under pandas 3 (chained `fillna(inplace=True)` was a no-op under Copy-on-Write); the `pandas<3` pin from #244 is lifted.
 

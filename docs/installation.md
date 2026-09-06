@@ -44,7 +44,7 @@ pip install -e '.[dev]'
 
 ## Claude Code Skill
 
-LIANA+ bundles an Agent Skill for Claude Code. After installing liana, run `liana-install-skills` once to copy it to `~/.claude/skills/liana/` (use `--force` to refresh it after an upgrade). Claude Code then consults it automatically for liana tasks.
+LIANA+ bundles an Agent Skill for Claude Code. After installing liana, run `liana-install-skills` once to copy it to `~/.claude/skills/liana/`; Claude Code picks it up automatically in every project (type `/skills` to confirm) and consults it for liana tasks. Refresh the copy with `liana-install-skills --force` after upgrading liana.
 
 ## Requirements
 

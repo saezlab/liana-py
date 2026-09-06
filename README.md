@@ -19,6 +19,12 @@ We welcome suggestions, ideas, and contributions! Please do not hesitate to cont
 ## Vignettes
 A set of extensive vignettes can be found in the [LIANA+ documentation](https://liana-py.readthedocs.io/en/latest/).
 
+```bash
+liana-install-skills
+```
+
+The command comes with `pip install liana`, so run it from any Python environment that has liana. It copies the skill to `~/.claude/skills/liana/`, where Claude Code picks it up automatically in every project and directory; type `/skills` in Claude Code to confirm `liana` is listed. After upgrading liana, refresh the copy with `liana-install-skills --force`. Then ask Claude Code for liana tasks in plain words ("which cell types signal to which in this Xenium slide", "compare interactions between conditions", "run this on mouse") and the skill is consulted automatically.
+
 ## Decision Tree
 
 Use the tree below to find a starting point for your analysis. Broad, data-driven choices sit at the top and trickle down to specific methods (click a node to open its tutorial).
@@ -95,16 +101,6 @@ This tree is a guide rather than an exhaustive map: the methods are modular and 
 ## Claude Code Skill
 
 LIANA+ ships an [Agent Skill](https://docs.claude.com/en/docs/claude-code/skills) for [Claude Code](https://claude.com/claude-code) that teaches the agent to use the library correctly: which method fits which data, where results land, and the defaults that trip users up. Install it once into your personal skills directory:
-
-```bash
-liana-install-skills
-```
-
-This copies the skill to `~/.claude/skills/liana/`, making it available in every project (re-run with `--force` after upgrading liana). Then ask Claude Code for liana tasks in plain words ("which cell types signal to which in this Xenium slide", "compare interactions between conditions", "run this on mouse") and the skill is consulted automatically. To avoid copying into your home directory, point Claude Code at the bundled copy instead:
-
-```bash
-export CLAUDE_SKILLS_PATH="$(liana-install-skills --print-path)"
-```
 
 ## API
 For further information please check LIANA's [API documentation](https://liana-py.readthedocs.io/en/latest/api.html).

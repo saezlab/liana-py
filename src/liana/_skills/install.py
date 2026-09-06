@@ -5,8 +5,8 @@ Exposes the ``liana-install-skills`` console script. Claude Code does not scan P
 ``~/.claude/skills/liana`` (available in every project). The copy is opt-in rather than done on
 import or install, because writing into a user's home configuration silently would be surprising.
 
-``--print-path`` prints the bundled directory instead, for pointing Claude Code at the package
-in place via ``CLAUDE_SKILLS_PATH``.
+``--print-path`` prints the bundled directory instead, for symlinking it into ``~/.claude/skills``
+so Claude Code tracks the installed package in place.
 """
 
 import argparse
@@ -63,7 +63,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {e}", file=sys.stderr)
         return 1
     print(f"Installed liana skill to {dest}")
-    print("It will be available to Claude Code in your next session.")
+    print("Claude Code picks it up automatically; type /skills there to confirm it is listed.")
     return 0
 
 
