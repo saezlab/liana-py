@@ -1,10 +1,8 @@
 # Datasets LIANA+ hosts itself, fetched via `scverse_misc.datasets.fetch`.
 #
-# Add a `sha256` for every file: it is what lets a truncated or corrupted
-# download be detected (and retried) instead of surfacing as a parse error.
+# Add a `sha256` for every file: it is what lets a truncated or corrupted download be detected (and retried) instead of surfacing as a parse error.
 #
-# `fallback_urls` are the upstream locations the tutorials used before the
-# scverse bucket; they are used if the bucket is down or serves garbage.
+# `fallback_urls` are the upstream locations the tutorials used before the scverse bucket; they are used if the bucket is down or serves garbage.
 base_url: https://exampledata.scverse.org/liana
 
 datasets:
