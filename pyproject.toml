@@ -34,11 +34,12 @@ dynamic = [ "version" ]
 dependencies = [
   "anndata>=0.13",
   "fast-array-utils",
-  "mudata>=0.4",      # <0.4 cannot write h5mu with anndata>=0.13 (None layer key)
+  "mudata>=0.4",                   # <0.4 cannot write h5mu with anndata>=0.13 (None layer key)
   "numba",
   "pandas",
   "plotnine>=0.10.1",
-  "scanpy>=1.12",     # 1.12 guards `annotate_doc_types` against non-weakref-able TypeAliasType
+  "scanpy>=1.12",                  # 1.12 guards `annotate_doc_types` against non-weakref-able TypeAliasType
+  "scverse-misc[datasets]>=0.1.4",
   "session-info2",
   "tqdm>=4",
 ]

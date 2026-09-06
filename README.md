@@ -19,6 +19,10 @@ We welcome suggestions, ideas, and contributions! Please do not hesitate to cont
 ## Vignettes
 A set of extensive vignettes can be found in the [LIANA+ documentation](https://liana-py.readthedocs.io/en/latest/).
 
+## Claude Code Skill
+
+LIANA+ provides an [Agent Skill](https://docs.claude.com/en/docs/claude-code/skills) for [Claude Code](https://claude.com/claude-code) that guides the agent to use the library correctly: which method fits which data, where results land, and the defaults that trip users up. Install it once into your personal skills directory:
+
 ```bash
 liana-install-skills
 ```
@@ -98,9 +102,6 @@ flowchart TD
 
 This tree is a guide rather than an exhaustive map: the methods are modular and can be adapted or combined across data types and questions, and all of them typically build on curated prior knowledge (see the [prior knowledge](https://liana-py.readthedocs.io/en/latest/tutorials/notebooks/prior_knowledge.html) tutorial for working with ligand–receptor and other resources).
 
-## Claude Code Skill
-
-LIANA+ ships an [Agent Skill](https://docs.claude.com/en/docs/claude-code/skills) for [Claude Code](https://claude.com/claude-code) that teaches the agent to use the library correctly: which method fits which data, where results land, and the defaults that trip users up. Install it once into your personal skills directory:
 
 ## API
 For further information please check LIANA's [API documentation](https://liana-py.readthedocs.io/en/latest/api.html).
