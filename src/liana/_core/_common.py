@@ -75,7 +75,8 @@ def _get_liana_res(
     uns_key: str = K.uns_key,
 ) -> DataFrame:
     if adata is not None:
-        assert uns_key in adata.uns.keys()
+        if uns_key not in adata.uns:
+            raise KeyError(f"`{uns_key}` not found in `adata.uns`.")
         _logg(f"Using `adata.uns['{uns_key}']`")
         res = adata.uns[uns_key]
         if not isinstance(res, DataFrame):

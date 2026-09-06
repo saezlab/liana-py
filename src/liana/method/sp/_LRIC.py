@@ -210,6 +210,55 @@ def _expr_prop_mask(mat: np.ndarray, prop_snd: np.ndarray, prop_rcv: np.ndarray,
     return mat
 
 
+@nb.njit(cache=True)
+def _bin_edges(
+    I: np.ndarray,
+    J: np.ndarray,
+    D: np.ndarray,
+    radii_inner: np.ndarray,
+    radii_outer: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Drop self-pairs and pairs outside every tile, and bin what is left.
+
+    One pass over the pair list, counting first and filling second, so that the
+    intermediate masks the equivalent chain of numpy expressions would allocate over
+    tens of millions of pairs never exist.
+    """
+    n_bins = radii_inner.size
+    n_edges = I.size
+
+    kept = 0
+    for e in range(n_edges):
+        if I[e] == J[e]:
+            continue
+        d = np.float64(D[e])
+        b = 0
+        while b < n_bins and radii_outer[b] <= d:
+            b += 1
+        if b < n_bins and d >= radii_inner[b]:
+            kept += 1
+
+    out_i = np.empty(kept, dtype=I.dtype)
+    out_j = np.empty(kept, dtype=J.dtype)
+    out_bin = np.empty(kept, dtype=np.int64)
+
+    at = 0
+    for e in range(n_edges):
+        if I[e] == J[e]:
+            continue
+        d = np.float64(D[e])
+        b = 0
+        while b < n_bins and radii_outer[b] <= d:
+            b += 1
+        if b < n_bins and d >= radii_inner[b]:
+            out_i[at] = I[e]
+            out_j[at] = J[e]
+            out_bin[at] = b
+            at += 1
+
+    return out_i, out_j, out_bin
+
+
 def _support_edge_list(
     tree: cKDTree, radii_inner: np.ndarray, radii_outer: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -218,15 +267,15 @@ def _support_edge_list(
     Self-pairs are excluded, and pairs are binned on the half-open ``[inner, outer)`` convention.
     Each pair is assigned to exactly one bin, so the bins must be disjoint tiles for the counts to be complete.
     """
-    n_bins = len(radii_inner)
     spdm = tree.sparse_distance_matrix(tree, max_distance=float(radii_outer[-1]), output_type="coo_matrix")
-    I, J, D = spdm.row, spdm.col, spdm.data.astype(np.float32)
-    m = I != J  # remove self-pairs
-    I, J, D = I[m], J[m], D[m]
-    bin_idx = np.searchsorted(radii_outer, D, side="right")  # map distances to bins
-    clipped = np.minimum(bin_idx, n_bins - 1)
-    valid = (bin_idx < n_bins) & (D >= radii_inner[clipped])
-    return I[valid], J[valid], bin_idx[valid]
+
+    return _bin_edges(
+        spdm.row,
+        spdm.col,
+        spdm.data.astype(np.float32),
+        np.asarray(radii_inner, dtype=np.float64),
+        np.asarray(radii_outer, dtype=np.float64),
+    )
 
 
 class _Support(NamedTuple):
@@ -267,20 +316,57 @@ def _expected_pairs(n_S: int, n_R: int, N: int, T: np.ndarray) -> np.ndarray:
     return n_S * n_R / (N * (N - 1)) * T
 
 
-def _edge_group_bounds(group_key_sorted: np.ndarray, n_groups: int) -> np.ndarray:
-    """Start offsets of every group in a group-key-sorted edge list.
+def _group_edges(
+    group_key: np.ndarray,
+    I: np.ndarray,
+    J: np.ndarray,
+    n_groups: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Sort the edge list by ``group_key``, so each group is a contiguous slice.
 
-    ``bounds[g]:bounds[g + 1]`` is the (possibly empty) contiguous slice of edges
-    belonging to group ``g``; ``bounds`` has length ``n_groups + 1``.
+    The counting pass indexes an array of ``n_groups`` by the key and numba does not
+    bounds-check, so a key outside that range would corrupt memory rather than raise.
+    One pass over the keys up front is cheap next to the sort it guards.
     """
-    return np.searchsorted(group_key_sorted, np.arange(n_groups + 1), side="left")
+    if group_key.size and (group_key.min() < 0 or group_key.max() >= n_groups):
+        raise ValueError(f"`group_key` must lie in [0, {n_groups}), got [{group_key.min()}, {group_key.max()}].")
+
+    return _counting_sort_edges(group_key, I, J, n_groups)
 
 
-def _group_edges(sup: _Support, group_key: np.ndarray, n_groups: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Sort the edge list by ``group_key``, so each group is a contiguous slice."""
-    order = np.argsort(group_key, kind="stable")
-    bounds = _edge_group_bounds(group_key[order], n_groups)
-    return sup.I[order], sup.J[order], bounds
+@nb.njit(cache=True)
+def _counting_sort_edges(
+    group_key: np.ndarray,
+    I: np.ndarray,
+    J: np.ndarray,
+    n_groups: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Place every edge in its group in one pass.
+
+    The key is a cell-type pair crossed with a radius tile, so it spans a few hundred
+    values over tens of millions of edges -- a counting sort places every edge in one
+    pass, where a comparison sort pays a factor of log(n_edges) for the same order.
+    Ascending traversal keeps ties in input order, so the result matches a stable sort
+    exactly, and the group offsets fall out of the histogram rather than a second search.
+    """
+    bounds = np.zeros(n_groups + 1, dtype=np.int64)
+    for e in range(group_key.size):
+        bounds[group_key[e] + 1] += 1
+    for g in range(n_groups):
+        bounds[g + 1] += bounds[g]
+
+    I_sorted = np.empty(I.size, dtype=I.dtype)
+    J_sorted = np.empty(J.size, dtype=J.dtype)
+
+    cursor = bounds[:n_groups].copy()
+    for e in range(group_key.size):
+        g = group_key[e]
+        at = cursor[g]
+        I_sorted[at] = I[e]
+        J_sorted[at] = J[e]
+        cursor[g] = at + 1
+
+    return I_sorted, J_sorted, bounds
 
 
 def _select_pairs(
@@ -325,7 +411,7 @@ def _segment_weighted_sums(
     """``out[g, p] = sum_{(i, j) in group g} WL[i, p] * WR[j, p]``, shape ``(n_groups, n_pairs)``.
 
     ``g`` is a group -- one radius bin for a fixed sender-to-receiver cell-type pair -- and ``p`` a ligand-receptor pair.
-    Edges must already be sorted by group key (with ``bounds`` from :func:`_edge_group_bounds`) so that each group occupies a contiguous slice.
+    Edges must already be sorted by group key (with ``bounds`` from :func:`_group_edges`) so that each group occupies a contiguous slice.
     Accumulating edge by edge keeps the whole reduction out of temporaries, so nothing has to be tiled to bound memory.
     """
     n_groups = bounds.size - 1
@@ -808,7 +894,7 @@ class LRIC:
         # numerator and denominator both come off the SAME edge list on disjoint
         # fine tiles, then get rolled up into the (possibly overlapping) output
         # annuli -- so every pair is counted identically on both sides
-        I_sorted, J_sorted, bounds = _group_edges(sup, sup.bin_idx, sup.n_fine)
+        I_sorted, J_sorted, bounds = _group_edges(sup.bin_idx, sup.I, sup.J, sup.n_fine)
         num = sup.roll(_segment_weighted_sums(I_sorted, J_sorted, bounds, WL, WR))
 
         # closed-form null mean: T(b) * E[wL(i) wR(j)] over random distinct pairs
@@ -895,7 +981,7 @@ class LRIC:
         group_key += type_code[sup.J]
         group_key *= n_fine
         np.add(group_key, sup.bin_idx, out=group_key, casting="unsafe")
-        I_sorted, J_sorted, bounds = _group_edges(sup, group_key, n_types * n_types * n_fine)
+        I_sorted, J_sorted, bounds = _group_edges(group_key, sup.I, sup.J, n_types * n_types * n_fine)
         del group_key
 
         # Per-type expressing proportions -- a mean over a boolean -- computed once

@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Changed
+
+- **LRIC groups its edge list by counting sort.** The group key is a cell-type pair crossed with a radius tile, so it spans a few hundred values over tens of millions of edges; placing each edge in one pass beats paying a factor of `log(n_edges)` for the same order. Ascending traversal keeps ties in input order, so the result matches the stable sort it replaces exactly, and the group offsets fall out of the histogram rather than a second search over the sorted keys. `li.mt.lric(groupby=...)` goes from 5.4 s to 3.2 s on 14k spots over 36M edges.
+
+- **Binning that edge list no longer doubles peak memory.** Dropping self-pairs, assigning tiles and compacting used to be a chain of numpy expressions, each allocating a full-length intermediate; one pass that counts and then fills allocates only what it returns. Peak drops from 1954 MB to 1013 MB for the same 579 MB of edges, and the result is unchanged.
+
+- **The permutation null no longer carries an untested fallback.** The compiled trimean kernel assumed a non-negative expression matrix, so anything else -- a scaled `layer`, say -- fell back to aggregating gathered rows, a path no test ever reached. Splicing the implicit zeros in at the position they sort to, rather than assuming they come first, covers negative values too, which removes the fallback, its dispatch and `joblib` from the module.
+
+- **`MethodMeta` no longer keeps a registry of every instance ever built.** The class held a list of weak references, appended to in `__init__` and never pruned, only to answer `li.mt.get_method_scores()`: 20 entries for the 9 methods liana ships, since a `Method` and the `MethodMeta` it wraps each registered, growing without bound as methods are constructed, and defining a custom method silently changed the scores reported for the whole process. The scores are known where the methods are defined, so they are read from there. This also drops the import-order constraint `liana/__init__.py` documented.
+
+### Fixed
+
+- **`li.pl.annulus` returns its figure instead of calling `matplotlib.pyplot.show`.** Showing from inside a library takes the decision away from the caller, and under an interactive backend it blocks in the GUI event loop -- which hung the function indefinitely in any script, and hid only because a headless backend turns `show` into a no-op. It takes `return_fig` and returns a `Figure`, as the rest of `li.pl` does; a notebook still renders it, and a script decides for itself when to show.
+
+- **Argument validation no longer runs on `assert`.** Eight checks on user input were assertions, which `python -O` strips, letting bad input through silently; several carried no message. They raise `ValueError` or `KeyError` now, as do the six places that raised `AssertionError` for a bad argument -- `except ValueError` around a liana call catches those. `liana.ms.filter_view_markers` warns with `UserWarning` rather than bare `Warning`, so the warning can be filtered by category.
+
+## Unreleased
+
 ### Fixed
 
 - **Spatial proximity weighting now reaches the p-values of the permutation-based methods.** `spatial_key` weighted both the observed score and the permuted null by the same per-interaction factor, which cancels out of `perm * w >= obs * w` -- so on toy data 92.5% of CellPhoneDB p-values were bit-identical with and without weighting, and the rest only moved because a zero weight forced them to 1. Only the observed statistic is weighted now, so a spatially distant pair needs a correspondingly stronger expression signal to clear the null. Affects `li.mt.cellphonedb`, `li.mt.cellchat` and `li.mt.geometric_mean` when `spatial_key` is passed; magnitudes are unchanged.

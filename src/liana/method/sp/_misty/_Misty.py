@@ -115,8 +115,8 @@ class MistyData(MuData):
         return view
 
     def _check_views(self) -> None:
-        assert isinstance(self, MuData), "views must be a MuData object"
-        assert "intra" in self.view_names, "views must contain an intra view"
+        if "intra" not in self.view_names:
+            raise ValueError("views must contain an intra view")
 
         for view in self.view_names:
             if view == "intra":

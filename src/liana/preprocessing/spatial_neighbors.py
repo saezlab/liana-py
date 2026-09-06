@@ -46,7 +46,7 @@ def _kernel_function(
 ) -> NDArray[np.floating]:
     families = ["gaussian", "exponential", "linear", "misty_rbf"]
     if kernel not in families:
-        raise AssertionError(f"{kernel} must be a member of {families}")
+        raise ValueError(f"`kernel` must be one of {families}, got {kernel!r}.")
 
     if kernel == "gaussian":
         return _gaussian(distance_mtx, bandwidth)
@@ -150,7 +150,7 @@ def spatial_neighbors(
         raise ValueError("`cutoff` must be provided!")
     families = ["gaussian", "exponential", "linear", "misty_rbf"]
     if kernel not in families:
-        raise AssertionError(f"{kernel} must be a member of {families}")
+        raise ValueError(f"`kernel` must be one of {families}, got {kernel!r}.")
     if bandwidth is None:
         raise ValueError("Please specify a bandwidth")
 
@@ -183,7 +183,8 @@ def spatial_neighbors(
 
     spot_n = dist.shape[0]
     if reference is None:
-        assert spot_n == adata.shape[0]
+        if spot_n != adata.shape[0]:
+            raise RuntimeError(f"built {spot_n} rows of connectivities for {adata.shape[0]} observations.")
     if spot_n > 1000:
         dist = dist.astype(np.float32)
 

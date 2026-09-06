@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import weakref
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Literal
 
 import anndata as an
@@ -78,12 +77,7 @@ class MethodMeta:
         Whether it requires permutations
     reference
         Publication reference in Harvard style
-    instances
-        List of instances of this class
     """
-
-    # Weak references, so a method instance is not kept alive by this registry.
-    instances: list[weakref.ref[MethodMeta]] = []
 
     # `Method` and `AggregateClass` each define `__call__`; `by_sample` invokes it
     __call__: Callable[..., DataFrame | dict[str, DataFrame] | None]
@@ -101,7 +95,6 @@ class MethodMeta:
         permute: bool,
         reference: str,
     ):
-        self.__class__.instances.append(weakref.ref(self))
         self.method_name = method_name
         self.complex_cols = complex_cols
         self.add_cols = add_cols
@@ -345,5 +338,5 @@ class Method(MethodMeta):
         return None if inplace else liana_res
 
 
-def _show_methods(methods: list[MethodMeta]) -> DataFrame:
+def _show_methods(methods: Sequence[MethodMeta]) -> DataFrame:
     return concat([method.get_meta() for method in methods])
