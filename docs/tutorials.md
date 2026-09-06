@@ -1,22 +1,22 @@
 # Tutorials
 
-Every tutorial is a runnable notebook that starts from a public dataset loaded via {mod}`liana.ds`.
+Each tutorial is a notebook that runs top to bottom on a public dataset from {mod}`liana.ds`.
 
-## Which analysis do I need?
+## Where to start
 
-Use the tree below to find a starting point.
-Broad, data-driven choices sit at the top and trickle down to specific methods; click a node to open its tutorial.
+The tree below goes from the kind of data you have to the methods that apply to it.
+Click a node to open its tutorial.
 
 ```{include} ../README.md
 :start-after: <!-- decision-tree-start -->
 :end-before: <!-- decision-tree-end -->
 ```
 
-The tree is a guide rather than an exhaustive map: the methods are modular and can be adapted or combined across data types and questions.
+The tree is a guide rather than an exhaustive map, since the methods are modular and can be combined across data types and questions.
 
 ## Getting started
 
-The basics of LIANA+: how a method is called, and where the prior knowledge it scores comes from.
+How a method is called, and where the prior knowledge it scores comes from.
 
 ```{toctree}
 :maxdepth: 1
@@ -27,7 +27,7 @@ tutorials/notebooks/prior_knowledge.ipynb
 
 ## Dissociated single-cell data
 
-Inference within a single sample, and across samples or conditions.
+Inference in one sample, and across samples or conditions.
 
 ```{toctree}
 :maxdepth: 1
@@ -41,7 +41,7 @@ tutorials/notebooks/liana_c2c.ipynb
 
 ## Spatially-resolved data
 
-Interactions that are constrained, scored, or learnt from spatial coordinates.
+Interactions restricted to, or modelled from, spatial coordinates.
 
 ```{toctree}
 :maxdepth: 1
@@ -55,7 +55,7 @@ tutorials/notebooks/LRIC_tutorial.ipynb
 
 ## Multi-modal data
 
-Interactions between modalities, such as transcriptome and surface protein or metabolite.
+Interactions between modalities, such as transcriptome and surface protein, or transcriptome and metabolite.
 
 ```{toctree}
 :maxdepth: 1

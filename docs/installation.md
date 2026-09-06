@@ -30,11 +30,11 @@ conda install bioconda::liana
 
 ::::
 
-This installs the core framework: every ligand-receptor method, the spatial and multi-modal metrics, the prior knowledge resources, and the plots.
+This installs the ligand-receptor methods, the spatial and multi-modal metrics, the prior knowledge resources and the plots.
 
 ## Extras
 
-Some functionality is only needed by part of the user base, and is therefore kept behind the `extras` group:
+Functionality that only part of the user base needs sits behind the `extras` group:
 
 ```bash
 pip install 'liana[extras]'
@@ -42,11 +42,11 @@ pip install 'liana[extras]'
 
 It pulls in [decoupler](https://decoupler.readthedocs.io/), [muon](https://muon.readthedocs.io/), mofax and mofapy2 for multi-view and multi-sample analyses, [omnipath](https://omnipathdb.org/) to query prior knowledge, [pydeseq2](https://pydeseq2.readthedocs.io/) for differential expression, [gseapy](https://gseapy.readthedocs.io/) for enrichment, corneto, cvxpy and PySCIPOpt for the causal network inference, [squidpy](https://squidpy.readthedocs.io/) for the spatial neighborhoods, as well as cell2cell and kneed.
 
-Each of these is imported lazily, so a missing extra only surfaces when you call the function that needs it.
+LIANA+ imports these when they are first used, so a missing one surfaces when you call the function that needs it.
 
 ## Running the tutorials
 
-The tutorials need a few notebook-only packages on top of the extras:
+The notebooks need a few plotting packages on top of the extras:
 
 ```bash
 pip install 'liana[tutorials]'
@@ -66,4 +66,4 @@ cd liana
 uv sync --all-extras
 ```
 
-See the {doc}`contributing guide <contributing>` for how the environments, the test matrix and the docs build are set up.
+The {doc}`contributing guide <contributing>` describes the environments, the test matrix and the docs build.

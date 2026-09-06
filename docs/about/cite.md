@@ -1,6 +1,6 @@
 # Citation
 
-If you use LIANA+ in your research, please cite the framework paper, and the 2022 benchmark whenever you use the methods or resources it compared:
+Please cite the framework paper, and the 2022 benchmark if you use the methods or resources it compared:
 
 ```bibtex
 @article{Dimitrov2024,
@@ -30,4 +30,4 @@ If you use LIANA+ in your research, please cite the framework paper, and the 202
 }
 ```
 
-Please also cite the individual methods and resources that were particularly relevant for your research; each method's docstring names its original publication.
+Please also cite the individual methods and resources you relied on. Each method's docstring names its original publication.
