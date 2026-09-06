@@ -4,6 +4,10 @@
 
 ### Changed
 
+- **`matplotlib.pyplot.show` is banned in `src`.** The hang fixed in `li.pl.annulus` was invisible to CI, which runs headless and so turns `show` into a no-op -- the call only blocks where someone has a display. A lint rule catches the next one at the point it is written rather than at the point a user runs it.
+
+### Changed
+
 - **LRIC groups its edge list by counting sort.** The group key is a cell-type pair crossed with a radius tile, so it spans a few hundred values over tens of millions of edges; placing each edge in one pass beats paying a factor of `log(n_edges)` for the same order. Ascending traversal keeps ties in input order, so the result matches the stable sort it replaces exactly, and the group offsets fall out of the histogram rather than a second search over the sorted keys. `li.mt.lric(groupby=...)` goes from 5.4 s to 3.2 s on 14k spots over 36M edges.
 
 - **Binning that edge list no longer doubles peak memory.** Dropping self-pairs, assigning tiles and compacting used to be a chain of numpy expressions, each allocating a full-length intermediate; one pass that counts and then fills allocates only what it returns. Peak drops from 1954 MB to 1013 MB for the same 579 MB of edges, and the result is unchanged.

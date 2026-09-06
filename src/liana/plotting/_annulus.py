@@ -153,6 +153,6 @@ def annulus(
         ncol=2,
     )
 
-    plt.tight_layout()
+    fig.tight_layout()
 
     return fig if return_fig else None

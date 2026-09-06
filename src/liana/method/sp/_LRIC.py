@@ -826,9 +826,6 @@ class LRIC:
         assert_covered(np.union1d(resource["ligand"], resource["receptor"]), adata.var_names, verbose=verbose)
 
         if pair_chunk is not None:
-            # `scverse_misc.deprecated_arg` would fit here, but it retypes the method as a
-            # plain callable, so every `lric(adata, ...)` call site loses its `self` binding
-            # under a type checker.
             warn(
                 f"The argument pair_chunk is deprecated and will be removed in the future. {_PAIR_CHUNK_DEPRECATION}",
                 FutureWarning,
