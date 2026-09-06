@@ -24,7 +24,6 @@ def _gmean_score(
     Returns
     -------
     A tuple with lr_mean and p-value for x
-
     """
     lr_gmeans = np.asarray(gmean((x["ligand_means"].to_numpy(), x["receptor_means"].to_numpy()), axis=0))
     weighted, proximity_weights = _apply_proximity_weights(lr_gmeans, x)

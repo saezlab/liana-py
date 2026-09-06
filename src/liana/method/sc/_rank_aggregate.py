@@ -39,7 +39,6 @@ class AggregateClass(MethodMeta):
         Additional columns required for each method
     complex_cols
         Columns relevant for protein complexes for each method
-
     """
 
     def __init__(self, _SCORE: MethodMeta, methods: list[Method]) -> None:
@@ -164,7 +163,6 @@ class AggregateClass(MethodMeta):
         >>> li.mt.rank_aggregate(adata, groupby="bulk_labels", n_perms=None)
 
         The frame carries `magnitude_rank` and `specificity_rank` alongside each aggregated method's own scores -- ``li.mt.rank_aggregate.describe()`` says what the ranks mean, and ``liana.mt.rank_aggregate`` which methods go into them.
-
         """
         if mdata_kwargs is None:
             mdata_kwargs = {}

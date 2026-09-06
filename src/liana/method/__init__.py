@@ -57,7 +57,6 @@ def show_methods() -> DataFrame:
 
     >>> import liana as li
     >>> methods = li.mt.show_methods()
-
     """
     return _show_methods(_methods + [rank_aggregate, geometric_mean, scseqcomm, cellchat])
 
@@ -78,7 +77,6 @@ def get_method_scores() -> dict[str, bool | None]:
 
     >>> import liana as li
     >>> scores = li.mt.get_method_scores()
-
     """
     alive = [ref() for ref in _MethodMeta.instances]
     instances = [instance for instance in alive if isinstance(instance, _Method | AggregateClass)]
@@ -119,7 +117,6 @@ def process_scores(liana_res: DataFrame, score_key: str, inverse_fn: ScoreTransf
     >>> adata = li.ds.generate_toy_adata()
     >>> li.mt.rank_aggregate(adata, groupby="bulk_labels", n_perms=None)
     >>> res = li.mt.process_scores(adata.uns["liana_res"], score_key="magnitude_rank")
-
     """
     df = liana_res.copy()
     scores = get_method_scores()

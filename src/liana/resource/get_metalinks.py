@@ -15,12 +15,11 @@ def _download_metalinksdb(verbose: bool = True) -> str:
     Returns
     -------
     The path to the downloaded database file.
-
     """
     requests = _check_if_installed("requests")
 
     # GitHub Releases URL (CI-friendly, no WAF issues)
-    METALINKS_URL = "https://github.com/scverse/liana-py/releases/download/metalinksdb/metalinksdb.db"
+    METALINKS_URL = "https://github.com/scverse/liana/releases/download/metalinksdb/metalinksdb.db"
 
     db_file_name = "metalinksdb.db"
     db_path = os.path.join(os.getcwd(), db_file_name)
@@ -123,7 +122,6 @@ def get_metalinks(
             types=["lr"],
             biospecimen_location="Blood",
         )
-
     """
     if db_path is None:
         db_path = _download_metalinksdb()
@@ -219,7 +217,6 @@ def get_metalinks_values(table_name: str, column_name: str, db_path: str | None 
     :func:`liana.rs.get_metalinks`::
 
         get_metalinks_values(table_name="tissue_location", column_name="tissue_location")
-
     """
     if db_path is None:
         db_path = _download_metalinksdb()
@@ -255,7 +252,6 @@ def describe_metalinks(db_path: str | None = None, return_output: bool = False) 
     It prints the tables and columns that :func:`liana.rs.get_metalinks` and :func:`liana.rs.get_metalinks_values` query::
 
         describe_metalinks()
-
     """
     if db_path is None:
         db_path = _download_metalinksdb()

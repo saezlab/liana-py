@@ -66,7 +66,6 @@ def target_metrics(
 
     Pass `aggregate_fn` (e.g. `numpy.mean`) to summarise a masked model's
     per-group rows into boxplots.
-
     """
     if target_metrics is not None:
         target_metrics = target_metrics.copy()
@@ -149,7 +148,6 @@ def contributions(
     >>> misty = li.mt.genericMistyData(intra=adata, bandwidth=200, set_diag=True)
     >>> misty(model=li.mt.sp.LinearModel)
     >>> p = li.pl.contributions(misty)
-
     """
     if target_metrics is not None:
         target_metrics = target_metrics.copy()
@@ -248,7 +246,6 @@ def interactions(
 
     `misty.view_names` lists the views available -- here `'intra'`, `'juxta'` and
     `'para'`.
-
     """
     if interactions is not None:
         interactions = interactions.copy()

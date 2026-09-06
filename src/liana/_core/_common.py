@@ -28,7 +28,6 @@ def _logg(message: str, level: str | None = "info", verbose: bool = False) -> No
         are 'warn' or 'info', any other value will result in no logging.
     verbose
         Controls whether the message is logged or not.
-
     """
     if verbose:
         if level == "warn":
@@ -56,7 +55,6 @@ def _check_if_installed(package_name: str, custom_error_message: str | None = No
     ------
     ImportError
         If the package could not be found/imported.
-
     """
     try:
         imported_module = __import__(package_name)

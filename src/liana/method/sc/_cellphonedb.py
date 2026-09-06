@@ -31,7 +31,6 @@ def _cpdb_score(
     Returns
     -------
     A tuple with lr_mean and p-value for x
-
     """
     zero_msk = (x["ligand_means"] == 0) | (x["receptor_means"] == 0)
     lr_means = _mean((x["ligand_means"].to_numpy(), x["receptor_means"].to_numpy()))

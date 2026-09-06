@@ -98,7 +98,6 @@ def df_to_lr(
     Each statistic named in `stat_keys` is carried over to both sides of every
     interaction -- as `ligand_stat` and `receptor_stat` -- and averaged into an
     `interaction_stat` column.
-
     """
     _check_groupby(adata=adata, groupby=groupby, verbose=verbose)
     if (groupby not in adata.obs.columns) or (groupby not in dea_df.columns):

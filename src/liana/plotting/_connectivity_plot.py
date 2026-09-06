@@ -54,7 +54,6 @@ def connectivity(
     >>> import liana as li
     >>> adata = li.ds.generate_toy_spatial()
     >>> p = li.pl.connectivity(adata, idx=0)
-
     """
     assert connectivity_key in list(adata.obsp.keys())
     assert spatial_key in adata.obsm_keys()

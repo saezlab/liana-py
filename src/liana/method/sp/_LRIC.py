@@ -565,7 +565,6 @@ class LRIC:
 
     LRIC builds on the cross pair-correlation function; see
     (:class:`CrossPCF`).
-
     """
 
     @d.dedent
@@ -789,7 +788,6 @@ class LRIC:
         actual self-pairs are excluded from the edge set. Reduces exactly to
         ``CrossPCF``'s directed curve when weights are one-hot type
         indicators.
-
         """
         _logg("Running cell-type-agnostic LRIC.", verbose=verbose)
 
