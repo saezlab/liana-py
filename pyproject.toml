@@ -173,6 +173,7 @@ index = [ { name = "pytorch-cpu", url = "https://download.pytorch.org/whl/cpu", 
 line-length = 120
 src = [ "src" ]
 extend-include = [ "*.ipynb" ]
+format.exclude = [ "src/liana/_skills/data/**/*.md" ]  # keep the skill's aligned inline comments
 format.docstring-code-format = true
 lint.select = [
   "B",      # flake8-bugbear
