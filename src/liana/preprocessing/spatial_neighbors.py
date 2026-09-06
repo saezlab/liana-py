@@ -145,7 +145,6 @@ def spatial_neighbors(
     `bandwidth` is required and sets the distance over which proximity decays --
     :func:`liana.pp.query_bandwidth` helps pick it -- while `kernel` sets the shape
     of that decay.
-
     """
     if cutoff is None:
         raise ValueError("`cutoff` must be provided!")
@@ -269,7 +268,6 @@ def spatial_pair_proximity(
     0  CD14+ Monocyte  CD14+ Monocyte      0.663
     1  CD14+ Monocyte         CD19+ B      0.628
     2  CD14+ Monocyte           CD34+      0.020
-
     """
     # groupby_labels use categories if categorical
     groupby_labels = np.asarray(get_obs(adata)[groupby])

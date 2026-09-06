@@ -125,7 +125,6 @@ def liana_pipe(
     Returns
     -------
     A DataFrame with ligand-receptor results
-
     """
     if mdata_kwargs is None:
         mdata_kwargs = MdataKwargs()

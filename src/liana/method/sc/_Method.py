@@ -80,7 +80,6 @@ class MethodMeta:
         Publication reference in Harvard style
     instances
         List of instances of this class
-
     """
 
     # Weak references, so a method instance is not kept alive by this registry.
@@ -169,7 +168,6 @@ class MethodMeta:
         -------
         A pandas DataFrame with the results and a column sample is stored in `adata.uns[key_added]` if `inplace` is True,
         else the DataFrame is returned.
-
         """
         obs = get_obs(adata)
         if sample_key not in obs:
@@ -221,7 +219,6 @@ class Method(MethodMeta):
     ----------
     method
         Instance of metod metadata class
-
     """
 
     def __init__(self, _method: MethodMeta):
@@ -313,7 +310,6 @@ class Method(MethodMeta):
         >>> import liana as li
         >>> adata = li.ds.generate_toy_adata()
         >>> li.mt.cellphonedb(adata, groupby="bulk_labels", n_perms=100)
-
         """
         if supp_columns is None:
             supp_columns = []

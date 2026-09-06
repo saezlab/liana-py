@@ -113,7 +113,6 @@ def get_mask_df(
     Returns
     -------
     The resulting masked table
-
     """
     if source_cell_type is None and target_cell_type is None:
         return pivot_table
@@ -241,7 +240,6 @@ def circle_plot(
 
     With `pivot_mode='mean'` and a `score_key` the edges are weighted by that
     score's mean instead of by the number of interactions.
-
     """
     if groupby is None:
         raise ValueError("`groupby` must be provided!")

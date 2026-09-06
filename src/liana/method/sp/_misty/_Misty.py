@@ -74,7 +74,6 @@ class MistyData(MuData):
     :func:`liana.mt.lrMistyData` build the views for the two most common
     designs. Call the object to fit the model -- see
     :func:`liana.mt.MistyData.__call__`.
-
     """
 
     def __init__(
@@ -159,7 +158,6 @@ class MistyData(MuData):
         Returns
         -------
         Weighted matrix of the requested view and predictors. If no predictors are provided, returns the variable names.
-
         """
         view = self._view(view_name)
         selected = view.var_names if predictors is None else predictors
@@ -233,7 +231,6 @@ class MistyData(MuData):
         >>> adata = adata[:, adata.var_names[:5]].copy()
         >>> misty = li.mt.genericMistyData(intra=adata, bandwidth=200, set_diag=True)
         >>> misty(model=li.mt.sp.LinearModel)
-
         """
         fitted_model = model(seed, **kwargs)
         view_str = list(self.view_names)

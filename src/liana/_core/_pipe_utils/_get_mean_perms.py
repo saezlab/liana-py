@@ -62,7 +62,6 @@ def _get_means_perms(
         - ligand_pos: Index of the ligand in the tensor
         - receptor_pos: Index of the receptor in the perms tensor
         - labels_pos: Index of cell identities in the perms tensor
-
     """
     X = get_x(adata)
     # gating on `isinstance(..., np.float32)` silently skipped a plain `float`
@@ -185,7 +184,6 @@ def _calculate_pvals(
     Returns
     -------
     P-values for the observed scores
-
     """
     # calculate p-values
     if perm_stats is not None:

@@ -37,7 +37,6 @@ def _join_stats(
     Returns
     -------
     Ligand-Receptor stats
-
     """
     source_stats = dedict[source].copy()
     source_stats.columns = source_stats.columns.map(lambda x: "ligand_" + str(x))
