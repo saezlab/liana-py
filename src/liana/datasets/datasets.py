@@ -33,7 +33,6 @@ def kang_2018() -> AnnData:
         adata = li.ds.kang_2018()
 
     The resulting object carries `obs['sample']`, `obs['condition']`, `obs['patient']` and `obs['cell_abbr']`, and is the starting point of several tutorials.
-
     """
     adata = cast("AnnData", fetch_dataset("kang_2018"))
 
@@ -82,7 +81,6 @@ def kuppe_2022() -> AnnData:
         adata = li.ds.kuppe_2022()
 
     It is the slide used in the bivariate metrics and MISTy tutorials.
-
     """
     return cast("AnnData", fetch_dataset("kuppe_2022"))
 
@@ -107,7 +105,6 @@ def citeseq_pbmc5k() -> MuData:
         rna, prot = mdata.mod["rna"], mdata.mod["prot"]
 
     It is the dataset used in the multi-modal ligand-receptor tutorial.
-
     """
     return cast("MuData", fetch_dataset("citeseq_pbmc5k"))
 
@@ -133,7 +130,6 @@ def vicari_2024() -> MuData:
 
         mdata = li.ds.vicari_2024()
         rna, msi, ct = mdata.mod["rna"], mdata.mod["msi"], mdata.mod["ct"]
-
     """
     return cast("MuData", fetch_dataset("vicari_2024"))
 
@@ -160,6 +156,5 @@ def yao_2023() -> AnnData:
         adata = li.ds.yao_2023()
 
     It is the dataset used in the inflow and LRIC tutorials.
-
     """
     return cast("AnnData", fetch_dataset("yao_2023"))
