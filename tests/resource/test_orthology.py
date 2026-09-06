@@ -82,18 +82,24 @@ def test_get_hcop(hcop_file: str) -> None:
 
 
 @pytest.mark.network
-def test_get_hcop_derives_filename_from_url(
+def test_get_hcop_caches_under_datasetdir(
     monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path, hcop_file: str
 ) -> None:
-    """Omitting `filename` downloads to a local file named after the URL."""
+    """Omitting `filename` downloads to a file named after the URL, under scanpy's dataset directory."""
     import shutil
-    import urllib.request
 
-    # serve the cached copy instead of hitting the network again
-    monkeypatch.setattr(urllib.request, "urlretrieve", lambda url, filename: shutil.copyfile(hcop_file, filename))
-    monkeypatch.chdir(tmp_path)
+    import scanpy as sc
 
-    derived = get_hcop_orthologs(columns=None, min_evidence=0)
+    from liana.resource import _orthology
+
+    monkeypatch.setattr(_orthology, "_download", lambda url, path: shutil.copyfile(hcop_file, path))
+
+    original = sc.settings.datasetdir
+    sc.settings.datasetdir = tmp_path
+    try:
+        derived = get_hcop_orthologs(columns=None, min_evidence=0)
+    finally:
+        sc.settings.datasetdir = original
 
     assert [p.name for p in tmp_path.iterdir()] == ["human_mouse_hcop_fifteen_column.txt.gz"]
     pd.testing.assert_frame_equal(derived, get_hcop_orthologs(filename=hcop_file, columns=None, min_evidence=0))

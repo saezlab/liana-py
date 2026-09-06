@@ -1,11 +1,27 @@
-import os
+import shutil
 import urllib.request
 from itertools import product
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import scanpy as sc
 
 from liana._core._common import _logg
+
+_DOWNLOAD_TIMEOUT = 60
+
+
+def _download(url: str, path: Path) -> None:
+    """Fetch ``url`` to ``path``, replacing it only once the transfer has finished."""
+    partial = path.with_name(f".{path.name}.part")
+    try:
+        with urllib.request.urlopen(url, timeout=_DOWNLOAD_TIMEOUT) as response, partial.open("wb") as handle:
+            shutil.copyfileobj(response, handle)
+        partial.replace(path)
+    finally:
+        partial.unlink(missing_ok=True)
+
 
 _HCOP_BASE = "https://storage.googleapis.com/public-download-files/hcop"
 
@@ -214,7 +230,7 @@ def translate_resource(
 def get_hcop_orthologs(
     target_organism: str = "mouse",
     url: str | None = None,
-    filename: str | None = None,
+    filename: str | Path | None = None,
     min_evidence: int = 3,
     columns: list[str] | None = None,
 ) -> pd.DataFrame:
@@ -273,13 +289,18 @@ def get_hcop_orthologs(
         url = f"{_HCOP_BASE}/human_{target_organism}_hcop_fifteen_column.txt.gz"
     # check if exists
     if filename is None:
-        filename = os.path.basename(url.split("/")[-1])
-    if not os.path.exists(filename):
-        urllib.request.urlretrieve(url, filename)
+        directory = Path(sc.settings.datasetdir)
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / url.rsplit("/", 1)[-1]
     else:
-        _logg(f"File {filename} already exists. Skipping download.", level="info")
+        path = Path(filename)
 
-    mapping = pd.read_csv(filename, sep="\t")
+    if path.exists():
+        _logg(f"File {path} already exists. Skipping download.", level="info")
+    else:
+        _download(url, path)
+
+    mapping = pd.read_csv(path, sep="\t")
     mapping["evidence"] = mapping["support"].apply(lambda x: len(x.split(",")))
     mapping = mapping[mapping["evidence"] >= min_evidence]
 

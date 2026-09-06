@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+
+- **`li.rs.get_metalinks` and `li.rs.get_hcop_orthologs` no longer download into the working directory.** Both wrote their file to `os.getcwd()`, so calling either from a checkout dropped an untracked artifact into the repo, changing directory silently re-downloaded, and two processes in one directory raced on the same path. They cache under :attr:`scanpy.settings.datasetdir` now, as `li.ds` already does, and `_download_metalinksdb` takes a `cache_dir`. Neither call had a timeout, so a stalled server blocked forever; both do now, and the HCOP download lands on a partial file that is renamed into place only once it is complete.
+
+- `li.rs.get_metalinks_values` opened two connections to the database and closed one.
+
 ### Changed
 
 - **LRIC groups its edge list by counting sort.** The group key is a cell-type pair crossed with a radius tile, so it spans a few hundred values over tens of millions of edges; placing each edge in one pass beats paying a factor of `log(n_edges)` for the same order. Ascending traversal keeps ties in input order, so the result matches the stable sort it replaces exactly, and the group offsets fall out of the histogram rather than a second search over the sorted keys. `li.mt.lric(groupby=...)` goes from 5.4 s to 3.2 s on 14k spots over 36M edges.

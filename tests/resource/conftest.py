@@ -3,15 +3,13 @@
 These are the only tests that reach the network, and they cache what they download under ``tests/.cache``.
 
 CI runs the suite with ``pytest -n auto``, which gives every xdist worker its own session and so its own copy of these session-scoped fixtures.
-The cache directory is shared between them, so each download goes to a path private to the process and is then moved into place with :func:`os.replace`, which is atomic: a worker either sees the finished file or none at all, never a partial one.
+The cache directory is shared between them, and both downloaders write to a private partial file and rename it into place, which is atomic: a worker either sees the finished file or none at all, never a partial one.
 """
 
 from __future__ import annotations
 
 import contextlib
-import os
 import pathlib
-import shutil
 import sqlite3
 
 import pytest
@@ -45,9 +43,8 @@ def download_cache() -> pathlib.Path:
 def metalinks_db(download_cache: pathlib.Path) -> str:
     """Path to MetaLinksDB, downloaded on first use.
 
-    ``_download_metalinksdb`` has no path argument and always writes to the
-    working directory, hence the ``chdir``. It only rejects an empty file, so
-    a download cut off part-way would otherwise be cached forever.
+    The downloader only rejects an empty file, so a transfer cut off part-way would
+    otherwise be cached forever.
     """
     from liana.resource.get_metalinks import _download_metalinksdb
 
@@ -55,18 +52,7 @@ def metalinks_db(download_cache: pathlib.Path) -> str:
     if path.exists() and not _readable_sqlite(path):
         path.unlink(missing_ok=True)
 
-    if not path.exists():
-        staging = download_cache / f".part-{os.getpid()}-metalinksdb"
-        staging.mkdir(parents=True, exist_ok=True)
-        cwd = os.getcwd()
-        os.chdir(staging)
-        try:
-            os.replace(_download_metalinksdb(verbose=False), path)
-        finally:
-            os.chdir(cwd)
-            shutil.rmtree(staging, ignore_errors=True)
-
-    return str(path)
+    return str(_download_metalinksdb(cache_dir=download_cache, verbose=False))
 
 
 @pytest.fixture(scope="session")
@@ -75,13 +61,6 @@ def hcop_file(download_cache: pathlib.Path) -> str:
     from liana.resource import get_hcop_orthologs
 
     path = download_cache / "human_mouse_hcop_fifteen_column.txt.gz"
-
-    if not path.exists():
-        part = path.with_name(f".part-{os.getpid()}-{path.name}")
-        try:
-            get_hcop_orthologs(target_organism="mouse", filename=str(part), min_evidence=0)
-            os.replace(part, path)
-        finally:
-            part.unlink(missing_ok=True)
+    get_hcop_orthologs(target_organism="mouse", filename=path, min_evidence=0)
 
     return str(path)
