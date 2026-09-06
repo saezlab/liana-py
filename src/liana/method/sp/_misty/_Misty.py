@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 from anndata import AnnData
 from fast_array_utils.conv import to_dense
+from fast_array_utils.types import CSBase
 from mudata import MuData
 from numpy.typing import NDArray
 from sklearn.linear_model import LinearRegression, RidgeCV
@@ -141,8 +142,10 @@ class MistyData(MuData):
             connectivities = view.obsp[f"{self.spatial_key}_connectivities"]
             view.layers["weighted"] = _to_matrix(connectivities @ X, what="weighted layer")
         else:
-            weights = np.asarray(view.obsm[f"{self.spatial_key}_connectivities"]).T
-            view.varm["weighted"] = np.asarray(weights @ X).T
+            # `np.asarray` on a sparse `obsm` gives a 0-d object array, which cannot be multiplied.
+            weights = _to_matrix(view.obsm[f"{self.spatial_key}_connectivities"], what="spatial connectivities").T
+            weighted = (weights @ X).T
+            view.varm["weighted"] = weighted.tocsr() if isinstance(weighted, CSBase) else np.asarray(weighted)
 
     def get_weighted_matrix(self, view_name: str, predictors: list[str] | None = None) -> MatrixLike:
         """
