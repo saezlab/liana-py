@@ -2,14 +2,17 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from functools import partial
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
+from warnings import warn
 
+import numba as nb
 import numpy as np
 import pandas as pd
 from anndata import AnnData
 from numpy.typing import ArrayLike, NDArray
 from scipy.sparse import sparray, spmatrix
 from scipy.spatial import cKDTree
+from scverse_misc import Deprecation
 from tqdm import tqdm
 
 from liana._core._common import _logg
@@ -23,10 +26,20 @@ from liana._core._types import MatrixLike, get_obs, get_x
 from liana.method.sp._utils import _add_complexes_to_var
 from liana.resource.select_resource import _handle_resource
 
+if TYPE_CHECKING:
+    prange = range
+else:
+    prange = nb.prange
+
+_PAIR_CHUNK_DEPRECATION = Deprecation(
+    "2.1", "The weighted numerator no longer holds per-chunk temporaries, so there is nothing to tune."
+)
+"""Why `lric`'s `pair_chunk` no longer does anything."""
+
+
 type Transform = Callable[[np.ndarray], np.ndarray]
 """Rescales an expression matrix before ligand/receptor weights are formed."""
 
-_EDGE_BLOCK_ELEMS = 1 << 22
 _MIN_CELLS_FRAC = 0.01
 
 # ── helpers ───────────────────────────────────────────────────────────
@@ -301,39 +314,31 @@ def _select_pairs(
     return kept
 
 
-# weighted ligand–receptor sums for grouped edge segments
-# g -> group, one radius bin for a fixed sender→receiver cell-type pair.
-# p -> ligand–receptor pair.
-# i→j is a directed spatial edge.
+@nb.njit(parallel=True, cache=True)
 def _segment_weighted_sums(
     I_sorted: np.ndarray,
     J_sorted: np.ndarray,
     bounds: np.ndarray,
     WL: np.ndarray,
     WR: np.ndarray,
-    pair_chunk: int,
 ) -> np.ndarray:
     """``out[g, p] = sum_{(i, j) in group g} WL[i, p] * WR[j, p]``, shape ``(n_groups, n_pairs)``.
 
-    Edges must already be sorted by group key (with ``bounds`` from
-    :func:`_edge_group_bounds`) so that each group occupies a contiguous slice.
+    ``g`` is a group -- one radius bin for a fixed sender-to-receiver cell-type pair -- and ``p`` a ligand-receptor pair.
+    Edges must already be sorted by group key (with ``bounds`` from :func:`_edge_group_bounds`) so that each group occupies a contiguous slice.
+    Accumulating edge by edge keeps the whole reduction out of temporaries, so nothing has to be tiled to bound memory.
     """
-    n_groups = len(bounds) - 1
+    n_groups = bounds.size - 1
     n_pairs = WL.shape[1]
     out = np.zeros((n_groups, n_pairs), dtype=np.float64)
-    for p0 in range(0, n_pairs, pair_chunk):
-        p1 = min(p0 + pair_chunk, n_pairs)
-        WLc, WRc = WL[:, p0:p1], WR[:, p0:p1]
-        # cap the gathered block so peak memory is bounded by _EDGE_BLOCK_ELEMS
-        edge_block = max(1, _EDGE_BLOCK_ELEMS // (p1 - p0))
-        for g in range(n_groups):
-            lo, hi = int(bounds[g]), int(bounds[g + 1])
-            if hi <= lo:
-                continue
-            acc = out[g, p0:p1]
-            for e0 in range(lo, hi, edge_block):
-                e1 = min(e0 + edge_block, hi)
-                acc += (WLc[I_sorted[e0:e1]] * WRc[J_sorted[e0:e1]]).sum(axis=0, dtype=np.float64)
+
+    for g in prange(n_groups):
+        for edge in range(bounds[g], bounds[g + 1]):
+            i = I_sorted[edge]
+            j = J_sorted[edge]
+            for p in range(n_pairs):
+                out[g, p] += WL[i, p] * WR[j, p]
+
     return out
 
 
@@ -589,7 +594,7 @@ class LRIC:
         transform_fn: Callable[[np.ndarray], np.ndarray] | None = None,
         use_raw: bool = V.use_raw,
         layer: str | None = V.layer,
-        pair_chunk: int = 256,
+        pair_chunk: int | None = None,
         key_added: str = "lric",
         inplace: bool = V.inplace,
         verbose: bool = V.verbose,
@@ -657,9 +662,9 @@ class LRIC:
         %(use_raw)s
         %(layer)s
         pair_chunk
-            Number of LR pairs processed per chunk when accumulating the
-            weighted numerator; lower to reduce peak memory on very large
-            resources.
+            Deprecated since 2.1 and ignored. The weighted numerator is now
+            accumulated without materialising per-chunk temporaries, so there is
+            nothing to tune.
         %(key_added)s
         %(inplace)s
         %(verbose)s
@@ -734,6 +739,16 @@ class LRIC:
 
         assert_covered(np.union1d(resource["ligand"], resource["receptor"]), adata.var_names, verbose=verbose)
 
+        if pair_chunk is not None:
+            # `scverse_misc.deprecated_arg` would fit here, but it retypes the method as a
+            # plain callable, so every `lric(adata, ...)` call site loses its `self` binding
+            # under a type checker.
+            warn(
+                f"The argument pair_chunk is deprecated and will be removed in the future. {_PAIR_CHUNK_DEPRECATION}",
+                FutureWarning,
+                stacklevel=2,
+            )
+
         sup = _build_support(adata, spatial_key, max_radius, radius_step, annulus_steps, extend_first_annulus)
         if groupby is None:
             res = self._agnostic(
@@ -743,7 +758,6 @@ class LRIC:
                 expr_prop=expr_prop,
                 lr_sep=lr_sep,
                 transform_fn=transform_fn,
-                pair_chunk=pair_chunk,
                 verbose=verbose,
             )
         else:
@@ -756,7 +770,6 @@ class LRIC:
                 expr_prop=expr_prop,
                 lr_sep=lr_sep,
                 transform_fn=transform_fn,
-                pair_chunk=pair_chunk,
                 verbose=verbose,
             )
 
@@ -773,7 +786,6 @@ class LRIC:
         expr_prop: float,
         lr_sep: str,
         transform_fn: Transform | None,
-        pair_chunk: int,
         verbose: bool,
     ) -> pd.DataFrame:
         """Cell-type-agnostic LRIC across all cells (self-pairs excluded).
@@ -797,7 +809,7 @@ class LRIC:
         # fine tiles, then get rolled up into the (possibly overlapping) output
         # annuli -- so every pair is counted identically on both sides
         I_sorted, J_sorted, bounds = _group_edges(sup, sup.bin_idx, sup.n_fine)
-        num = sup.roll(_segment_weighted_sums(I_sorted, J_sorted, bounds, WL, WR, pair_chunk))
+        num = sup.roll(_segment_weighted_sums(I_sorted, J_sorted, bounds, WL, WR))
 
         # closed-form null mean: T(b) * E[wL(i) wR(j)] over random distinct pairs
         S_L, S_R, cross = WL.sum(0), WR.sum(0), (WL * WR).sum(0)
@@ -829,7 +841,6 @@ class LRIC:
         expr_prop: float,
         lr_sep: str,
         transform_fn: Transform | None,
-        pair_chunk: int,
         verbose: bool,
     ) -> pd.DataFrame:
         """Cell-type pairwise ("ct") LRIC under the conditional (within-type) null.
@@ -903,7 +914,7 @@ class LRIC:
 
             g0 = (si * n_types + ri) * n_fine
             grp = bounds[g0 : g0 + n_fine + 1]
-            Num_SR = sup.roll(_segment_weighted_sums(I_sorted, J_sorted, grp, WL, WR, pair_chunk))
+            Num_SR = sup.roll(_segment_weighted_sums(I_sorted, J_sorted, grp, WL, WR))
             # edges per group == observed ordered S->R pair count per tile
             T_SR = sup.roll(np.diff(grp).astype(np.float64))
 

@@ -330,7 +330,7 @@ class Method(MethodMeta):
             base=base,
             de_method=de_method,
             verbose=verbose,
-            _score=self._method,
+            score=self._method,
             n_perms=n_perms,
             seed=seed,
             n_jobs=n_jobs,
@@ -340,9 +340,6 @@ class Method(MethodMeta):
             spatial_kwargs=spatial_kwargs,
             mdata_kwargs=mdata_kwargs,
         )
-        if not isinstance(liana_res, DataFrame):  # only the consensus path returns a dict
-            raise TypeError(f"Expected a DataFrame of results, got {type(liana_res).__name__}.")
-
         if inplace:
             adata.uns[key_added] = liana_res
         return None if inplace else liana_res

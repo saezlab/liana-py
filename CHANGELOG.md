@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **Spatial proximity weighting now reaches the p-values of the permutation-based methods.** `spatial_key` weighted both the observed score and the permuted null by the same per-interaction factor, which cancels out of `perm * w >= obs * w` -- so on toy data 92.5% of CellPhoneDB p-values were bit-identical with and without weighting, and the rest only moved because a zero weight forced them to 1. Only the observed statistic is weighted now, so a spatially distant pair needs a correspondingly stronger expression signal to clear the null. Affects `li.mt.cellphonedb`, `li.mt.cellchat` and `li.mt.geometric_mean` when `spatial_key` is passed; magnitudes are unchanged.
+
+### Changed
+
+- **Permutation nulls are built by compiled kernels instead of `joblib`.** Both the mean and the trimean null read the CSR buffers directly, one pass over the non-zeros per permutation, and never materialise a permuted copy of the matrix; the trimean sorts each gene's stored entries rather than densifying the group. On 50k cells x 600 genes x 200 permutations, the mean null goes from 2.8 s to 0.45 s and CellChat's trimean null from 68 s to 4.5 s (8 threads). `n_jobs` previously made the permutations *slower* than serial, because a task per permutation re-pickled the sparse matrix each time. Results are unchanged for the trimean and now depend only on `seed`, never on `n_jobs`; the mean null sums in double precision where it previously inherited scipy's single-precision accumulation.
+
+- **A sample carrying a single cluster now yields `p = 1` throughout.** Every permutation leaves that cluster's membership untouched, so it has to score exactly as the observation does, but the observed and permuted sides are accumulated by different routines and the tie did not survive that. Permuted scores within single-precision resolution of the observed one now count as tied. Only reachable where a `sample_key` split, or `min_cells`, leaves one cluster standing; on the toy data this moved 9 of 2115 `by_sample` rows off values that were pure float noise.
+
+- **`liana.pl` plot names follow one convention.** Plot functions are bare nouns, as in `scanpy.pl`, and carry the prefix of the method they belong to when they only apply to it. The old names still resolve, via `scverse_misc.deprecated`, so a type checker flags them and calling one raises a `FutureWarning`:
+
+  | Was | Now |
+  |---|---|
+  | `li.pl.circle_plot` | `li.pl.circle` |
+  | `li.pl.annulus_plot` | `li.pl.annulus` |
+  | `li.pl.lric_divergence_plot` | `li.pl.lric_divergence` |
+  | `li.pl.target_metrics` | `li.pl.misty_target_metrics` |
+  | `li.pl.contributions` | `li.pl.misty_contributions` |
+  | `li.pl.interactions` | `li.pl.misty_interactions` |
+
+- **`liana_pipe` was split into named stages.** Assembling the ligand-receptor statistics, scoring them and aggregating across methods are now three functions rather than one 616-line one with five underscore-prefixed pseudo-private parameters. The consensus path has its own entry point (`liana_pipe_consensus`), so `liana_pipe` no longer dispatches on `_score.method_name == "Rank_Aggregate"` and always returns a `DataFrame`. Internal only -- `li.mt.*` and `li.mt.rank_aggregate` are unchanged.
+
+- **`li.mt.lric(pair_chunk=...)` is deprecated and ignored.** The weighted numerator is accumulated by a compiled kernel that holds no per-chunk temporaries, so there is nothing left to tune for memory. The same change makes it about 10x faster (3.7 s to 0.4 s on 2M edges x 500 pairs).
+
+- Locating ligands, receptors and cluster labels in the expression matrix uses `Index.get_indexer` instead of a `numpy.where` scan per interaction, which was quadratic in the number of interactions (1.42 s to 0.005 s for 60k interactions over 2k genes). An interaction naming a gene absent from `adata.var_names` now raises `KeyError` instead of silently indexing from the end.
+
+- Permutation progress bars track completed permutations. They previously wrapped the submission generator, so the bar filled immediately and then stalled.
+
+
 ## 2.0.0 (28.08.2026)
 
 ### Changed

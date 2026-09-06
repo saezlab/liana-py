@@ -752,3 +752,12 @@ def test_lric_no_lr_pairs_raises(adata: AnnData) -> None:
         lric(adata, resource=bad, inplace=False, verbose=False)
     with raises(ValueError, match="Please check if appropriate organism/ID type"):
         lric(adata, resource=bad, groupby="cell_type", inplace=False, verbose=False)
+
+
+def test_pair_chunk_is_deprecated(adata: AnnData, resource: pd.DataFrame) -> None:
+    expected = as_frame(lric(adata, resource=resource, inplace=False, **_KWARGS))
+
+    with pytest.warns(FutureWarning, match="argument pair_chunk is deprecated"):
+        got = as_frame(lric(adata, resource=resource, inplace=False, pair_chunk=8, **_KWARGS))
+
+    pd.testing.assert_frame_equal(got, expected)
