@@ -21,6 +21,7 @@ authors = [
   { name = "Aurelien Dugourd" },
   { name = "Jovan Tanevski" },
   { name = "Ricardo Omar Ramirez Flores" },
+  { name = "Lukas Heumos" },
   { name = "Julio Saez-Rodriguez" },
 ]
 requires-python = ">=3.12"
