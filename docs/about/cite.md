@@ -1,6 +1,6 @@
 # Citation
 
-Please cite the framework paper, and the 2022 benchmark if you use the methods or resources it compared:
+Please cite the framework paper {cite:p}`Dimitrov_2024`, and the 2022 benchmark {cite:p}`Dimitrov_2022` if you use the methods or resources it compared:
 
 ```bibtex
 @article{Dimitrov2024,

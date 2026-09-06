@@ -24,7 +24,7 @@ sys.path.insert(0, str(HERE / "extensions"))
 info = metadata("liana")
 project_name = info["Name"]
 author = info["Author"]
-copyright = f"{datetime.now():%Y}, {author}."
+copyright = f"{datetime.now():%Y}, the LIANA+ developers"
 version = info["Version"]
 urls = dict(pu.split(", ") for pu in info.get_all("Project-URL"))
 repository_url = urls["Source"]
@@ -158,6 +158,7 @@ html_theme_options = {
     # The crimson of the logo. scanpydoc exposes it as the `--accent-color` CSS variable, which colors the mobile header and the project name.
     "accent_color": "#ba1b57",
     "show_toc_level": 2,
+    "footer_content_items": ["copyright.html"],
 }
 
 pygments_style = "default"
