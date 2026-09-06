@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 def kang_2018() -> AnnData:
     """
-    Utility function to load the data from Kang et al., 2018; GSE96583.
+    Load the data from Kang et al., 2018; GSE96583.
 
     The data contains ~25k PBMCs cells from 8 pooled patient lupus samples, each before and after IFN-beta stimulation.
     Kang, H., Subramaniam, M., Targ, S. et al. Multiplexed droplet single-cell RNA-sequencing using natural genetic variation. Nat Biotechnol 36, 89-94 (2018). https://doi.org/10.1038/nbt.4042
@@ -64,7 +64,7 @@ def kang_2018() -> AnnData:
 
 def kuppe_2022() -> AnnData:
     """
-    Utility function to load a single 10X Visium slide from Kuppe et al., 2022.
+    Load a single 10X Visium slide from Kuppe et al., 2022.
 
     The slide (`Visium_19_CK297`) is taken from the ischemic zone of the heart of a patient with myocardial infarction.
     Kuppe, C., Ramirez Flores, R.O., Li, Z. et al. Spatial multi-omic map of human myocardial infarction. Nature 608, 766-777 (2022). https://doi.org/10.1038/s41586-022-05060-x
@@ -89,7 +89,7 @@ def kuppe_2022() -> AnnData:
 
 def citeseq_pbmc5k() -> MuData:
     """
-    Utility function to load the processed 10X 5k PBMC CITE-seq data.
+    Load the processed 10X 5k PBMC CITE-seq data.
 
     The RNA and protein modalities were processed following the muon CITE-seq tutorial (https://muon-tutorials.readthedocs.io/en/latest/cite-seq/1-CITE-seq-PBMC-5k.html).
 
@@ -114,7 +114,7 @@ def citeseq_pbmc5k() -> MuData:
 
 def vicari_2024() -> MuData:
     """
-    Utility function to load a single spatial multimodal analysis (SMA) slide from Vicari et al., 2024.
+    Load a single spatial multimodal analysis (SMA) slide from Vicari et al., 2024.
 
     The slide comes from a murine Parkinson's disease model, in which one hemisphere was subjected to unilateral 6-hydroxydopamine-induced lesions while the other remained intact.
     Vicari, M., Mirzazadeh, R., Nilsson, A. et al. Spatial multimodal analysis of transcriptomes and metabolomes in tissues. Nat Biotechnol 42, 1046-1050 (2024). https://doi.org/10.1038/s41587-023-01937-y
@@ -140,7 +140,7 @@ def vicari_2024() -> MuData:
 
 def yao_2023() -> AnnData:
     """
-    Utility function to load the `WB_MERFISH_animal2_coronal` slide of the whole mouse brain atlas from Yao et al., 2023.
+    Load the `WB_MERFISH_animal2_coronal` slide of the whole mouse brain atlas from Yao et al., 2023.
 
     The data was generated with MERFISH, which profiles the expression of more than 1,000 genes at subcellular spatial resolution.
     Yao, Z., van Velthoven, C.T.J., Kunst, M. et al. A high-resolution transcriptomic and spatial atlas of cell types in the whole mouse brain. Nature 624, 317-332 (2023). https://doi.org/10.1038/s41586-023-06808-9
