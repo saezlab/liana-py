@@ -38,7 +38,8 @@ dependencies = [
   "numba",
   "pandas",
   "plotnine>=0.10.1",
-  "scanpy>=1.12",     # 1.12 guards `annotate_doc_types` against non-weakref-able TypeAliasType
+  "scanpy>=1.12",                  # 1.12 guards `annotate_doc_types` against non-weakref-able TypeAliasType
+  "scverse-misc[datasets]>=0.1.4",
   "session-info2",
   "tqdm>=4",
 ]
