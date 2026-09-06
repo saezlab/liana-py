@@ -88,11 +88,16 @@ def test_get_hcop_caches_under_datasetdir(
     """Omitting `filename` downloads to a file named after the URL, under scanpy's dataset directory."""
     import shutil
 
+    import pooch
     import scanpy as sc
 
-    from liana.resource import _orthology
+    def _fake_retrieve(url: str, known_hash: str | None, fname: str, path: pathlib.Path) -> str:
+        target = pathlib.Path(path) / fname
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(hcop_file, target)
+        return str(target)
 
-    monkeypatch.setattr(_orthology, "_download", lambda url, path: shutil.copyfile(hcop_file, path))
+    monkeypatch.setattr(pooch, "retrieve", _fake_retrieve)
 
     original = sc.settings.datasetdir
     sc.settings.datasetdir = tmp_path

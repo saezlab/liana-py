@@ -1,27 +1,10 @@
-import shutil
-import urllib.request
 from itertools import product
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pooch
 import scanpy as sc
-
-from liana._core._common import _logg
-
-_DOWNLOAD_TIMEOUT = 60
-
-
-def _download(url: str, path: Path) -> None:
-    """Fetch ``url`` to ``path``, replacing it only once the transfer has finished."""
-    partial = path.with_name(f".{path.name}.part")
-    try:
-        with urllib.request.urlopen(url, timeout=_DOWNLOAD_TIMEOUT) as response, partial.open("wb") as handle:
-            shutil.copyfileobj(response, handle)
-        partial.replace(path)
-    finally:
-        partial.unlink(missing_ok=True)
-
 
 _HCOP_BASE = "https://storage.googleapis.com/public-download-files/hcop"
 
@@ -289,16 +272,11 @@ def get_hcop_orthologs(
         url = f"{_HCOP_BASE}/human_{target_organism}_hcop_fifteen_column.txt.gz"
     # check if exists
     if filename is None:
-        directory = Path(sc.settings.datasetdir)
-        directory.mkdir(parents=True, exist_ok=True)
-        path = directory / url.rsplit("/", 1)[-1]
+        path = Path(pooch.retrieve(url, known_hash=None, fname=url.rsplit("/", 1)[-1], path=sc.settings.datasetdir))
     else:
         path = Path(filename)
-
-    if path.exists():
-        _logg(f"File {path} already exists. Skipping download.", level="info")
-    else:
-        _download(url, path)
+        if not path.exists():
+            pooch.retrieve(url, known_hash=None, fname=path.name, path=path.parent)
 
     mapping = pd.read_csv(path, sep="\t")
     mapping["evidence"] = mapping["support"].apply(lambda x: len(x.split(",")))

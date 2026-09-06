@@ -2,11 +2,13 @@ import sqlite3
 from pathlib import Path
 
 import pandas as pd
+import pooch
 import scanpy as sc
 
-from liana._core._common import _check_if_installed, _logg
+from liana._core._common import _logg
 
-_DOWNLOAD_TIMEOUT = 60
+_METALINKS_URL = "https://github.com/scverse/liana/releases/download/metalinksdb/metalinksdb.db"
+_METALINKS_HASH = "sha256:84df58e659cd0fe318b10f6d5d7ac1f16806b1088701fccf4260e78ba0982513"
 
 
 def _download_metalinksdb(cache_dir: str | Path | None = None, verbose: bool = True) -> Path:
@@ -24,42 +26,17 @@ def _download_metalinksdb(cache_dir: str | Path | None = None, verbose: bool = T
     -------
     The path to the downloaded database file.
     """
-    requests = _check_if_installed("requests")
+    _logg("Retrieving database...", verbose=verbose)
 
-    # GitHub Releases URL (CI-friendly, no WAF issues)
-    METALINKS_URL = "https://github.com/scverse/liana/releases/download/metalinksdb/metalinksdb.db"
-
-    directory = Path(sc.settings.datasetdir if cache_dir is None else cache_dir)
-    directory.mkdir(parents=True, exist_ok=True)
-    db_path = directory / "metalinksdb.db"
-
-    if db_path.exists():
-        if db_path.stat().st_size == 0:
-            _logg("Existing database file is empty. Removing and re-downloading...", verbose=verbose)
-            db_path.unlink()
-        else:
-            return db_path
-
-    _logg("Downloading database...", verbose=verbose)
-    try:
-        response = requests.get(METALINKS_URL, stream=True, allow_redirects=True, timeout=_DOWNLOAD_TIMEOUT)
-        response.raise_for_status()
-
-        with db_path.open("wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-
-        file_size = db_path.stat().st_size
-        if file_size == 0:
-            db_path.unlink()
-            raise RuntimeError("Downloaded file is empty. Please check the URL and try again.")
-
-        _logg(f"Database downloaded and saved to {db_path} ({file_size} bytes).", verbose=verbose)
-    except (requests.exceptions.RequestException, OSError, RuntimeError) as e:
-        db_path.unlink(missing_ok=True)
-        raise RuntimeError(f"Failed to download database: {e}") from e
-
-    return db_path
+    return Path(
+        pooch.retrieve(
+            _METALINKS_URL,
+            known_hash=_METALINKS_HASH,
+            fname="metalinksdb.db",
+            path=sc.settings.datasetdir if cache_dir is None else cache_dir,
+            progressbar=verbose,
+        )
+    )
 
 
 def _format_clauses(
