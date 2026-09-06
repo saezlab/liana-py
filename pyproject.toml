@@ -88,7 +88,6 @@ urls.Source = "https://github.com/scverse/liana-py"
 
 [dependency-groups]
 dev = [
-  "bumpversion>=0.6",
   "highspy>=1.9",
   "prek",
   "twine>=4.0.2",
