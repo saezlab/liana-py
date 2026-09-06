@@ -5,6 +5,8 @@
 ### Changed
 - liana+ now has a new home under the scverse organisation.
 
+- **`li.ms.nmf` no longer draws the elbow plot** (#99). The error curve is stored in `adata.uns["nmf_errors"]` as before; plot it with the new `li.pl.elbow`, which returns the figure like every other `li.pl` function.
+
 - **Breaking: the public namespaces were reorganised to match scverse-style.** The top-level API is now `li.ds`, `li.ms`, `li.mt`, `li.pl`, `li.pp`, `li.rs` (`li.ut`, `li.mu` and `li.testing` are gone; `li.ds`, `li.pp` and `li.ms` are new). The functions themselves are unchanged — only their import path moved:
 
   | Was | Now | Moved |
@@ -25,14 +27,22 @@
 - **Breaking: spatial proximity weighting in the single-cell methods is opt-in** (#255). `spatial_key` now defaults to `None` for all `li.mt` methods and `rank_aggregate` (the methods previously weighted silently whenever `obsm["spatial"]` existed; `rank_aggregate` never did). Passing a key that is not in `adata.obsm` raises `KeyError` instead of silently skipping the weighting.
 - **Typed codebase (#255).** Synced with the scverse cookiecutter template; `mypy` runs in pre-commit and CI; `.toarray()`/`.A` replaced by `fast-array-utils`. Output is unchanged. Two `_expm1_base` test expectations were corrected: the old tests passed `(base, X)` in swapped order.
 - `docrep` replaced by a small in-house docstring processor; an unknown placeholder now raises at import instead of warning.
+- **Proportion thresholds standardised.** `nz_prop` (proportion of *all* observations with a non-zero value) and `expr_prop` (proportion *within each cell-type group*) are now distinct, and both defaults live in `DefaultValues` (`liana._core._constants`). `expr_prop` now defaults to `0.05` (was `0.1`) across all single-cell methods, `rank_aggregate`, `li.mt.df_to_lr` and `li.mt.lric`'s directed (`groupby`) mode; `nz_prop` defaults to `0.05` and is shared by `li.mt.bivariate`, `li.mt.inflow` (was `0.001`) and `li.mt.lric`'s cell-type-agnostic mode (previously unmasked, `0.0`). `li.mt.lric` gained `nz_prop` for its agnostic mode, while its `expr_prop` now only applies when `groupby` is set.
+
+### Added
+
+- **Claude Code Agent Skill** bundled in `src/liana/_skills`, and `liana-install-skills` console script that copies it to `~/.claude/skills/liana`. Run it once after installing; re-run with `--force` after upgrading. See the README section "Claude Code Skill".
 
 ### Fixed
 
+- **`rank_aggregate`'s `magnitude_rank` now ranks each score column once.** Connectome and NATMI share `expr_prod` as their magnitude score, and the consensus previously ranked it once per method, so the second pass ranked the ranks and reversed its contribution. `magnitude_rank` now agrees with the individual magnitude scores it aggregates; `specificity_rank` and all per-method scores are unchanged.
 - `li.rs.get_metalinks(source="...")` filtered per character of the string; it now filters on the whole value (#255).
 - `return_all_lrs=True` works under pandas 3 (chained `fillna(inplace=True)` was a no-op under Copy-on-Write); the `pandas<3` pin from #244 is lifted.
 
 ### Packaging
 
+- **`mudata>=0.4` required.** With anndata ≥ 0.13, `mudata<0.4` fails on `write_h5mu` (`AttributeError: 'NoneType' object has no attribute 'startswith'`, the `None` layer key that anndata now exposes), which also affected saving `MistyData` objects. `muon>=0.1.9` is required alongside it, older muon cannot import with `mudata>=0.4`.
+- **Version derived from git tags** via [hatch-vcs](https://github.com/ofek/hatch-vcs), as in scanpy and pertpy. `bumpversion` and `.bumpversion.cfg` are gone; `liana.__version__` is removed, use `importlib.metadata.version("liana")`. Releases are made by publishing a `vX.Y.Z` tag on GitHub.
 - **Requires Python ≥ 3.12, anndata ≥ 0.13, scanpy ≥ 1.12** (#255). scanpy < 1.12 cannot import liana's PEP 695 type aliases.
 
 - **Tutorial CI dependency recipes.** `docs/notebooks` are now runnable from declared extras rather than ad-hoc `pip install` lines, with a committed `uv.lock` for reproducibility. Two install targets cover all 14 notebooks: `uv sync --extra tutorials` (12 CPU notebooks) and `uv sync --extra tutorials-gpu` (the two heavy ones, `inflow_mofaflex` + `liana_c2c`). `tutorials` layers `liana[extras]` with the notebook-only viz/runtime packages (`matplotlib`, `seaborn`, `adjustText`, `marsilea`, `pycrosstalker`); `tutorials-gpu` adds `tensorly`, `mofaflex` and `torch`. Naming follows pertpy/scvi-tools conventions.

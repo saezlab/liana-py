@@ -142,8 +142,8 @@ class MistyData(MuData):
             connectivities = view.obsp[f"{self.spatial_key}_connectivities"]
             view.layers["weighted"] = _to_matrix(connectivities @ X, what="weighted layer")
         else:
-            weights = np.asarray(view.obsm[f"{self.spatial_key}_connectivities"]).T
-            view.varm["weighted"] = np.asarray(weights @ X).T
+            weights = _to_matrix(view.obsm[f"{self.spatial_key}_connectivities"], what="obsm connectivities").T
+            view.varm["weighted"] = _to_matrix(weights @ X, what="weighted varm").T
 
     def get_weighted_matrix(self, view_name: str, predictors: list[str] | None = None) -> MatrixLike:
         """
