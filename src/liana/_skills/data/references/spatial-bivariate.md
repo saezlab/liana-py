@@ -1,7 +1,9 @@
 # Spatial bivariate metrics (local and global)
 
 Aim: where in the tissue do a ligand and a receptor co-vary, per spot or cell (local) and slide-wide
-(global). Works on spots (Visium) and cells. Tutorial: `bivariate`.
+(global). Works on spots (Visium) and cells. Tutorial: `bivariate`. A spot holds several cells, so on
+Visium this answers where ligand and receptor co-occur, not which cell types interact; for that use
+deconvolution proportions with `inflow` (`inflow.md`, `obsm_key`).
 
 ## 1. Spatial graph
 
@@ -11,10 +13,17 @@ li.pp.spatial_neighbors(adata, bandwidth=200, set_diag=True)     # spots: includ
 adata.obsp["spatial_connectivities"]     # what every spatial method reads
 ```
 
-- `bandwidth` is required and is in the units of `obsm["spatial"]`. Visium full-resolution pixels
-  must be converted with the scalefactors in `adata.uns["spatial"]`. Rules of thumb: about 100 µm
-  (ligand diffusion), or the radius that admits the 6 nearest spots (first Visium ring, what
-  `query_bandwidth` shows), or 10 to 20 cells for single-cell data.
+- `bandwidth` is required and is in the units of `obsm["spatial"]`; every distance in liana is. Get
+  coordinates into µm first. Xenium, MERSCOPE and spatialdata exports are already µm; Visium via
+  scanpy/squidpy and raw CosMx are pixels. Multiply by the µm-per-pixel ratio stored in the object:
+  Visium `sf = adata.uns["spatial"][lib]["scalefactors"]`, ratio `sf.get("microns_per_pixel") or
+  55 / sf["spot_diameter_fullres"]` (a spot is 55 µm wide, adjacent centres 100 µm apart); spatialdata
+  objects carry it as the `Scale` transformation to the `global` coordinate system; otherwise the
+  instrument metadata. Check with `query_bandwidth`: the nearest-neighbour distance should be about
+  100 for Visium spots and 5 to 20 for cells; a value in the hundreds for cells means pixels. Report
+  that distance and the chosen bandwidth before scoring. Rules of thumb: about 100 µm (ligand
+  diffusion), or the radius that admits the 6 nearest spots (first Visium ring), or 10 to 20 cells
+  for single-cell data.
 - `set_diag=True` for spots (a spot is its own neighbour), `False` for single cells.
 - `max_neighbours=100` caps the k-NN search; lower it for very large slides.
 - Squidpy's `sq.gr.spatial_neighbors` output works too, under the same `obsp` key.

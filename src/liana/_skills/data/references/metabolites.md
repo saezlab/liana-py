@@ -14,7 +14,10 @@ ml = li.rs.get_metalinks(tissue_location="Brain", biospecimen_location=["Blood",
 resource = ml[ml["type"] == "lr"][["metabolite", "gene_symbol"]].rename(columns={"metabolite": "source", "gene_symbol": "receptor"})
 pd_net = (ml[ml["type"] == "pd"].groupby(["metabolite", "gene_symbol"])["mor"].mean().reset_index()
             .rename(columns={"metabolite": "source", "gene_symbol": "target", "mor": "weight"}))
-t_net = ...  # optional transporters: source, target, weight = +1 export / -1 import
+t_net = ml[ml["type"] == "pd"][["metabolite", "gene_symbol", "transport_direction"]].dropna()   # optional transporters
+t_net["weight"] = t_net["transport_direction"].map({"out": 1, "in": -1})                     # export +1, import -1
+t_net = (t_net.groupby(["metabolite", "gene_symbol"])["weight"].mean().reset_index().query("weight != 0")
+           .rename(columns={"metabolite": "source", "gene_symbol": "target"}))
 meta = li.mt.estimate_metalinks(adata, resource, pd_net=pd_net, t_net=t_net, tmin=3)
 meta.obs["cell_type"] = adata.obs["cell_type"]                     # obs lives on the MuData container
 li.mt.rank_aggregate(meta, groupby="cell_type", resource=resource.rename(columns={"source": "ligand"}),

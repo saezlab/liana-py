@@ -18,7 +18,7 @@ li.pl.feature_by_group(lrdata, groupby="cell_type", feature="Astro^Apoe^Lrp1")  
 
 - Bandwidth is in coordinate units and should be one to two cell diameters (the tutorial uses 27 µm
   for MERFISH, 60 µm for the programs analysis); pick it with `li.pp.query_bandwidth`. Too wide blurs
-  local patterns, too narrow misses gradients. Pixel coordinates must be converted first.
+  local patterns, too narrow misses gradients. Convert pixels to µm first (`spatial-bivariate.md`, graph section).
 - Output is a **new** AnnData: cells x `"source^ligand^receptor"` features, with `.var` columns
   `mean`, `variance`, `std`, `cv`, `nonzero_fraction`; `.obs`, `.obsm`, `.obsp` copied from the input.
   Non-variable features are dropped.

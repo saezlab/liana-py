@@ -44,7 +44,7 @@ to this pair of cell types". Read `outputs-and-plotting.md` for the per-method c
 ## Variants
 
 - **Coordinates present (spatial single-cell data)**: constrain scores by cell-type proximity with
-  `spatial_key="spatial", spatial_kwargs={"kernel": "gaussian", "bandwidth": 100}` on any of these
+  `spatial_key="spatial", spatial_kwargs={"bandwidth": 100}` on any of these
   methods. Bandwidth is in coordinate units: 100 µm is the usual diffusion assumption, so convert
   pixels first (the pixel size is normally in `adata.uns`). Scores are multiplied by the pair's
   proximity from `li.pp.spatial_pair_proximity`, and pairs with fewer than

@@ -23,7 +23,8 @@ li.pl.annulus_plot(adata)                                      # check the rings
 li.mt.lric(adata, resource_name="mouseconsensus", groupby="cell_type")   # radii: max_radius, radius_step
 ```
 
-- `max_radius`, `radius_step` (and `annulus_steps`) are in coordinate units. The defaults assume µm
+- `max_radius`, `radius_step` (and `annulus_steps`) are in coordinate units; convert pixels to µm first
+  (`spatial-bivariate.md`, graph section). The defaults assume µm
   and a cell diameter of about 20 µm; if coordinates are pixels, convert them or scale the radii.
   The `radius` column is the inner edge of each annulus; the first annulus starts at 0.
 - `min_cells=None` drops cell types making up 1% or less of the cells; pass an integer to override.

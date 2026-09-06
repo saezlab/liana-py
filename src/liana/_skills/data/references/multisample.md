@@ -24,14 +24,19 @@ Tutorial `targeted`. Needs `decoupler>=2`, `pydeseq2`; causal network needs `cor
 
 ```python
 pdata = dc.pp.pseudobulk(adata, sample_col="sample", groups_col="cell_type", layer="counts", mode="sum")
-# per cell type: pydeseq2 DeseqDataSet(design_factors="condition") -> DeseqStats(...).results_df; concat with a cell_type column
+dea_df = ...  # one pydeseq2 result table per cell type, concatenated, with a "cell_type" column
+adata_cond = adata[adata.obs["condition"] == "treated"]                 # cells of the contrast's condition of interest
 lr = li.mt.df_to_lr(adata_cond, dea_df, groupby="cell_type", stat_keys=["stat", "pvalue", "padj"], complex_col="stat")
 li.pl.tileplot(liana_res=lr, fill="stat", label="padj", label_fn=lambda x: "*" if x < 0.05 else "",
                top_n=15, orderby="interaction_stat")
 ```
 
-- `dea_df.index` must be gene names matching `adata.var_names`; `groupby` must be a column of both.
-- `adata_cond` is the subset of cells of the condition of interest, log-normalised.
+- Pseudobulk and DE are not liana's: follow decoupler (`dc.pp.pseudobulk`, `dc.pp.filter_by_expr`)
+  and pydeseq2 (`DeseqDataSet(design="~condition")`, `DeseqStats(contrast=[...])`) docs, running DE
+  per cell type. `layer` must hold raw counts; check `layers` first. With more than two conditions
+  pick one contrast per run and tell the user which.
+- `dea_df` needs the DE statistics as columns (`stat_keys`), gene names as index matching
+  `adata.var_names`, and the `groupby` column; `adata_cond` supplies expression proportions.
 - Output has `ligand_<stat>`, `receptor_<stat>` per stat, and `interaction_<stat>` which is just
   their mean: filter and plot on the ligand and receptor statistics separately.
 - `complex_col` picks the subunit by absolute minimum, so not suitable for p-values.

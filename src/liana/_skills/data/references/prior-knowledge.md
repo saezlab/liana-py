@@ -3,12 +3,11 @@
 Tutorial: `prior_knowledge`.
 
 ```python
-li.rs.show_resources()                       # 17 names, e.g. consensus, mouseconsensus, cellphonedb, cellchatdb
+li.rs.show_resources()                       # e.g. consensus, mouseconsensus, cellphonedb, cellchatdb
 res = li.rs.select_resource("consensus")     # DataFrame with columns ligand, receptor (human symbols)
 ```
 
-`consensus` merges CellPhoneDB, CellChat, ICELLNET, connectomeDB2020 and CellTalkDB. Complex
-subunits are joined by `_`. Every method takes `resource_name=`, `resource=` (any DataFrame with
+`consensus` merges CellPhoneDB, CellChat, ICELLNET, connectomeDB2020 and CellTalkDB. Every method takes `resource_name=`, `resource=` (any DataFrame with
 `ligand` and `receptor` columns) or `interactions=[("L", "R"), ...]`, which overrides the others.
 
 ## Other organisms
