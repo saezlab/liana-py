@@ -105,7 +105,7 @@ def df_to_lr(
     if not np.any(adata.var_names.isin(dea_df.index)):
         raise ValueError("index of dea_df must match adata.var_names")
     if len(np.intersect1d(adata.obs[groupby].unique(), dea_df[groupby].unique())) == 0:
-        raise AssertionError("`groupby` intersect between `dea_df` and `adata` is 0. Please check `groupby`.")
+        raise ValueError("`groupby` intersect between `dea_df` and `adata` is 0. Please check `groupby`.")
 
     resource = _handle_resource(
         interactions=interactions, resource=resource, resource_name=resource_name, verbose=verbose

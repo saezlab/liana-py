@@ -40,6 +40,9 @@ from liana.method.sp._lric_helpers import get_lric_auc, get_lric_divergence
 _methods = [cellphonedb, connectome, logfc, natmi, singlecellsignalr]
 rank_aggregate = AggregateClass(aggregate_meta, methods=_methods)
 
+_all_methods: list[_Method | AggregateClass] = [*_methods, rank_aggregate, geometric_mean, scseqcomm, cellchat]
+"""Every method liana ships, in the order :func:`show_methods` lists them."""
+
 
 def show_methods() -> DataFrame:
     """
@@ -58,7 +61,7 @@ def show_methods() -> DataFrame:
     >>> import liana as li
     >>> methods = li.mt.show_methods()
     """
-    return _show_methods(_methods + [rank_aggregate, geometric_mean, scseqcomm, cellchat])
+    return _show_methods(_all_methods)
 
 
 def get_method_scores() -> dict[str, bool | None]:
@@ -78,14 +81,11 @@ def get_method_scores() -> dict[str, bool | None]:
     >>> import liana as li
     >>> scores = li.mt.get_method_scores()
     """
-    alive = [ref() for ref in _MethodMeta.instances]
-    instances = [instance for instance in alive if isinstance(instance, _Method | AggregateClass)]
-
     specificity_scores = {
-        method.specificity: method.specificity_ascending for method in instances if method.specificity is not None
+        method.specificity: method.specificity_ascending for method in _all_methods if method.specificity is not None
     }
     magnitude_scores = {
-        method.magnitude: method.magnitude_ascending for method in instances if method.magnitude is not None
+        method.magnitude: method.magnitude_ascending for method in _all_methods if method.magnitude is not None
     }
 
     scores = {**specificity_scores, **magnitude_scores}

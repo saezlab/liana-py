@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import warnings as warnings
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -486,7 +486,7 @@ def _remove_mod_var(
         negative_markers = [marker for mod in markers.keys() if mod != current_mod for marker in markers[mod]]
 
         if current_mod not in list(markers.keys()):
-            warnings.warn(f"no markers in dict for view: {current_mod}", Warning, stacklevel=2)
+            warnings.warn(f"no markers in dict for view: {current_mod}", UserWarning, stacklevel=2)
         else:
             # keep negative_markers not in markers[current_mod] and add view_sep
             negative_markers = [

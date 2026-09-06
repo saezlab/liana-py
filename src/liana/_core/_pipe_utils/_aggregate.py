@@ -100,7 +100,8 @@ def _rank_aggregate(
     -------
     An array of values /w length of lr_res.shape[0]
     """
-    assert aggregate_method in ["rra", "mean"]
+    if aggregate_method not in ("rra", "mean"):
+        raise ValueError(f"`aggregate_method` must be 'rra' or 'mean', got {aggregate_method!r}.")
 
     # Convert specs columns to ranks
     for spec in specs:

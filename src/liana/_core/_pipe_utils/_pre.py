@@ -309,7 +309,7 @@ def _choose_mtx_rep(
 def _check_groupby(adata: AnnData, groupby: str, verbose: bool) -> None:
     obs = get_obs(adata)
     if groupby not in obs.columns:
-        raise AssertionError(f"`{groupby}` not found in `adata.obs.columns`.")
+        raise KeyError(f"`{groupby}` not found in `adata.obs.columns`.")
     if not obs[groupby].dtype.name == "category":
         _logg(f"Converting `{groupby}` to categorical!", level="warn", verbose=verbose)
         obs[groupby] = obs[groupby].astype("category")

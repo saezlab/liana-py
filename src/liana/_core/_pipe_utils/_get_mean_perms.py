@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Iterator, Sequence
-from contextlib import contextmanager, nullcontext
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
 from typing import TYPE_CHECKING, Literal
 
 import numba as nb
 import numpy as np
 import pandas as pd
 from fast_array_utils.types import CSBase
-from joblib import Parallel, delayed
 from numpy.typing import NDArray
 from scipy.sparse import csr_array, csr_matrix
 from tqdm import tqdm
@@ -52,9 +51,6 @@ def _trimean(a: CSBase, axis: int = 0) -> NDArray[np.floating]:
     quantiles = np.quantile(dense, q=[0.25, 0.75], axis=axis)
     median = np.median(dense, axis=axis)
     return np.asarray((quantiles[0] + 2 * median + quantiles[1]) / 4)
-
-
-_AGG_FNS: dict[Aggregation, _AggFn] = {"mean": np.mean, "trimean": _trimean}
 
 
 @contextmanager
@@ -139,33 +135,47 @@ def _lerp(a: float, b: float, t: float) -> float:
 
 
 @nb.njit(cache=True)
-def _sparse_quantile(values: NDArray[np.floating], n_zeros: int, n_total: int, q: float) -> float:
-    """Take the ``q``-th quantile of ``n_zeros`` zeros followed by the ascending ``values``.
+def _at(values: NDArray[np.floating], n_below: int, n_zeros: int, index: int) -> np.float32:
+    """Read position ``index`` of the ascending ``values`` with ``n_zeros`` zeros spliced in after ``n_below``.
 
-    A column of a sparse group is exactly that: its stored entries, plus one zero for every row that stored nothing.
-    Sorting only the stored entries makes the cost proportional to the non-zeros rather than to the number of cells.
+    A column of a sparse group is its stored entries plus one zero for every row that stored nothing.
+    Sorting the stored entries and inserting the zeros at the position they belong -- after the ``n_below`` that are negative -- makes the cost proportional to the non-zeros rather than to the number of cells, for expression matrices that are non-negative and for those that are not.
     """
+    if index < n_below:
+        return np.float32(values[index])
+    if index < n_below + n_zeros:
+        return np.float32(0.0)
+    return np.float32(values[index - n_zeros])
+
+
+@nb.njit(cache=True)
+def _sparse_quantile(values: NDArray[np.floating], n_below: int, n_zeros: int, n_total: int, q: float) -> float:
+    """Take the ``q``-th quantile of the column ``_at`` describes."""
     pos = q * (n_total - 1)
     lo = int(np.floor(pos))
     hi = lo + 1 if lo + 1 < n_total else n_total - 1
-    a = np.float64(0.0) if lo < n_zeros else np.float64(values[lo - n_zeros])
-    b = np.float64(0.0) if hi < n_zeros else np.float64(values[hi - n_zeros])
+    a = np.float64(_at(values, n_below, n_zeros, lo))
+    b = np.float64(_at(values, n_below, n_zeros, hi))
     return _lerp(a, b, pos - lo)
 
 
 @nb.njit(cache=True)
 def _sparse_trimean(values: NDArray[np.floating], n_zeros: int, n_total: int) -> float:
-    """Take Tukey's trimean of ``n_zeros`` zeros followed by the ascending ``values``."""
+    """Take Tukey's trimean of the column ``_at`` describes."""
+    n_below = 0
+    while n_below < values.size and values[n_below] < 0.0:
+        n_below += 1
+
     half = n_total // 2
     if n_total % 2 == 1:
-        median = np.float32(0.0) if half < n_zeros else values[half - n_zeros]
+        median = _at(values, n_below, n_zeros, half)
     else:
-        lower = np.float32(0.0) if half - 1 < n_zeros else values[half - 1 - n_zeros]
-        upper = np.float32(0.0) if half < n_zeros else values[half - n_zeros]
+        lower = _at(values, n_below, n_zeros, half - 1)
+        upper = _at(values, n_below, n_zeros, half)
         median = np.float32((lower + upper) / np.float32(2.0))
 
-    q25 = _sparse_quantile(values, n_zeros, n_total, 0.25)
-    q75 = _sparse_quantile(values, n_zeros, n_total, 0.75)
+    q25 = _sparse_quantile(values, n_below, n_zeros, n_total, 0.25)
+    q75 = _sparse_quantile(values, n_below, n_zeros, n_total, 0.75)
 
     return (q25 + 2 * np.float64(median) + q75) / 4
 
@@ -249,20 +259,6 @@ def _perm_group_trimeans(
     return trimeans
 
 
-def _permute_and_aggregate(
-    perm_indices: NDArray[np.integer],
-    X: MatrixLike,
-    label_rows: Sequence[NDArray[np.integer]],
-    agg_fn: _AggFn,
-) -> NDArray[np.floating]:
-    """Aggregate ``X`` per label under each permutation in ``perm_indices``.
-
-    The fallback for aggregations that are not a plain mean, and so have no closed-form accumulation.
-    Rows are gathered per label rather than by permuting the whole matrix, which selects the same rows in the same order at a fraction of the cost.
-    """
-    return np.array([[agg_fn(X[perm_idx[rows]], axis=0) for rows in label_rows] for perm_idx in perm_indices])
-
-
 def _chunk_permutations(
     rng: np.random.Generator,
     n_obs: int,
@@ -299,44 +295,31 @@ def _generate_perms_cube(
     label_rows = [np.flatnonzero(labels_mask[:, label]) for label in range(n_labels)]
     counts = np.array([rows.size for rows in label_rows])
 
-    csr = X if isinstance(X, csr_matrix | csr_array) else None
-    compiled = csr is not None and _kernel_applies(csr, aggregation)
+    csr = _as_csr(X)
+    data, indices, indptr = _csr_buffers(csr)
 
     n_chunks = max(1, min(n_perms, -(-n_perms * X.shape[0] // _MAX_PERM_INDEX_ELEMENTS)))
-    if not compiled and n_jobs != 1:
-        n_chunks = max(n_chunks, min(n_perms, 4 * n_jobs))
     chunks = _chunk_permutations(rng, X.shape[0], n_perms, n_chunks)
 
     results: Iterable[NDArray[np.floating]]
-    if csr is not None and compiled:
-        data, indices, indptr = _csr_buffers(csr)
-        if aggregation == "mean":
-            label_of_row = np.argmax(labels_mask, axis=1).astype(np.int64)
-            divisor = counts[None, :, None].astype(np.float64)
-            results = (
-                _perm_group_sums(data, indices, indptr, perm_indices, label_of_row, n_labels, n_genes) / divisor
-                for perm_indices in chunks
-            )
-        else:
-            order = np.concatenate(label_rows).astype(np.int64)
-            label_ptr = np.concatenate([[0], np.cumsum(counts)]).astype(np.int64)
-            results = (
-                _perm_group_trimeans(data, indices, indptr, perm_indices, order, label_ptr, n_genes)
-                for perm_indices in chunks
-            )
-    elif n_jobs == 1:
+    if aggregation == "mean":
+        label_of_row = np.argmax(labels_mask, axis=1).astype(np.int64)
+        divisor = counts[None, :, None].astype(np.float64)
         results = (
-            _permute_and_aggregate(perm_indices, X, label_rows, _AGG_FNS[aggregation]) for perm_indices in chunks
+            _perm_group_sums(data, indices, indptr, perm_indices, label_of_row, n_labels, n_genes) / divisor
+            for perm_indices in chunks
         )
     else:
-        results = Parallel(n_jobs=n_jobs, prefer="threads", return_as="generator")(
-            delayed(_permute_and_aggregate)(perm_indices, X, label_rows, _AGG_FNS[aggregation])
+        order = np.concatenate(label_rows).astype(np.int64)
+        label_ptr = np.concatenate([[0], np.cumsum(counts)]).astype(np.int64)
+        results = (
+            _perm_group_trimeans(data, indices, indptr, perm_indices, order, label_ptr, n_genes)
             for perm_indices in chunks
         )
 
     perms = np.zeros((n_perms, n_labels, n_genes))
     offset = 0
-    with _numba_threads(n_jobs) if compiled else nullcontext(), tqdm(total=n_perms, disable=not verbose) as bar:
+    with _numba_threads(n_jobs), tqdm(total=n_perms, disable=not verbose) as bar:
         for chunk_means in results:
             n_chunk = chunk_means.shape[0]
             perms[offset : offset + n_chunk] = np.reshape(chunk_means, (n_chunk, n_labels, n_genes))
@@ -351,12 +334,11 @@ def _csr_buffers(X: csr_matrix | csr_array) -> tuple[NDArray[np.floating], NDArr
     return np.asarray(X.data), np.asarray(X.indices), np.asarray(X.indptr)
 
 
-def _kernel_applies(X: csr_matrix | csr_array, aggregation: Aggregation) -> bool:
-    """Say whether the compiled kernel for ``aggregation`` may be used on ``X``.
-
-    The trimean kernel treats every row that stored nothing for a gene as a zero that sorts below the stored entries, which a negative entry would violate.
-    """
-    return not (aggregation == "trimean" and X.data.size and np.asarray(X.data).min() < 0)
+def _as_csr(X: MatrixLike) -> csr_matrix | csr_array:
+    """Narrow ``X`` to CSR, which the kernels read the buffers of directly."""
+    if not isinstance(X, csr_matrix | csr_array):
+        raise TypeError(f"expected a CSR expression matrix, got {type(X).__name__}.")
+    return X
 
 
 def _index_of(index: pd.Index, values: pd.Series, what: str) -> NDArray[np.intp]:

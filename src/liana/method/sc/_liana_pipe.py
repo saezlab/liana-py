@@ -519,7 +519,7 @@ def _get_lr(
 
     # check if genes are ordered correctly
     if not list(adata.var_names) == list(dedict[labels[0]]["names"]):
-        raise AssertionError("Variable names did not match DE results!")
+        raise RuntimeError("Variable names did not match DE results!")
 
     # Calculate Mean, logFC and z-scores by group
     for label in labels:
@@ -548,7 +548,6 @@ def _get_lr(
     )
 
     if M.mat_mean in relevant_cols:
-        assert isinstance(mat_mean, np.float32)
         lr_res[M.mat_mean] = mat_mean
 
     # NOTE: this is not needed
